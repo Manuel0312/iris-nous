@@ -14,4 +14,5 @@ Il piano free può “addormentarsi” dopo inattività (~15 min): al primo clic
 - `BCI_IOT_HTTPS=1`
 - `BCI_IOT_DATA_DIR=/data`
 
-Nota: senza disco persistente (free), i dati utente possono resettarsi al redeploy.
+## Spotify (musica sul telefono)
+Vedi `docs/SPOTIFY.md`. Serve Spotify Premium + app su [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard).

@@ -382,7 +382,11 @@ def create_app(
         if profile is None:
             _log_access(request, username=username.strip(), event="login_fail", access=access)
             if profiles.username_exists_active(username.strip()):
-                _flash(request, "Password non corretta", kind="error")
+                _flash(
+                    request,
+                    "Password non corretta. Puoi recuperarla da «Password dimenticata?».",
+                    kind="error",
+                )
             else:
                 _flash(request, "Utente e/o password errato", kind="error")
             return _continue(
@@ -410,6 +414,51 @@ def create_app(
             next_url=dest,
             message="Accesso riuscito, un momento...",
         )
+
+    @app.get("/recupera-password", response_class=HTMLResponse)
+    def recover_password_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> HTMLResponse:
+        username = _session_username(request)
+        if username:
+            profile = profiles.get(username)
+            if profile is not None:
+                return RedirectResponse(_post_auth_destination(profile), status_code=303)
+        return TEMPLATES.TemplateResponse(
+            request,
+            "recupera_password.html",
+            _template_ctx(request, profiles),
+        )
+
+    @app.post("/recupera-password")
+    def recover_password_submit(
+        request: Request,
+        username: str = Form(...),
+        first_name: str = Form(...),
+        last_name: str = Form(...),
+        new_password: str = Form(...),
+        new_password2: str = Form(...),
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> RedirectResponse:
+        if new_password != new_password2:
+            _flash(request, "Le nuove password non coincidono.", kind="error")
+            return RedirectResponse("/recupera-password", status_code=303)
+        try:
+            profile = profiles.reset_password_by_identity(
+                username,
+                first_name=first_name,
+                last_name=last_name,
+                new_password=new_password,
+            )
+        except ValueError as exc:
+            _flash(request, str(exc), kind="error")
+            return RedirectResponse("/recupera-password", status_code=303)
+        _log_access(request, username=profile.username, event="password_reset", access=access)
+        _flash(request, "Password aggiornata. Ora puoi accedere.", kind="ok")
+        return RedirectResponse("/login", status_code=303)
+
     @app.get("/anagrafica", response_class=HTMLResponse)
     def anagrafica_page(
         request: Request,

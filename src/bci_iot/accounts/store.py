@@ -269,6 +269,34 @@ class ProfileStore:
         self.save(profile)
         return profile
 
+    def reset_password_by_identity(
+        self,
+        username: str,
+        *,
+        first_name: str,
+        last_name: str,
+        new_password: str,
+    ) -> UserProfile:
+        """Reset password after verifying anagrafica (no email required)."""
+        profile = self.get(username.strip())
+        if profile is None or profile.deleted_at:
+            raise ValueError("Account non trovato.")
+        if not profile.anagrafica_complete:
+            raise ValueError(
+                "Anagrafica incompleta: non posso verificare l'identità. "
+                "Contatta l'amministratore."
+            )
+        if first_name.strip().casefold() != profile.first_name.strip().casefold():
+            raise ValueError("Dati non corrispondenti. Controlla nome e cognome.")
+        if last_name.strip().casefold() != profile.last_name.strip().casefold():
+            raise ValueError("Dati non corrispondenti. Controlla nome e cognome.")
+        check = password_strength(new_password)
+        if not check.ok:
+            raise ValueError(check.message)
+        profile.password_hash = hash_password(new_password)
+        self.save(profile)
+        return profile
+
     def touch_last_seen(self, username: str) -> None:
         profile = self.get(username)
         if profile is None:

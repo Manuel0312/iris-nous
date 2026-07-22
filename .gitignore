@@ -27,6 +27,8 @@ Thumbs.db
 
 # Secrets & local data
 .env
+.env.*
+!.env.example
 *.pem
 data/raw/
 data/processed/
@@ -43,6 +45,8 @@ results/
 
 # Local tooling / deploy helpers
 .tools/
+APRI_SPOTIFY.html
+METTI_CHIAVI_RENDER.html
 
 # Notebooks checkpoints
 .ipynb_checkpoints/
