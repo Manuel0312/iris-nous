@@ -1,12 +1,12 @@
 ﻿{% extends "base.html" %}
-{% block title %}Calibrazione cuffia · Iris{% endblock %}
+{% block title %}{{ t('Calibrazione') }} · Iris{% endblock %}
 {% block body_class %}page-private{% endblock %}
 {% block main_class %}shell private-shell{% endblock %}
 {% block content %}
 <section class="private-area" id="calib-root" data-done="{{ '1' if done else '0' }}">
   <header class="private-welcome">
-    <p class="eyebrow">Calibrazione</p>
-    <h1>Associa colore e segnale</h1>
+    <p class="eyebrow">{{ t('Calibrazione') }}</p>
+    <h1>{{ t('Calibrazione') }}</h1>
     <p class="lede">
       Non parole infinite: quattro immagini mentali (colori / cartelle).
       Tocca un colore, pensalo, la cuffia (simulata) registra il segnale.
