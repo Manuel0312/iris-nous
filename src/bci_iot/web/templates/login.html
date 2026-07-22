@@ -1,0 +1,29 @@
+﻿{% extends "base.html" %}
+{% block title %}Login · Iris{% endblock %}
+{% block body_class %}page-auth{% endblock %}
+{% block content %}
+<section class="auth-panel">
+  <h1>Login</h1>
+  <p class="lede">Accedi alla tua area Iris.</p>
+  <form method="post" action="/login" class="stack" id="login-form" autocomplete="on">
+    <label>Username
+      <input name="username" autocomplete="username" required maxlength="64" autocapitalize="none" autocorrect="off" spellcheck="false" />
+    </label>
+    <label>Password
+      <div class="password-field">
+        <input id="login-password" name="password" type="password" autocomplete="current-password" required minlength="6" />
+        <button type="button" class="password-toggle" data-toggle-password="login-password" title="Passa il mouse per vedere la password (su telefono: tocca)" aria-label="Mostra password" aria-pressed="false">
+          <span class="eye-show" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+          <span class="eye-hide" aria-hidden="true" hidden>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l18 18"/><path d="M10.6 10.6a2.5 2.5 0 0 0 3.5 3.5"/><path d="M7 7.2C4.7 8.7 3 12 3 12s3.5 7 10 7a11 11 0 0 0 5-1.2"/><path d="M14.1 5.2A11 11 0 0 1 13 5c-6.5 0-10 7-10 7a18 18 0 0 0 2.2 3.1"/></svg>
+          </span>
+        </button>
+      </div>
+    </label>
+    <button class="btn primary" type="submit" id="login-submit">Entra</button>
+  </form>
+  <p class="muted auth-switch">Non hai un account? <a href="/register">Iscriviti</a></p>
+</section>
+{% endblock %}

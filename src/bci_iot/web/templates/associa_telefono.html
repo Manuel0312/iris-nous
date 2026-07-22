@@ -1,0 +1,48 @@
+﻿{% extends "base.html" %}
+{% block title %}Associa telefono · Iris{% endblock %}
+{% block body_class %}page-private{% endblock %}
+{% block main_class %}shell private-shell{% endblock %}
+{% block content %}
+<section class="private-area">
+  <header class="private-welcome">
+    <p class="eyebrow">Associazione</p>
+    <h1>Telefono ↔ cuffia</h1>
+    <p class="lede">
+      Stesso account su PC e telefono (stessa Wi‑Fi, sito sul PC).
+      Sul PC leggi il codice in <a href="/calibrazione">Calibrazione</a>,
+      qui sul telefono lo digiti per confermare.
+    </p>
+  </header>
+
+  <div class="private-form private-form-fit stack">
+    <div class="form-block">
+      <h2>Stato</h2>
+      <p class="form-hint">
+        Cuffia: <strong>{{ profile.headset_id or "—" }}</strong><br />
+        Telefono in anagrafica: <strong>{{ profile.phone_label or "—" }}</strong><br />
+        Account: <strong>{{ profile.username }}</strong>
+      </p>
+      {% if profile.phone_paired %}
+      <p class="flash ok">Telefono già associato a questa cuffia.</p>
+      <div class="private-actions">
+        <a class="btn primary" href="/dashboard">Torna alla cuffia</a>
+      </div>
+      {% else %}
+      <p class="pair-box">
+        <span>Codice da usare (copia dal PC se sei sul telefono)</span>
+        <strong class="pair-code">{{ profile.pairing_code }}</strong>
+      </p>
+      <p class="form-hint">
+        Sul telefono: inserisci sotto lo stesso codice a 6 cifre, poi Associa.
+      </p>
+      <form method="post" action="/associa-telefono" class="stack">
+        <label>Codice di 6 cifre
+          <input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required placeholder="000000" autocomplete="one-time-code" />
+        </label>
+        <button class="btn primary" type="submit">Associa telefono</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

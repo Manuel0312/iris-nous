@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="Conferma breve e azione sulla casa">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#17211c"/>
+      <stop offset="100%" stop-color="#0e1512"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="400" fill="url(#bg3)"/>
+  <rect x="70" y="130" width="220" height="140" rx="20" fill="#1c2a24" stroke="#3dba8a" stroke-width="2"/>
+  <text x="180" y="185" text-anchor="middle" fill="#9bb0a4" font-family="Segoe UI, sans-serif" font-size="14">Conferma breve</text>
+  <text x="180" y="220" text-anchor="middle" fill="#eaf3ee" font-family="Segoe UI, sans-serif" font-size="28" font-weight="700">S� / NO</text>
+  <path d="M310 200 H390" stroke="#3dba8a" stroke-width="4" marker-end="url(#arrow)"/>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#3dba8a"/>
+    </marker>
+  </defs>
+  <rect x="400" y="120" width="170" height="160" rx="18" fill="#1c2a24" stroke="#6ecfad" stroke-width="2"/>
+  <rect x="430" y="155" width="40" height="28" rx="4" fill="#3dba8a" opacity="0.85"/>
+  <rect x="490" y="155" width="50" height="70" rx="6" fill="#24352d"/>
+  <circle cx="455" cy="220" r="18" fill="#24352d" stroke="#9bb0a4"/>
+  <text x="485" y="255" text-anchor="middle" fill="#eaf3ee" font-family="Segoe UI, sans-serif" font-size="14" font-weight="700">Casa / media</text>
+  <text x="40" y="48" fill="#eaf3ee" font-family="Segoe UI, sans-serif" font-size="22" font-weight="700">3 � Azione</text>
+  <text x="40" y="78" fill="#9bb0a4" font-family="Segoe UI, sans-serif" font-size="15">Se serve, una conferma corta; poi il comando parte.</text>
+</svg>

@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Secrets & local data
+.env
+*.pem
+data/raw/
+data/processed/
+data/profiles/
+data/*.db
+data/photos/
+data/profiles_deleted/
+data/_t/
+models/*.pt
+models/*.pkl
+!models/.gitkeep
+results/
+
+# Local tooling / deploy helpers
+.tools/
+
+# Notebooks checkpoints
+.ipynb_checkpoints/

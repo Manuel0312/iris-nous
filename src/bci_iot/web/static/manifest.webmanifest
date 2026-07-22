@@ -1,0 +1,18 @@
+﻿{
+  "name": "VoilÃ ",
+  "short_name": "VoilÃ ",
+  "description": "VoilÃ  â€” configurazione cuffia e area privata multi-dispositivo",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f5f7",
+  "theme_color": "#f5f5f7",
+  "lang": "it",
+  "icons": [
+    {
+      "src": "/static/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

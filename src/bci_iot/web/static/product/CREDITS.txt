@@ -1,0 +1,6 @@
+Foto placeholder in static/product/ (sostituire con scatti del prodotto):
+
+- headset.jpg, phone.jpg, home.jpg, music.jpg, connect.jpg — home storytelling (Unsplash)
+- calm-bg.jpg, calm-side.jpg — area privata / atmosfere rilassanti (Unsplash)
+
+Fonte: https://unsplash.com

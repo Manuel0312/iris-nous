@@ -1,0 +1,99 @@
+﻿{% extends "base.html" %}
+{% block title %}Pannello admin · Iris{% endblock %}
+{% block body_class %}page-private{% endblock %}
+{% block main_class %}shell wide{% endblock %}
+{% block content %}
+<section class="dash admin-dash">
+  <h1>Pannello amministratore</h1>
+  <p class="lede">
+    Solo dati database: persone, accessi e statistiche.
+    Nessuna associazione cuffia in quest’area.
+  </p>
+
+  <div class="card-grid stats-grid reveal" data-reveal>
+    <div class="panel stat-card">
+      <div class="device-label">Online ora</div>
+      <p class="stat-num">{{ stats.online }}</p>
+    </div>
+    <div class="panel stat-card">
+      <div class="device-label">Iscritti attivi</div>
+      <p class="stat-num">{{ stats.registered }}</p>
+    </div>
+    <div class="panel stat-card">
+      <div class="device-label">Account cancellati</div>
+      <p class="stat-num">{{ stats.deleted_accounts }}</p>
+    </div>
+    <div class="panel stat-card">
+      <div class="device-label">Eventi totali</div>
+      <p class="stat-num">{{ stats.total }}</p>
+    </div>
+  </div>
+
+  <form class="admin-filters panel reveal" data-reveal method="get" action="/accessi">
+    <h2>Persone</h2>
+    <div class="filter-search">
+      <label for="admin-q">Cerca (nome / cognome)</label>
+      <input id="admin-q" name="q" value="{{ filters.q }}" placeholder="es. Maria Rossi" />
+    </div>
+    <div class="filter-meta">
+      <label>Dal
+        <input type="date" name="from" value="{{ filters.from }}" />
+      </label>
+      <label>Al
+        <input type="date" name="to" value="{{ filters.to }}" />
+      </label>
+      <label>Ordina
+        <select name="sort">
+          <option value="name_asc" {% if filters.sort == 'name_asc' %}selected{% endif %}>Nome A→Z</option>
+          <option value="name_desc" {% if filters.sort == 'name_desc' %}selected{% endif %}>Nome Z→A</option>
+          <option value="accesses_desc" {% if filters.sort == 'accesses_desc' %}selected{% endif %}>Accessi ↓</option>
+          <option value="accesses_asc" {% if filters.sort == 'accesses_asc' %}selected{% endif %}>Accessi ↑</option>
+          <option value="last_desc" {% if filters.sort == 'last_desc' %}selected{% endif %}>Ultimo accesso ↓</option>
+          <option value="last_asc" {% if filters.sort == 'last_asc' %}selected{% endif %}>Ultimo accesso ↑</option>
+        </select>
+      </label>
+      <label>Stato
+        <select name="status">
+          <option value="active" {% if filters.status == 'active' %}selected{% endif %}>Attivi</option>
+          <option value="deleted" {% if filters.status == 'deleted' %}selected{% endif %}>Cancellati</option>
+          <option value="all" {% if filters.status == 'all' %}selected{% endif %}>Tutti</option>
+        </select>
+      </label>
+    </div>
+    <button class="btn primary" type="submit">Applica filtri</button>
+  </form>
+
+  <div class="panel table-wrap reveal" data-reveal>
+    {% if people %}
+    <table class="access-table people-table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Cognome</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in people %}
+        <tr>
+          <td>
+            <a class="person-link" href="/accessi/utente/{{ p.username }}">
+              {{ p.first_name or "—" }}
+            </a>
+          </td>
+          <td>
+            <a class="person-link" href="/accessi/utente/{{ p.username }}">
+              {{ p.last_name or "—" }}
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted">Nessuna persona trovata con questi filtri.</p>
+    {% endif %}
+  </div>
+
+  <p class="muted">File database: <code>{{ db_path }}</code></p>
+</section>
+{% endblock %}

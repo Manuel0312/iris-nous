@@ -1,0 +1,106 @@
+﻿{% extends "base.html" %}
+{% block title %}Cartelle · Iris{% endblock %}
+{% block body_class %}page-private{% endblock %}
+{% block main_class %}shell wide{% endblock %}
+{% block content %}
+<section class="private-area">
+  <header class="private-welcome">
+    <p class="eyebrow">Macro-sezioni</p>
+    <h1>4 colori, poi l’app</h1>
+    <p class="lede">
+      Non un dizionario infinito: pensi un colore, apri una cartella,
+      scegli l’app, conferma SÌ/NO. Simulazione software (dry-run).
+    </p>
+  </header>
+
+  <div class="folder-grid" id="folder-grid"></div>
+
+  <div class="panel folder-status">
+    <div class="device-label">Stato</div>
+    <p class="question-text" id="folder-message">…</p>
+    <p class="muted" id="folder-phase"></p>
+  </div>
+
+  <div class="panel" id="app-panel" hidden>
+    <div class="device-label">App nella cartella</div>
+    <ul class="app-list" id="app-list"></ul>
+  </div>
+
+  <div class="btn-grid folder-controls">
+    <button type="button" class="btn" data-cmd="NEXT">Avanti</button>
+    <button type="button" class="btn" data-cmd="PREV">Indietro</button>
+    <button type="button" class="btn primary" data-cmd="APRI">Apri</button>
+    <button type="button" class="btn" data-cmd="SI">SÌ</button>
+    <button type="button" class="btn" data-cmd="NO">NO</button>
+    <button type="button" class="btn ghost" data-cmd="CHIUDI">Chiudi</button>
+  </div>
+</section>
+
+<script>
+(async function () {
+  const grid = document.getElementById("folder-grid");
+  const msg = document.getElementById("folder-message");
+  const phase = document.getElementById("folder-phase");
+  const appPanel = document.getElementById("app-panel");
+  const appList = document.getElementById("app-list");
+
+  function render(data) {
+    msg.textContent = data.message;
+    phase.textContent = "Fase: " + data.phase + (data.last_opened ? " · Ultima: " + data.last_opened : "");
+
+    if (!grid.dataset.ready) {
+      data.folders.forEach((f) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "folder-tile";
+        btn.style.setProperty("--folder-color", f.color);
+        btn.innerHTML = "<strong>" + f.label + "</strong><span>" + f.color_name + "</span><small>" + f.apps.join(" · ") + "</small>";
+        btn.addEventListener("click", () => fire(f.id === "video" ? "ROSSO" : f.id === "chat" ? "VERDE" : f.id === "social" ? "BLU" : "GIALLO"));
+        grid.appendChild(btn);
+      });
+      grid.dataset.ready = "1";
+    }
+
+    document.querySelectorAll(".folder-tile").forEach((tile, i) => {
+      const f = data.folders[i];
+      tile.classList.toggle("is-active", data.active_folder === f.id);
+    });
+
+    if (data.phase === "idle" || !data.apps || !data.apps.length) {
+      appPanel.hidden = true;
+      return;
+    }
+    appPanel.hidden = false;
+    appList.innerHTML = "";
+    data.apps.forEach((app, idx) => {
+      const li = document.createElement("li");
+      li.textContent = app.name;
+      if (idx === data.cursor) li.classList.add("is-cursor");
+      if (data.pending_app_id === app.id) li.classList.add("is-pending");
+      appList.appendChild(li);
+    });
+  }
+
+  async function fire(cmd) {
+    const res = await fetch("/api/folders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ command: cmd }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      msg.textContent = data.detail || "Errore";
+      return;
+    }
+    render(data);
+  }
+
+  document.querySelectorAll("[data-cmd]").forEach((btn) => {
+    btn.addEventListener("click", () => fire(btn.getAttribute("data-cmd")));
+  });
+
+  const boot = await fetch("/api/folders/status");
+  render(await boot.json());
+})();
+</script>
+{% endblock %}

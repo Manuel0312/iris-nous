@@ -1,0 +1,94 @@
+﻿{% extends "base.html" %}
+{% block title %}La mia cuffia · Iris{% endblock %}
+{% block body_class %}page-private{% endblock %}
+{% block main_class %}shell private-shell{% endblock %}
+{% block content %}
+<section class="private-area dash-home">
+  <header class="private-welcome">
+    <p class="eyebrow">Area privata</p>
+    <h1>{{ hello }}</h1>
+    <p class="lede">Stato cuffia, attività e utilizzo. Il quotidiano resta invisibile — qui vedi solo il quadro.</p>
+  </header>
+
+  <div class="dash-hero panel reveal" data-reveal>
+    {% if profile.photo_filename %}
+    <img class="avatar" src="/media/photos/{{ profile.photo_filename }}" alt="La tua foto" width="88" height="88" />
+    {% else %}
+    <div class="avatar avatar-fallback" aria-hidden="true">{{ (profile.first_name or profile.username)[0]|upper }}</div>
+    {% endif %}
+    <div>
+      <p class="device-label">Cuffia</p>
+      <h2 class="headset-name">{{ profile.headset_id or "Cuffia non nominata" }}</h2>
+      <p class="assoc-pill {% if profile.phone_paired %}is-on{% endif %}">
+        {% if profile.phone_paired %}Associata{% else %}Non associata in questo momento{% endif %}
+      </p>
+    </div>
+  </div>
+
+  <div class="icon-rail reveal" data-reveal>
+    <a class="icon-tile" href="/anagrafica?edit=1">
+      <span class="icon-glyph">◎</span>
+      <strong>Dati</strong>
+      <small>Anagrafica e foto</small>
+    </a>
+    <a class="icon-tile" href="/calibrazione">
+      <span class="icon-glyph">◈</span>
+      <strong>Calibrazione</strong>
+      <small>Colori / segnale</small>
+    </a>
+    <a class="icon-tile" href="/associa-telefono">
+      <span class="icon-glyph">◉</span>
+      <strong>Associazione</strong>
+      <small>Telefono ↔ cuffia</small>
+    </a>
+    <a class="icon-tile" href="/cambia-password">
+      <span class="icon-glyph">✦</span>
+      <strong>Password</strong>
+      <small>Sicurezza account</small>
+    </a>
+  </div>
+
+  <div class="card-grid stats-grid reveal" data-reveal>
+    <div class="panel">
+      <div class="device-label">Funzionamento</div>
+      <p class="stat-num">{{ "OK" if profile.calibration_complete else "Setup" }}</p>
+      <p class="muted">Calibrazione {{ "completa" if profile.calibration_complete else "da fare" }}</p>
+    </div>
+    <div class="panel">
+      <div class="device-label">Attività cerebrale (demo)</div>
+      <p class="meter-label">Alpha {{ '%.0f'|format((usage.alpha_avg or 0.4) * 100) }}%</p>
+      <div class="meter-track"><div class="meter-fill" style="width: {{ ((usage.alpha_avg or 0.4) * 100)|int }}%"></div></div>
+      <p class="meter-label">Beta {{ '%.0f'|format((usage.beta_avg or 0.4) * 100) }}%</p>
+      <div class="meter-track"><div class="meter-fill" style="width: {{ ((usage.beta_avg or 0.4) * 100)|int }}%"></div></div>
+    </div>
+    <div class="panel">
+      <div class="device-label">Utilizzo</div>
+      <ul class="detail-list compact">
+        <li><span>Intenti</span><strong>{{ usage.intents_fired or 0 }}</strong></li>
+        <li><span>Sessioni</span><strong>{{ usage.sessions or 0 }}</strong></li>
+        <li><span>Minuti</span><strong>{{ usage.minutes_active or 0 }}</strong></li>
+        <li><span>Ultima attività</span><strong>{{ usage.last_activity or "—" }}</strong></li>
+      </ul>
+    </div>
+  </div>
+
+  <form method="post" action="/dashboard" class="private-form private-form-fit reveal" data-reveal>
+    <div class="form-block">
+      <h2>Impostazioni rapide</h2>
+      <label>Nome cuffia
+        <input name="headset_id" value="{{ profile.headset_id }}" required maxlength="128" />
+      </label>
+      <label>Note
+        <textarea name="notes" rows="2" maxlength="500">{{ profile.notes }}</textarea>
+      </label>
+      <input type="hidden" name="action_focus" value="{{ profile.action_map.get('FOCUS', 'spotify.next_track') }}" />
+      <input type="hidden" name="action_relax" value="{{ profile.action_map.get('RELAX', 'spotify.pause') }}" />
+      <input type="hidden" name="action_accept" value="{{ profile.action_map.get('ACCEPT', 'phone.accept_call') }}" />
+      <input type="hidden" name="action_reject" value="{{ profile.action_map.get('REJECT', 'phone.reject_call') }}" />
+    </div>
+    <div class="private-actions">
+      <button class="btn primary" type="submit">Salva</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

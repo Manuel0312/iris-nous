@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="Cuffia non invasiva e segnale cerebrale">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#17211c"/>
+      <stop offset="100%" stop-color="#0e1512"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="400" fill="url(#bg)"/>
+  <circle cx="220" cy="200" r="78" fill="#1c2a24" stroke="#3dba8a" stroke-width="3"/>
+  <path d="M145 185 Q120 200 145 215" fill="none" stroke="#3dba8a" stroke-width="10" stroke-linecap="round"/>
+  <path d="M295 185 Q320 200 295 215" fill="none" stroke="#3dba8a" stroke-width="10" stroke-linecap="round"/>
+  <path d="M160 150 Q220 110 280 150" fill="none" stroke="#9bb0a4" stroke-width="6" stroke-linecap="round"/>
+  <path d="M360 160 C420 140 480 180 520 150" fill="none" stroke="#3dba8a" stroke-width="3" opacity="0.9"/>
+  <path d="M360 200 C430 190 470 230 520 210" fill="none" stroke="#6ecfad" stroke-width="3" opacity="0.7"/>
+  <path d="M360 240 C410 250 470 220 520 250" fill="none" stroke="#9bb0a4" stroke-width="3" opacity="0.55"/>
+  <circle cx="520" cy="150" r="6" fill="#3dba8a"/>
+  <circle cx="520" cy="210" r="6" fill="#6ecfad"/>
+  <circle cx="520" cy="250" r="6" fill="#9bb0a4"/>
+  <text x="40" y="48" fill="#eaf3ee" font-family="Segoe UI, sans-serif" font-size="22" font-weight="700">1 � Intento</text>
+  <text x="40" y="78" fill="#9bb0a4" font-family="Segoe UI, sans-serif" font-size="15">Pensi un comando semplice (es. ACCENDI).</text>
+</svg>

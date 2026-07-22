@@ -1,0 +1,151 @@
+﻿{% extends "base.html" %}
+{% block title %}Calibrazione cuffia · Iris{% endblock %}
+{% block body_class %}page-private{% endblock %}
+{% block main_class %}shell private-shell{% endblock %}
+{% block content %}
+<section class="private-area" id="calib-root" data-done="{{ '1' if done else '0' }}">
+  <header class="private-welcome">
+    <p class="eyebrow">Calibrazione</p>
+    <h1>Associa colore e segnale</h1>
+    <p class="lede">
+      Non parole infinite: quattro immagini mentali (colori / cartelle).
+      Tocca un colore, pensalo, la cuffia (simulata) registra il segnale.
+      Ripeti ogni colore {{ samples_needed }} volte.
+    </p>
+  </header>
+
+  {% if done %}
+  <div class="private-form calib-done">
+    <h2>Calibrazione avvenuta</h2>
+    <p class="lede">Il tuo modello personale sui 4 colori è pronto. Precisione stimata:
+      <strong>{{ '%.0f'|format(accuracy * 100) if accuracy is not none else '—' }}%</strong>
+    </p>
+    <div class="private-actions">
+      <a class="btn primary" href="/cartelle">Prova le cartelle</a>
+      <a class="btn" href="/dashboard">La mia cuffia</a>
+    </div>
+  </div>
+  {% else %}
+  <div class="private-form private-form-fit calib-layout">
+    <div class="form-block">
+      <h2>1 · Telefono ↔ cuffia</h2>
+      <p class="form-hint">
+        Stesso account su PC e telefono + codice qui sotto.
+      </p>
+      <p class="pair-box">
+        <span>Cuffia</span>
+        <strong>{{ profile.headset_id }}</strong>
+      </p>
+      <p class="pair-box">
+        <span>Codice associazione</span>
+        <strong class="pair-code">{{ profile.pairing_code }}</strong>
+      </p>
+      <p class="muted">Telefono: {{ profile.phone_label or "non indicato" }}
+        · {% if profile.phone_paired %}<strong>associato</strong>{% else %}da confermare{% endif %}
+      </p>
+      <p><a href="/associa-telefono">Associa telefono</a></p>
+    </div>
+
+    <div class="form-block">
+      <h2>2 · Immagini mentali (colori)</h2>
+      <p class="form-hint" id="calib-cue">Tocca un riquadro e immagina quel colore / cartella.</p>
+      <div class="calib-colors" id="calib-colors">
+        {% for c in colours %}
+        <button type="button" class="calib-color-tile" data-word="{{ c.key }}"
+          style="--folder-color: {{ c.color }}" title="{{ c.cue }}">
+          <strong>{{ c.label }}</strong>
+          <span>{{ c.color_name }}</span>
+          <small>{{ c.cue }}</small>
+        </button>
+        {% endfor %}
+      </div>
+      <div class="calib-meter panel" id="calib-meter" hidden>
+        <p class="device-label">Ultima cattura</p>
+        <p id="calib-last" class="calib-last"></p>
+        <div class="meter-track"><div class="meter-fill" id="meter-fill"></div></div>
+      </div>
+      <ul class="calib-progress muted" id="calib-progress">
+        {% for c in colours %}
+        <li data-word="{{ c.key }}">{{ c.color_name }} ({{ c.label }}): 0 / {{ samples_needed }}</li>
+        {% endfor %}
+      </ul>
+      <div class="private-actions">
+        <button type="button" class="btn primary" id="calib-finish" disabled>Termina calibrazione</button>
+      </div>
+      <p class="flash error" id="calib-error" hidden></p>
+    </div>
+  </div>
+  {% endif %}
+</section>
+
+{% if not done %}
+<script>
+(function () {
+  const progressEl = document.getElementById("calib-progress");
+  const meter = document.getElementById("calib-meter");
+  const last = document.getElementById("calib-last");
+  const fill = document.getElementById("meter-fill");
+  const finishBtn = document.getElementById("calib-finish");
+  const err = document.getElementById("calib-error");
+  const cue = document.getElementById("calib-cue");
+  const needed = {{ samples_needed }};
+  const labels = {
+    {% for c in colours %}"{{ c.key }}": "{{ c.color_name }} ({{ c.label }})",{% endfor %}
+  };
+
+  function renderProgress(progress) {
+    progressEl.querySelectorAll("li").forEach((li) => {
+      const w = li.getAttribute("data-word");
+      const n = (progress && progress[w]) || 0;
+      li.textContent = (labels[w] || w) + ": " + n + " / " + needed;
+    });
+    const ready = Object.values(progress || {}).length >= 4 &&
+      Object.values(progress || {}).every((n) => n >= needed);
+    finishBtn.disabled = !ready;
+  }
+
+  document.querySelectorAll(".calib-color-tile").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      err.hidden = true;
+      const word = btn.getAttribute("data-word");
+      const tip = btn.getAttribute("title");
+      if (tip) cue.textContent = tip;
+      try {
+        const res = await fetch("/api/calibrate/capture", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ command: word }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Errore cattura");
+        meter.hidden = false;
+        last.textContent = (data.color_name || data.command) +
+          " → intensità " + data.intensity + " · " + data.intent;
+        fill.style.width = data.intensity + "%";
+        fill.style.background = btn.style.getPropertyValue("--folder-color") || "";
+        renderProgress(data.progress);
+      } catch (e) {
+        err.hidden = false;
+        err.textContent = String(e.message || e);
+      }
+    });
+  });
+
+  finishBtn.addEventListener("click", async () => {
+    err.hidden = true;
+    finishBtn.disabled = true;
+    try {
+      const res = await fetch("/api/calibrate/finish", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Errore salvataggio");
+      location.href = "/calibrazione?done=1&acc=" + encodeURIComponent(data.accuracy);
+    } catch (e) {
+      err.hidden = false;
+      err.textContent = String(e.message || e);
+      finishBtn.disabled = false;
+    }
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

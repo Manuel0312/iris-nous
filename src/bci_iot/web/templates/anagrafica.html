@@ -1,0 +1,80 @@
+﻿{% extends "base.html" %}
+{% block title %}I tuoi dati · Iris{% endblock %}
+{% block body_class %}page-private{% endblock %}
+{% block main_class %}shell private-shell{% endblock %}
+{% block content %}
+<section class="private-area">
+  <header class="private-welcome">
+    <p class="eyebrow">{% if profile.anagrafica_complete %}Profilo{% else %}Passo 2 di 3{% endif %}</p>
+    <h1>I tuoi dati</h1>
+    <p class="lede">
+      Nome e cognome possono essere uguali a quelli di un’altra persona.
+      L’username resta univoco.
+    </p>
+  </header>
+
+  {% if profile.anagrafica_complete %}
+  <div class="panel photo-block reveal" data-reveal>
+    <h2>Foto profilo</h2>
+    {% if profile.photo_filename %}
+    <img class="avatar lg" src="/media/photos/{{ profile.photo_filename }}" alt="Foto profilo" width="120" height="120" />
+    {% endif %}
+    <form method="post" action="/anagrafica/foto" enctype="multipart/form-data" class="stack">
+      <label>Carica foto (JPG / PNG / WebP, max 2.5 MB)
+        <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required />
+      </label>
+      <button class="btn" type="submit">Salva foto</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <form method="post" action="/anagrafica" class="private-form private-form-fit">
+    <div class="cfg-grid">
+      <div class="form-block">
+        <h2>Anagrafica</h2>
+        <label>Nome
+          <input name="first_name" value="{{ profile.first_name }}" required maxlength="64" autocomplete="given-name" />
+        </label>
+        <label>Cognome
+          <input name="last_name" value="{{ profile.last_name }}" maxlength="64" autocomplete="family-name" />
+        </label>
+        <label>Telefono (etichetta)
+          <input name="phone_label" value="{{ profile.phone_label }}" maxlength="64" placeholder="es. iPhone di Maria" autocomplete="off" />
+        </label>
+      </div>
+
+      <div class="form-block">
+        <h2>Come ti identifichi</h2>
+        <p class="form-hint">Scegli l’opzione con cui preferisci essere indirizzata/o/ə nel sito.</p>
+        <div class="gender-choices">
+          <label class="gender-option">
+            <input type="radio" name="gender" value="female" required {% if profile.gender == 'female' %}checked{% endif %} />
+            <span>Donna</span>
+          </label>
+          <label class="gender-option">
+            <input type="radio" name="gender" value="male" {% if profile.gender == 'male' %}checked{% endif %} />
+            <span>Uomo</span>
+          </label>
+          <label class="gender-option">
+            <input type="radio" name="gender" value="non_binary" {% if profile.gender == 'non_binary' %}checked{% endif %} />
+            <span>Non binario</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="private-actions">
+      <button class="btn primary" type="submit">{% if profile.anagrafica_complete %}Salva{% else %}Continua{% endif %}</button>
+      {% if profile.anagrafica_complete %}
+      <a class="btn" href="/cambia-password">Cambia password</a>
+      {% endif %}
+    </div>
+  </form>
+
+  {% if profile.anagrafica_complete and not profile.is_admin %}
+  <form method="post" action="/elimina-account" class="danger-zone" onsubmit="return confirm('Eliminare definitivamente l’account?');">
+    <button class="btn danger" type="submit">Elimina account</button>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

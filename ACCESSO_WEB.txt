@@ -1,0 +1,27 @@
+﻿# Aprire il sito
+Doppio click:  APRI IL SITO.bat
+Lascia la finestra nera aperta.
+
+--- Dal PC ---
+http://127.0.0.1:8000/
+
+--- Dal telefono (stessa Wi-Fi del PC) ---
+1. Avvia APRI IL SITO.bat
+2. Nella finestra nera compare un indirizzo tipo:
+     http://192.168.x.x:8000/
+3. Sul telefono apri Safari/Chrome e digita QUELL’indirizzo
+   (usa l’IP del PC, non 127.0.0.1 — quello funziona solo sul PC)
+
+Se non carica:
+- PC e telefono sulla stessa Wi-Fi (non hotspot mobile diverso)
+- Firewall Windows: consenti Python/uvicorn sulla rete privata
+- In alternativa, da PowerShell sul PC:
+    ipconfig
+  cerca "Indirizzo IPv4" e usa http://QUELL-IP:8000/
+
+--- Account admin ---
+Username:  admin
+Password:  admin123
+Menu → Accessi (dopo login admin)
+
+Database: data/accessi.db

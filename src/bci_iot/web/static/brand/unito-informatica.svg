@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" role="img" aria-label="Universita di Torino � Dipartimento di Informatica">
+  <title>Universita di Torino � Dipartimento di Informatica</title>
+  <rect class="unito-badge" x="8" y="18" width="84" height="84" rx="14" fill="#003366"/>
+  <text x="50" y="72" text-anchor="middle" fill="#ffffff" font-family="Georgia, 'Times New Roman', serif" font-size="36" font-weight="700">U</text>
+  <text class="unito-title" x="110" y="52" fill="#003366" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="22" font-weight="700">Universita di Torino</text>
+  <text class="unito-sub" x="110" y="82" fill="#5a6a7a" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600">Dipartimento di Informatica</text>
+</svg>

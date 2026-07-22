@@ -1,0 +1,212 @@
+﻿{% extends "base.html" %}
+{% block title %}Demo canali · Iris{% endblock %}
+{% block content %}
+<section class="dash">
+  <h1>Intent + Alexa corta</h1>
+  <p class="lede">
+    Tu pensi l’azione. Solo i <strong>canali aperti</strong> contano.
+    Se ci sono più device, Alexa chiede una volta; SÌ/NO; poi si chiude.
+  </p>
+
+  <div class="panel">
+    <div class="device-label">Canali aperti</div>
+    <div id="channels" class="chips"></div>
+    <p class="muted" id="hint-text" style="margin-top:0.6rem"></p>
+  </div>
+
+  <div class="panel question-panel">
+    <div class="phase-chip" id="phase-chip">IDLE</div>
+    <p class="question-text" id="prompt-text">Nessuna domanda. Pensa un’azione quando vuoi.</p>
+    <p class="muted" id="message-text"></p>
+  </div>
+
+  <div class="panel">
+    <div class="device-label">Simula eventi (aprono i canali)</div>
+    <div class="btn-grid-events">
+      <button type="button" class="btn ghost event-btn" data-event="message">Messaggio WhatsApp</button>
+      <button type="button" class="btn ghost event-btn" data-event="call">Chiamata in arrivo</button>
+      <button type="button" class="btn ghost event-btn" data-event="music_on">Musica ON</button>
+      <button type="button" class="btn ghost event-btn" data-event="music_off">Musica OFF</button>
+      <button type="button" class="btn ghost event-btn" data-event="clear">Azzera eventi</button>
+    </div>
+  </div>
+
+  <div class="devices panel">
+    <div class="device">
+      <div class="device-label">Casa</div>
+      <ul id="device-list" class="device-list muted"></ul>
+    </div>
+    <div class="device">
+      <div class="device-label">App / Musica</div>
+      <div class="music-disc" id="app-disc">app</div>
+      <div class="device-status" id="app-status">Nessuna app</div>
+      <div class="device-status" id="music-status">Traccia 1</div>
+    </div>
+    <div class="device">
+      <div class="device-label">Cornetta</div>
+      <svg id="phone" class="icon-phone is-idle" viewBox="0 0 120 160">
+        <path class="phone-body" d="M34 36c8-8 18-10 26-6l10 6c4 2 5 8 2 12l-10 12c-2 2-2 5 0 7 6 10 14 18 24 24 2 2 5 2 7 0l12-10c4-3 10-2 12 2l6 10c4 8 2 18-6 26-10 10-26 12-40 6C51 112 34 90 26 66c-6-14-4-30 8-30z"/>
+      </svg>
+      <div class="device-status" id="phone-status">In attesa</div>
+    </div>
+  </div>
+
+  <div class="panel stack">
+    <div class="device-label">Impulsi (pensieri)</div>
+    <div class="btn-grid-commands">
+      {% for item in commands %}
+      <button class="btn primary impulse-btn" type="button" data-command="{{ item.command }}" title="{{ item.description }}">{{ item.label }}</button>
+      {% endfor %}
+    </div>
+  </div>
+
+  <aside class="panel meta" id="result-box">
+    <p class="muted">Esempio: Messaggio WhatsApp → APRI → SÌ → si apre WhatsApp e Alexa chiude.</p>
+  </aside>
+</section>
+
+<style>
+  .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.4rem; }
+  .chip {
+    border: 1px solid var(--line); border-radius: 999px; padding: 0.2rem 0.65rem;
+    font-size: 0.85rem; color: var(--muted);
+  }
+  .chip.on { background: rgba(61,186,138,0.15); color: #b7f0d5; border-color: transparent; }
+  .question-panel { text-align: center; }
+  .phase-chip {
+    display: inline-block; border: 1px solid var(--line); border-radius: 999px;
+    padding: 0.25rem 0.75rem; color: var(--muted); font-size: 0.85rem; margin-bottom: 0.5rem;
+  }
+  .question-text {
+    font-family: var(--font-display); font-size: clamp(1.15rem, 3.5vw, 1.5rem);
+    font-weight: 700; margin: 0.2rem 0;
+  }
+  .btn-grid-events, .btn-grid-commands {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 0.5rem;
+  }
+  .devices { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 0.75rem; }
+  .device-list { list-style: none; padding: 0; margin: 0.4rem 0 0; text-align: left; font-size: 0.9rem; }
+  .device-list li.on { color: #ffd56a; }
+  .music-disc {
+    width: 88px; height: 88px; margin: 0 auto; border-radius: 18px; display: grid; place-items: center;
+    background: #24332c; border: 1px solid var(--line); font-weight: 700;
+  }
+  .music-disc.open { border-color: var(--accent); box-shadow: 0 0 14px rgba(61,186,138,0.35); }
+  .icon-phone { width: 88px; height: auto; }
+  .phone-body { fill: #4a5a54; transition: fill 0.25s ease; }
+  .icon-phone.is-accept .phone-body { fill: #2fbf7c; }
+  .icon-phone.is-reject .phone-body { fill: #e07070; }
+  @media (max-width: 720px) {
+    .devices, .btn-grid-events, .btn-grid-commands { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+<script>
+  const channelsEl = document.getElementById("channels");
+  const hintText = document.getElementById("hint-text");
+  const phaseChip = document.getElementById("phase-chip");
+  const promptText = document.getElementById("prompt-text");
+  const messageText = document.getElementById("message-text");
+  const deviceList = document.getElementById("device-list");
+  const appDisc = document.getElementById("app-disc");
+  const appStatus = document.getElementById("app-status");
+  const musicStatus = document.getElementById("music-status");
+  const phone = document.getElementById("phone");
+  const phoneStatus = document.getElementById("phone-status");
+  const box = document.getElementById("result-box");
+
+  function render(data) {
+    channelsEl.innerHTML = "";
+    const kinds = data.channel_kinds || {};
+    (data.open_channels || []).forEach((ch) => {
+      const span = document.createElement("span");
+      span.className = "chip on";
+      const kind = (kinds[ch] && kinds[ch].kind) || "";
+      span.textContent = kind ? ch + " · " + kind : ch;
+      channelsEl.appendChild(span);
+    });
+    hintText.textContent = data.hint || "";
+    phaseChip.textContent = data.phase === "confirm" ? "ALEXA · conferma" : "IDLE · silenzio";
+    promptText.textContent = data.prompt || "Nessuna domanda. Pensa un’azione quando vuoi.";
+    messageText.textContent = data.message || "";
+
+    deviceList.innerHTML = "";
+    (data.devices || []).forEach((d) => {
+      const li = document.createElement("li");
+      li.textContent = (d.on ? "ON  " : "off ") + d.id;
+      if (d.on) li.className = "on";
+      deviceList.appendChild(li);
+    });
+
+    if (data.opened_app) {
+      appDisc.textContent = data.opened_app.slice(0, 2).toUpperCase();
+      appDisc.classList.add("open");
+      appStatus.textContent = "Aperta: " + data.opened_app;
+    } else {
+      appDisc.textContent = "app";
+      appDisc.classList.remove("open");
+      appStatus.textContent = data.unread_message
+        ? ("Msg da " + (data.message_from || "?"))
+        : "Nessuna app";
+    }
+    musicStatus.textContent = (data.music_playing ? "▶ " : "■ ") + "Traccia " + data.track_number;
+
+    phone.classList.remove("is-idle", "is-accept", "is-reject");
+    if (data.phone === "accept") {
+      phone.classList.add("is-accept");
+      phoneStatus.textContent = "Risposta";
+    } else if (data.phone === "reject") {
+      phone.classList.add("is-reject");
+      phoneStatus.textContent = "Rifiutata";
+    } else if (data.incoming_call) {
+      phone.classList.add("is-idle");
+      phoneStatus.textContent = "Squilla: " + (data.caller_name || "");
+    } else {
+      phone.classList.add("is-idle");
+      phoneStatus.textContent = "In attesa";
+    }
+  }
+
+  async function getStatus() {
+    const res = await fetch("/api/demo/context/status");
+    if (res.ok) render(await res.json());
+  }
+
+  document.querySelectorAll(".event-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const event = btn.dataset.event;
+      const res = await fetch("/api/demo/context/event", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event }),
+      });
+      const data = await res.json();
+      render(data);
+      box.innerHTML = "<p>" + (data.message || "") + "</p>";
+    });
+  });
+
+  document.querySelectorAll(".impulse-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const command = btn.dataset.command;
+      box.innerHTML = "<p class='muted'>Elaboro " + command + "…</p>";
+      const res = await fetch("/api/demo/context", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ command }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        box.innerHTML = "<p class='flash error'>" + (data.detail || "errore") + "</p>";
+        return;
+      }
+      render(data);
+      box.innerHTML =
+        "<p><strong>Impulso</strong> " + data.command +
+        " → " + data.classified_intent + " (" + data.confidence + ")</p>" +
+        "<p><strong>Effetto</strong> " + (data.effect || "—") + "</p>";
+    });
+  });
+
+  getStatus();
+</script>
+{% endblock %}

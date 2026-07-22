@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Utente {{ target }} · Admin{% endblock %}
+{% block body_class %}page-private{% endblock %}
+{% block main_class %}shell wide{% endblock %}
+{% block content %}
+<section class="dash">
+  <p><a href="/accessi">← Torna all’elenco</a></p>
+  <h1>
+    {% if anagrafica %}
+      {{ anagrafica.first_name or "" }} {{ anagrafica.last_name or "" }}
+    {% else %}
+      {{ target }}
+    {% endif %}
+  </h1>
+  <p class="lede">Dati completi e cronologia accessi (dal primo all’ultimo).</p>
+
+  <div class="card-grid reveal" data-reveal>
+    <div class="panel">
+      <h2>Anagrafica</h2>
+      {% if anagrafica %}
+      <ul class="detail-list">
+        <li><span>Username</span><strong>{{ anagrafica.username }}</strong></li>
+        <li><span>User ID</span><strong>{{ anagrafica.user_id }}</strong></li>
+        <li><span>Nome</span><strong>{{ anagrafica.first_name or "—" }}</strong></li>
+        <li><span>Cognome</span><strong>{{ anagrafica.last_name or "—" }}</strong></li>
+        <li><span>Genere</span><strong>{{ anagrafica.gender or "—" }}</strong></li>
+        <li><span>Telefono</span><strong>{{ anagrafica.phone_label or "—" }}</strong></li>
+        <li><span>Stato</span><strong>{{ anagrafica.status }}</strong></li>
+        <li><span>Aggiornato</span><strong>{{ anagrafica.updated_at | it_time }}</strong></li>
+      </ul>
+      {% if anagrafica.photo_path %}
+      <img class="admin-photo" src="/media/photos/{{ anagrafica.photo_path }}" alt="Foto profilo" width="160" height="160" />
+      {% endif %}
+      {% else %}
+      <p class="muted">Nessuna anagrafica in database per questo username.</p>
+      {% endif %}
+    </div>
+    {% if user_profile %}
+    <div class="panel">
+      <h2>Profilo attivo</h2>
+      <ul class="detail-list">
+        <li><span>Cuffia</span><strong>{{ user_profile.headset_id or "—" }}</strong></li>
+        <li><span>Calibrazione</span><strong>{{ "sì" if user_profile.calibration_complete else "no" }}</strong></li>
+        <li><span>Telefono associato</span><strong>{{ "sì" if user_profile.phone_paired else "no" }}</strong></li>
+        <li><span>Ultimo seen</span><strong>{{ user_profile.last_seen_at | it_time }}</strong></li>
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="panel table-wrap reveal" data-reveal>
+    <h2>Accessi ({{ events|length }})</h2>
+    {% if events %}
+    <table class="access-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Quando</th>
+          <th>Evento</th>
+          <th>IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in events %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ e.created_at | it_time }}</td>
+          <td><span class="event-pill event-{{ e.event }}">{{ e.event }}</span></td>
+          <td class="muted">{{ e.ip or "—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted">Nessun evento registrato.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

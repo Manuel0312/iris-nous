@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: iris-nous
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: BCI_IOT_SESSION_SECRET
+        generateValue: true
+      - key: BCI_IOT_ADMIN_USERNAME
+        value: admin
+      - key: BCI_IOT_ADMIN_PASSWORD
+        generateValue: true
+      - key: BCI_IOT_HTTPS
+        value: "1"
+      - key: BCI_IOT_DATA_DIR
+        value: /data
