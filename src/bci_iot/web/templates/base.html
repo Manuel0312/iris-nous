@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/styles.css?v=irisLang1" />
+  <link rel="stylesheet" href="/static/styles.css?v=irisLang2" />
   <script>
     (function () {
       try {
@@ -42,8 +42,9 @@
     <div class="topbar-left">
       <div class="lang-switch" data-lang-switch>
         <button type="button" class="lang-btn" id="lang-toggle" aria-expanded="false" aria-haspopup="listbox" aria-controls="lang-menu" title="{{ t('Lingua') if t is defined else 'Lingua' }}">
-          {% set current = languages|selectattr('code', 'equalto', lang)|list %}
-          <span class="lang-flag" aria-hidden="true">{% if current %}{{ current[0].flag }}{% else %}🌐{% endif %}</span>
+          {% set current = languages|selectattr('code', 'equalto', lang)|list if languages is defined else [] %}
+          <span class="lang-flag" aria-hidden="true">{% if current %}{{ current[0].flag }}{% else %}🇮🇹{% endif %}</span>
+          <span class="lang-code">{% if current %}{{ current[0].code|upper }}{% else %}IT{% endif %}</span>
           <span class="lang-name">{% if current %}{{ current[0].name }}{% else %}Italiano{% endif %}</span>
         </button>
         <div class="lang-menu" id="lang-menu" hidden role="listbox" aria-label="{{ t('Lingua') if t is defined else 'Lingua' }}">
@@ -53,6 +54,7 @@
             <input type="hidden" name="next" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}" />
             <button type="submit" class="lang-option {% if item.code == lang %}is-active{% endif %}" role="option" aria-selected="{{ 'true' if item.code == lang else 'false' }}">
               <span class="lang-flag" aria-hidden="true">{{ item.flag }}</span>
+              <span class="lang-code">{{ item.code|upper }}</span>
               <span class="lang-name">{{ item.name }}</span>
             </button>
           </form>

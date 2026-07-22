@@ -223,8 +223,29 @@ a:hover { text-decoration: underline; }
   line-height: 1;
 }
 
+.lang-code {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  min-width: 1.4rem;
+}
+
 .lang-name {
   white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .lang-name {
+    display: none;
+  }
+  .lang-menu .lang-name {
+    display: inline;
+  }
+  .lang-btn {
+    padding: 0.4rem 0.55rem;
+    min-width: 2.75rem;
+    justify-content: center;
+  }
 }
 
 .lang-menu {
@@ -263,18 +284,6 @@ a:hover { text-decoration: underline; }
 
 html[data-theme-resolved="dark"] .lang-option.is-active {
   background: rgba(255, 255, 255, 0.08);
-}
-
-@media (max-width: 720px) {
-  .lang-name {
-    display: none;
-  }
-  .lang-menu .lang-name {
-    display: inline;
-  }
-  .lang-btn {
-    padding: 0.35rem 0.5rem;
-  }
 }
 
 .brand-mark:hover { text-decoration: none; opacity: 0.75; }
@@ -946,6 +955,16 @@ h2 {
 
 .muted { color: var(--muted); }
 .auth-switch { margin: 1rem 0 0; }
+.recover-link {
+  margin-top: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+}
+.recover-link a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
 .form-hint {
   margin: 0 0 0.35rem;
   color: var(--muted);
