@@ -20,7 +20,11 @@
       <p class="device-label">Cuffia</p>
       <h2 class="headset-name">{{ profile.headset_id or "Cuffia non nominata" }}</h2>
       <p class="assoc-pill {% if profile.phone_paired %}is-on{% endif %}">
-        {% if profile.phone_paired %}Associata{% else %}Non associata in questo momento{% endif %}
+        {% if profile.phone_paired %}
+          Associata{% if profile.phone_online %} · in linea{% endif %}{% if profile.spotify_linked %} · Spotify{% endif %}
+        {% else %}
+          Non associata
+        {% endif %}
       </p>
     </div>
   </div>
@@ -39,7 +43,12 @@
     <a class="icon-tile" href="/associa-telefono">
       <span class="icon-glyph">◉</span>
       <strong>Associazione</strong>
-      <small>Telefono ↔ cuffia</small>
+      <small>Telefono · Spotify</small>
+    </a>
+    <a class="icon-tile" href="/telefono">
+      <span class="icon-glyph">▣</span>
+      <strong>Telefono live</strong>
+      <small>{% if profile.phone_online %}In linea{% else %}Apri sul cellulare{% endif %}</small>
     </a>
     <a class="icon-tile" href="/cambia-password">
       <span class="icon-glyph">✦</span>

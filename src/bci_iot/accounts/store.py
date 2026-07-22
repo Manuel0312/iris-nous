@@ -37,11 +37,34 @@ class UserProfile:
     calibration_complete: bool = False
     pairing_code: str = ""
     phone_paired: bool = False
+    phone_last_seen_at: str = ""
     photo_filename: str = ""
     last_seen_at: str = ""
     deleted_at: str = ""
+    # Spotify bridge (tokens never exposed via public_dict).
+    spotify_access_token: str = ""
+    spotify_refresh_token: str = ""
+    spotify_token_expires_at: str = ""
+    spotify_user_id: str = ""
+    spotify_display_name: str = ""
     # Soft usage metrics for the private dashboard (demo-friendly).
     usage_stats: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def spotify_linked(self) -> bool:
+        return bool(self.spotify_refresh_token or self.spotify_access_token)
+
+    @property
+    def phone_online(self) -> bool:
+        if not self.phone_last_seen_at:
+            return False
+        try:
+            seen = datetime.fromisoformat(self.phone_last_seen_at.replace("Z", "+00:00"))
+            if seen.tzinfo is None:
+                seen = seen.replace(tzinfo=timezone.utc)
+            return datetime.now(timezone.utc) - seen <= timedelta(seconds=45)
+        except ValueError:
+            return False
 
     @property
     def needs_anagrafica(self) -> bool:
@@ -75,6 +98,10 @@ class UserProfile:
     def public_dict(self) -> dict[str, Any]:
         data = self.to_dict()
         data.pop("password_hash", None)
+        data.pop("spotify_access_token", None)
+        data.pop("spotify_refresh_token", None)
+        data["spotify_linked"] = self.spotify_linked
+        data["phone_online"] = self.phone_online
         return data
 
     @classmethod
@@ -98,9 +125,15 @@ class UserProfile:
             calibration_complete=bool(data.get("calibration_complete", False)),
             pairing_code=str(data.get("pairing_code") or ""),
             phone_paired=bool(data.get("phone_paired", False)),
+            phone_last_seen_at=str(data.get("phone_last_seen_at") or ""),
             photo_filename=str(data.get("photo_filename") or ""),
             last_seen_at=str(data.get("last_seen_at") or ""),
             deleted_at=str(data.get("deleted_at") or ""),
+            spotify_access_token=str(data.get("spotify_access_token") or ""),
+            spotify_refresh_token=str(data.get("spotify_refresh_token") or ""),
+            spotify_token_expires_at=str(data.get("spotify_token_expires_at") or ""),
+            spotify_user_id=str(data.get("spotify_user_id") or ""),
+            spotify_display_name=str(data.get("spotify_display_name") or ""),
             usage_stats=dict(data.get("usage_stats") or {}),
         )
 
@@ -339,6 +372,63 @@ class ProfileStore:
         if not profile.pairing_code or code.strip() != profile.pairing_code:
             raise ValueError("Codice di associazione non valido.")
         profile.phone_paired = True
+        profile.phone_last_seen_at = _utc_now()
+        self.save(profile)
+        return profile
+
+    def unpair_phone(self, username: str) -> UserProfile:
+        from bci_iot.pipeline.calibration_wizard import new_pairing_code
+
+        profile = self.get(username)
+        if profile is None:
+            raise KeyError(f"unknown user: {username}")
+        profile.phone_paired = False
+        profile.phone_last_seen_at = ""
+        profile.pairing_code = new_pairing_code()
+        self.save(profile)
+        return profile
+
+    def touch_phone(self, username: str) -> UserProfile:
+        profile = self.get(username)
+        if profile is None:
+            raise KeyError(f"unknown user: {username}")
+        profile.phone_last_seen_at = _utc_now()
+        self.save(profile)
+        return profile
+
+    def set_spotify_tokens(
+        self,
+        username: str,
+        *,
+        access_token: str,
+        refresh_token: str | None = None,
+        expires_at: str = "",
+        user_id: str = "",
+        display_name: str = "",
+    ) -> UserProfile:
+        profile = self.get(username)
+        if profile is None:
+            raise KeyError(f"unknown user: {username}")
+        profile.spotify_access_token = access_token.strip()
+        if refresh_token is not None and refresh_token.strip():
+            profile.spotify_refresh_token = refresh_token.strip()
+        profile.spotify_token_expires_at = expires_at.strip()
+        if user_id:
+            profile.spotify_user_id = user_id.strip()
+        if display_name:
+            profile.spotify_display_name = display_name.strip()
+        self.save(profile)
+        return profile
+
+    def clear_spotify(self, username: str) -> UserProfile:
+        profile = self.get(username)
+        if profile is None:
+            raise KeyError(f"unknown user: {username}")
+        profile.spotify_access_token = ""
+        profile.spotify_refresh_token = ""
+        profile.spotify_token_expires_at = ""
+        profile.spotify_user_id = ""
+        profile.spotify_display_name = ""
         self.save(profile)
         return profile
 

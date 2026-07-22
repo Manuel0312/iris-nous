@@ -204,6 +204,8 @@ def create_app(
     app.state.access_db = access_db
     app.state.admin_username = admin_user
     app.state.photos_dir = photos_dir
+    app.state.phone_queues: dict[str, list] = {}
+    app.state.calib_sessions = {}
     def _store() -> ProfileStore:
         return store
     def _access() -> AccessDatabase:
@@ -696,8 +698,6 @@ def create_app(
         return {"ok": check.ok, "level": check.level, "message": check.message}
 
     # --- Calibrazione cuffia (parola ↔ segnale) + associazione telefono ---
-    app.state.calib_sessions = {}
-
     def _calib_session_for(username: str, profiles: ProfileStore):
         from bci_iot.pipeline.calibration_wizard import CalibrationSession
 
@@ -807,14 +807,30 @@ def create_app(
         request: Request,
         profiles: ProfileStore = Depends(_store),
     ) -> HTMLResponse:
+        from bci_iot.integrations.spotify_oauth import (
+            pairing_qr_url,
+            public_site_url,
+            spotify_configured,
+        )
+
         loaded = _require_profile(request, profiles)
         if isinstance(loaded, RedirectResponse):
             return loaded
         profile = profiles.ensure_headset_pairing(loaded.username)
+        base = str(request.base_url)
+        public = public_site_url(base)
+        pair_link = f"{public}/associa-telefono"
         return TEMPLATES.TemplateResponse(
             request,
             "associa_telefono.html",
-            _template_ctx(request, profiles, profile=profile),
+            _template_ctx(
+                request,
+                profiles,
+                profile=profile,
+                public_url=public,
+                qr_url=pairing_qr_url(pair_link),
+                spotify_ready=spotify_configured(),
+            ),
         )
 
     @app.post("/associa-telefono")
@@ -831,13 +847,174 @@ def create_app(
         except ValueError as exc:
             _flash(request, str(exc), kind="error")
             return RedirectResponse("/associa-telefono", status_code=303)
-        _flash(request, "Telefono associato alla cuffia.", kind="ok")
-        dest = "/calibrazione" if profile.needs_calibration else "/dashboard"
+        _flash(request, "Telefono associato. Apri Telefono live e collega Spotify.", kind="ok")
+        dest = "/telefono" if not profile.needs_calibration else "/calibrazione"
         return _continue(
             request,
             next_url=dest,
             message="Associazione riuscita...",
         )
+
+    @app.post("/associa-telefono/unpair")
+    def associa_telefono_unpair(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> RedirectResponse:
+        loaded = _require_profile(request, profiles)
+        if isinstance(loaded, RedirectResponse):
+            return loaded
+        profiles.unpair_phone(loaded.username)
+        app.state.phone_queues.pop(loaded.username, None)
+        _flash(request, "Telefono scollegato. Nuovo codice generato.", kind="ok")
+        return RedirectResponse("/associa-telefono", status_code=303)
+
+    @app.get("/telefono", response_class=HTMLResponse)
+    def telefono_live_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> HTMLResponse:
+        loaded = _require_profile(request, profiles)
+        if isinstance(loaded, RedirectResponse):
+            return loaded
+        profile = profiles.ensure_headset_pairing(loaded.username)
+        if profile.phone_paired:
+            profiles.touch_phone(profile.username)
+            profile = profiles.get(profile.username) or profile
+        return TEMPLATES.TemplateResponse(
+            request,
+            "telefono.html",
+            _template_ctx(request, profiles, profile=profile),
+        )
+
+    @app.post("/api/phone/heartbeat")
+    def api_phone_heartbeat(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        profile = profiles.get(username)
+        if profile is None:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        if not profile.phone_paired:
+            return {"status": "error", "detail": "Telefono non associato", "events": []}
+        profiles.touch_phone(username)
+        events = list(app.state.phone_queues.get(username) or [])
+        return {"status": "ok", "events": events, "spotify_linked": profile.spotify_linked}
+
+    @app.get("/auth/spotify/start")
+    def spotify_start(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> RedirectResponse:
+        from bci_iot.integrations.spotify_oauth import (
+            authorize_url,
+            new_oauth_state,
+            redirect_uri,
+            spotify_configured,
+        )
+
+        loaded = _require_profile(request, profiles)
+        if isinstance(loaded, RedirectResponse):
+            return loaded
+        if not spotify_configured():
+            _flash(request, "Spotify non configurato sul server.", kind="error")
+            return RedirectResponse("/associa-telefono", status_code=303)
+        state = new_oauth_state()
+        request.session["spotify_oauth_state"] = state
+        redir = redirect_uri(str(request.base_url))
+        return RedirectResponse(authorize_url(redirect=redir, state=state), status_code=302)
+
+    @app.get("/auth/spotify/callback")
+    def spotify_callback(
+        request: Request,
+        code: str = "",
+        state: str = "",
+        error: str = "",
+        profiles: ProfileStore = Depends(_store),
+    ) -> RedirectResponse:
+        from bci_iot.integrations.spotify_oauth import (
+            exchange_code,
+            fetch_me,
+            redirect_uri,
+            token_expiry_iso,
+        )
+
+        loaded = _require_profile(request, profiles)
+        if isinstance(loaded, RedirectResponse):
+            return loaded
+        if error:
+            _flash(request, f"Spotify ha rifiutato: {error}", kind="error")
+            return RedirectResponse("/associa-telefono", status_code=303)
+        expected = request.session.pop("spotify_oauth_state", None)
+        if not code or not state or state != expected:
+            _flash(request, "Sessione Spotify non valida. Riprova.", kind="error")
+            return RedirectResponse("/associa-telefono", status_code=303)
+        redir = redirect_uri(str(request.base_url))
+        try:
+            tokens = exchange_code(code, redirect=redir)
+            access = str(tokens.get("access_token") or "")
+            refresh = str(tokens.get("refresh_token") or "")
+            expires_at = token_expiry_iso(int(tokens.get("expires_in") or 3600))
+            me = fetch_me(access) if access else {}
+            profiles.set_spotify_tokens(
+                loaded.username,
+                access_token=access,
+                refresh_token=refresh,
+                expires_at=expires_at,
+                user_id=str(me.get("id") or ""),
+                display_name=str(me.get("display_name") or me.get("id") or ""),
+            )
+        except Exception as exc:  # noqa: BLE001
+            _flash(request, f"Collegamento Spotify fallito: {exc}", kind="error")
+            return RedirectResponse("/associa-telefono", status_code=303)
+        _flash(request, "Spotify collegato. Apri Spotify sul telefono e prova il test.", kind="ok")
+        return RedirectResponse("/associa-telefono", status_code=303)
+
+    @app.post("/auth/spotify/disconnect")
+    def spotify_disconnect(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> RedirectResponse:
+        loaded = _require_profile(request, profiles)
+        if isinstance(loaded, RedirectResponse):
+            return loaded
+        profiles.clear_spotify(loaded.username)
+        _flash(request, "Spotify scollegato.", kind="ok")
+        return RedirectResponse("/associa-telefono", status_code=303)
+
+    @app.post("/api/music/next")
+    def api_music_next(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        from bci_iot.integrations.music_control import run_spotify_action
+
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        profile = profiles.get(username)
+        if profile is None:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        queue = app.state.phone_queues.setdefault(username, [])
+        return run_spotify_action(profiles, profile, "next_track", queue=queue)
+
+    @app.post("/api/music/pause")
+    def api_music_pause(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        from bci_iot.integrations.music_control import run_spotify_action
+
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        profile = profiles.get(username)
+        if profile is None:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        queue = app.state.phone_queues.setdefault(username, [])
+        return run_spotify_action(profiles, profile, "pause", queue=queue)
 
     @app.post("/dashboard")
     def dashboard_save(

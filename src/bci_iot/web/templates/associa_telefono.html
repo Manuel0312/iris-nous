@@ -6,43 +6,122 @@
 <section class="private-area">
   <header class="private-welcome">
     <p class="eyebrow">Associazione</p>
-    <h1>Telefono ↔ cuffia</h1>
+    <h1>Telefono ↔ Iris</h1>
     <p class="lede">
-      Stesso account su PC e telefono (stessa Wi‑Fi, sito sul PC).
-      Sul PC leggi il codice in <a href="/calibrazione">Calibrazione</a>,
-      qui sul telefono lo digiti per confermare.
+      Tre passi: codice, telefono in linea, Spotify.
+      Così dal PC (o dal simulatore) puoi cambiare davvero la canzone sul telefono.
     </p>
   </header>
 
   <div class="private-form private-form-fit stack">
     <div class="form-block">
-      <h2>Stato</h2>
+      <h2>1 · Codice di associazione</h2>
       <p class="form-hint">
-        Cuffia: <strong>{{ profile.headset_id or "—" }}</strong><br />
-        Telefono in anagrafica: <strong>{{ profile.phone_label or "—" }}</strong><br />
-        Account: <strong>{{ profile.username }}</strong>
+        Sul telefono apri <strong>{{ public_url }}/associa-telefono</strong>
+        (stesso account), inserisci il codice del PC, poi Associa.
       </p>
-      {% if profile.phone_paired %}
-      <p class="flash ok">Telefono già associato a questa cuffia.</p>
-      <div class="private-actions">
-        <a class="btn primary" href="/dashboard">Torna alla cuffia</a>
-      </div>
-      {% else %}
       <p class="pair-box">
-        <span>Codice da usare (copia dal PC se sei sul telefono)</span>
+        <span>Codice a 6 cifre</span>
         <strong class="pair-code">{{ profile.pairing_code }}</strong>
       </p>
-      <p class="form-hint">
-        Sul telefono: inserisci sotto lo stesso codice a 6 cifre, poi Associa.
+      {% if qr_url %}
+      <p class="pair-qr">
+        <img src="{{ qr_url }}" width="220" height="220" alt="QR verso associazione telefono" />
       </p>
+      <p class="form-hint">Inquadra il QR col telefono (dopo il login).</p>
+      {% endif %}
+
+      {% if profile.phone_paired %}
+      <p class="flash ok">Telefono associato{% if profile.phone_label %} · {{ profile.phone_label }}{% endif %}.</p>
+      <form method="post" action="/associa-telefono/unpair" class="stack">
+        <button class="btn ghost" type="submit">Scollega e genera nuovo codice</button>
+      </form>
+      {% else %}
       <form method="post" action="/associa-telefono" class="stack">
-        <label>Codice di 6 cifre
+        <label>Conferma codice (dal telefono)
           <input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required placeholder="000000" autocomplete="one-time-code" />
         </label>
         <button class="btn primary" type="submit">Associa telefono</button>
       </form>
       {% endif %}
     </div>
+
+    <div class="form-block">
+      <h2>2 · Telefono in linea</h2>
+      <p class="form-hint">
+        Dopo l’associazione, tieni aperta la pagina
+        <a href="/telefono"><strong>Telefono live</strong></a>
+        sul cellulare. Serve per vedere i comandi in arrivo.
+      </p>
+      <p class="assoc-pill {% if profile.phone_online %}is-on{% endif %}">
+        {% if profile.phone_online %}In linea ora{% else %}Non in linea{% endif %}
+      </p>
+    </div>
+
+    <div class="form-block">
+      <h2>3 · Spotify (musica vera)</h2>
+      {% if spotify_ready %}
+        {% if profile.spotify_linked %}
+        <p class="flash ok">
+          Collegato{% if profile.spotify_display_name %} come <strong>{{ profile.spotify_display_name }}</strong>{% endif %}.
+        </p>
+        <p class="form-hint">
+          Apri Spotify sul telefono, metti in play una playlist, poi prova il test sotto.
+          Serve Spotify Premium.
+        </p>
+        <form method="post" action="/auth/spotify/disconnect" class="stack">
+          <button class="btn ghost" type="submit">Scollega Spotify</button>
+        </form>
+        {% else %}
+        <p class="form-hint">Collega l’account Spotify usato sul telefono.</p>
+        <a class="btn primary" href="/auth/spotify/start">Collega Spotify</a>
+        {% endif %}
+      {% else %}
+        <p class="form-hint">
+          Spotify non è ancora configurato sul server (chiavi API).
+          Possiamo associarlo al prossimo passo: senza chiavi il test canzone resta in simulazione.
+        </p>
+      {% endif %}
+    </div>
+
+    <div class="form-block">
+      <h2>Test rapido</h2>
+      <p class="form-hint">Dal PC: simula “prossima canzone” verso il telefono.</p>
+      <form method="post" action="/api/music/next" class="stack" id="music-test-form">
+        <button class="btn primary" type="submit">Prossima canzone</button>
+      </form>
+      <p class="form-hint" id="music-test-msg" hidden></p>
+      <div class="private-actions">
+        <a class="btn ghost" href="/telefono">Apri telefono live</a>
+        <a class="btn ghost" href="/dashboard">Torna alla cuffia</a>
+      </div>
+    </div>
   </div>
 </section>
+<script>
+(function () {
+  var form = document.getElementById("music-test-form");
+  var msg = document.getElementById("music-test-msg");
+  if (!form) return;
+  form.addEventListener("submit", async function (ev) {
+    ev.preventDefault();
+    msg.hidden = false;
+    msg.textContent = "Invio comando…";
+    try {
+      var res = await fetch("/api/music/next", { method: "POST", headers: { "Accept": "application/json" } });
+      var data = await res.json();
+      if (data.status === "ok") {
+        msg.textContent = "Comando inviato: prossima canzone.";
+        msg.className = "flash ok";
+      } else {
+        msg.textContent = data.detail || "Comando non riuscito.";
+        msg.className = "flash error";
+      }
+    } catch (err) {
+      msg.textContent = "Errore di rete.";
+      msg.className = "flash error";
+    }
+  });
+})();
+</script>
 {% endblock %}

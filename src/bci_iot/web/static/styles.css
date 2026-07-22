@@ -976,6 +976,17 @@ input:focus, textarea:focus, select:focus {
   font-variant-numeric: tabular-nums;
 }
 
+.pair-qr {
+  margin: 0.75rem 0 0.25rem;
+}
+
+.pair-qr img {
+  display: block;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
 .calib-colors {
   display: grid;
   gap: 0.65rem;

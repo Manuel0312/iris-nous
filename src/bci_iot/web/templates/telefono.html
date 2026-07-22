@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Telefono live · Iris{% endblock %}
+{% block body_class %}page-private{% endblock %}
+{% block main_class %}shell private-shell{% endblock %}
+{% block content %}
+<section class="private-area">
+  <header class="private-welcome">
+    <p class="eyebrow">Bridge</p>
+    <h1>Telefono in linea</h1>
+    <p class="lede">
+      Lascia questa pagina aperta sul cellulare mentre usi Iris dal PC.
+      Qui compaiono i comandi (es. cambio canzone).
+    </p>
+  </header>
+
+  <div class="private-form private-form-fit stack">
+    <div class="form-block">
+      <p class="assoc-pill {% if profile.phone_paired %}is-on{% endif %}" id="pair-state">
+        {% if profile.phone_paired %}Associato{% else %}Non associato{% endif %}
+      </p>
+      <p class="assoc-pill is-on" id="live-state">Connessione attiva…</p>
+      <p class="form-hint">
+        Spotify:
+        {% if profile.spotify_linked %}
+          collegato{% if profile.spotify_display_name %} ({{ profile.spotify_display_name }}){% endif %}
+        {% else %}
+          non collegato
+        {% endif %}
+      </p>
+    </div>
+    <div class="form-block">
+      <h2>Ultimi comandi</h2>
+      <ul class="detail-list" id="cmd-list">
+        <li><span>In attesa</span><strong>—</strong></li>
+      </ul>
+    </div>
+    <div class="private-actions">
+      <a class="btn ghost" href="/associa-telefono">Torna ad Associa</a>
+    </div>
+  </div>
+</section>
+<script>
+(function () {
+  var list = document.getElementById("cmd-list");
+  var live = document.getElementById("live-state");
+  function render(events) {
+    if (!events || !events.length) return;
+    list.innerHTML = events.slice().reverse().map(function (ev) {
+      return "<li><span>" + (ev.at || "") + "</span><strong>" + (ev.label || ev.action) + "</strong></li>";
+    }).join("");
+  }
+  async function beat() {
+    try {
+      var res = await fetch("/api/phone/heartbeat", { method: "POST", headers: { "Accept": "application/json" } });
+      var data = await res.json();
+      if (data.status === "ok") {
+        live.textContent = "In linea";
+        live.className = "assoc-pill is-on";
+        render(data.events || []);
+      } else {
+        live.textContent = data.detail || "Errore";
+        live.className = "assoc-pill";
+      }
+    } catch (err) {
+      live.textContent = "Rete assente — riprovo…";
+      live.className = "assoc-pill";
+    }
+  }
+  beat();
+  setInterval(beat, 2500);
+})();
+</script>
+{% endblock %}

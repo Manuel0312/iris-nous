@@ -46,5 +46,13 @@ class SpotifyClient:
         headers = {"Authorization": f"Bearer {self.access_token}"}
         with httpx.Client(timeout=self.timeout_s) as client:
             response = client.request(method, url, headers=headers)
+            if response.status_code == 404:
+                raise RuntimeError(
+                    "Nessun player Spotify attivo. Apri Spotify sul telefono e metti in play una canzone, poi riprova."
+                )
+            if response.status_code == 403:
+                raise RuntimeError(
+                    "Spotify ha rifiutato il comando (serve Premium e autorizzazione playback)."
+                )
             response.raise_for_status()
         return {"status": "ok", "dry_run": "false", "name": command.name, "http": str(response.status_code)}
