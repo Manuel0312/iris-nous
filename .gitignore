@@ -35,6 +35,7 @@ data/*.db
 data/photos/
 data/profiles_deleted/
 data/_t/
+tmp_cal_test/
 models/*.pt
 models/*.pkl
 !models/.gitkeep
