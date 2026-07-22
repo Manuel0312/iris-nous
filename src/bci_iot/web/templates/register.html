@@ -1,21 +1,21 @@
 ﻿{% extends "base.html" %}
-{% block title %}Iscrizione · Iris{% endblock %}
+{% block title %}{{ t('Iscrizione') }} · Iris{% endblock %}
 {% block body_class %}page-auth{% endblock %}
 {% block content %}
 <section class="auth-panel">
-  <h1>Iscrizione</h1>
-  <p class="lede">Username ed email univoci. Nome e cognome li inserisci dopo.</p>
+  <h1>{{ t('Iscrizione') }}</h1>
+  <p class="lede">{{ t('Username ed email univoci. Nome e cognome li inserisci dopo.') }}</p>
   <form method="post" action="/register" class="stack" id="register-form">
-    <label>Username
+    <label>{{ t('Username') }}
       <input name="username" autocomplete="username" required maxlength="64" autocapitalize="none" autocorrect="off" spellcheck="false" />
     </label>
-    <label>Email
+    <label>{{ t('Email') }}
       <input name="email" type="email" autocomplete="email" required maxlength="254" placeholder="nome@gmail.com" autocapitalize="none" spellcheck="false" />
     </label>
-    <label>Password (minimo livello medio)
+    <label>{{ t('Password (minimo livello medio)') }}
       <div class="password-field">
         <input id="register-password" name="password" type="password" autocomplete="new-password" required minlength="8" />
-        <button type="button" class="password-toggle" data-toggle-password="register-password" title="Passa il mouse per vedere la password (su telefono: tocca)" aria-label="Mostra password" aria-pressed="false">
+        <button type="button" class="password-toggle" data-toggle-password="register-password" title="{{ t('Passa il mouse per vedere la password (su telefono: tocca)') }}" aria-label="{{ t('Mostra password') }}" aria-pressed="false">
           <span class="eye-show" aria-hidden="true">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
           </span>
@@ -25,13 +25,13 @@
         </button>
       </div>
     </label>
-    <p class="strength-meter" id="reg-strength" data-level="weak">Serve almeno: 8 caratteri, una maiuscola, un numero.</p>
-    <label>ID cuffia (opzionale)
+    <p class="strength-meter" id="reg-strength" data-level="weak">{{ t('Serve almeno: 8 caratteri, una maiuscola, un numero.') }}</p>
+    <label>{{ t('ID cuffia (opzionale)') }}
       <input name="headset_id" maxlength="128" placeholder="es. cuffia-001" />
     </label>
-    <button class="btn primary" type="submit">Crea account</button>
+    <button class="btn primary" type="submit">{{ t('Crea account') }}</button>
   </form>
-  <p class="muted auth-switch">Hai già un account? <a href="/login">Login</a> · <a href="/recupera-password">Password dimenticata?</a></p>
+  <p class="muted auth-switch">{{ t('Hai già un account?') }} <a href="/login">{{ t('Login') }}</a> · <a href="/recupera-password">{{ t('Password dimenticata?') }}</a></p>
 </section>
 <script>
 (function () {

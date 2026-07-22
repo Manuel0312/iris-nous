@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it" data-theme="auto">
+<html lang="{{ lang|default('it') }}" data-theme="auto">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/styles.css?v=irisPhone1" />
+  <link rel="stylesheet" href="/static/styles.css?v=irisLang1" />
   <script>
     (function () {
       try {
@@ -39,35 +39,56 @@
 </head>
 <body class="{% block body_class %}{% endblock %}">
   <header class="topbar">
-    <a class="brand-mark" href="/" aria-label="Iris Nous home">Iris Nous</a>
+    <div class="topbar-left">
+      <div class="lang-switch" data-lang-switch>
+        <button type="button" class="lang-btn" id="lang-toggle" aria-expanded="false" aria-haspopup="listbox" aria-controls="lang-menu" title="{{ t('Lingua') if t is defined else 'Lingua' }}">
+          {% set current = languages|selectattr('code', 'equalto', lang)|list %}
+          <span class="lang-flag" aria-hidden="true">{% if current %}{{ current[0].flag }}{% else %}🌐{% endif %}</span>
+          <span class="lang-name">{% if current %}{{ current[0].name }}{% else %}Italiano{% endif %}</span>
+        </button>
+        <div class="lang-menu" id="lang-menu" hidden role="listbox" aria-label="{{ t('Lingua') if t is defined else 'Lingua' }}">
+          {% for item in languages %}
+          <form method="post" action="/lingua" class="lang-option-form">
+            <input type="hidden" name="lang" value="{{ item.code }}" />
+            <input type="hidden" name="next" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}" />
+            <button type="submit" class="lang-option {% if item.code == lang %}is-active{% endif %}" role="option" aria-selected="{{ 'true' if item.code == lang else 'false' }}">
+              <span class="lang-flag" aria-hidden="true">{{ item.flag }}</span>
+              <span class="lang-name">{{ item.name }}</span>
+            </button>
+          </form>
+          {% endfor %}
+        </div>
+      </div>
+      <a class="brand-mark" href="/" aria-label="Iris Nous home">Iris Nous</a>
+    </div>
     <div class="topbar-tools">
-      <div class="theme-switch" role="group" aria-label="Tema">
-        <button type="button" data-theme-set="light" title="Chiaro (resta finché non lo cambi)">Chiaro</button>
-        <button type="button" data-theme-set="dark" title="Scuro (resta finché non lo cambi)">Scuro</button>
-        <button type="button" data-theme-set="auto" title="Automatico in base all’ora">Auto</button>
+      <div class="theme-switch" role="group" aria-label="{{ t('Tema') if t is defined else 'Tema' }}">
+        <button type="button" data-theme-set="light" title="{{ t('Chiaro') if t is defined else 'Chiaro' }}">{{ t('Chiaro') if t is defined else 'Chiaro' }}</button>
+        <button type="button" data-theme-set="dark" title="{{ t('Scuro') if t is defined else 'Scuro' }}">{{ t('Scuro') if t is defined else 'Scuro' }}</button>
+        <button type="button" data-theme-set="auto" title="{{ t('Auto') if t is defined else 'Auto' }}">{{ t('Auto') if t is defined else 'Auto' }}</button>
       </div>
       <div class="menu-wrap">
         <button class="nav-toggle" type="button" id="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-haspopup="true">
-          Menu
+          {{ t('Menu') if t is defined else 'Menu' }}
         </button>
         <nav class="nav" id="site-nav" aria-label="Account">
           {% if username %}
             {% if is_admin %}
-            <a href="/accessi">Pannello admin</a>
-            <a href="/cambia-password">Cambia password</a>
+            <a href="/accessi">{{ t('Pannello admin') }}</a>
+            <a href="/cambia-password">{{ t('Cambia password') }}</a>
             {% else %}
-            <a href="/dashboard">La mia cuffia</a>
-            <a href="/calibrazione">Calibrazione</a>
-            <a href="/associa-telefono">Associa telefono</a>
-            <a href="/anagrafica?edit=1">I miei dati</a>
-            <a href="/cambia-password">Cambia password</a>
+            <a href="/dashboard">{{ t('La mia cuffia') }}</a>
+            <a href="/calibrazione">{{ t('Calibrazione') }}</a>
+            <a href="/associa-telefono">{{ t('Associa telefono') }}</a>
+            <a href="/anagrafica?edit=1">{{ t('I miei dati') }}</a>
+            <a href="/cambia-password">{{ t('Cambia password') }}</a>
             {% endif %}
             <form method="post" action="/logout" class="inline">
-              <button type="submit" class="nav-action">Esci</button>
+              <button type="submit" class="nav-action">{{ t('Esci') }}</button>
             </form>
           {% else %}
-          <a href="/login">Login</a>
-          <a href="/register">Iscrizione</a>
+          <a href="/login">{{ t('Login') }}</a>
+          <a href="/register">{{ t('Iscrizione') }}</a>
           {% endif %}
         </nav>
       </div>
@@ -85,7 +106,7 @@
 
   {% block footer %}
   <footer class="footer site-footer">
-    <p>Tesi triennale · Informatica · Università degli Studi di Torino</p>
+    <p>{{ t('Tesi triennale · Informatica · Università degli Studi di Torino') if t is defined else 'Tesi triennale · Informatica · Università degli Studi di Torino' }}</p>
   </footer>
   {% endblock %}
 
@@ -104,7 +125,6 @@
         const prev = root.getAttribute("data-theme-resolved");
         if (animate && prev && prev !== resolved) {
           root.classList.remove("theme-switching");
-          // restart veil animation
           void root.offsetWidth;
           root.classList.add("theme-switching");
           window.setTimeout(() => root.classList.remove("theme-switching"), 780);
@@ -119,7 +139,6 @@
         const meta = document.querySelector('meta[name="theme-color"]');
         if (meta) meta.setAttribute("content", resolved === "dark" ? "#0b0b0d" : "#f5f5f7");
       }
-      // Prefer saved preference; default auto (no veil on first paint)
       let initial = "auto";
       try { initial = localStorage.getItem(KEY) || "auto"; } catch (e) {}
       apply(initial, { animate: false });
@@ -128,7 +147,6 @@
         btn.addEventListener("click", () => apply(btn.getAttribute("data-theme-set"), { animate: true }));
       });
 
-      // If Auto is selected, re-check around hour changes while the tab stays open
       setInterval(() => {
         if (root.getAttribute("data-theme") === "auto") apply("auto", { animate: true });
       }, 60 * 1000);
@@ -149,16 +167,35 @@
         });
       }
 
+      const langToggle = document.getElementById("lang-toggle");
+      const langMenu = document.getElementById("lang-menu");
+      if (langToggle && langMenu) {
+        langToggle.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const open = langMenu.hidden;
+          langMenu.hidden = !open;
+          langToggle.setAttribute("aria-expanded", open ? "true" : "false");
+        });
+        document.addEventListener("click", (e) => {
+          if (langMenu.hidden) return;
+          if (langMenu.contains(e.target) || langToggle.contains(e.target)) return;
+          langMenu.hidden = true;
+          langToggle.setAttribute("aria-expanded", "false");
+        });
+      }
+
       document.querySelectorAll("[data-toggle-password]").forEach((btn) => {
         const input = document.getElementById(btn.getAttribute("data-toggle-password"));
         if (!input) return;
         const eyeShow = btn.querySelector(".eye-show");
         const eyeHide = btn.querySelector(".eye-hide");
         const isTouchUi = window.matchMedia("(hover: none), (pointer: coarse)").matches;
+        const showLabel = {{ (t('Mostra password') if t is defined else 'Mostra password')|tojson }};
+        const hideLabel = {{ (t('Nascondi password') if t is defined else 'Nascondi password')|tojson }};
         const setVisible = (show) => {
           input.type = show ? "text" : "password";
           btn.setAttribute("aria-pressed", show ? "true" : "false");
-          btn.setAttribute("aria-label", show ? "Nascondi password" : "Mostra password");
+          btn.setAttribute("aria-label", show ? hideLabel : showLabel);
           if (eyeShow && eyeHide) {
             eyeShow.hidden = show;
             eyeHide.hidden = !show;

@@ -184,6 +184,99 @@ a:hover { text-decoration: underline; }
   white-space: nowrap;
 }
 
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  pointer-events: auto;
+  min-width: 0;
+}
+
+.lang-switch {
+  position: relative;
+  z-index: 50;
+}
+
+.lang-btn,
+.lang-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 980px;
+  background: var(--bg-elev);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.35rem 0.65rem;
+}
+
+.lang-btn:hover,
+.lang-option:hover {
+  opacity: 0.88;
+}
+
+.lang-flag {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.lang-name {
+  white-space: nowrap;
+}
+
+.lang-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  min-width: 11.5rem;
+  padding: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-elev);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 0.2rem;
+}
+
+.lang-menu[hidden] {
+  display: none;
+}
+
+.lang-option-form {
+  margin: 0;
+}
+
+.lang-option {
+  width: 100%;
+  border-radius: 10px;
+  border: 0;
+  justify-content: flex-start;
+  background: transparent;
+}
+
+.lang-option.is-active {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+html[data-theme-resolved="dark"] .lang-option.is-active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 720px) {
+  .lang-name {
+    display: none;
+  }
+  .lang-menu .lang-name {
+    display: inline;
+  }
+  .lang-btn {
+    padding: 0.35rem 0.5rem;
+  }
+}
+
 .brand-mark:hover { text-decoration: none; opacity: 0.75; }
 
 .topbar-tools {

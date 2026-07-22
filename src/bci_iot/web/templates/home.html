@@ -13,8 +13,8 @@
     height="80"
   />
   <p class="unito-name">
-    <span class="unito-name-main">Università degli Studi di Torino</span>
-    <span class="unito-name-sub">Dipartimento di Informatica</span>
+    <span class="unito-name-main">{{ t('Università degli Studi di Torino') }}</span>
+    <span class="unito-name-sub">{{ t('Dipartimento di Informatica') }}</span>
   </p>
 </div>
 {% endblock %}
@@ -24,105 +24,98 @@
 <section class="apple-hero" aria-label="Prodotto">
   <h1 class="apple-name">Iris</h1>
   <p class="hero-verbs" aria-label="pensa, agisci, crea.">
-    <span class="hero-verb hero-verb-1" data-delay="2500">pensa,</span>
-    <span class="hero-verb hero-verb-2" data-delay="5000">agisci,</span>
-    <span class="hero-verb hero-verb-3" data-delay="7500">crea.</span>
+    <span class="hero-verb hero-verb-1" data-delay="2500">{{ t('pensa,') }}</span>
+    <span class="hero-verb hero-verb-2" data-delay="5000">{{ t('agisci,') }}</span>
+    <span class="hero-verb hero-verb-3" data-delay="7500">{{ t('crea.') }}</span>
   </p>
   <p class="apple-tagline">
-    Come parlare a Siri, ma pensando.<br />
-    Chiamate, musica, luci: l’azione parte. Senza aprire lo schermo.
+    {{ t('Come parlare a Siri, ma pensando.') }}<br />
+    {{ t('Chiamate, musica, luci: l’azione parte. Senza aprire lo schermo.') }}
   </p>
-  <p class="scroll-hint reveal" data-reveal>Scorri</p>
+  <p class="scroll-hint reveal" data-reveal>{{ t('Scorri') }}</p>
 </section>
 
 <section class="story-panel">
   <div class="story-copy reveal" data-reveal>
-    <p class="kicker">La cuffia</p>
-    <h2 class="display-xl">Pensi.<br /><span class="soft">Succede.</span></h2>
+    <p class="kicker">{{ t('La cuffia') }}</p>
+    <h2 class="display-xl">{{ t('Pensi.') }}<br /><span class="soft">{{ t('Succede.') }}</span></h2>
     <p class="story-text">
-      Una cuffia non invasiva legge l’intento.
-      Niente menu da toccare. Niente “è questo il comando giusto?”.
+      {{ t('Una cuffia non invasiva legge l’intento. Niente menu da toccare. Niente “è questo il comando giusto?”.') }}
     </p>
   </div>
   <figure class="story-shot reveal" data-reveal>
-    <img src="/static/product/headset.jpg" alt="Cuffia — foto placeholder da sostituire" width="1600" height="1067" loading="lazy" />
+    <img src="/static/product/headset.jpg" alt="Cuffia" width="1600" height="1067" loading="lazy" />
   </figure>
 </section>
 
 <section class="story-panel invert">
   <div class="story-copy reveal" data-reveal>
-    <p class="kicker">Il telefono</p>
-    <h2 class="display-xl">Anche<br /><span class="soft">in tasca.</span></h2>
+    <p class="kicker">{{ t('Il telefono') }}</p>
+    <h2 class="display-xl">{{ t('Anche') }}<br /><span class="soft">{{ t('in tasca.') }}</span></h2>
     <p class="story-text">
-      Squilla? Pensi di chiudere: si chiude.
-      Ascolti musica? Pensi di spegnere: si spegne.
-      Il telefono resta dove sta — Iris agisce in background.
+      {{ t('Squilla? Pensi di chiudere: si chiude. Ascolti musica? Pensi di spegnere: si spegne. Il telefono resta dove sta — Iris agisce in background.') }}
     </p>
   </div>
   <figure class="story-shot tall reveal" data-reveal>
-    <img src="/static/product/phone.jpg" alt="Telefono collegabile — foto placeholder" width="1400" height="1800" loading="lazy" />
+    <img src="/static/product/phone.jpg" alt="Telefono" width="1400" height="1800" loading="lazy" />
   </figure>
 </section>
 
 <section class="story-band dark">
   <div class="band-inner reveal" data-reveal>
-    <p class="kicker light">Casa</p>
-    <h2 class="display-xxl">Luci.<br />Spine.<br />Ambienti.</h2>
+    <p class="kicker light">{{ t('Casa') }}</p>
+    <h2 class="display-xxl">{{ t('Luci.') }}<br />{{ t('Spine.') }}<br />{{ t('Ambienti.') }}</h2>
     <p class="story-text light">
-      Pensi alla luce: Alexa (o la casa connessa) la accende.
-      Stesso gesto mentale, altro dispositivo.
+      {{ t('Pensi alla luce: Alexa (o la casa connessa) la accende. Stesso gesto mentale, altro dispositivo.') }}
     </p>
   </div>
   <figure class="band-shot reveal" data-reveal>
-    <img src="/static/product/home.jpg" alt="Casa connessa — foto placeholder" width="1600" height="1067" loading="lazy" />
+    <img src="/static/product/home.jpg" alt="Casa" width="1600" height="1067" loading="lazy" />
   </figure>
 </section>
 
 <section class="story-panel">
   <div class="story-copy reveal" data-reveal>
-    <p class="kicker">Musica</p>
-    <h2 class="display-xl">Play.<br /><span class="soft">Pausa. Next.</span></h2>
+    <p class="kicker">{{ t('Musica') }}</p>
+    <h2 class="display-xl">{{ t('Play.') }}<br /><span class="soft">{{ t('Pausa. Next.') }}</span></h2>
     <p class="story-text">
-      Mentre ascolti, i pensieri vanno alla traccia — non allo schermo.
-      Come chiedere a Siri di cambiare canzone.
+      {{ t('Mentre ascolti, i pensieri vanno alla traccia — non allo schermo. Come chiedere a Siri di cambiare canzone.') }}
     </p>
   </div>
   <figure class="story-shot reveal" data-reveal>
-    <img src="/static/product/music.jpg" alt="Musica e media — foto placeholder" width="1600" height="1067" loading="lazy" />
+    <img src="/static/product/music.jpg" alt="Musica" width="1600" height="1067" loading="lazy" />
   </figure>
 </section>
 
 <section class="story-panel invert">
   <div class="story-copy reveal" data-reveal>
-    <p class="kicker">Chiamate</p>
-    <h2 class="display-xl">Rispondi.<br /><span class="soft">O chiudi.</span></h2>
+    <p class="kicker">{{ t('Chiamate') }}</p>
+    <h2 class="display-xl">{{ t('Rispondi.') }}<br /><span class="soft">{{ t('O chiudi.') }}</span></h2>
     <p class="story-text">
-      Arriva una chiamata: pensi l’azione, il telefono obbedisce.
-      Nessuna conferma da toccare.
+      {{ t('Arriva una chiamata: pensi l’azione, il telefono obbedisce. Nessuna conferma da toccare.') }}
     </p>
   </div>
   <figure class="story-shot reveal" data-reveal>
-    <img src="/static/product/connect.jpg" alt="Connessione telefono e IoT — foto placeholder" width="1600" height="1067" loading="lazy" />
+    <img src="/static/product/connect.jpg" alt="Connessione" width="1600" height="1067" loading="lazy" />
   </figure>
 </section>
 
 <section class="story-close">
   <div class="reveal" data-reveal>
-    <p class="kicker">In sintesi</p>
-    <h2 class="display-xxl">Intento.<br />Azione.<br />Silenzio.</h2>
+    <p class="kicker">{{ t('In sintesi') }}</p>
+    <h2 class="display-xxl">{{ t('Intento.') }}<br />{{ t('Azione.') }}<br />{{ t('Silenzio.') }}</h2>
     <p class="story-text center">
-      Il sito serve a creare l’account e calibrare la cuffia.
-      Il quotidiano è invisibile: pensi, e basta.
+      {{ t('Il sito serve a creare l’account e calibrare la cuffia. Il quotidiano è invisibile: pensi, e basta.') }}
     </p>
   </div>
 </section>
 
-<p class="photo-note">Foto temporanee (Unsplash) — le sostituiremo con scatti del prodotto reale.</p>
+<p class="photo-note">{{ t('Foto temporanee (Unsplash) — le sostituiremo con scatti del prodotto reale.') }}</p>
 {% endblock %}
 
 {% block footer %}
 <footer class="footer site-footer">
-  <p>Tesi triennale · Informatica · Università degli Studi di Torino</p>
+  <p>{{ t('Tesi triennale · Informatica · Università degli Studi di Torino') }}</p>
 </footer>
 <script>
   (function () {

@@ -39,6 +39,16 @@ from bci_iot.accounts.timefmt import format_access_it
 from bci_iot.accounts.store import ProfileStore, UserProfile
 from bci_iot.accounts.phone_countries import PHONE_COUNTRIES
 from bci_iot.accounts.messaging import send_code
+from bci_iot.web.i18n import (
+    COOKIE_NAME,
+    LANGUAGES,
+    detect_language,
+    get_request_language,
+    make_translator,
+    normalize_lang,
+    set_request_language,
+    translate,
+)
 
 WEB_DIR = Path(__file__).resolve().parent
 
@@ -207,6 +217,24 @@ def create_app(
         max_age=60 * 60 * 24 * 14,
         path="/",
     )
+
+    @app.middleware("http")
+    async def language_middleware(request: Request, call_next):
+        request.state.lang = detect_language(request)
+        response = await call_next(request)
+        # Persist auto-detected language on first visit (no cookie yet).
+        if COOKIE_NAME not in request.cookies and getattr(request.state, "lang", None):
+            response.set_cookie(
+                COOKIE_NAME,
+                request.state.lang,
+                max_age=60 * 60 * 24 * 365,
+                httponly=False,
+                samesite="lax",
+                secure=https_only,
+                path="/",
+            )
+        return response
+
     app.mount("/static", StaticFiles(directory=str(WEB_DIR / "static")), name="static")
     photos_dir = profiles_dir.parent / "photos"
     photos_dir.mkdir(parents=True, exist_ok=True)
@@ -227,13 +255,34 @@ def create_app(
         if username:
             profile = profiles.get(username)
             is_admin = bool(profile and profile.is_admin)
+        lang = get_request_language(request)
+        t = make_translator(lang)
+        flash = _pop_flash(request)
+        if flash and flash.get("message"):
+            flash = {**flash, "message": translate(lang, str(flash["message"]))}
         return {
             "username": username,
             "is_admin": is_admin,
-            "flash": _pop_flash(request),
+            "flash": flash,
             "phone_countries": PHONE_COUNTRIES,
+            "lang": lang,
+            "languages": LANGUAGES,
+            "t": t,
             **extra,
         }
+
+    def _redirect_with_lang(request: Request, url: str, lang: str) -> RedirectResponse:
+        response = RedirectResponse(url, status_code=303)
+        response.set_cookie(
+            COOKIE_NAME,
+            lang,
+            max_age=60 * 60 * 24 * 365,
+            httponly=False,
+            samesite="lax",
+            secure=https_only,
+            path="/",
+        )
+        return response
     def _post_auth_destination(profile: UserProfile) -> str:
         if profile.is_admin:
             return "/accessi"
@@ -257,10 +306,13 @@ def create_app(
             "continue.html",
             {
                 "next_url": next_url,
-                "message": message,
+                "message": translate(get_request_language(request), message),
                 "username": None,
                 "is_admin": False,
                 "flash": None,
+                "lang": get_request_language(request),
+                "languages": LANGUAGES,
+                "t": make_translator(get_request_language(request)),
             },
         )
         response.headers["Cache-Control"] = "no-store"
@@ -306,6 +358,34 @@ def create_app(
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok", "version": __version__}
+
+    @app.post("/lingua")
+    def set_language(
+        request: Request,
+        lang: str = Form(...),
+        next: str = Form("/"),
+    ) -> RedirectResponse:
+        code = set_request_language(request, lang)
+        dest = next if next.startswith("/") and not next.startswith("//") else "/"
+        return _redirect_with_lang(request, dest, code)
+
+    @app.get("/lingua/{lang}")
+    def set_language_get(request: Request, lang: str) -> RedirectResponse:
+        code = set_request_language(request, lang)
+        referer = request.headers.get("referer") or "/"
+        # Stay on same site path when possible
+        dest = "/"
+        if referer:
+            try:
+                from urllib.parse import urlparse
+
+                path = urlparse(referer).path or "/"
+                if path.startswith("/"):
+                    dest = path
+            except Exception:
+                dest = "/"
+        return _redirect_with_lang(request, dest, code)
+
     @app.get("/", response_class=HTMLResponse)
     def home(
         request: Request,

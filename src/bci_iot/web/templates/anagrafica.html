@@ -1,27 +1,26 @@
 ﻿{% extends "base.html" %}
-{% block title %}I tuoi dati · Iris{% endblock %}
+{% block title %}{{ t('I tuoi dati') }} · Iris{% endblock %}
 {% block body_class %}page-private{% endblock %}
 {% block main_class %}shell private-shell{% endblock %}
 {% block content %}
 <section class="private-area">
   <header class="private-welcome">
-    <p class="eyebrow">{% if profile.anagrafica_complete %}Profilo{% else %}Passo 2 di 3{% endif %}</p>
-    <h1>I tuoi dati</h1>
+    <p class="eyebrow">{% if profile.anagrafica_complete %}{{ t('Profilo') }}{% else %}{{ t('Passo 2 di 3') }}{% endif %}</p>
+    <h1>{{ t('I tuoi dati') }}</h1>
     <p class="lede">
-      Nome e cognome senza numeri. La foto è facoltativa.
-      L’username resta univoco; email e telefono pure.
+      {{ t('Nome e cognome senza numeri. La foto è facoltativa. L’username resta univoco; email e telefono pure.') }}
     </p>
   </header>
 
   {% if profile.verification_pending and profile.anagrafica_complete %}
   <div class="verify-banner panel" role="status">
-    <strong>Account non verificato</strong>
-    <p class="muted">Puoi usare Iris lo stesso. Verifica email o telefono quando vuoi: il codice arriva via messaggio.</p>
+    <strong>{{ t('Account non verificato') }}</strong>
+    <p class="muted">{{ t('Puoi usare Iris lo stesso. Verifica email o telefono quando vuoi: il codice arriva via messaggio.') }}</p>
   </div>
   {% endif %}
 
   <div class="panel photo-block reveal" data-reveal>
-    <h2>Foto profilo <span class="muted">(opzionale)</span></h2>
+    <h2>{{ t('Foto profilo') }} <span class="muted">{{ t('(opzionale)') }}</span></h2>
     <div class="photo-preview">
       {% if profile.photo_filename %}
       <img class="avatar lg" id="photo-preview-img" src="/media/photos/{{ profile.photo_filename }}" alt="Foto profilo" width="120" height="120" />
@@ -36,37 +35,37 @@
       {% endif %}
     </div>
     <form method="post" action="/anagrafica/foto" enctype="multipart/form-data" class="stack" id="photo-form">
-      <label>Scegli una foto (JPG / PNG / WebP, max 2.5 MB)
+      <label>{{ t('Scegli una foto (JPG / PNG / WebP, max 2.5 MB)') }}
         <input type="file" name="photo" id="photo-input" accept="image/jpeg,image/png,image/webp" />
       </label>
-      <button class="btn" type="submit">Salva foto</button>
+      <button class="btn" type="submit">{{ t('Salva foto') }}</button>
     </form>
   </div>
 
   <form method="post" action="/anagrafica" class="private-form private-form-fit" id="anagrafica-form">
     <div class="cfg-grid">
       <div class="form-block">
-        <h2>Anagrafica</h2>
-        <label>Nome
+        <h2>{{ t('Anagrafica') }}</h2>
+        <label>{{ t('Nome') }}
           <input name="first_name" value="{{ profile.first_name }}" required maxlength="64" autocomplete="given-name" pattern="[^0-9]+" title="Niente numeri" />
         </label>
-        <label>Cognome
+        <label>{{ t('Cognome') }}
           <input name="last_name" value="{{ profile.last_name }}" maxlength="64" autocomplete="family-name" pattern="[^0-9]*" title="Niente numeri" />
         </label>
-        <label>Email
+        <label>{{ t('Email') }}
           <input name="email" type="email" value="{{ profile.email }}" required maxlength="254" autocomplete="email" placeholder="nome@gmail.com" />
         </label>
         {% if profile.email_verified %}
-        <p class="verify-ok">Email verificata</p>
+        <p class="verify-ok">{{ t('Email verificata') }}</p>
         {% elif profile.email %}
-        <p class="verify-warn">Email non verificata</p>
+        <p class="verify-warn">{{ t('Email non verificata') }}</p>
         {% endif %}
 
-        <label>Prefisso e telefono</label>
+        <label>{{ t('Prefisso e telefono') }}</label>
         <div class="phone-row" id="phone-row" data-locked="{{ '1' if profile.phone_country else '0' }}">
           <button type="button" class="phone-cc-btn" id="phone-cc-btn" aria-haspopup="listbox" aria-expanded="false">
             <span id="phone-cc-flag">{% if profile.phone_country %}{% for c in phone_countries if c.iso == profile.phone_country %}{{ c.flag }}{% endfor %}{% else %}🌐{% endif %}</span>
-            <span id="phone-cc-dial">{{ profile.phone_dial or 'Prefisso' }}</span>
+            <span id="phone-cc-dial">{{ profile.phone_dial or t('Prefisso') }}</span>
           </button>
           <input type="hidden" name="phone_country" id="phone-country" value="{{ profile.phone_country }}" />
           <input
@@ -76,14 +75,14 @@
             pattern="[0-9]*"
             maxlength="15"
             value="{{ profile.phone_national }}"
-            placeholder="Numero senza prefisso"
+            placeholder="{{ t('Numero senza prefisso') }}"
             autocomplete="tel-national"
             required
             {% if not profile.phone_country %}disabled{% endif %}
           />
         </div>
         <div class="phone-cc-menu" id="phone-cc-menu" hidden role="listbox">
-          <input type="search" id="phone-cc-filter" placeholder="Cerca paese…" autocomplete="off" />
+          <input type="search" id="phone-cc-filter" placeholder="{{ t('Cerca paese…') }}" autocomplete="off" />
           <div class="phone-cc-list" id="phone-cc-list">
             {% for c in phone_countries %}
             <button type="button" class="phone-cc-option" role="option"
@@ -96,87 +95,87 @@
             {% endfor %}
           </div>
         </div>
-        <p class="form-hint" id="phone-hint">Scegli la bandiera/prefisso: si fissa, poi digita solo le cifre del numero.</p>
+        <p class="form-hint" id="phone-hint">{{ t('Scegli la bandiera/prefisso: si fissa, poi digita solo le cifre del numero.') }}</p>
         {% if profile.phone_verified %}
-        <p class="verify-ok">Telefono verificato</p>
+        <p class="verify-ok">{{ t('Telefono verificato') }}</p>
         {% elif profile.phone_e164 %}
-        <p class="verify-warn">Telefono non verificato</p>
+        <p class="verify-warn">{{ t('Telefono non verificato') }}</p>
         {% endif %}
 
-        <label>Etichetta dispositivo (opzionale)
+        <label>{{ t('Etichetta dispositivo (opzionale)') }}
           <input name="phone_label" value="{{ profile.phone_label }}" maxlength="64" placeholder="es. iPhone di Maria" autocomplete="off" />
         </label>
       </div>
 
       <div class="form-block">
-        <h2>Come ti identifichi</h2>
-        <p class="form-hint">Scegli l’opzione con cui preferisci essere indirizzata/o/ə nel sito.</p>
+        <h2>{{ t('Come ti identifichi') }}</h2>
+        <p class="form-hint">{{ t('Scegli l’opzione con cui preferisci essere indirizzata/o/ə nel sito.') }}</p>
         <div class="gender-choices">
           <label class="gender-option">
             <input type="radio" name="gender" value="female" required {% if profile.gender == 'female' %}checked{% endif %} />
-            <span>Donna</span>
+            <span>{{ t('Donna') }}</span>
           </label>
           <label class="gender-option">
             <input type="radio" name="gender" value="male" {% if profile.gender == 'male' %}checked{% endif %} />
-            <span>Uomo</span>
+            <span>{{ t('Uomo') }}</span>
           </label>
           <label class="gender-option">
             <input type="radio" name="gender" value="non_binary" {% if profile.gender == 'non_binary' %}checked{% endif %} />
-            <span>Non binario</span>
+            <span>{{ t('Non binario') }}</span>
           </label>
         </div>
       </div>
     </div>
 
     <div class="private-actions">
-      <button class="btn primary" type="submit">{% if profile.anagrafica_complete %}Salva{% else %}Continua{% endif %}</button>
+      <button class="btn primary" type="submit">{% if profile.anagrafica_complete %}{{ t('Salva') }}{% else %}{{ t('Continua') }}{% endif %}</button>
       {% if profile.anagrafica_complete %}
-      <a class="btn" href="/cambia-password">Cambia password</a>
+      <a class="btn" href="/cambia-password">{{ t('Cambia password') }}</a>
       {% endif %}
     </div>
   </form>
 
   {% if profile.anagrafica_complete %}
   <div class="panel reveal" data-reveal>
-    <h2>Verifica account</h2>
-    <p class="form-hint">Non obbligatoria. Se non la fai, resta segnalata nell’area personale.</p>
+    <h2>{{ t('Verifica account') }}</h2>
+    <p class="form-hint">{{ t('Non obbligatoria. Se non la fai, resta segnalata nell’area personale.') }}</p>
     <div class="verify-actions">
       {% if profile.email and not profile.email_verified %}
       <form method="post" action="/verifica/invia" class="stack inline-verify">
         <input type="hidden" name="channel" value="email" />
-        <button class="btn" type="submit">Invia codice email</button>
+        <button class="btn" type="submit">{{ t('Invia codice email') }}</button>
       </form>
       <form method="post" action="/verifica/conferma" class="stack inline-verify">
         <input type="hidden" name="channel" value="email" />
-        <label>Codice email
+        <label>{{ t('Codice email') }}
           <input name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" required placeholder="000000" />
         </label>
-        <button class="btn primary" type="submit">Conferma email</button>
+        <button class="btn primary" type="submit">{{ t('Conferma email') }}</button>
       </form>
       {% endif %}
       {% if profile.phone_e164 and not profile.phone_verified %}
       <form method="post" action="/verifica/invia" class="stack inline-verify">
         <input type="hidden" name="channel" value="phone" />
-        <button class="btn" type="submit">Invia codice SMS</button>
+        <button class="btn" type="submit">{{ t('Invia codice SMS') }}</button>
       </form>
       <form method="post" action="/verifica/conferma" class="stack inline-verify">
         <input type="hidden" name="channel" value="phone" />
-        <label>Codice SMS
+        <label>{{ t('Codice SMS') }}
           <input name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" required placeholder="000000" />
         </label>
-        <button class="btn primary" type="submit">Conferma telefono</button>
+        <button class="btn primary" type="submit">{{ t('Conferma telefono') }}</button>
       </form>
       {% endif %}
       {% if profile.account_verified %}
-      <p class="verify-ok">Account verificato.</p>
+      <p class="verify-ok">{{ t('Account verificato.') }}</p>
       {% endif %}
     </div>
   </div>
   {% endif %}
 
   {% if profile.anagrafica_complete and not profile.is_admin %}
-  <form method="post" action="/elimina-account" class="danger-zone" onsubmit="return confirm('Eliminare definitivamente l’account?');">
-    <button class="btn danger" type="submit">Elimina account</button>
+  <form method="post" action="/elimina-account" class="danger-zone" onsubmit="return confirm('{{ t('Eliminare definitivamente l’account?') }}');">
+    <button class="btn danger" type="submit">{{ t('Elimina account') }}</button>
   </form>
   {% endif %}
 </section>

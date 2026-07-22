@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="{{ lang|default('it') }}">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta http-equiv="refresh" content="0;url={{ next_url }}" />
-  <title>Accesso...</title>
+  <title>{{ t('Accesso...') if t is defined else 'Accesso...' }}</title>
   <style>
     body {
       margin: 0;
@@ -24,6 +24,6 @@
   </script>
 </head>
 <body>
-  <p>{{ message }}<br /><a href="{{ next_url }}">Tocca qui se non vai avanti</a></p>
+  <p>{{ message }}<br /><a href="{{ next_url }}">{{ t('Tocca qui se non vai avanti') if t is defined else 'Tocca qui se non vai avanti' }}</a></p>
 </body>
 </html>
