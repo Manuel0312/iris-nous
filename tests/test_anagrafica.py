@@ -35,16 +35,20 @@ def test_normalize_gender_and_greetings() -> None:
 def test_anagrafica_persisted_and_mirrored_to_sqlite(tmp_path: Path) -> None:
     store = ProfileStore(tmp_path / "profiles")
     db = AccessDatabase(tmp_path / "accessi.db")
-    store.create_account("maria", "Segreta123")
+    store.create_account("maria", "Segreta123", email="maria@gmail.com")
     profile = store.update_anagrafica(
         "maria",
         first_name="Maria",
         last_name="Rossi",
         gender="female",
+        email="maria@gmail.com",
+        phone_country="IT",
+        phone_national="3331234567",
         phone_label="iPhone",
     )
     assert profile.anagrafica_complete is True
     assert profile.gender == "female"
+    assert profile.phone_e164 == "+393331234567"
     db.upsert_anagrafica(
         username=profile.username,
         user_id=profile.user_id,
@@ -53,11 +57,15 @@ def test_anagrafica_persisted_and_mirrored_to_sqlite(tmp_path: Path) -> None:
         gender=profile.gender,
         phone_label=profile.phone_label,
         headset_id=profile.headset_id,
+        email=profile.email,
+        phone_e164=profile.phone_e164,
     )
     with db._connect() as conn:
         row = conn.execute(
-            "SELECT first_name, gender FROM user_anagrafica WHERE username=?",
+            "SELECT first_name, gender, email, phone_e164 FROM user_anagrafica WHERE username=?",
             ("maria",),
         ).fetchone()
     assert row["first_name"] == "Maria"
     assert row["gender"] == "female"
+    assert row["email"] == "maria@gmail.com"
+    assert row["phone_e164"] == "+393331234567"

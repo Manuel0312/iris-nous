@@ -25,7 +25,8 @@ def test_build_pipeline_with_profile_action_map(tmp_path: Path) -> None:
     store = ProfileStore(profiles)
     store.create_account(
         "demo",
-        "secret12",
+        "Secret12!",
+        email="demo@gmail.com",
         action_map={"FOCUS": "spotify.pause"},
     )
     config = AppConfig()

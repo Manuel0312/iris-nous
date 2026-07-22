@@ -9,13 +9,24 @@ from fastapi.testclient import TestClient
 from bci_iot.web import create_app
 
 
-def _complete_anagrafica(client: TestClient, *, gender: str = "female") -> None:
+def _complete_anagrafica(
+    client: TestClient,
+    *,
+    first_name: str = "Maria",
+    last_name: str = "Rossi",
+    gender: str = "female",
+    email: str = "maria@gmail.com",
+    phone_national: str = "3331234567",
+) -> None:
     response = client.post(
         "/anagrafica",
         data={
-            "first_name": "Maria",
-            "last_name": "Rossi",
+            "first_name": first_name,
+            "last_name": last_name,
             "gender": gender,
+            "email": email,
+            "phone_country": "IT",
+            "phone_national": phone_national,
             "phone_label": "iPhone di Maria",
         },
         follow_redirects=False,
@@ -41,7 +52,12 @@ def test_register_login_dashboard_flow(tmp_path: Path) -> None:
 
     register = client.post(
         "/register",
-        data={"username": "maria", "password": "Segreta123", "headset_id": ""},
+        data={
+            "username": "maria",
+            "email": "maria@gmail.com",
+            "password": "Segreta123",
+            "headset_id": "",
+        },
         follow_redirects=False,
     )
     assert register.status_code == 200
@@ -53,7 +69,6 @@ def test_register_login_dashboard_flow(tmp_path: Path) -> None:
 
     _complete_anagrafica(client, gender="female")
 
-    # After anagrafica → calibration required
     blocked_cal = client.get("/dashboard", follow_redirects=False)
     assert blocked_cal.status_code == 303
     assert blocked_cal.headers["location"] == "/calibrazione"
@@ -68,6 +83,7 @@ def test_register_login_dashboard_flow(tmp_path: Path) -> None:
     dash = client.get("/dashboard")
     assert dash.status_code == 200
     assert "Ciao, Maria" in dash.text
+    assert "Account non verificato" in dash.text
     assert "Cuffia" in dash.text or "Associata" in dash.text or "associa" in dash.text.lower()
 
     save = client.post(
@@ -112,19 +128,21 @@ def test_gendered_welcome_male_and_non_binary(tmp_path: Path) -> None:
 
     client.post(
         "/register",
-        data={"username": "luca", "password": "Abcdef12", "headset_id": ""},
-        follow_redirects=False,
-    )
-    _complete_anagrafica(client, gender="male")
-    client.post(
-        "/anagrafica",
         data={
-            "first_name": "Luca",
-            "last_name": "Bianchi",
-            "gender": "male",
-            "phone_label": "Pixel",
+            "username": "luca",
+            "email": "luca@gmail.com",
+            "password": "Abcdef12",
+            "headset_id": "",
         },
         follow_redirects=False,
+    )
+    _complete_anagrafica(
+        client,
+        first_name="Luca",
+        last_name="Bianchi",
+        gender="male",
+        email="luca@gmail.com",
+        phone_national="3331111111",
     )
     _finish_calibration(client)
     client.post("/logout", follow_redirects=False)
@@ -141,18 +159,21 @@ def test_gendered_welcome_male_and_non_binary(tmp_path: Path) -> None:
     client.post("/logout", follow_redirects=False)
     client.post(
         "/register",
-        data={"username": "alex", "password": "Abcdef12", "headset_id": ""},
-        follow_redirects=False,
-    )
-    client.post(
-        "/anagrafica",
         data={
-            "first_name": "Alex",
-            "last_name": "",
-            "gender": "non_binary",
-            "phone_label": "Telefono Alex",
+            "username": "alex",
+            "email": "alex@gmail.com",
+            "password": "Abcdef12",
+            "headset_id": "",
         },
         follow_redirects=False,
+    )
+    _complete_anagrafica(
+        client,
+        first_name="Alex",
+        last_name="",
+        gender="non_binary",
+        email="alex@gmail.com",
+        phone_national="3332222222",
     )
     _finish_calibration(client)
     client.post("/logout", follow_redirects=False)
@@ -172,11 +193,17 @@ def test_api_auth_register_and_login(tmp_path: Path) -> None:
 
     created = client.post(
         "/api/auth/register",
-        json={"username": "luca", "password": "Abcdef12", "headset_id": "h-1"},
+        json={
+            "username": "luca",
+            "email": "luca@gmail.com",
+            "password": "Abcdef12",
+            "headset_id": "h-1",
+        },
     )
     assert created.status_code == 200
     assert created.json()["headset_id"] == "h-1"
     assert created.json()["anagrafica_complete"] is False
+    assert created.json()["email"] == "luca@gmail.com"
 
     bad = client.post("/api/auth/login", json={"username": "luca", "password": "nope"})
     assert bad.status_code == 401

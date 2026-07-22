@@ -8,37 +8,102 @@
     <p class="eyebrow">{% if profile.anagrafica_complete %}Profilo{% else %}Passo 2 di 3{% endif %}</p>
     <h1>I tuoi dati</h1>
     <p class="lede">
-      Nome e cognome possono essere uguali a quelli di un’altra persona.
-      L’username resta univoco.
+      Nome e cognome senza numeri. La foto è facoltativa.
+      L’username resta univoco; email e telefono pure.
     </p>
   </header>
 
-  {% if profile.anagrafica_complete %}
+  {% if profile.verification_pending and profile.anagrafica_complete %}
+  <div class="verify-banner panel" role="status">
+    <strong>Account non verificato</strong>
+    <p class="muted">Puoi usare Iris lo stesso. Verifica email o telefono quando vuoi: il codice arriva via messaggio.</p>
+  </div>
+  {% endif %}
+
   <div class="panel photo-block reveal" data-reveal>
-    <h2>Foto profilo</h2>
-    {% if profile.photo_filename %}
-    <img class="avatar lg" src="/media/photos/{{ profile.photo_filename }}" alt="Foto profilo" width="120" height="120" />
-    {% endif %}
-    <form method="post" action="/anagrafica/foto" enctype="multipart/form-data" class="stack">
-      <label>Carica foto (JPG / PNG / WebP, max 2.5 MB)
-        <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required />
+    <h2>Foto profilo <span class="muted">(opzionale)</span></h2>
+    <div class="photo-preview">
+      {% if profile.photo_filename %}
+      <img class="avatar lg" id="photo-preview-img" src="/media/photos/{{ profile.photo_filename }}" alt="Foto profilo" width="120" height="120" />
+      {% else %}
+      <div class="avatar lg avatar-placeholder" id="photo-preview-fallback" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="64" height="64" fill="none" aria-hidden="true">
+          <circle cx="32" cy="24" r="12" fill="#9aa0a6"/>
+          <path d="M8 56c0-13.255 10.745-24 24-24s24 10.745 24 24" fill="#9aa0a6"/>
+        </svg>
+      </div>
+      <img class="avatar lg" id="photo-preview-img" hidden alt="Anteprima foto" width="120" height="120" />
+      {% endif %}
+    </div>
+    <form method="post" action="/anagrafica/foto" enctype="multipart/form-data" class="stack" id="photo-form">
+      <label>Scegli una foto (JPG / PNG / WebP, max 2.5 MB)
+        <input type="file" name="photo" id="photo-input" accept="image/jpeg,image/png,image/webp" />
       </label>
       <button class="btn" type="submit">Salva foto</button>
     </form>
   </div>
-  {% endif %}
 
-  <form method="post" action="/anagrafica" class="private-form private-form-fit">
+  <form method="post" action="/anagrafica" class="private-form private-form-fit" id="anagrafica-form">
     <div class="cfg-grid">
       <div class="form-block">
         <h2>Anagrafica</h2>
         <label>Nome
-          <input name="first_name" value="{{ profile.first_name }}" required maxlength="64" autocomplete="given-name" />
+          <input name="first_name" value="{{ profile.first_name }}" required maxlength="64" autocomplete="given-name" pattern="[^0-9]+" title="Niente numeri" />
         </label>
         <label>Cognome
-          <input name="last_name" value="{{ profile.last_name }}" maxlength="64" autocomplete="family-name" />
+          <input name="last_name" value="{{ profile.last_name }}" maxlength="64" autocomplete="family-name" pattern="[^0-9]*" title="Niente numeri" />
         </label>
-        <label>Telefono (etichetta)
+        <label>Email
+          <input name="email" type="email" value="{{ profile.email }}" required maxlength="254" autocomplete="email" placeholder="nome@gmail.com" />
+        </label>
+        {% if profile.email_verified %}
+        <p class="verify-ok">Email verificata</p>
+        {% elif profile.email %}
+        <p class="verify-warn">Email non verificata</p>
+        {% endif %}
+
+        <label>Prefisso e telefono</label>
+        <div class="phone-row" id="phone-row" data-locked="{{ '1' if profile.phone_country else '0' }}">
+          <button type="button" class="phone-cc-btn" id="phone-cc-btn" aria-haspopup="listbox" aria-expanded="false">
+            <span id="phone-cc-flag">{% if profile.phone_country %}{% for c in phone_countries if c.iso == profile.phone_country %}{{ c.flag }}{% endfor %}{% else %}🌐{% endif %}</span>
+            <span id="phone-cc-dial">{{ profile.phone_dial or 'Prefisso' }}</span>
+          </button>
+          <input type="hidden" name="phone_country" id="phone-country" value="{{ profile.phone_country }}" />
+          <input
+            name="phone_national"
+            id="phone-national"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            maxlength="15"
+            value="{{ profile.phone_national }}"
+            placeholder="Numero senza prefisso"
+            autocomplete="tel-national"
+            required
+            {% if not profile.phone_country %}disabled{% endif %}
+          />
+        </div>
+        <div class="phone-cc-menu" id="phone-cc-menu" hidden role="listbox">
+          <input type="search" id="phone-cc-filter" placeholder="Cerca paese…" autocomplete="off" />
+          <div class="phone-cc-list" id="phone-cc-list">
+            {% for c in phone_countries %}
+            <button type="button" class="phone-cc-option" role="option"
+              data-iso="{{ c.iso }}" data-dial="{{ c.dial }}" data-flag="{{ c.flag }}"
+              data-min="{{ c.min_len }}" data-max="{{ c.max_len }}">
+              <span>{{ c.flag }}</span>
+              <span class="phone-cc-name">{{ c.name }}</span>
+              <span class="muted">{{ c.dial }}</span>
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+        <p class="form-hint" id="phone-hint">Scegli la bandiera/prefisso: si fissa, poi digita solo le cifre del numero.</p>
+        {% if profile.phone_verified %}
+        <p class="verify-ok">Telefono verificato</p>
+        {% elif profile.phone_e164 %}
+        <p class="verify-warn">Telefono non verificato</p>
+        {% endif %}
+
+        <label>Etichetta dispositivo (opzionale)
           <input name="phone_label" value="{{ profile.phone_label }}" maxlength="64" placeholder="es. iPhone di Maria" autocomplete="off" />
         </label>
       </div>
@@ -71,10 +136,135 @@
     </div>
   </form>
 
+  {% if profile.anagrafica_complete %}
+  <div class="panel reveal" data-reveal>
+    <h2>Verifica account</h2>
+    <p class="form-hint">Non obbligatoria. Se non la fai, resta segnalata nell’area personale.</p>
+    <div class="verify-actions">
+      {% if profile.email and not profile.email_verified %}
+      <form method="post" action="/verifica/invia" class="stack inline-verify">
+        <input type="hidden" name="channel" value="email" />
+        <button class="btn" type="submit">Invia codice email</button>
+      </form>
+      <form method="post" action="/verifica/conferma" class="stack inline-verify">
+        <input type="hidden" name="channel" value="email" />
+        <label>Codice email
+          <input name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" required placeholder="000000" />
+        </label>
+        <button class="btn primary" type="submit">Conferma email</button>
+      </form>
+      {% endif %}
+      {% if profile.phone_e164 and not profile.phone_verified %}
+      <form method="post" action="/verifica/invia" class="stack inline-verify">
+        <input type="hidden" name="channel" value="phone" />
+        <button class="btn" type="submit">Invia codice SMS</button>
+      </form>
+      <form method="post" action="/verifica/conferma" class="stack inline-verify">
+        <input type="hidden" name="channel" value="phone" />
+        <label>Codice SMS
+          <input name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" required placeholder="000000" />
+        </label>
+        <button class="btn primary" type="submit">Conferma telefono</button>
+      </form>
+      {% endif %}
+      {% if profile.account_verified %}
+      <p class="verify-ok">Account verificato.</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
   {% if profile.anagrafica_complete and not profile.is_admin %}
   <form method="post" action="/elimina-account" class="danger-zone" onsubmit="return confirm('Eliminare definitivamente l’account?');">
     <button class="btn danger" type="submit">Elimina account</button>
   </form>
   {% endif %}
 </section>
+<script>
+(function () {
+  const file = document.getElementById("photo-input");
+  const img = document.getElementById("photo-preview-img");
+  const fallback = document.getElementById("photo-preview-fallback");
+  if (file && img) {
+    file.addEventListener("change", () => {
+      const f = file.files && file.files[0];
+      if (!f) return;
+      const url = URL.createObjectURL(f);
+      img.src = url;
+      img.hidden = false;
+      if (fallback) fallback.hidden = true;
+    });
+  }
+
+  const row = document.getElementById("phone-row");
+  const btn = document.getElementById("phone-cc-btn");
+  const menu = document.getElementById("phone-cc-menu");
+  const filter = document.getElementById("phone-cc-filter");
+  const list = document.getElementById("phone-cc-list");
+  const isoInput = document.getElementById("phone-country");
+  const national = document.getElementById("phone-national");
+  const flagEl = document.getElementById("phone-cc-flag");
+  const dialEl = document.getElementById("phone-cc-dial");
+  const hint = document.getElementById("phone-hint");
+  if (!btn || !menu || !national) return;
+
+  function lockCountry(iso, dial, flag, minLen, maxLen) {
+    isoInput.value = iso;
+    flagEl.textContent = flag;
+    dialEl.textContent = dial;
+    national.disabled = false;
+    national.focus();
+    row.dataset.locked = "1";
+    btn.classList.add("is-locked");
+    menu.hidden = true;
+    btn.setAttribute("aria-expanded", "false");
+    if (hint) {
+      hint.textContent = "Prefisso fissato (" + dial + "). Digita " + minLen + "–" + maxLen + " cifre del numero.";
+    }
+  }
+
+  btn.addEventListener("click", () => {
+    if (row.dataset.locked === "1") {
+      // Allow changing prefix explicitly by unlocking
+      row.dataset.locked = "0";
+      btn.classList.remove("is-locked");
+    }
+    const open = menu.hidden;
+    menu.hidden = !open;
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open && filter) filter.focus();
+  });
+
+  list.querySelectorAll(".phone-cc-option").forEach((opt) => {
+    opt.addEventListener("click", () => {
+      lockCountry(
+        opt.dataset.iso,
+        opt.dataset.dial,
+        opt.dataset.flag,
+        opt.dataset.min,
+        opt.dataset.max
+      );
+    });
+  });
+
+  if (filter) {
+    filter.addEventListener("input", () => {
+      const q = filter.value.trim().toLowerCase();
+      list.querySelectorAll(".phone-cc-option").forEach((opt) => {
+        const text = opt.textContent.toLowerCase();
+        opt.hidden = q && !text.includes(q);
+      });
+    });
+  }
+
+  national.addEventListener("input", () => {
+    national.value = national.value.replace(/\D+/g, "");
+  });
+
+  if (row.dataset.locked === "1") {
+    btn.classList.add("is-locked");
+    national.disabled = false;
+  }
+})();
+</script>
 {% endblock %}

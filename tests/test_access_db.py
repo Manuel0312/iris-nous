@@ -54,7 +54,12 @@ def test_register_login_logged_and_admin_sees_accessi(tmp_path: Path) -> None:
 
     register = client.post(
         "/register",
-        data={"username": "maria", "password": "Segreta123", "headset_id": ""},
+        data={
+            "username": "maria",
+            "email": "maria@gmail.com",
+            "password": "Segreta123",
+            "headset_id": "",
+        },
         follow_redirects=False,
     )
     assert register.status_code == 200
@@ -66,6 +71,9 @@ def test_register_login_logged_and_admin_sees_accessi(tmp_path: Path) -> None:
             "first_name": "Maria",
             "last_name": "Rossi",
             "gender": "female",
+            "email": "maria@gmail.com",
+            "phone_country": "IT",
+            "phone_national": "3331234567",
             "phone_label": "iPhone",
         },
         follow_redirects=False,

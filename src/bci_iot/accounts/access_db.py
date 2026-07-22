@@ -88,6 +88,8 @@ class AccessDatabase:
                     headset_id TEXT NOT NULL DEFAULT '',
                     status TEXT NOT NULL DEFAULT 'active',
                     photo_path TEXT NOT NULL DEFAULT '',
+                    email TEXT NOT NULL DEFAULT '',
+                    phone_e164 TEXT NOT NULL DEFAULT '',
                     updated_at TEXT NOT NULL
                 )
                 """
@@ -105,6 +107,14 @@ class AccessDatabase:
                 conn.execute(
                     "ALTER TABLE user_anagrafica ADD COLUMN photo_path TEXT NOT NULL DEFAULT ''"
                 )
+            if "email" not in cols:
+                conn.execute(
+                    "ALTER TABLE user_anagrafica ADD COLUMN email TEXT NOT NULL DEFAULT ''"
+                )
+            if "phone_e164" not in cols:
+                conn.execute(
+                    "ALTER TABLE user_anagrafica ADD COLUMN phone_e164 TEXT NOT NULL DEFAULT ''"
+                )
             conn.commit()
 
     def upsert_anagrafica(
@@ -119,6 +129,8 @@ class AccessDatabase:
         headset_id: str = "",
         status: str = "active",
         photo_path: str = "",
+        email: str = "",
+        phone_e164: str = "",
     ) -> None:
         """Store personal data without passwords (SQLite mirror)."""
 
@@ -127,8 +139,9 @@ class AccessDatabase:
                 """
                 INSERT INTO user_anagrafica (
                     username, user_id, first_name, last_name, gender,
-                    phone_label, headset_id, status, photo_path, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    phone_label, headset_id, status, photo_path, email,
+                    phone_e164, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(username) DO UPDATE SET
                     user_id=excluded.user_id,
                     first_name=excluded.first_name,
@@ -138,6 +151,8 @@ class AccessDatabase:
                     headset_id=excluded.headset_id,
                     status=excluded.status,
                     photo_path=excluded.photo_path,
+                    email=excluded.email,
+                    phone_e164=excluded.phone_e164,
                     updated_at=excluded.updated_at
                 """,
                 (
@@ -150,6 +165,8 @@ class AccessDatabase:
                     headset_id.strip()[:128],
                     status if status in {"active", "deleted"} else "active",
                     photo_path.strip()[:256],
+                    email.strip()[:254],
+                    phone_e164.strip()[:32],
                     _utc_now(),
                 ),
             )

@@ -7,15 +7,27 @@ import shutil
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid4
 
 from bci_iot.accounts.gender import normalize_gender
+from bci_iot.accounts.otp import (
+    generate_otp_code,
+    hash_otp,
+    otp_expiry,
+    otp_is_expired,
+    otp_matches,
+)
+from bci_iot.accounts.phone_countries import format_phone_display, normalize_phone
 from bci_iot.accounts.security import hash_password, password_strength, verify_password
+from bci_iot.accounts.validators import normalize_email, validate_person_name
 
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+OtpPurpose = Literal["verify_email", "verify_phone", "recover"]
 
 
 @dataclass(slots=True)
@@ -32,7 +44,18 @@ class UserProfile:
     first_name: str = ""
     last_name: str = ""
     gender: str = ""
+    email: str = ""
     phone_label: str = ""
+    phone_country: str = ""
+    phone_dial: str = ""
+    phone_national: str = ""
+    phone_e164: str = ""
+    email_verified: bool = False
+    phone_verified: bool = False
+    otp_hash: str = ""
+    otp_channel: str = ""
+    otp_purpose: str = ""
+    otp_expires_at: str = ""
     anagrafica_complete: bool = False
     calibration_complete: bool = False
     pairing_code: str = ""
@@ -81,6 +104,18 @@ class UserProfile:
         return name or self.username
 
     @property
+    def phone_display(self) -> str:
+        return format_phone_display(dial=self.phone_dial, national=self.phone_national)
+
+    @property
+    def account_verified(self) -> bool:
+        return bool(self.email_verified or self.phone_verified)
+
+    @property
+    def verification_pending(self) -> bool:
+        return not self.account_verified
+
+    @property
     def is_online(self) -> bool:
         if not self.last_seen_at:
             return False
@@ -100,8 +135,12 @@ class UserProfile:
         data.pop("password_hash", None)
         data.pop("spotify_access_token", None)
         data.pop("spotify_refresh_token", None)
+        data.pop("otp_hash", None)
         data["spotify_linked"] = self.spotify_linked
         data["phone_online"] = self.phone_online
+        data["phone_display"] = self.phone_display
+        data["account_verified"] = self.account_verified
+        data["verification_pending"] = self.verification_pending
         return data
 
     @classmethod
@@ -120,7 +159,18 @@ class UserProfile:
             first_name=str(data.get("first_name") or ""),
             last_name=str(data.get("last_name") or ""),
             gender=str(data.get("gender") or ""),
+            email=str(data.get("email") or ""),
             phone_label=str(data.get("phone_label") or ""),
+            phone_country=str(data.get("phone_country") or ""),
+            phone_dial=str(data.get("phone_dial") or ""),
+            phone_national=str(data.get("phone_national") or ""),
+            phone_e164=str(data.get("phone_e164") or ""),
+            email_verified=bool(data.get("email_verified", False)),
+            phone_verified=bool(data.get("phone_verified", False)),
+            otp_hash=str(data.get("otp_hash") or ""),
+            otp_channel=str(data.get("otp_channel") or ""),
+            otp_purpose=str(data.get("otp_purpose") or ""),
+            otp_expires_at=str(data.get("otp_expires_at") or ""),
             anagrafica_complete=bool(data.get("anagrafica_complete", False)),
             calibration_complete=bool(data.get("calibration_complete", False)),
             pairing_code=str(data.get("pairing_code") or ""),
@@ -159,17 +209,69 @@ class ProfileStore:
         path = self._path_for(profile.username)
         path.write_text(json.dumps(profile.to_dict(), indent=2), encoding="utf-8")
 
+    def find_by_email(self, email: str) -> UserProfile | None:
+        try:
+            needle = normalize_email(email)
+        except ValueError:
+            needle = (email or "").strip().casefold()
+        if not needle:
+            return None
+        for profile in self.list_profiles():
+            if profile.deleted_at:
+                continue
+            if profile.email.casefold() == needle:
+                return profile
+        return None
+
+    def find_by_phone_e164(self, phone_e164: str) -> UserProfile | None:
+        needle = (phone_e164 or "").strip()
+        if not needle:
+            return None
+        for profile in self.list_profiles():
+            if profile.deleted_at:
+                continue
+            if profile.phone_e164 == needle:
+                return profile
+        return None
+
+    def find_by_identifier(self, identifier: str) -> UserProfile | None:
+        """Resolve username, email, or phone (E.164 / national digits)."""
+        raw = (identifier or "").strip()
+        if not raw:
+            return None
+        by_user = self.get(raw)
+        if by_user is not None and not by_user.deleted_at:
+            return by_user
+        if "@" in raw:
+            found = self.find_by_email(raw)
+            if found is not None:
+                return found
+        digits = "".join(ch for ch in raw if ch.isdigit())
+        if raw.startswith("+") or len(digits) >= 8:
+            e164 = raw if raw.startswith("+") else f"+{digits}"
+            found = self.find_by_phone_e164(e164)
+            if found is not None:
+                return found
+            # Fallback: match national part against stored phones
+            for profile in self.list_profiles():
+                if profile.deleted_at or not profile.phone_national:
+                    continue
+                if profile.phone_national == digits or profile.phone_e164.endswith(digits):
+                    return profile
+        return None
+
     def create_account(
         self,
         username: str,
         password: str,
         *,
+        email: str = "",
         headset_id: str = "",
         notes: str = "",
         action_map: dict[str, str] | None = None,
         is_admin: bool = False,
     ) -> UserProfile:
-        """Register a new account. Raises ``ValueError`` if the username exists."""
+        """Register a new account. Raises ``ValueError`` if username/email exists."""
 
         username = username.strip()
         if not username:
@@ -177,12 +279,19 @@ class ProfileStore:
         if is_admin:
             if len(password) < 6:
                 raise ValueError("password must be at least 6 characters")
+            email_norm = normalize_email(email) if email.strip() else f"{username}@iris.local"
         else:
             check = password_strength(password)
             if not check.ok:
                 raise ValueError(check.message)
+            email_norm = normalize_email(email)
         if self.exists(username):
             raise ValueError("Username già in uso. Scegline uno univoco.")
+        if self.find_by_email(email_norm) is not None:
+            raise ValueError(
+                "Questa email è già registrata. Probabilmente hai già un account: "
+                "usa «Password dimenticata?» con username, email o telefono."
+            )
 
         profile = UserProfile(
             username=username,
@@ -191,6 +300,8 @@ class ProfileStore:
             action_map=dict(action_map or {}),
             notes=notes,
             is_admin=bool(is_admin),
+            email=email_norm,
+            email_verified=bool(is_admin),
             anagrafica_complete=bool(is_admin),
             calibration_complete=bool(is_admin),
             first_name="Admin" if is_admin else "",
@@ -218,6 +329,10 @@ class ProfileStore:
             if not existing.is_admin:
                 existing.is_admin = True
                 changed = True
+            if not existing.email:
+                existing.email = f"{username}@iris.local"
+                existing.email_verified = True
+                changed = True
             if not existing.anagrafica_complete:
                 existing.anagrafica_complete = True
                 existing.first_name = existing.first_name or "Admin"
@@ -234,6 +349,7 @@ class ProfileStore:
         return self.create_account(
             username,
             password,
+            email=f"{username}@iris.local",
             notes="Account amministratore (accessi e utenti).",
             is_admin=True,
         )
@@ -241,7 +357,10 @@ class ProfileStore:
     def authenticate(self, username: str, password: str) -> UserProfile | None:
         profile = self.get(username)
         if profile is None or profile.deleted_at:
-            return None
+            # Allow login with email as identifier
+            profile = self.find_by_email(username)
+            if profile is None or profile.deleted_at:
+                return None
         if not verify_password(password, profile.password_hash):
             return None
         return profile
@@ -277,7 +396,7 @@ class ProfileStore:
         last_name: str,
         new_password: str,
     ) -> UserProfile:
-        """Reset password after verifying anagrafica (no email required)."""
+        """Legacy reset via username + anagrafica names."""
         profile = self.get(username.strip())
         if profile is None or profile.deleted_at:
             raise ValueError("Account non trovato.")
@@ -290,6 +409,76 @@ class ProfileStore:
             raise ValueError("Dati non corrispondenti. Controlla nome e cognome.")
         if last_name.strip().casefold() != profile.last_name.strip().casefold():
             raise ValueError("Dati non corrispondenti. Controlla nome e cognome.")
+        check = password_strength(new_password)
+        if not check.ok:
+            raise ValueError(check.message)
+        profile.password_hash = hash_password(new_password)
+        self.save(profile)
+        return profile
+
+    def issue_otp(
+        self,
+        username: str,
+        *,
+        channel: Literal["email", "phone"],
+        purpose: OtpPurpose,
+    ) -> tuple[UserProfile, str]:
+        profile = self.get(username)
+        if profile is None or profile.deleted_at:
+            raise ValueError("Account non trovato.")
+        if channel == "email":
+            if not profile.email:
+                raise ValueError("Nessuna email associata all'account.")
+            destination_ok = True
+        else:
+            if not profile.phone_e164:
+                raise ValueError("Nessun numero di telefono associato all'account.")
+            destination_ok = True
+        if not destination_ok:
+            raise ValueError("Canale non disponibile.")
+        code = generate_otp_code()
+        profile.otp_hash = hash_otp(code, salt=profile.user_id)
+        profile.otp_channel = channel
+        profile.otp_purpose = purpose
+        profile.otp_expires_at = otp_expiry(minutes=15)
+        self.save(profile)
+        return profile, code
+
+    def consume_otp(
+        self,
+        username: str,
+        *,
+        code: str,
+        purpose: OtpPurpose | None = None,
+    ) -> UserProfile:
+        profile = self.get(username)
+        if profile is None or profile.deleted_at:
+            raise ValueError("Account non trovato.")
+        if not profile.otp_hash:
+            raise ValueError("Nessun codice attivo. Richiedine uno nuovo.")
+        if purpose and profile.otp_purpose != purpose:
+            raise ValueError("Codice non valido per questa operazione.")
+        if otp_is_expired(profile.otp_expires_at):
+            raise ValueError("Codice scaduto. Richiedine uno nuovo.")
+        if not otp_matches(code, stored_hash=profile.otp_hash, salt=profile.user_id):
+            raise ValueError("Codice non corretto.")
+        channel = profile.otp_channel
+        otp_purpose = profile.otp_purpose
+        profile.otp_hash = ""
+        profile.otp_channel = ""
+        profile.otp_purpose = ""
+        profile.otp_expires_at = ""
+        if otp_purpose == "verify_email" or (otp_purpose == "recover" and channel == "email"):
+            profile.email_verified = True
+        if otp_purpose == "verify_phone" or (otp_purpose == "recover" and channel == "phone"):
+            profile.phone_verified = True
+        self.save(profile)
+        return profile
+
+    def set_password(self, username: str, new_password: str) -> UserProfile:
+        profile = self.get(username)
+        if profile is None:
+            raise KeyError(f"unknown user: {username}")
         check = password_strength(new_password)
         if not check.ok:
             raise ValueError(check.message)
@@ -331,27 +520,61 @@ class ProfileStore:
         first_name: str,
         last_name: str,
         gender: str,
+        email: str = "",
+        phone_country: str = "",
+        phone_national: str = "",
         phone_label: str = "",
     ) -> UserProfile:
         profile = self.get(username)
         if profile is None:
             raise KeyError(f"unknown user: {username}")
 
-        first = first_name.strip()
-        last = last_name.strip()
-        phone = phone_label.strip()
-        if not first:
-            raise ValueError("Il nome è obbligatorio.")
-        if len(first) > 64 or len(last) > 64:
-            raise ValueError("Nome o cognome troppo lunghi.")
-        if len(phone) > 64:
+        first = validate_person_name(first_name, field_label="Il nome", required=True)
+        last = validate_person_name(last_name, field_label="Il cognome", required=False)
+        phone_label_clean = (phone_label or "").strip()
+        if len(phone_label_clean) > 64:
             raise ValueError("Etichetta telefono troppo lunga.")
-        gender_norm = normalize_gender(gender)
 
+        email_raw = (email or "").strip() or profile.email
+        email_norm = normalize_email(email_raw)
+        other = self.find_by_email(email_norm)
+        if other is not None and other.username.casefold() != profile.username.casefold():
+            raise ValueError(
+                "Questa email è già registrata. Usa «Password dimenticata?» "
+                "se stai recuperando un account esistente."
+            )
+
+        country_iso = (phone_country or "").strip()
+        national_raw = (phone_national or "").strip()
+        if not country_iso or not national_raw:
+            raise ValueError("Seleziona il prefisso e inserisci il numero di telefono.")
+        country, digits, e164 = normalize_phone(
+            country_iso=country_iso,
+            national=national_raw,
+        )
+        conflict = self.find_by_phone_e164(e164)
+        if conflict is not None and conflict.username.casefold() != profile.username.casefold():
+            raise ValueError("Questo numero di telefono è già associato a un altro account.")
+        if (
+            profile.phone_e164
+            and profile.phone_e164 != e164
+            and profile.phone_verified
+        ):
+            profile.phone_verified = False
+        profile.phone_country = country.iso
+        profile.phone_dial = country.dial
+        profile.phone_national = digits
+        profile.phone_e164 = e164
+
+        if profile.email and profile.email != email_norm and profile.email_verified:
+            profile.email_verified = False
+
+        gender_norm = normalize_gender(gender)
         profile.first_name = first
         profile.last_name = last
         profile.gender = gender_norm
-        profile.phone_label = phone
+        profile.email = email_norm
+        profile.phone_label = phone_label_clean
         profile.anagrafica_complete = True
         self.save(profile)
         return profile
@@ -490,7 +713,6 @@ class ProfileStore:
         if intent:
             stats["last_intent"] = intent
         stats["last_activity"] = _utc_now()
-        # Soft spectral demo averages
         alpha = float(stats.get("alpha_avg") or 0.4)
         beta = float(stats.get("beta_avg") or 0.4)
         stats["alpha_avg"] = round(min(0.95, max(0.05, alpha + 0.01)), 3)
@@ -503,6 +725,7 @@ class ProfileStore:
         return self.create_account(
             username,
             password,
+            email=str(extra.get("email") or ""),
             headset_id=headset_id,
             notes=str(extra.get("notes") or ""),
             action_map=dict(extra.get("action_map") or {}),
@@ -521,7 +744,6 @@ class ProfileStore:
     def list_profiles(self) -> list[UserProfile]:
         out: list[UserProfile] = []
         for name in self.list_usernames():
-            # stem may differ from username casing — load via file
             path = self.data_dir / f"{name}.json"
             try:
                 data = json.loads(path.read_text(encoding="utf-8"))

@@ -37,6 +37,8 @@ from bci_iot.accounts.security import password_strength
 from bci_iot.accounts.timefmt import format_access_it
 
 from bci_iot.accounts.store import ProfileStore, UserProfile
+from bci_iot.accounts.phone_countries import PHONE_COUNTRIES
+from bci_iot.accounts.messaging import send_code
 
 WEB_DIR = Path(__file__).resolve().parent
 
@@ -46,6 +48,7 @@ TEMPLATES.env.filters["it_time"] = format_access_it
 class RegisterRequest(BaseModel):
 
     username: str = Field(min_length=1, max_length=64)
+    email: str = Field(min_length=3, max_length=254)
     password: str = Field(min_length=8, max_length=128)
     headset_id: str = Field(default="", max_length=128)
     notes: str = ""
@@ -67,7 +70,11 @@ class ProfileResponse(BaseModel):
     first_name: str = ""
     last_name: str = ""
     gender: str = ""
+    email: str = ""
     phone_label: str = ""
+    phone_display: str = ""
+    email_verified: bool = False
+    phone_verified: bool = False
     anagrafica_complete: bool = False
     @classmethod
     def from_profile(cls, profile: UserProfile) -> ProfileResponse:
@@ -81,7 +88,11 @@ class ProfileResponse(BaseModel):
             first_name=profile.first_name,
             last_name=profile.last_name,
             gender=profile.gender,
+            email=profile.email,
             phone_label=profile.phone_label,
+            phone_display=profile.phone_display,
+            email_verified=bool(profile.email_verified),
+            phone_verified=bool(profile.phone_verified),
             anagrafica_complete=bool(profile.anagrafica_complete),
         )
 
@@ -220,6 +231,7 @@ def create_app(
             "username": username,
             "is_admin": is_admin,
             "flash": _pop_flash(request),
+            "phone_countries": PHONE_COUNTRIES,
             **extra,
         }
     def _post_auth_destination(profile: UserProfile) -> str:
@@ -284,10 +296,12 @@ def create_app(
             first_name=profile.first_name,
             last_name=profile.last_name,
             gender=profile.gender,
-            phone_label=profile.phone_label,
+            phone_label=profile.phone_label or profile.phone_display,
             headset_id=profile.headset_id,
             status="deleted" if profile.deleted_at else "active",
             photo_path=profile.photo_filename,
+            email=profile.email,
+            phone_e164=profile.phone_e164,
         )
     @app.get("/health")
     def health() -> dict[str, str]:
@@ -322,13 +336,14 @@ def create_app(
     def register_submit(
         request: Request,
         username: str = Form(...),
+        email: str = Form(...),
         password: str = Form(...),
         headset_id: str = Form(""),
         profiles: ProfileStore = Depends(_store),
         access: AccessDatabase = Depends(_access),
     ) -> HTMLResponse:
         try:
-            profiles.create_account(username, password, headset_id=headset_id)
+            profiles.create_account(username, password, email=email, headset_id=headset_id)
         except ValueError as exc:
             _flash(request, str(exc), kind="error")
             return _continue(
@@ -345,6 +360,7 @@ def create_app(
                 first_name="",
                 last_name="",
                 gender="",
+                email=created.email,
             )
         request.session["username"] = username.strip()
         _log_access(request, username=username.strip(), event="register", access=access)
@@ -425,36 +441,93 @@ def create_app(
             profile = profiles.get(username)
             if profile is not None:
                 return RedirectResponse(_post_auth_destination(profile), status_code=303)
+        step = request.session.get("recover_step") or "identify"
+        recover_user = request.session.get("recover_user") or ""
         return TEMPLATES.TemplateResponse(
             request,
             "recupera_password.html",
-            _template_ctx(request, profiles),
+            _template_ctx(
+                request,
+                profiles,
+                recover_step=step,
+                recover_user=recover_user,
+                recover_channel=request.session.get("recover_channel") or "",
+            ),
         )
 
     @app.post("/recupera-password")
     def recover_password_submit(
         request: Request,
-        username: str = Form(...),
-        first_name: str = Form(...),
-        last_name: str = Form(...),
-        new_password: str = Form(...),
-        new_password2: str = Form(...),
         profiles: ProfileStore = Depends(_store),
         access: AccessDatabase = Depends(_access),
+        identifier: str = Form(""),
+        channel: str = Form("email"),
+        code: str = Form(""),
+        new_password: str = Form(""),
+        new_password2: str = Form(""),
+        action: str = Form("identify"),
     ) -> RedirectResponse:
+        if action == "identify":
+            profile = profiles.find_by_identifier(identifier)
+            if profile is None:
+                _flash(
+                    request,
+                    "Account non trovato. Prova con username, email o numero completo (+39…).",
+                    kind="error",
+                )
+                return RedirectResponse("/recupera-password", status_code=303)
+            preferred = "email" if profile.email else "phone"
+            if channel == "phone" and profile.phone_e164:
+                preferred = "phone"
+            if preferred == "email" and not profile.email:
+                preferred = "phone"
+            if preferred == "phone" and not profile.phone_e164:
+                preferred = "email"
+            if preferred == "email" and not profile.email:
+                _flash(request, "Account senza email né telefono recuperabili.", kind="error")
+                return RedirectResponse("/recupera-password", status_code=303)
+            try:
+                profile, otp = profiles.issue_otp(
+                    profile.username, channel=preferred, purpose="recover"  # type: ignore[arg-type]
+                )
+            except ValueError as exc:
+                _flash(request, str(exc), kind="error")
+                return RedirectResponse("/recupera-password", status_code=303)
+            dest = profile.email if preferred == "email" else profile.phone_e164
+            delivery = send_code(
+                channel=preferred,  # type: ignore[arg-type]
+                destination=dest,
+                code=otp,
+                purpose="recover",
+            )
+            if not delivery.ok:
+                _flash(request, delivery.detail, kind="error")
+                return RedirectResponse("/recupera-password", status_code=303)
+            request.session["recover_step"] = "code"
+            request.session["recover_user"] = profile.username
+            request.session["recover_channel"] = preferred
+            msg = delivery.detail
+            if delivery.demo_code:
+                msg = f"{msg} Codice: {delivery.demo_code}"
+            _flash(request, msg, kind="ok")
+            return RedirectResponse("/recupera-password", status_code=303)
+
+        recover_user = str(request.session.get("recover_user") or "")
+        if not recover_user:
+            _flash(request, "Sessione di recupero scaduta. Ricomincia.", kind="error")
+            return RedirectResponse("/recupera-password", status_code=303)
         if new_password != new_password2:
             _flash(request, "Le nuove password non coincidono.", kind="error")
             return RedirectResponse("/recupera-password", status_code=303)
         try:
-            profile = profiles.reset_password_by_identity(
-                username,
-                first_name=first_name,
-                last_name=last_name,
-                new_password=new_password,
-            )
+            profiles.consume_otp(recover_user, code=code, purpose="recover")
+            profile = profiles.set_password(recover_user, new_password)
         except ValueError as exc:
             _flash(request, str(exc), kind="error")
             return RedirectResponse("/recupera-password", status_code=303)
+        request.session.pop("recover_step", None)
+        request.session.pop("recover_user", None)
+        request.session.pop("recover_channel", None)
         _log_access(request, username=profile.username, event="password_reset", access=access)
         _flash(request, "Password aggiornata. Ora puoi accedere.", kind="ok")
         return RedirectResponse("/login", status_code=303)
@@ -475,12 +548,16 @@ def create_app(
             "anagrafica.html",
             _template_ctx(request, profiles, profile=profile),
         )
+
     @app.post("/anagrafica")
     def anagrafica_submit(
         request: Request,
         first_name: str = Form(...),
         last_name: str = Form(""),
         gender: str = Form(...),
+        email: str = Form(""),
+        phone_country: str = Form(""),
+        phone_national: str = Form(""),
         phone_label: str = Form(""),
         profiles: ProfileStore = Depends(_store),
         access: AccessDatabase = Depends(_access),
@@ -494,6 +571,9 @@ def create_app(
                 first_name=first_name,
                 last_name=last_name,
                 gender=gender,
+                email=email,
+                phone_country=phone_country,
+                phone_national=phone_national,
                 phone_label=phone_label,
             )
         except ValueError as exc:
@@ -703,14 +783,15 @@ def create_app(
         loaded = _require_profile(request, profiles)
         if isinstance(loaded, RedirectResponse):
             return loaded
+        back = "/anagrafica?edit=1" if loaded.anagrafica_complete else "/anagrafica"
         content_type = (photo.content_type or "").lower()
         if content_type not in {"image/jpeg", "image/png", "image/webp"}:
             _flash(request, "Formato foto non supportato (usa JPG, PNG o WebP).", kind="error")
-            return RedirectResponse("/anagrafica?edit=1", status_code=303)
+            return RedirectResponse(back, status_code=303)
         raw = await photo.read()
         if len(raw) > 2_500_000:
             _flash(request, "Foto troppo grande (max 2.5 MB).", kind="error")
-            return RedirectResponse("/anagrafica?edit=1", status_code=303)
+            return RedirectResponse(back, status_code=303)
         ext = ".jpg" if "jpeg" in content_type else ".png" if "png" in content_type else ".webp"
         filename = f"{loaded.user_id}{ext}"
         dest = Path(app.state.photos_dir) / filename
@@ -720,6 +801,73 @@ def create_app(
         if updated:
             _sync_anagrafica_db(updated, access)
         _flash(request, "Foto profilo aggiornata.", kind="ok")
+        return RedirectResponse(back, status_code=303)
+
+    @app.post("/verifica/invia")
+    def verify_send(
+        request: Request,
+        channel: str = Form(...),
+        profiles: ProfileStore = Depends(_store),
+    ) -> RedirectResponse:
+        loaded = _require_profile(request, profiles)
+        if isinstance(loaded, RedirectResponse):
+            return loaded
+        if channel not in {"email", "phone"}:
+            _flash(request, "Canale non valido.", kind="error")
+            return RedirectResponse("/anagrafica?edit=1", status_code=303)
+        purpose = "verify_email" if channel == "email" else "verify_phone"
+        try:
+            profile, otp = profiles.issue_otp(
+                loaded.username,
+                channel=channel,  # type: ignore[arg-type]
+                purpose=purpose,  # type: ignore[arg-type]
+            )
+        except ValueError as exc:
+            _flash(request, str(exc), kind="error")
+            return RedirectResponse("/anagrafica?edit=1", status_code=303)
+        dest = profile.email if channel == "email" else profile.phone_e164
+        delivery = send_code(
+            channel=channel,  # type: ignore[arg-type]
+            destination=dest,
+            code=otp,
+            purpose=purpose,
+        )
+        if not delivery.ok:
+            _flash(request, delivery.detail, kind="error")
+            return RedirectResponse("/anagrafica?edit=1", status_code=303)
+        msg = delivery.detail
+        if delivery.demo_code:
+            msg = f"{msg} Codice: {delivery.demo_code}"
+        _flash(request, msg, kind="ok")
+        return RedirectResponse("/anagrafica?edit=1", status_code=303)
+
+    @app.post("/verifica/conferma")
+    def verify_confirm(
+        request: Request,
+        channel: str = Form(...),
+        code: str = Form(...),
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> RedirectResponse:
+        loaded = _require_profile(request, profiles)
+        if isinstance(loaded, RedirectResponse):
+            return loaded
+        purpose = "verify_email" if channel == "email" else "verify_phone"
+        try:
+            profile = profiles.consume_otp(
+                loaded.username,
+                code=code,
+                purpose=purpose,  # type: ignore[arg-type]
+            )
+        except ValueError as exc:
+            _flash(request, str(exc), kind="error")
+            return RedirectResponse("/anagrafica?edit=1", status_code=303)
+        _sync_anagrafica_db(profile, access)
+        _flash(
+            request,
+            "Email verificata." if channel == "email" else "Telefono verificato.",
+            kind="ok",
+        )
         return RedirectResponse("/anagrafica?edit=1", status_code=303)
 
     @app.post("/elimina-account")
@@ -1112,6 +1260,7 @@ def create_app(
             profile = profiles.create_account(
                 body.username,
                 body.password,
+                email=body.email,
                 headset_id=body.headset_id,
                 notes=body.notes,
                 action_map=body.action_map,

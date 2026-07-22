@@ -12,7 +12,11 @@ from bci_iot.web import create_app
 def _register(client: TestClient, username: str = "maria") -> None:
     client.post(
         "/register",
-        data={"username": username, "password": "Segreta123"},
+        data={
+            "username": username,
+            "email": f"{username}@gmail.com",
+            "password": "Segreta123",
+        },
         follow_redirects=False,
     )
     client.post(
@@ -21,6 +25,9 @@ def _register(client: TestClient, username: str = "maria") -> None:
             "first_name": "Maria",
             "last_name": "Rossi",
             "gender": "female",
+            "email": f"{username}@gmail.com",
+            "phone_country": "IT",
+            "phone_national": "3331234567",
             "phone_label": "iPhone",
         },
         follow_redirects=False,
@@ -75,7 +82,7 @@ def test_public_dict_hides_spotify_tokens(tmp_path: Path) -> None:
     from bci_iot.accounts.store import ProfileStore
 
     store = ProfileStore(tmp_path)
-    store.create_account("luca", "Segreta123")
+    store.create_account("luca", "Segreta123", email="luca@gmail.com")
     store.set_spotify_tokens(
         "luca",
         access_token="secret-access",

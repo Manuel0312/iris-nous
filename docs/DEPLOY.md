@@ -16,3 +16,8 @@ Il piano free può “addormentarsi” dopo inattività (~15 min): al primo clic
 
 ## Spotify (musica sul telefono)
 Vedi `docs/SPOTIFY.md`. Serve Spotify Premium + app su [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard).
+
+## Verifica email / SMS (opzionale)
+Senza queste variabili i codici di verifica e recupero password funzionano in **modalità demo** (codice mostrato a schermo).
+- Email: `BCI_IOT_SMTP_HOST`, `BCI_IOT_SMTP_PORT`, `BCI_IOT_SMTP_USER`, `BCI_IOT_SMTP_PASSWORD`, `BCI_IOT_SMTP_FROM`
+- SMS: `BCI_IOT_TWILIO_ACCOUNT_SID`, `BCI_IOT_TWILIO_AUTH_TOKEN`, `BCI_IOT_TWILIO_FROM`

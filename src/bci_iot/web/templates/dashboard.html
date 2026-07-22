@@ -14,7 +14,12 @@
     {% if profile.photo_filename %}
     <img class="avatar" src="/media/photos/{{ profile.photo_filename }}" alt="La tua foto" width="88" height="88" />
     {% else %}
-    <div class="avatar avatar-fallback" aria-hidden="true">{{ (profile.first_name or profile.username)[0]|upper }}</div>
+    <div class="avatar avatar-placeholder" aria-hidden="true">
+      <svg viewBox="0 0 64 64" width="44" height="44" fill="none" aria-hidden="true">
+        <circle cx="32" cy="24" r="12" fill="#9aa0a6"/>
+        <path d="M8 56c0-13.255 10.745-24 24-24s24 10.745 24 24" fill="#9aa0a6"/>
+      </svg>
+    </div>
     {% endif %}
     <div>
       <p class="device-label">Cuffia</p>
@@ -26,6 +31,11 @@
           Non associata
         {% endif %}
       </p>
+      {% if profile.verification_pending %}
+      <p class="verify-warn dash-verify">Account non verificato · <a href="/anagrafica?edit=1">Verifica ora</a></p>
+      {% else %}
+      <p class="verify-ok dash-verify">Account verificato</p>
+      {% endif %}
     </div>
   </div>
 

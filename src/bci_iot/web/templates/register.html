@@ -4,10 +4,13 @@
 {% block content %}
 <section class="auth-panel">
   <h1>Iscrizione</h1>
-  <p class="lede">Username univoco. Nome e cognome (dopo) possono coincidere tra utenti.</p>
+  <p class="lede">Username ed email univoci. Nome e cognome li inserisci dopo.</p>
   <form method="post" action="/register" class="stack" id="register-form">
     <label>Username
       <input name="username" autocomplete="username" required maxlength="64" autocapitalize="none" autocorrect="off" spellcheck="false" />
+    </label>
+    <label>Email
+      <input name="email" type="email" autocomplete="email" required maxlength="254" placeholder="nome@gmail.com" autocapitalize="none" spellcheck="false" />
     </label>
     <label>Password (minimo livello medio)
       <div class="password-field">
@@ -28,7 +31,7 @@
     </label>
     <button class="btn primary" type="submit">Crea account</button>
   </form>
-  <p class="muted auth-switch">Hai già un account? <a href="/login">Login</a></p>
+  <p class="muted auth-switch">Hai già un account? <a href="/login">Login</a> · <a href="/recupera-password">Password dimenticata?</a></p>
 </section>
 <script>
 (function () {

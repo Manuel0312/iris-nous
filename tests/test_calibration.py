@@ -38,7 +38,11 @@ def test_web_calibration_flow(tmp_path: Path) -> None:
 
     client.post(
         "/register",
-        data={"username": "maria", "password": "Segreta123"},
+        data={
+            "username": "maria",
+            "email": "maria@gmail.com",
+            "password": "Segreta123",
+        },
         follow_redirects=False,
     )
     client.post(
@@ -47,6 +51,9 @@ def test_web_calibration_flow(tmp_path: Path) -> None:
             "first_name": "Maria",
             "last_name": "Rossi",
             "gender": "female",
+            "email": "maria@gmail.com",
+            "phone_country": "IT",
+            "phone_national": "3331234567",
             "phone_label": "iPhone",
         },
         follow_redirects=False,
