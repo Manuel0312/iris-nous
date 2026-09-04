@@ -72,6 +72,22 @@ def test_local_flags_are_served(tmp_path: Path) -> None:
     assert b"<svg" in static_it.content
 
 
+def test_login_does_not_expose_admin_credentials(tmp_path: Path) -> None:
+    app = create_app(
+        data_dir=tmp_path,
+        session_secret="no-creds-on-login",
+        admin_username="admin",
+        admin_password="admin123",
+    )
+    client = TestClient(app, base_url="https://iris-nous.onrender.com")
+    page = client.get("/login")
+    assert page.status_code == 200
+    assert "admin123" not in page.text
+    assert "Accesso amministratore" not in page.text
+    assert "Thesis admin login" not in page.text
+    assert "default password" not in page.text.lower()
+
+
 def test_local_site_banner_and_unknown_login(tmp_path: Path) -> None:
     app = create_app(
         data_dir=tmp_path,
