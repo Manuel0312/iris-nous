@@ -73,7 +73,9 @@ Sorgenti EEG:
 
 ## Aprire il sito
 
-Doppio click su **`APRI IL SITO.bat`** nella cartella TESI.
+Doppio click su **`APRI IL SITO.bat`**: apre il sito **online**
+(`https://iris-nous.onrender.com`, stesso account del telefono).
+Per sviluppare sul PC: **`APRI IRIS (locale).bat`** — database diverso.
 
 ## Roadmap MVP (marzo)
 

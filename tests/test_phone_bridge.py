@@ -19,6 +19,11 @@ def _register(client: TestClient, username: str = "maria") -> None:
         },
         follow_redirects=False,
     )
+    store = client.app.state.store
+    profile = store.get(username)
+    assert profile is not None
+    profile.email_verified = True
+    store.save(profile)
     client.post(
         "/anagrafica",
         data={
@@ -76,6 +81,30 @@ def test_phone_pairing_and_heartbeat(tmp_path: Path) -> None:
     payload = music.json()
     assert payload["status"] == "error"
     assert "Spotify" in payload["detail"]
+
+
+def test_pairing_code_is_emailed_and_can_be_resent(tmp_path: Path) -> None:
+    app = create_app(data_dir=tmp_path, session_secret="pair-mail")
+    client = TestClient(app)
+    _register(client)
+
+    page = client.get("/calibrazione")
+    assert page.status_code == 200
+    assert "Invia il codice via email" in page.text
+    profile = app.state.store.get("maria")
+    assert profile is not None
+    assert profile.pairing_code
+    assert (profile.usage_stats or {}).get("pairing_emailed_code") != profile.pairing_code
+
+    sent = client.post("/associa-telefono/invia-codice", follow_redirects=False)
+    assert sent.status_code in {302, 303}
+    profile = app.state.store.get("maria")
+    assert profile is not None
+    assert (profile.usage_stats or {}).get("pairing_emailed_code") == profile.pairing_code
+
+    pair = client.get("/associa-telefono")
+    assert "Invia il codice via email" in pair.text
+    assert "Codice a 6 cifre" in pair.text
 
 
 def test_public_dict_hides_spotify_tokens(tmp_path: Path) -> None:

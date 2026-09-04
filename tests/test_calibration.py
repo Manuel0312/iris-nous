@@ -45,6 +45,10 @@ def test_web_calibration_flow(tmp_path: Path) -> None:
         },
         follow_redirects=False,
     )
+    profile = app.state.store.get("maria")
+    assert profile is not None
+    profile.email_verified = True
+    app.state.store.save(profile)
     client.post(
         "/anagrafica",
         data={
@@ -61,10 +65,14 @@ def test_web_calibration_flow(tmp_path: Path) -> None:
 
     page = client.get("/calibrazione")
     assert page.status_code == 200
-    assert "Associa colore e segnale" in page.text
-    assert "Codice associazione" in page.text
-    assert "Video" in page.text
-    assert "rosso" in page.text.lower()
+    assert "associazione" in page.text.lower() or "codice" in page.text.lower()
+    intro = client.get("/inizia")
+    assert intro.status_code == 200
+    assert "Iniziamo" in intro.text
+    colors = client.get("/calibrazione?passo=3")
+    assert colors.status_code == 200
+    assert "Video" in colors.text
+    assert "rosso" in colors.text.lower()
 
     for colour in CALIBRATION_COLORS:
         for _ in range(3):

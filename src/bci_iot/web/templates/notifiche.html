@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Notifiche · Admin{% endblock %}
+{% block body_class %}page-private{% endblock %}
+{% block main_class %}shell wide{% endblock %}
+{% block content %}
+<section class="dash admin-dash">
+  <p><a href="/accessi">← Pannello admin</a></p>
+  <h1>Notifiche</h1>
+  <p class="lede">
+    Messaggi da Chatta con noi e richieste via email.
+    Pallino rosso: non visualizzato · giallo: visto, non risposto · verde: risposto
+    (i verdi escono da qui dopo 10 giorni, ma restano nella chat di tutela sul profilo).
+  </p>
+  <p>
+    {% if archive %}
+    <a href="/notifiche">Inbox</a>
+    · <strong>Archivio tutela</strong>
+    {% else %}
+    <strong>Inbox</strong>
+    · <a href="/notifiche?archivio=1">Archivio tutela</a>
+    {% endif %}
+  </p>
+
+  <div class="panel table-wrap reveal" data-reveal>
+    {% if threads %}
+    <table class="access-table notice-table">
+      <thead>
+        <tr>
+          <th>Stato</th>
+          <th>Canale</th>
+          <th>Persona</th>
+          <th>Oggetto</th>
+          <th>Aggiornato</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for trow in threads %}
+        <tr>
+          <td>
+            <a class="person-link" href="/notifiche/{{ trow.id }}">
+              <span class="status-dot status-{{ trow.status }}" aria-label="{{ trow.status }}"></span>
+              {% if trow.status == 'unread' %}Non visualizzato
+              {% elif trow.status == 'viewed' %}Visto, non risposto
+              {% else %}Risposto{% endif %}
+            </a>
+          </td>
+          <td>{{ "Email" if trow.channel == "email" else "Chat" }}</td>
+          <td>
+            {% if trow.username %}
+            <a class="person-link" href="/accessi/utente/{{ trow.username }}">{{ trow.guest_name or trow.username }}</a>
+            {% else %}
+            {{ trow.guest_name or trow.guest_email or "Ospite" }}
+            {% endif %}
+            <div class="muted">{{ trow.guest_email }}{% if trow.guest_phone %} · {{ trow.guest_phone }}{% endif %}</div>
+          </td>
+          <td><a class="person-link" href="/notifiche/{{ trow.id }}">{{ trow.subject or "—" }}</a></td>
+          <td>{{ trow.updated_at | it_time }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted">{% if archive %}Nessuna chat in archivio tutela.{% else %}Nessuna notifica in inbox.{% endif %}</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

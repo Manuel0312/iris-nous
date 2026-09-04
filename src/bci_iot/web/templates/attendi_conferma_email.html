@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ t('Conferma la tua email') }} · Iris{% endblock %}
+{% block body_class %}page-auth{% endblock %}
+{% block content %}
+<section class="auth-panel">
+  <h1>{{ t('Conferma la tua email') }}</h1>
+  <p class="lede">
+    {{ t('Ti abbiamo mandato una email da Iris Nous a') }} <strong>{{ masked_email }}</strong>.
+    {{ t('Apri la posta (anche Spam), copia il codice di 6 caratteri e inseriscilo qui. Così funziona anche se leggi la mail dal telefono.') }}
+  </p>
+  <form method="post" action="/attendi-conferma-email" class="stack" autocomplete="on">
+    <label>{{ t('Codice ricevuto via email') }}
+      <input
+        name="code"
+        id="confirm-code"
+        class="otp-code"
+        inputmode="text"
+        pattern="[A-Za-z0-9]{6}"
+        maxlength="6"
+        minlength="6"
+        required
+        autocomplete="one-time-code"
+        autocapitalize="characters"
+        spellcheck="false"
+        placeholder="A3K9P2"
+      />
+    </label>
+    <button class="btn primary" type="submit">{{ t('Conferma iscrizione') }}</button>
+  </form>
+  <p class="muted">{{ t('Il pulsante nella mail può non funzionare da un altro dispositivo: usa il codice.') }}</p>
+  <form method="post" action="/attendi-conferma-email/reinvia" class="stack">
+    <button class="btn" type="submit">{{ t('Reinvia email di conferma') }}</button>
+  </form>
+  <p class="muted auth-switch"><a href="/logout">{{ t('Esci') }}</a> · <a href="/login">{{ t('Torna al login') }}</a></p>
+</section>
+<script>
+(function () {
+  const el = document.getElementById("confirm-code");
+  if (!el) return;
+  el.addEventListener("input", function () {
+    this.value = this.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 6);
+  });
+})();
+</script>
+{% endblock %}

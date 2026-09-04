@@ -55,9 +55,14 @@ def test_recover_password_flow(tmp_path: Path) -> None:
     # Demo delivery puts the code in the flash message.
     flash_page = client.get("/recupera-password")
     assert flash_page.status_code == 200
-    assert "Codice:" in flash_page.text
-    code = flash_page.text.split("Codice:")[-1].strip()[:6]
-    assert code.isdigit()
+    assert "Codice" in flash_page.text
+    # Demo delivery shows the alphanumeric code in the flash message.
+    import re
+
+    match = re.search(r"Codice(?:[^:]*):\s*([A-Z0-9]{6})", flash_page.text, re.I)
+    assert match is not None
+    code = match.group(1).upper()
+    assert len(code) == 6
 
     ok = client.post(
         "/recupera-password",

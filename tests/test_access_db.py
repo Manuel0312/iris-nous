@@ -63,7 +63,12 @@ def test_register_login_logged_and_admin_sees_accessi(tmp_path: Path) -> None:
         follow_redirects=False,
     )
     assert register.status_code == 200
-    assert "/anagrafica" in register.text
+    assert "/attendi-conferma-email" in register.text
+    # Bypass mailbox: mark email verified so the rest of the flow can run.
+    profile = app.state.store.get("maria")
+    assert profile is not None
+    profile.email_verified = True
+    app.state.store.save(profile)
 
     client.post(
         "/anagrafica",
@@ -94,7 +99,7 @@ def test_register_login_logged_and_admin_sees_accessi(tmp_path: Path) -> None:
         follow_redirects=False,
     )
     assert login.status_code == 200
-    assert "/calibrazione" in login.text
+    assert "/inizia" in login.text
 
     denied = client.get("/accessi", follow_redirects=False)
     assert denied.status_code == 303

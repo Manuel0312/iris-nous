@@ -14,6 +14,7 @@ COPY pyproject.toml README.md ./
 COPY src ./src
 COPY configs ./configs
 RUN pip install --no-cache-dir -e .
+RUN python -c "from pathlib import Path; from bci_iot.web.flags import ensure_flag_svgs; ensure_flag_svgs(Path('src/bci_iot/web/static'))"
 
 RUN mkdir -p /data/profiles /data/photos
 

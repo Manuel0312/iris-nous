@@ -33,6 +33,31 @@ def test_create_account_and_authenticate(tmp_path: Path) -> None:
     assert store.list_usernames() == ["maria"]
 
 
+def test_ensure_admin_syncs_password_and_ignores_case(tmp_path: Path) -> None:
+    store = ProfileStore(tmp_path)
+    first = store.ensure_admin("admin", "OldPass1")
+    assert first.is_admin is True
+    assert store.authenticate("admin", "OldPass1") is not None
+
+    updated = store.ensure_admin("admin", "admin123")
+    assert updated.username == "admin"
+    assert store.authenticate("admin", "admin123") is not None
+    assert store.authenticate("ADMIN", "admin123") is not None
+    assert store.authenticate("admin", "OldPass1") is None
+    assert store.get("Admin") is not None
+
+
+def test_ensure_admin_restores_deleted(tmp_path: Path) -> None:
+    store = ProfileStore(tmp_path)
+    store.ensure_admin("admin", "admin123")
+    store.db.soft_delete_user("admin")
+    assert store.get("admin") is None
+    restored = store.ensure_admin("admin", "NuovaPass1")
+    assert restored.deleted_at == ""
+    assert restored.is_admin is True
+    assert store.authenticate("admin", "NuovaPass1") is not None
+
+
 def test_duplicate_username_rejected(tmp_path: Path) -> None:
     store = ProfileStore(tmp_path)
     store.create_account("maria", "Segreta123", email="maria@gmail.com")
@@ -97,5 +122,8 @@ def test_otp_verify_email(tmp_path: Path) -> None:
     )
     profile, code = store.issue_otp("maria", channel="email", purpose="verify_email")
     assert profile.email_verified is False
-    verified = store.consume_otp("maria", code=code, purpose="verify_email")
+    assert len(code) == 6
+    assert code.isalnum()
+    assert code.isupper() or any(ch.isdigit() for ch in code)
+    verified = store.consume_otp("maria", code=code.lower(), purpose="verify_email")
     assert verified.email_verified is True

@@ -8,6 +8,8 @@
   <p class="lede">
     Solo dati database: persone, accessi e statistiche.
     Nessuna associazione cuffia in quest’area.
+    · <a href="/notifiche">Notifiche</a>
+    · <a href="/invio-codici">Mail Iris Nous (invio email)</a>
   </p>
 
   <div class="card-grid stats-grid reveal" data-reveal>
@@ -32,8 +34,8 @@
   <form class="admin-filters panel reveal" data-reveal method="get" action="/accessi">
     <h2>Persone</h2>
     <div class="filter-search">
-      <label for="admin-q">Cerca (nome / cognome)</label>
-      <input id="admin-q" name="q" value="{{ filters.q }}" placeholder="es. Maria Rossi" />
+      <label for="admin-q">Cerca (nome, cognome, email, telefono)</label>
+      <input id="admin-q" name="q" value="{{ filters.q }}" placeholder="es. Maria Rossi, email o +39…" />
     </div>
     <div class="filter-meta">
       <label>Dal
@@ -70,6 +72,8 @@
         <tr>
           <th>Nome</th>
           <th>Cognome</th>
+          <th>Email</th>
+          <th>Telefono</th>
         </tr>
       </thead>
       <tbody>
@@ -85,6 +89,8 @@
               {{ p.last_name or "—" }}
             </a>
           </td>
+          <td class="muted">{{ p.email or "—" }}</td>
+          <td class="muted">{{ p.phone_label or p.phone_e164 or "—" }}</td>
         </tr>
         {% endfor %}
       </tbody>

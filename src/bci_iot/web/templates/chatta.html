@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ t('Chatta con noi') }} · Iris{% endblock %}
+{% block body_class %}page-private page-chat{% endblock %}
+{% block main_class %}shell{% endblock %}
+{% block chat_fab %}{% endblock %}
+{% block content %}
+<section class="private-area">
+  <p class="eyebrow">{{ t('Supporto') }}</p>
+  <h1>{{ t('Chatta con noi') }}</h1>
+  <p class="lede">{{ t('Scrivi al team Iris Nous. Puoi usare la chat oppure una richiesta via email: ti rispondiamo di persona sulla tua casella.') }}</p>
+
+  <form class="panel private-form" method="post" action="/chatta">
+    <div class="channel-pick">
+      <label class="choice">
+        <input type="radio" name="channel" value="chat" {% if contact_channel|default('chat') != 'email' %}checked{% endif %} />
+        {{ t('Chatta con noi') }}
+      </label>
+      <label class="choice">
+        <input type="radio" name="channel" value="email" {% if contact_channel|default('chat') == 'email' %}checked{% endif %} />
+        {{ t('Richiesta via email') }}
+      </label>
+    </div>
+    {% if not profile %}
+    <label>{{ t('Nome') }}
+      <input name="name" maxlength="80" autocomplete="name" />
+    </label>
+    <label>{{ t('Email') }}
+      <input name="email" type="email" required maxlength="254" autocomplete="email" />
+    </label>
+    <label>{{ t('Telefono') }}
+      <input name="phone" maxlength="32" autocomplete="tel" />
+    </label>
+    {% endif %}
+    <label>{{ t('Oggetto') }}
+      <input name="subject" maxlength="160" placeholder="{{ t('Di cosa hai bisogno?') }}" />
+    </label>
+    <label>{{ t('Messaggio') }}
+      <textarea name="body" rows="6" required minlength="8" maxlength="4000"></textarea>
+    </label>
+    <div class="private-actions">
+      <button class="btn primary" type="submit">{{ t('Invia') }}</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

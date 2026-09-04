@@ -4,13 +4,13 @@
 {% block content %}
 <section class="auth-panel">
   <h1>{{ t('Iscrizione') }}</h1>
-  <p class="lede">{{ t('Username ed email univoci. Nome e cognome li inserisci dopo.') }}</p>
+  <p class="lede">{{ t('Scegli un username e una mail che non stai già usando su Iris. Nome e cognome li metti al passo dopo.') }}</p>
   <form method="post" action="/register" class="stack" id="register-form">
     <label>{{ t('Username') }}
-      <input name="username" autocomplete="username" required maxlength="64" autocapitalize="none" autocorrect="off" spellcheck="false" />
+      <input name="username" autocomplete="username" required maxlength="64" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="{{ t('es. maria_rossi') }}" />
     </label>
     <label>{{ t('Email') }}
-      <input name="email" type="email" autocomplete="email" required maxlength="254" placeholder="nome@gmail.com" autocapitalize="none" spellcheck="false" />
+      <input name="email" type="email" autocomplete="email" required maxlength="254" placeholder="{{ t('la tua mail, es. nome@gmail.com') }}" autocapitalize="none" spellcheck="false" />
     </label>
     <label>{{ t('Password (minimo livello medio)') }}
       <div class="password-field">
@@ -27,7 +27,7 @@
     </label>
     <p class="strength-meter" id="reg-strength" data-level="weak">{{ t('Serve almeno: 8 caratteri, una maiuscola, un numero.') }}</p>
     <label>{{ t('ID cuffia (opzionale)') }}
-      <input name="headset_id" maxlength="128" placeholder="es. cuffia-001" />
+      <input name="headset_id" maxlength="128" placeholder="{{ t('se ce l’hai, altrimenti lascia vuoto') }}" />
     </label>
     <button class="btn primary" type="submit">{{ t('Crea account') }}</button>
   </form>

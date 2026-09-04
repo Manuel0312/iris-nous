@@ -1,25 +1,27 @@
 ﻿{% extends "base.html" %}
-{% block title %}{{ t('Associa telefono') }} · Iris{% endblock %}
+{% block title %}{{ t('Ponte smartphone') }} · Iris{% endblock %}
 {% block body_class %}page-private{% endblock %}
 {% block main_class %}shell private-shell{% endblock %}
 {% block content %}
-<section class="private-area">
+<section class="private-area pair-hub">
   <header class="private-welcome">
-    <p class="eyebrow">{{ t('Associazione') }}</p>
-    <h1>{{ t('Associa telefono') }}</h1>
+    <p class="eyebrow">{{ t('Funzione avanzata') }}</p>
+    <h1>{{ t('Ponte smartphone') }}</h1>
     <p class="lede">
-      Tre passi: codice, telefono in linea, Spotify.
-      Così dal PC (o dal simulatore) puoi cambiare davvero la canzone sul telefono.
+      {{ t('Estendi Iris Nous al tuo Smartphone: intercetta chiamate e notifiche in tempo reale tenendo aperto il bridge sul tuo dispositivo mobile.') }}
     </p>
   </header>
 
-  <div class="private-form private-form-fit stack">
+  <div class="private-form private-form-fit stack hub-pair-stack">
     <div class="form-block">
-      <h2>1 · Codice di associazione</h2>
+      <h2>{{ t('QR e codice di associazione') }}</h2>
       <p class="form-hint">
-        Sul telefono apri <strong>{{ public_url }}/associa-telefono</strong>
-        (stesso account), inserisci il codice del PC, poi Associa.
+        {{ t('Il codice a 6 cifre viene inviato via email solo quando lo chiedi. Aprilo sul telefono con lo stesso account, oppure inquadra il QR. Il telefono diventa un ponte dell’ecosistema, non un obbligo di setup.') }}
+        <strong>{{ public_url }}/associa-telefono</strong>
       </p>
+      <form method="post" action="/associa-telefono/invia-codice" class="stack">
+        <button class="btn primary" type="submit">{{ t('Invia il codice via email') }}</button>
+      </form>
       <p class="pair-box">
         <span>Codice a 6 cifre</span>
         <strong class="pair-code">{{ profile.pairing_code }}</strong>
@@ -28,72 +30,70 @@
       <p class="pair-qr">
         <img src="{{ qr_url }}" width="220" height="220" alt="QR verso associazione telefono" />
       </p>
-      <p class="form-hint">Inquadra il QR col telefono (dopo il login).</p>
+      <p class="form-hint">{{ t('Inquadra il QR col telefono (dopo il login).') }}</p>
       {% endif %}
 
       {% if profile.phone_paired %}
-      <p class="flash ok">Telefono associato{% if profile.phone_label %} · {{ profile.phone_label }}{% endif %}.</p>
+      <p class="flash ok">{{ t('Telefono associato') }}{% if profile.phone_label %} · {{ profile.phone_label }}{% endif %}.</p>
       <form method="post" action="/associa-telefono/unpair" class="stack">
-        <button class="btn ghost" type="submit">Scollega e genera nuovo codice</button>
+        <button class="btn ghost" type="submit">{{ t('Scollega e genera nuovo codice') }}</button>
       </form>
       {% else %}
       <form method="post" action="/associa-telefono" class="stack">
-        <label>Conferma codice (dal telefono)
+        <label>{{ t('Conferma codice (dal telefono)') }}
           <input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required placeholder="000000" autocomplete="one-time-code" />
         </label>
-        <button class="btn primary" type="submit">Associa telefono</button>
+        <button class="btn primary" type="submit">{{ t('Attiva il ponte') }}</button>
       </form>
       {% endif %}
     </div>
 
     <div class="form-block">
-      <h2>2 · Telefono in linea</h2>
+      <h2>Telefono in linea</h2>
       <p class="form-hint">
-        Dopo l’associazione, tieni aperta la pagina
-        <a href="/telefono"><strong>Telefono live</strong></a>
-        sul cellulare. Serve per vedere i comandi in arrivo.
+        {{ t('Quando vuoi chiamate e notifiche in diretta, tieni aperta la pagina') }}
+        <a href="/telefono"><strong>{{ t('Telefono live') }}</strong></a>
+        {{ t('sul dispositivo mobile: è il bridge dell’ecosistema.') }}
       </p>
       <p class="assoc-pill {% if profile.phone_online %}is-on{% endif %}">
-        {% if profile.phone_online %}In linea ora{% else %}Non in linea{% endif %}
+        {% if profile.phone_online %}{{ t('In linea ora') }}{% else %}{{ t('Non in linea') }}{% endif %}
       </p>
     </div>
 
     <div class="form-block">
-      <h2>3 · Spotify (musica vera)</h2>
+      <h2>{{ t('Spotify (musica vera)') }}</h2>
       {% if spotify_ready %}
         {% if profile.spotify_linked %}
         <p class="flash ok">
-          Collegato{% if profile.spotify_display_name %} come <strong>{{ profile.spotify_display_name }}</strong>{% endif %}.
+          {{ t('Collegato') }}{% if profile.spotify_display_name %} · <strong>{{ profile.spotify_display_name }}</strong>{% endif %}.
         </p>
         <p class="form-hint">
-          Apri Spotify sul telefono, metti in play una playlist, poi prova il test sotto.
-          Serve Spotify Premium.
+          {{ t('Apri Spotify sul dispositivo che sta riproducendo, metti in play una playlist, poi prova il test. Serve Spotify Premium. La cuffia controllerà la musica su qualsiasi player attivo.') }}
         </p>
         <form method="post" action="/auth/spotify/disconnect" class="stack">
-          <button class="btn ghost" type="submit">Scollega Spotify</button>
+          <button class="btn ghost" type="submit">{{ t('Scollega Spotify') }}</button>
         </form>
         {% else %}
-        <p class="form-hint">Collega l’account Spotify usato sul telefono.</p>
-        <a class="btn primary" href="/auth/spotify/start">Collega Spotify</a>
+        <p class="form-hint">{{ t('Collega l’account Spotify: la cuffia controllerà la musica su telefono, PC o speaker, ovunque sia attivo il player.') }}</p>
+        <a class="btn primary" href="/auth/spotify/start">{{ t('Collega Spotify') }}</a>
         {% endif %}
       {% else %}
         <p class="form-hint">
-          Spotify non è ancora configurato sul server (chiavi API).
-          Possiamo associarlo al prossimo passo: senza chiavi il test canzone resta in simulazione.
+          {{ t('Spotify non è ancora configurato sul server (chiavi API). Possiamo associarlo al prossimo passo: senza chiavi il test canzone resta in simulazione.') }}
         </p>
       {% endif %}
     </div>
 
     <div class="form-block">
-      <h2>Test rapido</h2>
-      <p class="form-hint">Dal PC: simula “prossima canzone” verso il telefono.</p>
+      <h2>{{ t('Test rapido') }}</h2>
+      <p class="form-hint">{{ t('Dal hub: simula “prossima canzone” verso il ponte.') }}</p>
       <form method="post" action="/api/music/next" class="stack" id="music-test-form">
-        <button class="btn primary" type="submit">Prossima canzone</button>
+        <button class="btn primary" type="submit">{{ t('Prossima canzone') }}</button>
       </form>
       <p class="form-hint" id="music-test-msg" hidden></p>
       <div class="private-actions">
-        <a class="btn ghost" href="/telefono">Apri telefono live</a>
-        <a class="btn ghost" href="/dashboard">Torna alla cuffia</a>
+        <a class="btn ghost" href="/telefono">{{ t('Apri telefono live') }}</a>
+        <a class="btn ghost" href="/dashboard">{{ t('Torna all’ecosistema') }}</a>
       </div>
     </div>
   </div>

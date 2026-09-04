@@ -17,16 +17,21 @@ class Language:
     code: str
     name: str
     flag: str
+    flag_iso: str  # ISO country for local SVG flag (emoji often missing on Windows)
+
+    @property
+    def flag_src(self) -> str:
+        return f"/flags/{self.flag_iso}.svg"
 
 
 LANGUAGES: tuple[Language, ...] = (
-    Language("it", "Italiano", "🇮🇹"),
-    Language("en", "English", "🇬🇧"),
-    Language("fr", "Français", "🇫🇷"),
-    Language("de", "Deutsch", "🇩🇪"),
-    Language("pt", "Português", "🇵🇹"),
-    Language("zh", "中文", "🇨🇳"),
-    Language("ja", "日本語", "🇯🇵"),
+    Language("it", "Italiano", "🇮🇹", "it"),
+    Language("en", "English", "🇬🇧", "gb"),
+    Language("fr", "Français", "🇫🇷", "fr"),
+    Language("de", "Deutsch", "🇩🇪", "de"),
+    Language("pt", "Português", "🇵🇹", "pt"),
+    Language("zh", "中文", "🇨🇳", "cn"),
+    Language("ja", "日本語", "🇯🇵", "jp"),
 )
 
 LANGUAGE_BY_CODE = {lang.code: lang for lang in LANGUAGES}

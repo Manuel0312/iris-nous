@@ -5,8 +5,12 @@
 <section class="auth-panel">
   <h1>{{ t('Login') }}</h1>
   <p class="lede">{{ t('Accedi alla tua area Iris.') }}</p>
+  {% if not site_is_local %}
+  <p class="form-hint">{{ t('Sei sul sito online: qui vivono gli account del telefono e Spotify. Quelli creati solo sul PC locale non esistono qui.') }}</p>
+  <p class="form-hint">{{ t('Accesso amministratore tesi: username') }} <strong>{{ admin_username|default('admin') }}</strong> {{ t('(password di default admin123, oppure quella impostata su Render).') }}</p>
+  {% endif %}
   <form method="post" action="/login" class="stack" id="login-form" autocomplete="on">
-    <label>{{ t('Username') }}
+    <label>{{ t('Username o email') }}
       <input name="username" autocomplete="username" required maxlength="64" autocapitalize="none" autocorrect="off" spellcheck="false" />
     </label>
     <label>{{ t('Password') }}

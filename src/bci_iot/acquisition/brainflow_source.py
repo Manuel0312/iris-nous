@@ -113,6 +113,12 @@ class BrainFlowSyntheticSource(EEGSource):
             produced += 1
 
     def _wait_for_samples(self, n_samples: int) -> np.ndarray:
+        """Block until the board buffer has ``n_samples`` (sync I/O).
+
+        Callers on the FastAPI event loop must run acquisition via
+        ``fastapi.concurrency.run_in_threadpool`` so ``time.sleep`` here does
+        not stall uvicorn.
+        """
         assert self._board is not None
         deadline = time.perf_counter() + max(2.0, self.window_seconds * 4)
         while time.perf_counter() < deadline:

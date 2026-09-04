@@ -13,8 +13,8 @@
   <link rel="apple-touch-icon" href="/static/icon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/styles.css?v=irisLang2" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=irisPages1" />
   <script>
     (function () {
       try {
@@ -38,30 +38,42 @@
   </script>
 </head>
 <body class="{% block body_class %}{% endblock %}">
+  <canvas class="iris-bg" id="iris-bg" aria-hidden="true"></canvas>
   <header class="topbar">
     <div class="topbar-left">
       <div class="lang-switch" data-lang-switch>
+        {% set current = languages|selectattr('code', 'equalto', lang)|list if languages is defined else [] %}
+        {% set cur = current[0] if current else none %}
         <button type="button" class="lang-btn" id="lang-toggle" aria-expanded="false" aria-haspopup="listbox" aria-controls="lang-menu" title="{{ t('Lingua') if t is defined else 'Lingua' }}">
-          {% set current = languages|selectattr('code', 'equalto', lang)|list if languages is defined else [] %}
-          <span class="lang-flag" aria-hidden="true">{% if current %}{{ current[0].flag }}{% else %}🇮🇹{% endif %}</span>
-          <span class="lang-code">{% if current %}{{ current[0].code|upper }}{% else %}IT{% endif %}</span>
-          <span class="lang-name">{% if current %}{{ current[0].name }}{% else %}Italiano{% endif %}</span>
+          <span class="flag-wrap" aria-hidden="true">
+            <span class="lang-flag">{{ cur.flag if cur else '🇮🇹' }}</span>
+            <img class="flag-img" src="{{ cur.flag_src if cur else '/flags/it.svg' }}" alt="" width="28" height="21" onerror="this.classList.add('is-broken')" />
+          </span>
+          <span class="lang-code">{{ cur.code|upper if cur else 'IT' }}</span>
+          <span class="lang-name">{{ cur.name if cur else 'Italiano' }}</span>
         </button>
         <div class="lang-menu" id="lang-menu" hidden role="listbox" aria-label="{{ t('Lingua') if t is defined else 'Lingua' }}">
           {% for item in languages %}
-          <form method="post" action="/lingua" class="lang-option-form">
-            <input type="hidden" name="lang" value="{{ item.code }}" />
-            <input type="hidden" name="next" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}" />
-            <button type="submit" class="lang-option {% if item.code == lang %}is-active{% endif %}" role="option" aria-selected="{{ 'true' if item.code == lang else 'false' }}">
-              <span class="lang-flag" aria-hidden="true">{{ item.flag }}</span>
-              <span class="lang-code">{{ item.code|upper }}</span>
-              <span class="lang-name">{{ item.name }}</span>
-            </button>
-          </form>
+          <a class="lang-option {% if item.code == lang %}is-active{% endif %}"
+             role="option"
+             aria-selected="{{ 'true' if item.code == lang else 'false' }}"
+             href="/lingua/{{ item.code }}">
+            <span class="flag-wrap" aria-hidden="true">
+              <span class="lang-flag">{{ item.flag }}</span>
+              <img class="flag-img" src="{{ item.flag_src }}" alt="{{ item.code }}" width="28" height="21" loading="lazy" onerror="this.classList.add('is-broken')" />
+            </span>
+            <span class="lang-code">{{ item.code|upper }}</span>
+            <span class="lang-name">{{ item.name }}</span>
+          </a>
           {% endfor %}
         </div>
       </div>
       <a class="brand-mark" href="/" aria-label="Iris Nous home">Iris Nous</a>
+      {% if site_is_local is defined %}
+      <span class="site-chip {% if site_is_local %}is-local{% else %}is-cloud{% endif %}">
+        {{ t('Locale') if site_is_local else t('Online') }}
+      </span>
+      {% endif %}
     </div>
     <div class="topbar-tools">
       <div class="theme-switch" role="group" aria-label="{{ t('Tema') if t is defined else 'Tema' }}">
@@ -77,12 +89,15 @@
           {% if username %}
             {% if is_admin %}
             <a href="/accessi">{{ t('Pannello admin') }}</a>
+            <a href="/notifiche">{{ t('Notifiche') }}{% if support_unread %}<span class="nav-badge">{{ support_unread }}</span>{% endif %}</a>
+            <a href="/invio-codici">{{ t('Mail Iris Nous') }}</a>
+            <a href="/chatta?canale=email">{{ t('Contattaci') }}</a>
             <a href="/cambia-password">{{ t('Cambia password') }}</a>
             {% else %}
-            <a href="/dashboard">{{ t('La mia cuffia') }}</a>
-            <a href="/calibrazione">{{ t('Calibrazione') }}</a>
-            <a href="/associa-telefono">{{ t('Associa telefono') }}</a>
-            <a href="/anagrafica?edit=1">{{ t('I miei dati') }}</a>
+            <a href="/anagrafica?edit=1" class="{% if request.url.path.startswith('/anagrafica') %}is-current{% endif %}">{{ t('I miei dati') }}</a>
+            <a href="/inizia" class="{% if request.url.path.startswith('/inizia') or request.url.path.startswith('/calibrazione') %}is-current{% endif %}">{{ t('Cosa puoi fare') }}</a>
+            <a href="/dashboard" class="{% if request.url.path.startswith('/dashboard') %}is-current{% endif %}">{{ t('Ecosistema') }}</a>
+            <a href="/chatta?canale=email">{{ t('Contattaci') }}</a>
             <a href="/cambia-password">{{ t('Cambia password') }}</a>
             {% endif %}
             <form method="post" action="/logout" class="inline">
@@ -91,11 +106,19 @@
           {% else %}
           <a href="/login">{{ t('Login') }}</a>
           <a href="/register">{{ t('Iscrizione') }}</a>
+          <a href="/chatta?canale=email">{{ t('Contattaci') }}</a>
           {% endif %}
         </nav>
       </div>
     </div>
   </header>
+
+  {% if site_is_local and cloud_url %}
+  <div class="site-mode-banner" role="status">
+    {{ t('Stai sul sito locale del PC. Gli account del telefono (Spotify incluso) sono sul sito online.') }}
+    <a href="{{ cloud_url }}">{{ t('Apri il sito online') }}</a>
+  </div>
+  {% endif %}
 
   {% block unito_top %}{% endblock %}
 
@@ -110,6 +133,15 @@
   <footer class="footer site-footer">
     <p>{{ t('Tesi triennale · Informatica · Università degli Studi di Torino') if t is defined else 'Tesi triennale · Informatica · Università degli Studi di Torino' }}</p>
   </footer>
+  {% endblock %}
+
+  {% block chat_fab %}
+  <a class="chat-fab" href="/chatta" aria-label="{{ t('Chatta con noi') }}">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v7A2.5 2.5 0 0 1 16.5 16H10l-4.2 3.2A.8.8 0 0 1 4.5 18.6V6.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    </svg>
+    <span>{{ t('Chatta con noi') }}</span>
+  </a>
   {% endblock %}
 
   <script>
@@ -228,5 +260,6 @@
       }
     })();
   </script>
+  <script src="/static/bg3d.js?v=irisBg3d3" defer></script>
 </body>
 </html>

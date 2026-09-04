@@ -5,10 +5,14 @@
 {% block content %}
 <section class="private-area">
   <header class="private-welcome">
-    <p class="eyebrow">{% if profile.anagrafica_complete %}{{ t('Profilo') }}{% else %}{{ t('Passo 2 di 3') }}{% endif %}</p>
-    <h1>{{ t('I tuoi dati') }}</h1>
+    <p class="eyebrow">{% if profile.anagrafica_complete %}{{ t('Profilo') }}{% else %}{{ t('Un attimo') }}{% endif %}</p>
+    <h1>{% if profile.anagrafica_complete %}{{ t('I tuoi dati') }}{% else %}{{ t('Chi sei, per Iris.') }}{% endif %}</h1>
     <p class="lede">
-      {{ t('Nome e cognome senza numeri. La foto è facoltativa. L’username resta univoco; email e telefono pure.') }}
+      {% if profile.anagrafica_complete %}
+      {{ t('Nome, foto, email. Pochi campi, i tuoi. Il resto dell’ecosistema li usa in silenzio.') }}
+      {% else %}
+      {{ t('Prima i tuoi dati, poi un codice via email, poi quattro colori. Tre gesti. Poi Iris è tua.') }}
+      {% endif %}
     </p>
   </header>
 
@@ -46,6 +50,7 @@
     <div class="cfg-grid">
       <div class="form-block">
         <h2>{{ t('Anagrafica') }}</h2>
+        <p class="form-hint">{{ t('Nome e cognome senza numeri. Username, email e telefono devono essere tuoi.') }}</p>
         <label>{{ t('Nome') }}
           <input name="first_name" value="{{ profile.first_name }}" required maxlength="64" autocomplete="given-name" pattern="[^0-9]+" title="Niente numeri" />
         </label>
@@ -58,13 +63,32 @@
         {% if profile.email_verified %}
         <p class="verify-ok">{{ t('Email verificata') }}</p>
         {% elif profile.email %}
-        <p class="verify-warn">{{ t('Email non verificata') }}</p>
+        <div class="email-verify-box">
+          <form method="post" action="/verifica/invia" class="email-verify-send">
+            <input type="hidden" name="channel" value="email" />
+            <button class="btn" type="submit">{{ t('Verifica') }}</button>
+          </form>
+          <p class="form-hint">{{ t('Ti inviamo un codice a 6 caratteri via email. Aprilo nella posta e inseriscilo qui sotto.') }}</p>
+          <form method="post" action="/verifica/conferma" class="stack email-verify-confirm">
+            <input type="hidden" name="channel" value="email" />
+            <label>{{ t('Codice ricevuto via email') }}
+              <input name="code" class="otp-code" maxlength="6" minlength="6" pattern="[A-Za-z0-9]{6}" required placeholder="A3K9P2" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" inputmode="text" />
+            </label>
+            <button class="btn primary" type="submit">{{ t('Conferma email') }}</button>
+          </form>
+        </div>
         {% endif %}
 
         <label>{{ t('Prefisso e telefono') }}</label>
         <div class="phone-row" id="phone-row" data-locked="{{ '1' if profile.phone_country else '0' }}">
           <button type="button" class="phone-cc-btn" id="phone-cc-btn" aria-haspopup="listbox" aria-expanded="false">
-            <span id="phone-cc-flag">{% if profile.phone_country %}{% for c in phone_countries if c.iso == profile.phone_country %}{{ c.flag }}{% endfor %}{% else %}🌐{% endif %}</span>
+            {% if profile.phone_country %}
+              {% for c in phone_countries if c.iso == profile.phone_country %}
+              <img class="flag-img" id="phone-cc-flag" src="{{ c.flag_src }}" alt="{{ c.iso }}" width="28" height="21" loading="lazy" />
+              {% endfor %}
+            {% else %}
+              <img class="flag-img" id="phone-cc-flag" src="/flags/un.svg" alt="" width="28" height="21" />
+            {% endif %}
             <span id="phone-cc-dial">{{ profile.phone_dial or t('Prefisso') }}</span>
           </button>
           <input type="hidden" name="phone_country" id="phone-country" value="{{ profile.phone_country }}" />
@@ -86,9 +110,9 @@
           <div class="phone-cc-list" id="phone-cc-list">
             {% for c in phone_countries %}
             <button type="button" class="phone-cc-option" role="option"
-              data-iso="{{ c.iso }}" data-dial="{{ c.dial }}" data-flag="{{ c.flag }}"
+              data-iso="{{ c.iso }}" data-dial="{{ c.dial }}" data-flag-src="{{ c.flag_src }}"
               data-min="{{ c.min_len }}" data-max="{{ c.max_len }}">
-              <span>{{ c.flag }}</span>
+              <img class="flag-img" src="{{ c.flag_src }}" alt="{{ c.iso }}" width="28" height="21" loading="lazy" />
               <span class="phone-cc-name">{{ c.name }}</span>
               <span class="muted">{{ c.dial }}</span>
             </button>
@@ -135,25 +159,11 @@
     </div>
   </form>
 
-  {% if profile.anagrafica_complete %}
+  {% if profile.anagrafica_complete and profile.phone_e164 and not profile.phone_verified %}
   <div class="panel reveal" data-reveal>
     <h2>{{ t('Verifica account') }}</h2>
     <p class="form-hint">{{ t('Non obbligatoria. Se non la fai, resta segnalata nell’area personale.') }}</p>
     <div class="verify-actions">
-      {% if profile.email and not profile.email_verified %}
-      <form method="post" action="/verifica/invia" class="stack inline-verify">
-        <input type="hidden" name="channel" value="email" />
-        <button class="btn" type="submit">{{ t('Invia codice email') }}</button>
-      </form>
-      <form method="post" action="/verifica/conferma" class="stack inline-verify">
-        <input type="hidden" name="channel" value="email" />
-        <label>{{ t('Codice email') }}
-          <input name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" required placeholder="000000" />
-        </label>
-        <button class="btn primary" type="submit">{{ t('Conferma email') }}</button>
-      </form>
-      {% endif %}
-      {% if profile.phone_e164 and not profile.phone_verified %}
       <form method="post" action="/verifica/invia" class="stack inline-verify">
         <input type="hidden" name="channel" value="phone" />
         <button class="btn" type="submit">{{ t('Invia codice SMS') }}</button>
@@ -161,16 +171,14 @@
       <form method="post" action="/verifica/conferma" class="stack inline-verify">
         <input type="hidden" name="channel" value="phone" />
         <label>{{ t('Codice SMS') }}
-          <input name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" required placeholder="000000" />
+          <input name="code" class="otp-code" maxlength="6" minlength="6" pattern="[A-Za-z0-9]{6}" required placeholder="A3K9P2" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" inputmode="text" />
         </label>
         <button class="btn primary" type="submit">{{ t('Conferma telefono') }}</button>
       </form>
-      {% endif %}
-      {% if profile.account_verified %}
-      <p class="verify-ok">{{ t('Account verificato.') }}</p>
-      {% endif %}
     </div>
   </div>
+  {% elif profile.anagrafica_complete and profile.account_verified %}
+  <p class="verify-ok">{{ t('Account verificato.') }}</p>
   {% endif %}
 
   {% if profile.anagrafica_complete and not profile.is_admin %}
@@ -207,9 +215,12 @@
   const hint = document.getElementById("phone-hint");
   if (!btn || !menu || !national) return;
 
-  function lockCountry(iso, dial, flag, minLen, maxLen) {
+  function lockCountry(iso, dial, flagSrc, minLen, maxLen) {
     isoInput.value = iso;
-    flagEl.textContent = flag;
+    if (flagEl) {
+      flagEl.src = flagSrc;
+      flagEl.alt = iso;
+    }
     dialEl.textContent = dial;
     national.disabled = false;
     national.focus();
@@ -239,7 +250,7 @@
       lockCountry(
         opt.dataset.iso,
         opt.dataset.dial,
-        opt.dataset.flag,
+        opt.dataset.flagSrc,
         opt.dataset.min,
         opt.dataset.max
       );
@@ -264,6 +275,15 @@
     btn.classList.add("is-locked");
     national.disabled = false;
   }
+})();
+</script>
+<script>
+(function () {
+  document.querySelectorAll(".otp-code").forEach((el) => {
+    el.addEventListener("input", function () {
+      this.value = this.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 6);
+    });
+  });
 })();
 </script>
 {% endblock %}

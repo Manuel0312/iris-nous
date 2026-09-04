@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}{{ t('Cosa puoi fare') }} · Iris{% endblock %}
+{% block body_class %}page-private{% endblock %}
+{% block main_class %}shell private-shell{% endblock %}
+{% block content %}
+<section class="private-area discover">
+  <header class="setup-hero discover-hero">
+    <p class="eyebrow">{{ t('Cosa puoi fare') }}</p>
+    <h1>{{ t('Pensi. Accade.') }}</h1>
+    <p class="lede">{{ t('Iris traduce un’intenzione in un gesto sul mondo: musica, casa, telefono. Niente comandi da imparare. Quando sei pronto, un tasto basta.') }}</p>
+  </header>
+
+  <ul class="discover-grid">
+    <li class="discover-card">
+      <figure>
+        <img src="/static/product/headset.jpg" alt="" width="800" height="533" />
+      </figure>
+      <div>
+        <p class="hub-kicker">{{ t('Cuffia') }}</p>
+        <h2>{{ t('Il pensiero, in chiaro.') }}</h2>
+        <p>{{ t('Quattro colori, come Face ID: insegni a Iris chi sei. Poi il segnale diventa un comando, senza parlare e senza toccare.') }}</p>
+      </div>
+    </li>
+    <li class="discover-card">
+      <figure>
+        <img src="/static/product/music.jpg" alt="" width="800" height="533" />
+      </figure>
+      <div>
+        <p class="hub-kicker">{{ t('Musica') }}</p>
+        <h2>{{ t('Il ritmo, nel pensiero.') }}</h2>
+        <p>{{ t('Collega Spotify. La cuffia cambia brano sul telefono, sul PC o sullo speaker che sta già suonando.') }}</p>
+      </div>
+    </li>
+    <li class="discover-card">
+      <figure>
+        <img src="/static/product/home.jpg" alt="" width="800" height="533" />
+      </figure>
+      <div>
+        <p class="hub-kicker">{{ t('Casa') }}</p>
+        <h2>{{ t('La casa ti ascolta.') }}</h2>
+        <p>{{ t('Accendi e spegni luci e prese tramite Home Assistant. L’ambiente segue il tuo stato, non un telecomando.') }}</p>
+      </div>
+    </li>
+    <li class="discover-card">
+      <figure>
+        <img src="/static/product/phone.jpg" alt="" width="800" height="1000" />
+      </figure>
+      <div>
+        <p class="hub-kicker">{{ t('Telefono') }}</p>
+        <h2>{{ t('Rispondi. Senza mani.') }}</h2>
+        <p>{{ t('Se attivi il ponte sullo smartphone, Iris può accettare o rifiutare una chiamata. Non è obbligatorio: è un’estensione.') }}</p>
+      </div>
+    </li>
+  </ul>
+
+  <div class="discover-cta-wrap">
+    <a class="discover-cta" href="/calibrazione?passo=1">{{ t('Iniziamo') }}</a>
+    <p class="muted">{{ t('Tre passi. Tu premi per andare avanti. Puoi tornare indietro quando vuoi.') }}</p>
+  </div>
+</section>
+{% endblock %}

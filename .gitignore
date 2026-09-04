@@ -36,12 +36,16 @@ data/profiles/
 data/*.db
 data/photos/
 data/profiles_deleted/
+data/messaging.json
 data/_t/
 tmp_cal_test/
 models/*.pt
 models/*.pkl
 !models/.gitkeep
 results/
+
+# Generated at app startup
+src/bci_iot/web/static/flags/
 
 # Local tooling / deploy helpers
 .tools/

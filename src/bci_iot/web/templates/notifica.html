@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ thread.subject or "Notifica" }} · Admin{% endblock %}
+{% block body_class %}page-private{% endblock %}
+{% block main_class %}shell wide{% endblock %}
+{% block content %}
+<section class="dash">
+  <p><a href="/notifiche">← Notifiche</a></p>
+  <h1>
+    <span class="status-dot status-{{ thread.status }}"></span>
+    {{ thread.subject or "Chatta con noi" }}
+  </h1>
+  <p class="lede">
+    {% if thread.status == "unread" %}Non visualizzato
+    {% elif thread.status == "viewed" %}Visualizzato, in attesa di risposta
+    {% else %}Risposto{% endif %}
+    · {{ "Email" if thread.channel == "email" else "Chat" }}
+  </p>
+
+  <div class="panel">
+    <ul class="detail-list">
+      <li><span>Persona</span><strong>
+        {% if thread.username %}
+        <a href="/accessi/utente/{{ thread.username }}">{{ thread.guest_name or thread.username }}</a>
+        {% else %}
+        {{ thread.guest_name or "Ospite" }}
+        {% endif %}
+      </strong></li>
+      <li><span>Email</span><strong>{{ thread.guest_email or "—" }}</strong></li>
+      <li><span>Telefono</span><strong>{{ thread.guest_phone or "—" }}</strong></li>
+    </ul>
+  </div>
+
+  <ol class="chat-log">
+    {% for m in messages %}
+    <li class="chat-bubble chat-{{ m.sender }}">
+      <span class="chat-who">{{ "Admin" if m.sender == "admin" else "Cliente" }}</span>
+      <p>{{ m.body }}</p>
+      <time>{{ m.created_at | it_time }}</time>
+    </li>
+    {% endfor %}
+  </ol>
+
+  <form class="panel private-form" method="post" action="/notifiche/{{ thread.id }}/rispondi">
+    <h2>Rispondi via email</h2>
+    <p class="muted">La risposta resta nella chat di tutela e, se c’è un’email, parte una mail personale.</p>
+    <label>Messaggio
+      <textarea name="body" rows="5" required minlength="2" maxlength="4000" placeholder="Scrivi la risposta…"></textarea>
+    </label>
+    <div class="private-actions">
+      <button class="btn primary" type="submit">Invia risposta</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

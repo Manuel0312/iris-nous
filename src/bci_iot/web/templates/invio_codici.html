@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Mail Iris Nous · Iris{% endblock %}
+{% block body_class %}page-private{% endblock %}
+{% block main_class %}shell private-shell{% endblock %}
+{% block content %}
+<section class="private-area">
+  <header class="private-welcome">
+    <p class="eyebrow">Mail aziendale · una volta sola</p>
+    <h1>Mail Iris Nous</h1>
+    <p class="lede">
+      Iris manda le email come fanno i siti professionali: mittente
+      <strong>{{ messaging.brand_name }}</strong>, oggetto chiaro, pulsante di conferma
+      iscrizione e codici di recupero password. Serve solo collegare un account Gmail
+      (o Resend) che spedisca le mail.
+    </p>
+  </header>
+
+  <div class="panel reveal" data-reveal>
+    <h2>Stato</h2>
+    {% if messaging.email_ready %}
+    <p><strong>Attiva</strong> — provider: {{ messaging.provider }}. Conferme iscrizione e recuperi partono in posta.</p>
+    {% else %}
+    <p><strong>Da collegare</strong> — in locale i link/codici compaiono ancora nel sito per i test.</p>
+    {% endif %}
+    <p class="muted"><a href="/accessi">← Pannello admin</a></p>
+  </div>
+
+  <div class="panel reveal" data-reveal>
+    <h2>Passi Gmail (consigliati per la tesi) — nomi da usare</h2>
+    <ol class="stack">
+      <li>Vai su <a href="https://accounts.google.com/signup" target="_blank" rel="noopener">accounts.google.com/signup</a> e crea un account Google <em>solo per Iris</em> (oppure usa una Gmail che hai già).</li>
+      <li><strong>Nome visualizzato Google:</strong> <code>Iris Nous</code> (nome) / <code>Mail</code> (cognome) oppure solo Iris Nous.</li>
+      <li><strong>Indirizzo Gmail consigliato:</strong> qualcosa tipo <code>iris.nous.app@gmail.com</code> o <code>noreply.irisnous@gmail.com</code> (se libero). Se è preso, usa una variante simile.</li>
+      <li>Google → <strong>Gestisci il tuo Account Google</strong> → <strong>Sicurezza</strong>.</li>
+      <li>Attiva la <strong>Verifica in due passaggi</strong>.</li>
+      <li>Più sotto: <strong>Password per le app</strong> → seleziona app <strong>Mail</strong> → dispositivo <strong>Altro</strong> → nome: <code>Iris Nous Web</code> → genera.</li>
+      <li>Copia le 16 lettere e incollale qui sotto come password SMTP.</li>
+      <li>Compila i campi con i valori sotto e premi <strong>Attiva mail Iris Nous</strong>.</li>
+    </ol>
+    <p class="muted">Valori da inserire nel form:</p>
+    <ul class="stack">
+      <li>Mittente (From): la stessa Gmail (es. <code>iris.nous.app@gmail.com</code>)</li>
+      <li>Host: <code>smtp.gmail.com</code></li>
+      <li>Porta: <code>587</code></li>
+      <li>Utente: la stessa Gmail</li>
+      <li>Password: la password per le app (non quella normale)</li>
+    </ul>
+    <p class="muted">Nelle caselle dei tuoi utenti arriverà da <strong>Iris Nous &lt;tua-gmail&gt;</strong>, con stile aziendale (conferma iscrizione + codice recupero).</p>
+  </div>
+
+  <div class="panel reveal" data-reveal>
+    <h2>Alternativa: Resend</h2>
+    <p class="muted">Account gratis su <a href="https://resend.com" target="_blank" rel="noopener">resend.com</a> → API key <code>re_…</code> → incolla sotto. Più “da prodotto SaaS”; Gmail va benissimo per la tesi.</p>
+  </div>
+
+  <form method="post" action="/invio-codici" class="panel stack reveal" data-reveal autocomplete="off">
+    <h2>Identità Iris Nous</h2>
+    <label>Mittente (From)
+      <input name="brand_from_email" value="{{ messaging.brand_from_email }}" placeholder="iris.nous.app@gmail.com" autocomplete="off" />
+    </label>
+
+    <h2>Resend API key (opzionale)</h2>
+    <label>API key {% if messaging.resend_key_set %}<span class="muted">(già salvata)</span>{% endif %}
+      <input name="resend_api_key" type="password" value="" placeholder="{% if messaging.resend_key_set %}••••••••{% else %}re_xxxxxxxx{% endif %}" autocomplete="new-password" />
+    </label>
+
+    <h2>Gmail SMTP</h2>
+    <label>Host SMTP
+      <input name="smtp_host" value="{{ messaging.smtp_host or 'smtp.gmail.com' }}" placeholder="smtp.gmail.com" autocomplete="off" />
+    </label>
+    <label>Porta
+      <input name="smtp_port" value="{{ messaging.smtp_port }}" placeholder="587" autocomplete="off" />
+    </label>
+    <label>Utente Gmail
+      <input name="smtp_user" value="{{ messaging.smtp_user }}" placeholder="iris.nous.app@gmail.com" autocomplete="off" />
+    </label>
+    <label>Password per le app {% if messaging.smtp_password_set %}<span class="muted">(già salvata)</span>{% endif %}
+      <input name="smtp_password" type="password" value="" autocomplete="new-password" />
+    </label>
+    <label>Mittente SMTP
+      <input name="smtp_from" value="{{ messaging.smtp_from }}" placeholder="iris.nous.app@gmail.com" autocomplete="off" />
+    </label>
+
+    <button class="btn primary" type="submit">Attiva mail Iris Nous</button>
+  </form>
+</section>
+{% endblock %}

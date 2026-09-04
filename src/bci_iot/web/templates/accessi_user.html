@@ -24,7 +24,8 @@
         <li><span>Nome</span><strong>{{ anagrafica.first_name or "—" }}</strong></li>
         <li><span>Cognome</span><strong>{{ anagrafica.last_name or "—" }}</strong></li>
         <li><span>Genere</span><strong>{{ anagrafica.gender or "—" }}</strong></li>
-        <li><span>Telefono</span><strong>{{ anagrafica.phone_label or "—" }}</strong></li>
+        <li><span>Email</span><strong>{{ anagrafica.email or "—" }}</strong></li>
+        <li><span>Telefono</span><strong>{{ anagrafica.phone_label or anagrafica.phone_e164 or "—" }}</strong></li>
         <li><span>Stato</span><strong>{{ anagrafica.status }}</strong></li>
         <li><span>Aggiornato</span><strong>{{ anagrafica.updated_at | it_time }}</strong></li>
       </ul>
@@ -73,6 +74,34 @@
     </table>
     {% else %}
     <p class="muted">Nessun evento registrato.</p>
+    {% endif %}
+  </div>
+
+  <div class="panel table-wrap reveal" data-reveal>
+    <h2>Chat di tutela</h2>
+    <p class="muted">Archivio permanente dei messaggi tra questa persona e Iris Nous (anche dopo 10 giorni).</p>
+    {% if support_threads %}
+      {% for thread in support_threads %}
+      <article class="tutela-thread">
+        <p>
+          <span class="status-dot status-{{ thread.status }}" title="{{ thread.status }}"></span>
+          <strong>{{ thread.subject or "Chatta con noi" }}</strong>
+          · {{ thread.channel }}
+          · <a href="/notifiche/{{ thread.id }}">Apri in notifiche</a>
+        </p>
+        <ol class="chat-log">
+          {% for m in thread.messages %}
+          <li class="chat-bubble chat-{{ m.sender }}">
+            <span class="chat-who">{{ "Admin" if m.sender == "admin" else "Utente" }}</span>
+            <p>{{ m.body }}</p>
+            <time>{{ m.created_at | it_time }}</time>
+          </li>
+          {% endfor %}
+        </ol>
+      </article>
+      {% endfor %}
+    {% else %}
+    <p class="muted">Nessun messaggio registrato.</p>
     {% endif %}
   </div>
 </section>

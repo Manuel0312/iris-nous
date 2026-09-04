@@ -1,19 +1,27 @@
-"""Local JSON profile store for account login and headset configuration."""
+"""Account profile store backed by SQLite (:class:`AccessDatabase`)."""
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
-import shutil
+import secrets
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Literal
 from uuid import uuid4
 
+from bci_iot.accounts.access_db import AccessDatabase
 from bci_iot.accounts.gender import normalize_gender
 from bci_iot.accounts.otp import (
+    OTP_COOLDOWN_SECONDS,
+    OTP_MAX_ATTEMPTS,
+    OTP_TTL_MINUTES,
     generate_otp_code,
     hash_otp,
+    normalize_otp,
+    otp_binding_salt,
     otp_expiry,
     otp_is_expired,
     otp_matches,
@@ -27,7 +35,7 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
-OtpPurpose = Literal["verify_email", "verify_phone", "recover"]
+OtpPurpose = Literal["verify_email", "verify_phone", "recover", "confirm_signup"]
 
 
 @dataclass(slots=True)
@@ -56,6 +64,10 @@ class UserProfile:
     otp_channel: str = ""
     otp_purpose: str = ""
     otp_expires_at: str = ""
+    otp_issued_at: str = ""
+    otp_attempts: int = 0
+    email_confirm_hash: str = ""
+    email_confirm_expires_at: str = ""
     anagrafica_complete: bool = False
     calibration_complete: bool = False
     pairing_code: str = ""
@@ -136,6 +148,7 @@ class UserProfile:
         data.pop("spotify_access_token", None)
         data.pop("spotify_refresh_token", None)
         data.pop("otp_hash", None)
+        data.pop("email_confirm_hash", None)
         data["spotify_linked"] = self.spotify_linked
         data["phone_online"] = self.phone_online
         data["phone_display"] = self.phone_display
@@ -171,6 +184,10 @@ class UserProfile:
             otp_channel=str(data.get("otp_channel") or ""),
             otp_purpose=str(data.get("otp_purpose") or ""),
             otp_expires_at=str(data.get("otp_expires_at") or ""),
+            otp_issued_at=str(data.get("otp_issued_at") or ""),
+            otp_attempts=int(data.get("otp_attempts") or 0),
+            email_confirm_hash=str(data.get("email_confirm_hash") or ""),
+            email_confirm_expires_at=str(data.get("email_confirm_expires_at") or ""),
             anagrafica_complete=bool(data.get("anagrafica_complete", False)),
             calibration_complete=bool(data.get("calibration_complete", False)),
             pairing_code=str(data.get("pairing_code") or ""),
@@ -189,25 +206,111 @@ class UserProfile:
 
 
 class ProfileStore:
-    """Persist user accounts as JSON files under ``data_dir``."""
+    """Persist user accounts in SQLite via :class:`AccessDatabase`.
 
-    def __init__(self, data_dir: Path | str) -> None:
-        self.data_dir = Path(data_dir)
-        self.data_dir.mkdir(parents=True, exist_ok=True)
-        self.deleted_dir = self.data_dir.parent / "profiles_deleted"
-        self.photos_dir = self.data_dir.parent / "photos"
+    Public API is unchanged for the rest of the app. Legacy JSON files under
+    ``profiles/`` are imported once on startup when present.
+    """
+
+    def __init__(
+        self,
+        data_dir: Path | str,
+        *,
+        access_db: AccessDatabase | None = None,
+        db_path: Path | str | None = None,
+    ) -> None:
+        base = Path(data_dir)
+        # Back-compat: callers may pass ``.../profiles`` or a bare temp dir.
+        if base.name == "profiles":
+            self.data_root = base.parent
+            self._legacy_json_dir = base
+        else:
+            self.data_root = base
+            self._legacy_json_dir = base / "profiles"
+            # Tests historically wrote JSON directly into tmp_path.
+            if any(base.glob("*.json")):
+                self._legacy_json_dir = base
+        self.data_dir = self._legacy_json_dir  # kept for older call sites
+        self.photos_dir = self.data_root / "photos"
         self.photos_dir.mkdir(parents=True, exist_ok=True)
+        if access_db is not None:
+            self.db = access_db
+        else:
+            sqlite_path = Path(db_path) if db_path is not None else (self.data_root / "accessi.db")
+            self.db = AccessDatabase(sqlite_path)
+        self._migrate_legacy_json_profiles()
 
-    def _path_for(self, username: str) -> Path:
-        safe = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in username.lower())
-        return self.data_dir / f"{safe}.json"
+    def _profile_to_row(self, profile: UserProfile) -> dict[str, Any]:
+        raw = profile.to_dict()
+        action_map = raw.pop("action_map", {}) or {}
+        usage_stats = raw.pop("usage_stats", {}) or {}
+        raw["action_map_json"] = json.dumps(action_map, ensure_ascii=False)
+        raw["usage_stats_json"] = json.dumps(usage_stats, ensure_ascii=False)
+        return raw
+
+    def _row_to_profile(self, row: dict[str, Any]) -> UserProfile:
+        data = dict(row)
+        try:
+            action_map = json.loads(str(data.pop("action_map_json", None) or "{}"))
+        except json.JSONDecodeError:
+            action_map = {}
+        try:
+            usage_stats = json.loads(str(data.pop("usage_stats_json", None) or "{}"))
+        except json.JSONDecodeError:
+            usage_stats = {}
+        data.pop("updated_at", None)
+        data["action_map"] = action_map if isinstance(action_map, dict) else {}
+        data["usage_stats"] = usage_stats if isinstance(usage_stats, dict) else {}
+        data["is_admin"] = bool(data.get("is_admin"))
+        data["email_verified"] = bool(data.get("email_verified"))
+        data["phone_verified"] = bool(data.get("phone_verified"))
+        data["anagrafica_complete"] = bool(data.get("anagrafica_complete"))
+        data["calibration_complete"] = bool(data.get("calibration_complete"))
+        data["phone_paired"] = bool(data.get("phone_paired"))
+        data["otp_attempts"] = int(data.get("otp_attempts") or 0)
+        return UserProfile.from_dict(data)
+
+    def _sync_anagrafica_mirror(self, profile: UserProfile) -> None:
+        status = "deleted" if profile.deleted_at else "active"
+        self.db.upsert_anagrafica(
+            username=profile.username,
+            user_id=profile.user_id,
+            first_name=profile.first_name,
+            last_name=profile.last_name,
+            gender=profile.gender,
+            phone_label=profile.phone_label,
+            headset_id=profile.headset_id,
+            status=status,
+            photo_path=profile.photo_filename,
+            email=profile.email,
+            phone_e164=profile.phone_e164,
+        )
+
+    def _migrate_legacy_json_profiles(self) -> None:
+        folder = self._legacy_json_dir
+        if not folder.is_dir():
+            return
+        for path in sorted(folder.glob("*.json")):
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+                profile = UserProfile.from_dict(data)
+            except (OSError, ValueError, KeyError, TypeError):
+                continue
+            if self.db.get_user(profile.username, include_deleted=True) is not None:
+                continue
+            self.db.upsert_user(self._profile_to_row(profile))
+            self._sync_anagrafica_mirror(profile)
+            try:
+                path.rename(path.with_suffix(".json.migrated"))
+            except OSError:
+                pass
 
     def exists(self, username: str) -> bool:
-        return self._path_for(username).exists()
+        return self.db.username_taken(username)
 
     def save(self, profile: UserProfile) -> None:
-        path = self._path_for(profile.username)
-        path.write_text(json.dumps(profile.to_dict(), indent=2), encoding="utf-8")
+        self.db.upsert_user(self._profile_to_row(profile))
+        self._sync_anagrafica_mirror(profile)
 
     def find_by_email(self, email: str) -> UserProfile | None:
         try:
@@ -286,11 +389,11 @@ class ProfileStore:
                 raise ValueError(check.message)
             email_norm = normalize_email(email)
         if self.exists(username):
-            raise ValueError("Username già in uso. Scegline uno univoco.")
+            raise ValueError("Questo username è già preso: scegline un altro.")
         if self.find_by_email(email_norm) is not None:
             raise ValueError(
-                "Questa email è già registrata. Probabilmente hai già un account: "
-                "usa «Password dimenticata?» con username, email o telefono."
+                "Questa email è già registrata. Se è la tua, vai su "
+                "«Password dimenticata?» e recupera l'accesso."
             )
 
         profile = UserProfile(
@@ -322,10 +425,17 @@ class ProfileStore:
         return profile
 
     def ensure_admin(self, username: str, password: str) -> UserProfile:
+        """Create or restore the thesis admin account and sync its password from env."""
         username = username.strip()
-        existing = self.get(username)
+        existing = self.get(username, include_deleted=True)
         if existing is not None:
             changed = False
+            if existing.deleted_at:
+                existing.deleted_at = ""
+                changed = True
+            if password:
+                existing.password_hash = hash_password(password)
+                changed = True
             if not existing.is_admin:
                 existing.is_admin = True
                 changed = True
@@ -355,18 +465,15 @@ class ProfileStore:
         )
 
     def authenticate(self, username: str, password: str) -> UserProfile | None:
-        profile = self.get(username)
+        profile = self.find_by_identifier(username)
         if profile is None or profile.deleted_at:
-            # Allow login with email as identifier
-            profile = self.find_by_email(username)
-            if profile is None or profile.deleted_at:
-                return None
+            return None
         if not verify_password(password, profile.password_hash):
             return None
         return profile
 
     def username_exists_active(self, username: str) -> bool:
-        profile = self.get(username)
+        profile = self.find_by_identifier(username)
         return profile is not None and not profile.deleted_at
 
     def change_password(
@@ -416,6 +523,14 @@ class ProfileStore:
         self.save(profile)
         return profile
 
+    def _clear_otp_fields(self, profile: UserProfile) -> None:
+        profile.otp_hash = ""
+        profile.otp_channel = ""
+        profile.otp_purpose = ""
+        profile.otp_expires_at = ""
+        profile.otp_issued_at = ""
+        profile.otp_attempts = 0
+
     def issue_otp(
         self,
         username: str,
@@ -429,18 +544,35 @@ class ProfileStore:
         if channel == "email":
             if not profile.email:
                 raise ValueError("Nessuna email associata all'account.")
-            destination_ok = True
         else:
             if not profile.phone_e164:
                 raise ValueError("Nessun numero di telefono associato all'account.")
-            destination_ok = True
-        if not destination_ok:
-            raise ValueError("Canale non disponibile.")
+        if profile.otp_issued_at and profile.otp_purpose == purpose:
+            try:
+                issued = datetime.fromisoformat(
+                    profile.otp_issued_at.replace("Z", "+00:00")
+                )
+                if issued.tzinfo is None:
+                    issued = issued.replace(tzinfo=timezone.utc)
+                waited = (datetime.now(timezone.utc) - issued).total_seconds()
+                if waited < OTP_COOLDOWN_SECONDS:
+                    wait = int(OTP_COOLDOWN_SECONDS - waited) + 1
+                    raise ValueError(
+                        f"Aspetta {wait} secondi prima di chiedere un altro codice."
+                    )
+            except ValueError as exc:
+                if "Aspetta" in str(exc):
+                    raise
         code = generate_otp_code()
-        profile.otp_hash = hash_otp(code, salt=profile.user_id)
+        salt = otp_binding_salt(
+            user_id=profile.user_id, purpose=purpose, channel=channel
+        )
+        profile.otp_hash = hash_otp(code, salt=salt)
         profile.otp_channel = channel
         profile.otp_purpose = purpose
-        profile.otp_expires_at = otp_expiry(minutes=15)
+        profile.otp_expires_at = otp_expiry(minutes=OTP_TTL_MINUTES)
+        profile.otp_issued_at = _utc_now()
+        profile.otp_attempts = 0
         self.save(profile)
         return profile, code
 
@@ -459,21 +591,100 @@ class ProfileStore:
         if purpose and profile.otp_purpose != purpose:
             raise ValueError("Codice non valido per questa operazione.")
         if otp_is_expired(profile.otp_expires_at):
+            self._clear_otp_fields(profile)
+            self.save(profile)
             raise ValueError("Codice scaduto. Richiedine uno nuovo.")
-        if not otp_matches(code, stored_hash=profile.otp_hash, salt=profile.user_id):
-            raise ValueError("Codice non corretto.")
+        if profile.otp_attempts >= OTP_MAX_ATTEMPTS:
+            self._clear_otp_fields(profile)
+            self.save(profile)
+            raise ValueError(
+                "Troppi tentativi. Per sicurezza il codice è stato annullato: "
+                "richiedine uno nuovo."
+            )
+        cleaned = normalize_otp(code)
+        if len(cleaned) != 6:
+            raise ValueError(
+                "Il codice deve essere di 6 caratteri (lettere e numeri, senza spazi)."
+            )
+        salt = otp_binding_salt(
+            user_id=profile.user_id,
+            purpose=profile.otp_purpose or (purpose or ""),
+            channel=profile.otp_channel or "",
+        )
+        if not otp_matches(cleaned, stored_hash=profile.otp_hash, salt=salt):
+            profile.otp_attempts += 1
+            left = OTP_MAX_ATTEMPTS - profile.otp_attempts
+            if left <= 0:
+                self._clear_otp_fields(profile)
+                self.save(profile)
+                raise ValueError(
+                    "Troppi tentativi. Per sicurezza il codice è stato annullato: "
+                    "richiedine uno nuovo."
+                )
+            self.save(profile)
+            raise ValueError(f"Codice non corretto. Tentativi rimasti: {left}.")
         channel = profile.otp_channel
         otp_purpose = profile.otp_purpose
-        profile.otp_hash = ""
-        profile.otp_channel = ""
-        profile.otp_purpose = ""
-        profile.otp_expires_at = ""
-        if otp_purpose == "verify_email" or (otp_purpose == "recover" and channel == "email"):
+        self._clear_otp_fields(profile)
+        if otp_purpose in {"verify_email", "confirm_signup"} or (
+            otp_purpose == "recover" and channel == "email"
+        ):
             profile.email_verified = True
+            profile.email_confirm_hash = ""
+            profile.email_confirm_expires_at = ""
         if otp_purpose == "verify_phone" or (otp_purpose == "recover" and channel == "phone"):
             profile.phone_verified = True
         self.save(profile)
         return profile
+
+    def issue_email_confirm_token(self, username: str) -> tuple[UserProfile, str]:
+        """Create a one-time signup confirmation token (raw returned once)."""
+        profile = self.get(username)
+        if profile is None or profile.deleted_at:
+            raise ValueError("Account non trovato.")
+        if profile.email_verified:
+            raise ValueError("Email già confermata.")
+        if not profile.email:
+            raise ValueError("Nessuna email sull'account.")
+        raw = secrets.token_urlsafe(32)
+        profile.email_confirm_hash = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+        profile.email_confirm_expires_at = otp_expiry(minutes=60 * 24)
+        self.save(profile)
+        return profile, raw
+
+    def issue_signup_confirmation(self, username: str) -> tuple[UserProfile, str, str]:
+        """Return (profile, link_token, 6-char code) for signup email confirmation."""
+        profile, code = self.issue_otp(
+            username, channel="email", purpose="confirm_signup"
+        )
+        # Align code lifetime with the confirmation link (24h).
+        profile.otp_expires_at = otp_expiry(minutes=60 * 24)
+        self.save(profile)
+        profile, raw = self.issue_email_confirm_token(profile.username)
+        return profile, raw, code
+
+    def confirm_email_with_token(self, raw_token: str) -> UserProfile:
+        token = (raw_token or "").strip()
+        if not token:
+            raise ValueError("Link non valido.")
+        digest = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        for profile in self.list_profiles():
+            if profile.deleted_at or not profile.email_confirm_hash:
+                continue
+            if not hmac.compare_digest(profile.email_confirm_hash, digest):
+                continue
+            if otp_is_expired(profile.email_confirm_expires_at):
+                profile.email_confirm_hash = ""
+                profile.email_confirm_expires_at = ""
+                self.save(profile)
+                raise ValueError("Link scaduto. Richiedi una nuova email di conferma.")
+            profile.email_verified = True
+            profile.email_confirm_hash = ""
+            profile.email_confirm_expires_at = ""
+            self._clear_otp_fields(profile)
+            self.save(profile)
+            return profile
+        raise ValueError("Link non valido o già usato.")
 
     def set_password(self, username: str, new_password: str) -> UserProfile:
         profile = self.get(username)
@@ -508,10 +719,8 @@ class ProfileStore:
         if profile.is_admin:
             raise ValueError("Non puoi eliminare l'account amministratore.")
         profile.deleted_at = _utc_now()
-        self.deleted_dir.mkdir(parents=True, exist_ok=True)
-        dest = self.deleted_dir / self._path_for(username).name
         self.save(profile)
-        shutil.move(str(self._path_for(username)), str(dest))
+        self.db.soft_delete_user(username)
 
     def update_anagrafica(
         self,
@@ -731,24 +940,21 @@ class ProfileStore:
             action_map=dict(extra.get("action_map") or {}),
         )
 
-    def get(self, username: str) -> UserProfile | None:
-        path = self._path_for(username)
-        if not path.exists():
+    def get(self, username: str, *, include_deleted: bool = False) -> UserProfile | None:
+        row = self.db.get_user(username, include_deleted=include_deleted)
+        if row is None:
             return None
-        data = json.loads(path.read_text(encoding="utf-8"))
-        return UserProfile.from_dict(data)
+        return self._row_to_profile(row)
 
     def list_usernames(self) -> list[str]:
-        return sorted(p.stem for p in self.data_dir.glob("*.json"))
+        return [str(row["username"]) for row in self.db.list_user_rows(include_deleted=False)]
 
     def list_profiles(self) -> list[UserProfile]:
         out: list[UserProfile] = []
-        for name in self.list_usernames():
-            path = self.data_dir / f"{name}.json"
+        for row in self.db.list_user_rows(include_deleted=False):
             try:
-                data = json.loads(path.read_text(encoding="utf-8"))
-                out.append(UserProfile.from_dict(data))
-            except (OSError, ValueError, KeyError):
+                out.append(self._row_to_profile(row))
+            except (ValueError, KeyError, TypeError):
                 continue
         return out
 
@@ -756,9 +962,7 @@ class ProfileStore:
         return sum(1 for p in self.list_profiles() if p.is_online and not p.is_admin)
 
     def count_registered(self) -> int:
-        return sum(1 for p in self.list_profiles() if not p.is_admin)
+        return self.db.count_users(deleted=False, exclude_admin=True)
 
     def count_deleted(self) -> int:
-        if not self.deleted_dir.exists():
-            return 0
-        return len(list(self.deleted_dir.glob("*.json")))
+        return self.db.count_users(deleted=True, exclude_admin=False)

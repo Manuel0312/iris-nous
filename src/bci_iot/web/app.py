@@ -15,8 +15,8 @@ import secrets
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile, status
-
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from fastapi.staticfiles import StaticFiles
 
@@ -38,7 +38,19 @@ from bci_iot.accounts.timefmt import format_access_it
 
 from bci_iot.accounts.store import ProfileStore, UserProfile
 from bci_iot.accounts.phone_countries import PHONE_COUNTRIES
-from bci_iot.accounts.messaging import send_code
+from bci_iot.accounts.messaging import (
+    configure_messaging_store,
+    load_dotenv_file,
+    mask_destination,
+    messaging_status,
+    send_branded_email,
+    send_code,
+    send_signup_confirmation,
+    send_pairing_code,
+    update_messaging_config,
+    build_support_reply_email,
+)
+from bci_iot.web.flags import ensure_flag_svgs, render_flag_svg
 from bci_iot.web.i18n import (
     COOKIE_NAME,
     LANGUAGES,
@@ -49,6 +61,8 @@ from bci_iot.web.i18n import (
     set_request_language,
     translate,
 )
+
+DEFAULT_PUBLIC_URL = "https://iris-nous.onrender.com"
 
 WEB_DIR = Path(__file__).resolve().parent
 
@@ -154,6 +168,23 @@ def _pop_flash(request: Request) -> dict[str, str] | None:
     flash = request.session.pop("flash", None)
     return flash if isinstance(flash, dict) else None
 
+
+def _configured_public_url() -> str:
+    return (os.getenv("BCI_IOT_PUBLIC_URL") or DEFAULT_PUBLIC_URL).strip().rstrip("/")
+
+
+def _host_is_local(request: Request) -> bool:
+    host = (request.url.hostname or "").lower()
+    if host in {"127.0.0.1", "localhost", "0.0.0.0", "::1"}:
+        return True
+    if host.startswith("192.168.") or host.startswith("10."):
+        return True
+    parts = host.split(".")
+    if len(parts) >= 2 and parts[0] == "172" and parts[1].isdigit():
+        return 16 <= int(parts[1]) <= 31
+    return False
+
+
 def create_app(
 
     data_dir: Path | str | None = None,
@@ -166,6 +197,11 @@ def create_app(
 ) -> FastAPI:
 
     """Application factory used by uvicorn and tests."""
+    load_dotenv_file()
+    try:
+        ensure_flag_svgs(WEB_DIR / "static")
+    except OSError:
+        pass
     root = Path(__file__).resolve().parents[3]
     env_data = os.getenv("BCI_IOT_DATA_DIR", "").strip()
     if data_dir is not None:
@@ -178,19 +214,26 @@ def create_app(
     if data_dir is not None and Path(data_dir).name == "profiles":
         profiles_dir = Path(data_dir)
         sqlite_path = Path(db_path) if db_path else profiles_dir.parent / "accessi.db"
+        messaging_root = profiles_dir.parent
     elif data_dir is not None or env_data:
         base = Path(data_dir) if data_dir is not None else data_root
         profiles_dir = base / "profiles"
         sqlite_path = Path(db_path) if db_path else base / "accessi.db"
+        messaging_root = base
     else:
         profiles_dir = data_root / "profiles"
         sqlite_path = Path(db_path) if db_path else data_root / "accessi.db"
-    store = ProfileStore(profiles_dir)
+        messaging_root = data_root
+    configure_messaging_store(messaging_root)
     access_db = AccessDatabase(sqlite_path)
+    store = ProfileStore(profiles_dir, access_db=access_db)
     secret = session_secret or os.getenv("BCI_IOT_SESSION_SECRET") or secrets.token_hex(32)
     admin_user = (admin_username or os.getenv("BCI_IOT_ADMIN_USERNAME") or "admin").strip()
     admin_pass = admin_password or os.getenv("BCI_IOT_ADMIN_PASSWORD") or "admin123"
-    store.ensure_admin(admin_user, admin_pass)
+    try:
+        store.ensure_admin(admin_user, admin_pass)
+    except ValueError:
+        pass
     admin_profile = store.get(admin_user)
     if admin_profile is not None:
         access_db.upsert_anagrafica(
@@ -201,6 +244,9 @@ def create_app(
             gender=admin_profile.gender or "non_binary",
             headset_id=admin_profile.headset_id,
             status="active",
+            photo_path=admin_profile.photo_filename,
+            email=admin_profile.email,
+            phone_e164=admin_profile.phone_e164,
         )
     app = FastAPI(
         title="Iris",
@@ -221,22 +267,10 @@ def create_app(
     @app.middleware("http")
     async def language_middleware(request: Request, call_next):
         request.state.lang = detect_language(request)
-        response = await call_next(request)
-        # Persist auto-detected language on first visit (no cookie yet).
-        if COOKIE_NAME not in request.cookies and getattr(request.state, "lang", None):
-            response.set_cookie(
-                COOKIE_NAME,
-                request.state.lang,
-                max_age=60 * 60 * 24 * 365,
-                httponly=False,
-                samesite="lax",
-                secure=https_only,
-                path="/",
-            )
-        return response
+        return await call_next(request)
 
     app.mount("/static", StaticFiles(directory=str(WEB_DIR / "static")), name="static")
-    photos_dir = profiles_dir.parent / "photos"
+    photos_dir = store.photos_dir
     photos_dir.mkdir(parents=True, exist_ok=True)
     app.mount("/media/photos", StaticFiles(directory=str(photos_dir)), name="photos")
     app.state.store = store
@@ -260,6 +294,11 @@ def create_app(
         flash = _pop_flash(request)
         if flash and flash.get("message"):
             flash = {**flash, "message": translate(lang, str(flash["message"]))}
+        cloud_url = _configured_public_url()
+        site_is_local = _host_is_local(request)
+        support_unread = 0
+        if is_admin:
+            support_unread = access_db.support_unread_count()
         return {
             "username": username,
             "is_admin": is_admin,
@@ -268,6 +307,10 @@ def create_app(
             "lang": lang,
             "languages": LANGUAGES,
             "t": t,
+            "cloud_url": cloud_url,
+            "site_is_local": site_is_local,
+            "admin_username": admin_user,
+            "support_unread": support_unread,
             **extra,
         }
 
@@ -283,14 +326,95 @@ def create_app(
             path="/",
         )
         return response
+    def _public_base_url(request: Request) -> str:
+        if _host_is_local(request):
+            return str(request.base_url).rstrip("/")
+        configured = (os.getenv("BCI_IOT_PUBLIC_URL") or "").strip().rstrip("/")
+        if configured:
+            return configured
+        return str(request.base_url).rstrip("/")
+
     def _post_auth_destination(profile: UserProfile) -> str:
         if profile.is_admin:
             return "/accessi"
+        if not profile.email_verified:
+            return "/attendi-conferma-email"
         if profile.needs_anagrafica:
             return "/anagrafica"
         if profile.needs_calibration:
-            return "/calibrazione"
+            return "/inizia"
         return "/dashboard"
+
+    def _send_signup_mail(request: Request, profile: UserProfile):
+        profile, raw, code = store.issue_signup_confirmation(profile.username)
+        confirm_url = f"{_public_base_url(request)}/conferma-iscrizione/{raw}"
+        return send_signup_confirmation(
+            destination=profile.email,
+            username=profile.username,
+            confirm_url=confirm_url,
+            code=code,
+        )
+
+    def _pairing_mail_already_sent(profile: UserProfile) -> bool:
+        last = str((profile.usage_stats or {}).get("pairing_emailed_code") or "")
+        return bool(profile.pairing_code) and last == profile.pairing_code
+
+    def _mark_pairing_mail_sent(profiles: ProfileStore, profile: UserProfile) -> UserProfile:
+        stats = dict(profile.usage_stats or {})
+        stats["pairing_emailed_code"] = profile.pairing_code
+        profile.usage_stats = stats
+        profiles.save(profile)
+        return profile
+
+    def _send_pairing_mail(
+        request: Request,
+        profiles: ProfileStore,
+        profile: UserProfile,
+        *,
+        force: bool = False,
+        flash: bool = False,
+    ):
+        profile = profiles.ensure_headset_pairing(profile.username)
+        dest = (profile.email or "").strip()
+        if not dest:
+            if flash:
+                _flash(
+                    request,
+                    "Aggiungi un’email al profilo per ricevere il codice di associazione.",
+                    kind="error",
+                )
+            return profile, None
+        if not force and _pairing_mail_already_sent(profile):
+            return profile, None
+        pair_url = f"{_public_base_url(request)}/associa-telefono"
+        delivery = send_pairing_code(
+            destination=dest,
+            code=profile.pairing_code,
+            name=profile.first_name or profile.username,
+            pair_url=pair_url,
+            headset_id=profile.headset_id,
+        )
+        if delivery.ok:
+            profile = _mark_pairing_mail_sent(profiles, profile)
+            if flash:
+                if delivery.mode == "demo" and delivery.demo_code:
+                    _flash(
+                        request,
+                        f"Codice inviato (demo locale): {delivery.demo_code}. "
+                        "In produzione arriva via email.",
+                        kind="ok",
+                    )
+                else:
+                    masked = mask_destination(dest, channel="email")
+                    _flash(
+                        request,
+                        f"Codice di associazione inviato via email a {masked}.",
+                        kind="ok",
+                    )
+        elif flash:
+            _flash(request, delivery.detail, kind="error")
+        return profile, delivery
+
     def _continue(
         request: Request,
         *,
@@ -328,6 +452,8 @@ def create_app(
         if profile is None:
             request.session.clear()
             return RedirectResponse("/login", status_code=303)
+        if not profile.is_admin and not profile.email_verified:
+            return RedirectResponse("/attendi-conferma-email", status_code=303)
         profiles.touch_last_seen(username)
         return profiles.get(username) or profile
     def _log_access(
@@ -359,29 +485,38 @@ def create_app(
     def health() -> dict[str, str]:
         return {"status": "ok", "version": __version__}
 
+    @app.get("/flags/{code}.svg")
+    def serve_flag(code: str) -> Response:
+        """Always-on SVG flags (no CDN, no writable static dir required)."""
+        svg = render_flag_svg(code)
+        return Response(
+            content=svg,
+            media_type="image/svg+xml; charset=utf-8",
+            headers={"Cache-Control": "public, max-age=86400"},
+        )
+
     @app.post("/lingua")
-    def set_language(
-        request: Request,
-        lang: str = Form(...),
-        next: str = Form("/"),
-    ) -> RedirectResponse:
+    async def set_language(request: Request) -> RedirectResponse:
+        form = await request.form()
+        lang = str(form.get("lang") or "")
+        next_url = str(form.get("next") or form.get("next_url") or "/")
         code = set_request_language(request, lang)
-        dest = next if next.startswith("/") and not next.startswith("//") else "/"
+        dest = next_url if next_url.startswith("/") and not next_url.startswith("//") else "/"
         return _redirect_with_lang(request, dest, code)
 
     @app.get("/lingua/{lang}")
     def set_language_get(request: Request, lang: str) -> RedirectResponse:
         code = set_request_language(request, lang)
         referer = request.headers.get("referer") or "/"
-        # Stay on same site path when possible
         dest = "/"
         if referer:
             try:
                 from urllib.parse import urlparse
 
                 path = urlparse(referer).path or "/"
+                query = urlparse(referer).query
                 if path.startswith("/"):
-                    dest = path
+                    dest = f"{path}?{query}" if query else path
             except Exception:
                 dest = "/"
         return _redirect_with_lang(request, dest, code)
@@ -425,7 +560,14 @@ def create_app(
         try:
             profiles.create_account(username, password, email=email, headset_id=headset_id)
         except ValueError as exc:
-            _flash(request, str(exc), kind="error")
+            msg = str(exc)
+            if _host_is_local(request):
+                msg = (
+                    f"{msg} "
+                    "Se questo account è sul telefono, non registrarlo di nuovo qui: "
+                    f"usa il sito online ({_configured_public_url()})."
+                )
+            _flash(request, msg, kind="error")
             return _continue(
                 request,
                 next_url="/register",
@@ -442,14 +584,137 @@ def create_app(
                 gender="",
                 email=created.email,
             )
-        request.session["username"] = username.strip()
-        _log_access(request, username=username.strip(), event="register", access=access)
-        _flash(request, "Account creato. Compila i tuoi dati.", kind="ok")
+            delivery = _send_signup_mail(request, created)
+            request.session["username"] = created.username
+            _log_access(request, username=created.username, event="register", access=access)
+            if not delivery.ok:
+                _flash(request, delivery.detail, kind="error")
+            elif delivery.mode == "demo" and (delivery.demo_code or delivery.demo_link):
+                bits = []
+                if delivery.demo_code:
+                    bits.append(f"codice {delivery.demo_code}")
+                if delivery.demo_link:
+                    bits.append(f"link {delivery.demo_link}")
+                _flash(
+                    request,
+                    "Account creato (prova locale): " + " · ".join(bits),
+                    kind="ok",
+                )
+            else:
+                _flash(
+                    request,
+                    "Account creato. Controlla la posta (anche Spam): "
+                    "c’è un codice da inserire qui, oppure il pulsante di conferma.",
+                    kind="ok",
+                )
         return _continue(
             request,
-            next_url="/anagrafica",
-            message="Account creato, un momento...",
+            next_url="/attendi-conferma-email",
+            message="Controlla la tua email...",
         )
+
+    @app.get("/attendi-conferma-email", response_class=HTMLResponse)
+    def wait_email_confirm_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> HTMLResponse:
+        username = _session_username(request)
+        if not username:
+            return RedirectResponse("/login", status_code=303)
+        profile = profiles.get(username)
+        if profile is None:
+            return RedirectResponse("/login", status_code=303)
+        if profile.is_admin or profile.email_verified:
+            return RedirectResponse(_post_auth_destination(profile), status_code=303)
+        return TEMPLATES.TemplateResponse(
+            request,
+            "attendi_conferma_email.html",
+            _template_ctx(
+                request,
+                profiles,
+                profile=profile,
+                masked_email=mask_destination(profile.email, channel="email"),
+            ),
+        )
+
+    @app.post("/attendi-conferma-email/reinvia")
+    def resend_email_confirm(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> RedirectResponse:
+        username = _session_username(request)
+        if not username:
+            return RedirectResponse("/login", status_code=303)
+        profile = profiles.get(username)
+        if profile is None:
+            return RedirectResponse("/login", status_code=303)
+        if profile.email_verified:
+            return RedirectResponse(_post_auth_destination(profile), status_code=303)
+        try:
+            delivery = _send_signup_mail(request, profile)
+        except ValueError as exc:
+            _flash(request, str(exc), kind="error")
+            return RedirectResponse("/attendi-conferma-email", status_code=303)
+        if not delivery.ok:
+            _flash(request, delivery.detail, kind="error")
+        elif delivery.mode == "demo" and (delivery.demo_code or delivery.demo_link):
+            bits = []
+            if delivery.demo_code:
+                bits.append(f"codice {delivery.demo_code}")
+            if delivery.demo_link:
+                bits.append(f"link {delivery.demo_link}")
+            _flash(request, "Nuova mail (locale): " + " · ".join(bits), kind="ok")
+        else:
+            _flash(
+                request,
+                "Ti abbiamo reinviato l'email. Controlla anche Spam e usa il codice nella pagina.",
+                kind="ok",
+            )
+        return RedirectResponse("/attendi-conferma-email", status_code=303)
+
+    @app.post("/attendi-conferma-email")
+    def confirm_email_with_code(
+        request: Request,
+        code: str = Form(""),
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> RedirectResponse:
+        username = _session_username(request)
+        if not username:
+            return RedirectResponse("/login", status_code=303)
+        profile = profiles.get(username)
+        if profile is None:
+            return RedirectResponse("/login", status_code=303)
+        if profile.email_verified:
+            return RedirectResponse(_post_auth_destination(profile), status_code=303)
+        try:
+            profile = profiles.consume_otp(
+                username, code=code, purpose="confirm_signup"
+            )
+        except ValueError as exc:
+            _flash(request, str(exc), kind="error")
+            return RedirectResponse("/attendi-conferma-email", status_code=303)
+        _log_access(request, username=profile.username, event="email_confirmed", access=access)
+        _flash(request, "Email confermata. Benvenuta/o in Iris Nous: completa i tuoi dati.", kind="ok")
+        return RedirectResponse("/anagrafica", status_code=303)
+
+    @app.get("/conferma-iscrizione/{token}", response_class=HTMLResponse)
+    def confirm_signup(
+        request: Request,
+        token: str,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> RedirectResponse:
+        try:
+            profile = profiles.confirm_email_with_token(token)
+        except ValueError as exc:
+            _flash(request, str(exc), kind="error")
+            return RedirectResponse("/attendi-conferma-email", status_code=303)
+        request.session["username"] = profile.username
+        _log_access(request, username=profile.username, event="email_confirmed", access=access)
+        _flash(request, "Email confermata. Benvenuta/o in Iris Nous: completa i tuoi dati.", kind="ok")
+        return RedirectResponse("/anagrafica", status_code=303)
+
     @app.get("/login", response_class=HTMLResponse)
     def login_page(
         request: Request,
@@ -477,14 +742,29 @@ def create_app(
         profile = profiles.authenticate(username, password)
         if profile is None:
             _log_access(request, username=username.strip(), event="login_fail", access=access)
-            if profiles.username_exists_active(username.strip()):
+            if profiles.find_by_identifier(username.strip()) is not None:
                 _flash(
                     request,
                     "Password non corretta. Puoi recuperarla da «Password dimenticata?».",
                     kind="error",
                 )
             else:
-                _flash(request, "Utente e/o password errato", kind="error")
+                if _host_is_local(request):
+                    _flash(
+                        request,
+                        "Nessun account con questi dati su questo sito locale. "
+                        "Se ti sei iscritta dal telefono, entra dal sito online "
+                        f"({_configured_public_url()}).",
+                        kind="error",
+                    )
+                else:
+                    _flash(
+                        request,
+                        "Nessun account con questi dati. "
+                        "Se ti sei iscritta sul PC locale, quello è un database diverso: "
+                        "entra con l’account creato qui, oppure iscriviti di nuovo sul sito online.",
+                        kind="error",
+                    )
             return _continue(
                 request,
                 next_url="/login",
@@ -552,30 +832,27 @@ def create_app(
             if profile is None:
                 _flash(
                     request,
-                    "Account non trovato. Prova con username, email o numero completo (+39…).",
+                    "Account non trovato. Prova con username o email.",
                     kind="error",
                 )
                 return RedirectResponse("/recupera-password", status_code=303)
-            preferred = "email" if profile.email else "phone"
-            if channel == "phone" and profile.phone_e164:
-                preferred = "phone"
-            if preferred == "email" and not profile.email:
-                preferred = "phone"
-            if preferred == "phone" and not profile.phone_e164:
-                preferred = "email"
-            if preferred == "email" and not profile.email:
-                _flash(request, "Account senza email né telefono recuperabili.", kind="error")
+            if not profile.email:
+                _flash(
+                    request,
+                    "Questo account non ha un'email: non possiamo mandare il codice.",
+                    kind="error",
+                )
                 return RedirectResponse("/recupera-password", status_code=303)
             try:
                 profile, otp = profiles.issue_otp(
-                    profile.username, channel=preferred, purpose="recover"  # type: ignore[arg-type]
+                    profile.username, channel="email", purpose="recover"
                 )
             except ValueError as exc:
                 _flash(request, str(exc), kind="error")
                 return RedirectResponse("/recupera-password", status_code=303)
-            dest = profile.email if preferred == "email" else profile.phone_e164
+            dest = profile.email
             delivery = send_code(
-                channel=preferred,  # type: ignore[arg-type]
+                channel="email",
                 destination=dest,
                 code=otp,
                 purpose="recover",
@@ -585,10 +862,18 @@ def create_app(
                 return RedirectResponse("/recupera-password", status_code=303)
             request.session["recover_step"] = "code"
             request.session["recover_user"] = profile.username
-            request.session["recover_channel"] = preferred
-            msg = delivery.detail
-            if delivery.demo_code:
-                msg = f"{msg} Codice: {delivery.demo_code}"
+            request.session["recover_channel"] = "email"
+            masked = mask_destination(dest, channel="email")
+            if delivery.mode == "demo" and delivery.demo_code:
+                msg = (
+                    f"Codice per {masked}: {delivery.demo_code} "
+                    "(6 caratteri, senza spazi). Copialo qui sotto."
+                )
+            else:
+                msg = (
+                    f"Ti abbiamo inviato un'email da Iris Nous a {masked}. "
+                    "Controlla la posta (anche spam): codice di 6 caratteri, senza spazi."
+                )
             _flash(request, msg, kind="ok")
             return RedirectResponse("/recupera-password", status_code=303)
 
@@ -661,6 +946,7 @@ def create_app(
             return RedirectResponse("/anagrafica", status_code=303)
         _sync_anagrafica_db(profile, access)
         profiles.ensure_headset_pairing(profile.username)
+        profile = profiles.get(profile.username) or profile
         _flash(
             request,
             welcome_new(
@@ -670,7 +956,7 @@ def create_app(
             ),
             kind="ok",
         )
-        next_url = "/dashboard" if profile.calibration_complete else "/calibrazione"
+        next_url = "/dashboard" if profile.calibration_complete else "/inizia"
         return _continue(
             request,
             next_url=next_url,
@@ -749,6 +1035,67 @@ def create_app(
             ),
         )
 
+    @app.get("/invio-codici", response_class=HTMLResponse)
+    def messaging_settings_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> HTMLResponse:
+        username = _session_username(request)
+        if not username:
+            return RedirectResponse("/login", status_code=303)
+        profile = profiles.get(username)
+        if profile is None or not profile.is_admin:
+            _flash(request, "Solo l'amministratore può configurare l'invio codici.", kind="error")
+            return RedirectResponse("/", status_code=303)
+        return TEMPLATES.TemplateResponse(
+            request,
+            "invio_codici.html",
+            _template_ctx(request, profiles, messaging=messaging_status()),
+        )
+
+    @app.post("/invio-codici")
+    def messaging_settings_save(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        brand_from_email: str = Form(""),
+        resend_api_key: str = Form(""),
+        smtp_host: str = Form(""),
+        smtp_port: str = Form("587"),
+        smtp_user: str = Form(""),
+        smtp_password: str = Form(""),
+        smtp_from: str = Form(""),
+    ) -> RedirectResponse:
+        username = _session_username(request)
+        if not username:
+            return RedirectResponse("/login", status_code=303)
+        profile = profiles.get(username)
+        if profile is None or not profile.is_admin:
+            _flash(request, "Solo l'amministratore può configurare la mail Iris Nous.", kind="error")
+            return RedirectResponse("/", status_code=303)
+        update_messaging_config(
+            brand_from_email=brand_from_email or None,
+            resend_api_key=resend_api_key or None,
+            smtp_host=smtp_host or None,
+            smtp_port=smtp_port or "587",
+            smtp_user=smtp_user or None,
+            smtp_password=smtp_password or None,
+            smtp_from=smtp_from or brand_from_email or None,
+        )
+        status = messaging_status()
+        if status["email_ready"]:
+            _flash(
+                request,
+                "Mail Iris Nous attiva: i codici di recupero partiranno via email reale.",
+                kind="ok",
+            )
+        else:
+            _flash(
+                request,
+                "Salvato, ma manca ancora Resend API key oppure Gmail SMTP.",
+                kind="error",
+            )
+        return RedirectResponse("/invio-codici", status_code=303)
+
     @app.get("/accessi/utente/{target}", response_class=HTMLResponse)
     def accessi_user_page(
         request: Request,
@@ -776,8 +1123,213 @@ def create_app(
                 anagrafica=ana,
                 user_profile=user_profile.public_dict() if user_profile else None,
                 events=events,
+                support_threads=[
+                    {
+                        **thread,
+                        "messages": access.list_support_messages(int(thread["id"])),
+                    }
+                    for thread in access.list_user_support_threads(
+                        username=target,
+                        email=(ana or {}).get("email")
+                        or (user_profile.email if user_profile else ""),
+                    )
+                ],
             ),
         )
+
+    def _admin_or_redirect(
+        request: Request, profiles: ProfileStore
+    ) -> UserProfile | RedirectResponse:
+        username = _session_username(request)
+        if not username:
+            return RedirectResponse("/login", status_code=303)
+        admin = profiles.get(username)
+        if admin is None or not admin.is_admin:
+            _flash(request, "Solo l’amministratore può aprire questa pagina.", kind="error")
+            return RedirectResponse("/", status_code=303)
+        return admin
+
+    @app.get("/notifiche", response_class=HTMLResponse)
+    def notifiche_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> HTMLResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return admin
+        archive = request.query_params.get("archivio", "") in {"1", "true", "si"}
+        threads = access.list_support_threads(archive=archive)
+        return TEMPLATES.TemplateResponse(
+            request,
+            "notifiche.html",
+            _template_ctx(
+                request,
+                profiles,
+                threads=threads,
+                archive=archive,
+            ),
+        )
+
+    @app.get("/notifiche/{thread_id}", response_class=HTMLResponse)
+    def notifica_thread_page(
+        request: Request,
+        thread_id: int,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> HTMLResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return admin
+        thread = access.get_support_thread(thread_id)
+        if thread is None:
+            _flash(request, "Messaggio non trovato.", kind="error")
+            return RedirectResponse("/notifiche", status_code=303)
+        access.mark_support_viewed(thread_id)
+        thread = access.get_support_thread(thread_id) or thread
+        messages = access.list_support_messages(thread_id)
+        user_profile = profiles.get(str(thread.get("username") or ""))
+        return TEMPLATES.TemplateResponse(
+            request,
+            "notifica.html",
+            _template_ctx(
+                request,
+                profiles,
+                thread=thread,
+                messages=messages,
+                user_profile=user_profile.public_dict() if user_profile else None,
+            ),
+        )
+
+    @app.post("/notifiche/{thread_id}/rispondi")
+    def notifica_reply(
+        request: Request,
+        thread_id: int,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+        body: str = Form(""),
+    ) -> RedirectResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return admin
+        thread = access.get_support_thread(thread_id)
+        if thread is None:
+            _flash(request, "Messaggio non trovato.", kind="error")
+            return RedirectResponse("/notifiche", status_code=303)
+        text = (body or "").strip()
+        if len(text) < 2:
+            _flash(request, "Scrivi una risposta prima di inviare.", kind="error")
+            return RedirectResponse(f"/notifiche/{thread_id}", status_code=303)
+        updated = access.add_admin_support_reply(thread_id, text)
+        destination = ""
+        if updated:
+            destination = str(updated.get("guest_email") or "").strip()
+        if not destination and thread.get("username"):
+            person = profiles.get(str(thread["username"]))
+            if person is not None:
+                destination = person.email
+        if destination and "@" in destination:
+            display = str((updated or thread).get("guest_name") or "")
+            if not display and thread.get("username"):
+                person = profiles.get(str(thread["username"]))
+                if person is not None:
+                    display = f"{person.first_name} {person.last_name}".strip() or person.username
+            subject, mail_text, mail_html = build_support_reply_email(name=display, body=text)
+            result = send_branded_email(
+                destination=destination,
+                subject=subject,
+                text=mail_text,
+                html=mail_html,
+                demo_payload=text,
+            )
+            if result.ok and result.mode == "demo":
+                _flash(
+                    request,
+                    "Risposta salvata. Mail non collegata: in locale la risposta resta nella chat di tutela.",
+                    kind="ok",
+                )
+            elif result.ok:
+                _flash(request, f"Risposta inviata via email a {mask_destination(destination, channel='email')}.", kind="ok")
+            else:
+                _flash(
+                    request,
+                    "Risposta salvata nella chat, ma l’invio email non è riuscito. Controlla Mail Iris Nous.",
+                    kind="error",
+                )
+        else:
+            _flash(
+                request,
+                "Risposta salvata nella chat di tutela. Manca un’email a cui scrivere.",
+                kind="ok",
+            )
+        return RedirectResponse(f"/notifiche/{thread_id}", status_code=303)
+
+    @app.get("/chatta", response_class=HTMLResponse)
+    def chatta_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> HTMLResponse:
+        username = _session_username(request)
+        profile = profiles.get(username) if username else None
+        channel = (request.query_params.get("canale") or "chat").strip().lower()
+        if channel not in {"chat", "email"}:
+            channel = "chat"
+        return TEMPLATES.TemplateResponse(
+            request,
+            "chatta.html",
+            _template_ctx(request, profiles, profile=profile, contact_channel=channel),
+        )
+
+    @app.post("/chatta")
+    def chatta_send(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+        channel: str = Form("chat"),
+        name: str = Form(""),
+        email: str = Form(""),
+        phone: str = Form(""),
+        subject: str = Form(""),
+        body: str = Form(""),
+    ) -> RedirectResponse:
+        username = _session_username(request) or ""
+        profile = profiles.get(username) if username else None
+        if profile is not None and profile.is_admin:
+            _flash(request, "L’amministratore risponde dalle Notifiche.", kind="error")
+            return RedirectResponse("/notifiche", status_code=303)
+        text = (body or "").strip()
+        if len(text) < 8:
+            _flash(request, "Scrivi un messaggio un po’ più lungo (almeno 8 caratteri).", kind="error")
+            return RedirectResponse("/chatta", status_code=303)
+        guest_email = (email or "").strip()
+        guest_name = (name or "").strip()
+        guest_phone = (phone or "").strip()
+        if profile is not None:
+            guest_email = guest_email or profile.email
+            guest_name = guest_name or f"{profile.first_name} {profile.last_name}".strip() or profile.username
+            guest_phone = guest_phone or profile.phone_e164 or profile.phone_label
+            username = profile.username
+        else:
+            username = ""
+            if "@" not in guest_email:
+                _flash(request, "Inserisci un’email a cui possiamo risponderti.", kind="error")
+                return RedirectResponse("/chatta", status_code=303)
+        access.add_user_support_message(
+            username=username,
+            guest_name=guest_name,
+            guest_email=guest_email,
+            guest_phone=guest_phone,
+            channel=channel,
+            subject=subject,
+            body=text,
+        )
+        _flash(
+            request,
+            "Messaggio inviato. Ti risponderemo via email il prima possibile.",
+            kind="ok",
+        )
+        return RedirectResponse("/chatta", status_code=303)
+
     @app.get("/dashboard", response_class=HTMLResponse)
     def dashboard(
         request: Request,
@@ -791,8 +1343,6 @@ def create_app(
             return RedirectResponse("/accessi", status_code=303)
         if profile.needs_anagrafica:
             return RedirectResponse("/anagrafica", status_code=303)
-        if profile.needs_calibration:
-            return RedirectResponse("/calibrazione", status_code=303)
         stats = dict(profile.usage_stats or {})
         return TEMPLATES.TemplateResponse(
             request,
@@ -904,7 +1454,7 @@ def create_app(
             )
         except ValueError as exc:
             _flash(request, str(exc), kind="error")
-            return RedirectResponse("/anagrafica?edit=1", status_code=303)
+            return RedirectResponse("/anagrafica?edit=1" if loaded.anagrafica_complete else "/anagrafica", status_code=303)
         dest = profile.email if channel == "email" else profile.phone_e164
         delivery = send_code(
             channel=channel,  # type: ignore[arg-type]
@@ -912,14 +1462,25 @@ def create_app(
             code=otp,
             purpose=purpose,
         )
+        back = "/anagrafica?edit=1" if loaded.anagrafica_complete else "/anagrafica"
         if not delivery.ok:
             _flash(request, delivery.detail, kind="error")
-            return RedirectResponse("/anagrafica?edit=1", status_code=303)
-        msg = delivery.detail
-        if delivery.demo_code:
-            msg = f"{msg} Codice: {delivery.demo_code}"
-        _flash(request, msg, kind="ok")
-        return RedirectResponse("/anagrafica?edit=1", status_code=303)
+            return RedirectResponse(back, status_code=303)
+        if delivery.mode == "demo" and delivery.demo_code:
+            _flash(
+                request,
+                f"Demo locale: codice {delivery.demo_code} (6 caratteri, senza spazi).",
+                kind="ok",
+            )
+        else:
+            masked = mask_destination(dest, channel=channel)  # type: ignore[arg-type]
+            where = "email" if channel == "email" else "SMS"
+            _flash(
+                request,
+                f"Codice inviato via {where} a {masked}. Scade tra 10 minuti.",
+                kind="ok",
+            )
+        return RedirectResponse(back, status_code=303)
 
     @app.post("/verifica/conferma")
     def verify_confirm(
@@ -990,6 +1551,25 @@ def create_app(
             sessions[username] = sess
         return sess, profile
 
+    @app.get("/inizia", response_class=HTMLResponse)
+    def inizia_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> HTMLResponse:
+        loaded = _require_profile(request, profiles)
+        if isinstance(loaded, RedirectResponse):
+            return loaded
+        profile = loaded
+        if profile.is_admin:
+            return RedirectResponse("/accessi", status_code=303)
+        if profile.needs_anagrafica:
+            return RedirectResponse("/anagrafica", status_code=303)
+        return TEMPLATES.TemplateResponse(
+            request,
+            "inizia.html",
+            _template_ctx(request, profiles, profile=profile),
+        )
+
     @app.get("/calibrazione", response_class=HTMLResponse)
     def calibrazione_page(
         request: Request,
@@ -1003,7 +1583,24 @@ def create_app(
             return RedirectResponse("/anagrafica", status_code=303)
         profiles.ensure_headset_pairing(profile.username)
         profile = profiles.get(profile.username) or profile
-        done = request.query_params.get("done") == "1" or profile.calibration_complete
+        done_flag = request.query_params.get("done") == "1"
+        passo_raw = (request.query_params.get("passo") or "").strip()
+        if done_flag:
+            done = True
+            passo = 0
+        elif passo_raw:
+            done = False
+            try:
+                passo = int(passo_raw)
+            except ValueError:
+                passo = 1
+            passo = min(3, max(1, passo))
+        elif profile.calibration_complete:
+            done = True
+            passo = 0
+        else:
+            done = False
+            passo = 1
         acc_raw = request.query_params.get("acc")
         accuracy = None
         if acc_raw is not None:
@@ -1026,12 +1623,17 @@ def create_app(
                 colours=colour_targets_public(),
                 samples_needed=SAMPLES_PER_COLOUR,
                 done=done,
+                passo=passo,
                 accuracy=accuracy,
+                pairing_mail_sent=_pairing_mail_already_sent(profile),
+                pairing_email_masked=mask_destination(profile.email or "", channel="email")
+                if profile.email
+                else "",
             ),
         )
 
     @app.post("/api/calibrate/capture")
-    def api_calibrate_capture(
+    async def api_calibrate_capture(
         request: Request,
         payload: CaptureRequest,
         profiles: ProfileStore = Depends(_store),
@@ -1041,7 +1643,8 @@ def create_app(
             raise HTTPException(status_code=401, detail="Login required")
         sess, _profile = _calib_session_for(username, profiles)
         try:
-            result = sess.capture(payload.command)
+            # EEG / prior synthesis may block (BrainFlow poll + sleep); keep event loop free.
+            result = await run_in_threadpool(sess.capture, payload.command)
         except KeyError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return {
@@ -1060,7 +1663,7 @@ def create_app(
         }
 
     @app.post("/api/calibrate/finish")
-    def api_calibrate_finish(
+    async def api_calibrate_finish(
         request: Request,
         profiles: ProfileStore = Depends(_store),
     ) -> dict:
@@ -1072,7 +1675,9 @@ def create_app(
             raise HTTPException(status_code=400, detail="Nessuna sessione di calibrazione")
         root = Path(__file__).resolve().parents[3]
         try:
-            path, accuracy = sess.finish(models_dir=root / "models" / "users")
+            path, accuracy = await run_in_threadpool(
+                sess.finish, models_dir=root / "models" / "users"
+            )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         profiles.mark_calibration_complete(username)
@@ -1125,7 +1730,7 @@ def create_app(
             _flash(request, str(exc), kind="error")
             return RedirectResponse("/associa-telefono", status_code=303)
         _flash(request, "Telefono associato. Apri Telefono live e collega Spotify.", kind="ok")
-        dest = "/telefono" if not profile.needs_calibration else "/calibrazione"
+        dest = "/telefono" if not profile.needs_calibration else "/calibrazione?passo=2"
         return _continue(
             request,
             next_url=dest,
@@ -1142,7 +1747,21 @@ def create_app(
             return loaded
         profiles.unpair_phone(loaded.username)
         app.state.phone_queues.pop(loaded.username, None)
-        _flash(request, "Telefono scollegato. Nuovo codice generato.", kind="ok")
+        _flash(request, "Telefono scollegato. Nuovo codice pronto: invialo via email quando vuoi.", kind="ok")
+        return RedirectResponse("/associa-telefono", status_code=303)
+
+    @app.post("/associa-telefono/invia-codice")
+    def associa_telefono_send_code(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> RedirectResponse:
+        loaded = _require_profile(request, profiles)
+        if isinstance(loaded, RedirectResponse):
+            return loaded
+        _send_pairing_mail(request, profiles, loaded, force=True, flash=True)
+        back = request.headers.get("referer") or ""
+        if "/calibrazione" in back:
+            return RedirectResponse("/calibrazione?passo=1", status_code=303)
         return RedirectResponse("/associa-telefono", status_code=303)
 
     @app.get("/telefono", response_class=HTMLResponse)
