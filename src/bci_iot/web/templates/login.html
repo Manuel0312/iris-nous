@@ -5,6 +5,9 @@
 <section class="auth-panel">
   <h1>{{ t('Login') }}</h1>
   <p class="lede">{{ t('Accedi alla tua area Iris.') }}</p>
+  {% if request.query_params.get('errore') %}
+  <p class="flash error">{{ t('Password non corretta. Controlla username e password, senza spazi extra.') }}</p>
+  {% endif %}
   {% if not site_is_local %}
   <p class="form-hint">{{ t('Sei sul sito online: qui vivono gli account del telefono e Spotify. Quelli creati solo sul PC locale non esistono qui.') }}</p>
   {% endif %}

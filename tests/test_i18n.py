@@ -88,6 +88,19 @@ def test_login_does_not_expose_admin_credentials(tmp_path: Path) -> None:
     assert "default password" not in page.text.lower()
 
 
+def test_stale_env_secret_still_allows_thesis_admin(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("BCI_IOT_ADMIN_PASSWORD", "GeneratedOld99")
+    app = create_app(data_dir=tmp_path, session_secret="stale-env")
+    client = TestClient(app)
+    ok = client.post(
+        "/login",
+        data={"username": "admin", "password": "admin123"},
+        follow_redirects=False,
+    )
+    assert ok.status_code == 200
+    assert "/accessi" in ok.text
+
+
 def test_local_site_banner_and_unknown_login(tmp_path: Path) -> None:
     app = create_app(
         data_dir=tmp_path,
@@ -106,6 +119,7 @@ def test_local_site_banner_and_unknown_login(tmp_path: Path) -> None:
         follow_redirects=False,
     )
     assert fail.status_code == 200
+    assert "errore=1" in fail.text
     login_page = client.get("/login")
     assert "sito locale" in login_page.text.lower() or "telefono" in login_page.text.lower()
 

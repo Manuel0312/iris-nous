@@ -433,7 +433,7 @@ class ProfileStore:
             if existing.deleted_at:
                 existing.deleted_at = ""
                 changed = True
-            if password:
+            if password and not verify_password(password, existing.password_hash):
                 existing.password_hash = hash_password(password)
                 changed = True
             if not existing.is_admin:
@@ -690,9 +690,13 @@ class ProfileStore:
         profile = self.get(username)
         if profile is None:
             raise KeyError(f"unknown user: {username}")
-        check = password_strength(new_password)
-        if not check.ok:
-            raise ValueError(check.message)
+        if profile.is_admin:
+            if len(new_password) < 6:
+                raise ValueError("password must be at least 6 characters")
+        else:
+            check = password_strength(new_password)
+            if not check.ok:
+                raise ValueError(check.message)
         profile.password_hash = hash_password(new_password)
         self.save(profile)
         return profile

@@ -40,6 +40,18 @@ def hash_password(password: str, *, salt: bytes | None = None) -> str:
     return f"scrypt${salt_bytes.hex()}${digest.hex()}"
 
 
+def secrets_equal(left: str, right: str) -> bool:
+    """Compare two secrets without leaking length via compare_digest errors."""
+
+    if not left or not right:
+        return False
+    a = left.encode("utf-8")
+    b = right.encode("utf-8")
+    if len(a) != len(b):
+        return False
+    return hmac.compare_digest(a, b)
+
+
 def verify_password(password: str, password_hash: str) -> bool:
     """Constant-time verification of ``password`` against a stored hash."""
 

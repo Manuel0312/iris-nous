@@ -568,6 +568,14 @@ _RAW: dict[str, dict[str, str]] = {
         "zh": "（默认密码 admin123，或 Render 上设置的密码）。",
         "ja": "（既定パスワード admin123、または Render で設定したもの）。",
     },
+    "Password non corretta. Controlla username e password, senza spazi extra.": {
+        "en": "Incorrect password. Check username and password, with no extra spaces.",
+        "fr": "Mot de passe incorrect. Vérifie l'identifiant et le mot de passe, sans espaces en trop.",
+        "de": "Falsches Passwort. Prüfe Benutzername und Passwort, ohne extra Leerzeichen.",
+        "pt": "Palavra-passe incorreta. Confirma o utilizador e a palavra-passe, sem espaços extra.",
+        "zh": "密码不正确。请检查用户名和密码，不要有多余空格。",
+        "ja": "パスワードが正しくありません。ユーザー名とパスワードを、余分な空白なしで確認してください。",
+    },
     "pensa,": {
         "en": "think,",
         "fr": "pense,",

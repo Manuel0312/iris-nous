@@ -45,6 +45,8 @@ def test_ensure_admin_syncs_password_and_ignores_case(tmp_path: Path) -> None:
     assert store.authenticate("ADMIN", "admin123") is not None
     assert store.authenticate("admin", "OldPass1") is None
     assert store.get("Admin") is not None
+    store.set_password("admin", "admin123")
+    assert store.authenticate("admin", "admin123") is not None
 
 
 def test_ensure_admin_restores_deleted(tmp_path: Path) -> None:
