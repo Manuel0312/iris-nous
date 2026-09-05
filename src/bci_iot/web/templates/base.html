@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;600;700&family=Noto+Sans+SC:wght@400;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/styles.css?v=irisPages4" />
+  <link rel="stylesheet" href="/static/styles.css?v=irisPages5" />
   <script>
     (function () {
       function scheme() {
@@ -63,7 +63,7 @@
           <span class="lang-code">{{ cur.code|upper if cur else 'IT' }}</span>
           <span class="lang-name">{{ cur.name if cur else 'Italiano' }}</span>
         </button>
-        <div class="lang-menu" id="lang-menu" hidden role="listbox" aria-label="{{ t('Lingua') if t is defined else 'Lingua' }}">
+        <div class="lang-menu" id="lang-menu" role="listbox" aria-label="{{ t('Lingua') if t is defined else 'Lingua' }}">
           {% for item in languages %}
           <a class="lang-option {% if item.code == lang %}is-active{% endif %}" href="/lingua/{{ item.code }}" role="option" aria-selected="{{ 'true' if item.code == lang else 'false' }}" data-lang="{{ item.code }}">
             <span class="flag-wrap" aria-hidden="true">
@@ -184,7 +184,7 @@
       }
       function closeLang() {
         if (!langMenu || !langToggle) return;
-        langMenu.hidden = true;
+        langMenu.classList.remove("is-open");
         document.body.classList.remove("lang-open");
         langToggle.setAttribute("aria-expanded", "false");
       }
@@ -220,9 +220,9 @@
         langToggle.addEventListener("click", (e) => {
           e.preventDefault();
           e.stopPropagation();
-          const willOpen = langMenu.hidden;
+          const willOpen = !langMenu.classList.contains("is-open");
           if (willOpen) closeNav();
-          langMenu.hidden = !willOpen;
+          langMenu.classList.toggle("is-open", willOpen);
           document.body.classList.toggle("lang-open", willOpen);
           langToggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
         });
@@ -246,7 +246,7 @@
         if (nav && nav.classList.contains("is-open")) {
           if (!nav.contains(t) && !(toggle && toggle.contains(t))) closeNav();
         }
-        if (langMenu && !langMenu.hidden) {
+        if (langMenu && langMenu.classList.contains("is-open")) {
           if (!langMenu.contains(t) && !(langToggle && langToggle.contains(t))) closeLang();
         }
       });
@@ -293,6 +293,6 @@
       }
     })();
   </script>
-  <script src="/static/bg3d.js?v=irisBg3d5" defer></script>
+  <script src="/static/bg3d.js?v=irisBg3d6" defer></script>
 </body>
 </html>

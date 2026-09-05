@@ -8,6 +8,12 @@
     {{ t('Ti abbiamo mandato una email da Iris Nous a') }} <strong>{{ masked_email }}</strong>.
     {{ t('Apri la posta (anche Spam), copia il codice di 6 caratteri e inseriscilo qui. Così funziona anche se leggi la mail dal telefono.') }}
   </p>
+  {% if preview_code %}
+  <p class="otp-preview" role="status">
+    {{ t('Se la mail non arriva, usa questo codice:') }}
+    <strong>{{ preview_code }}</strong>
+  </p>
+  {% endif %}
   <form method="post" action="/attendi-conferma-email" class="stack" autocomplete="on">
     <label>{{ t('Codice ricevuto via email') }}
       <input

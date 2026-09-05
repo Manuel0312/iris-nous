@@ -231,6 +231,7 @@ a:hover { text-decoration: underline; }
   font-weight: 600;
   cursor: pointer;
   padding: 0.35rem 0.65rem;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease, background 0.2s ease;
 }
 
 .lang-btn:hover,
@@ -351,10 +352,22 @@ a:hover { text-decoration: underline; }
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
   display: grid;
   gap: 0.2rem;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-14px) scale(0.96);
+  transform-origin: top right;
+  transition:
+    opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0.42s;
 }
 
-.lang-menu[hidden] {
-  display: none;
+.lang-menu.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
 }
 
 .lang-option-form {
@@ -440,12 +453,17 @@ body:has(.site-mode-banner) .shell {
   cursor: pointer;
   backdrop-filter: blur(16px);
   box-shadow: 0 1px 0 rgba(255,255,255,0.2) inset, 0 8px 24px rgba(0,0,0,0.06);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), filter 0.2s ease;
 }
 
 .nav-toggle:hover { filter: brightness(1.05); }
+.nav-toggle:active,
+.lang-btn:active {
+  transform: scale(0.94);
+}
 
 .nav {
-  display: none;
+  display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 0.15rem;
@@ -460,9 +478,23 @@ body:has(.site-mode-banner) .shell {
   border-radius: 14px;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
   backdrop-filter: blur(20px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-14px) scale(0.96);
+  transform-origin: top right;
+  transition:
+    opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0.42s;
 }
 
-.nav.is-open { display: flex; }
+.nav.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+}
 
 .nav a,
 .nav-action {
@@ -607,9 +639,6 @@ img.unito-logo {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
-  .nav.is-open {
-    display: flex;
-  }
   .nav a,
   .nav-action {
     min-height: 48px;
@@ -641,10 +670,6 @@ img.unito-logo {
     min-height: 180px;
     transform: none !important;
   }
-  .iris-bg {
-    display: none;
-  }
-  body.page-ai-chat .shell,
   body.page-contact-mail .shell,
   body.page-chat .shell {
     width: min(42rem, calc(100% - 1.1rem));
@@ -2515,6 +2540,24 @@ html[data-theme-resolved="dark"] .hub-connect.is-ghost {
   color: var(--ink);
 }
 
+.otp-preview {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.otp-preview strong {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 1.55rem;
+  letter-spacing: 0.28em;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
 .meter-label {
   margin: 0.35rem 0 0.15rem;
   font-size: 0.85rem;
@@ -2876,15 +2919,10 @@ body.page-chat .chat-fab {
   color: var(--ink);
 }
 
-body.page-ai-chat .shell {
+body.page-chat .shell,
+body.page-contact-mail .shell {
   width: min(420px, calc(100% - 1.25rem));
   padding-bottom: calc(1.5rem + var(--safe-bottom));
-}
-
-body.page-chat .iris-bg,
-body.page-ai-chat .iris-bg,
-body.page-contact-mail .iris-bg {
-  display: none;
 }
 
 .who-are-you {

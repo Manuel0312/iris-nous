@@ -148,9 +148,9 @@ def test_chatta_and_admin_inbox_flow(tmp_path: Path) -> None:
     assert "/notifiche" in chat_admin.headers.get("location", "")
     guest_chat = TestClient(app).get("/chatta")
     assert "Chi sei" in guest_chat.text
-    assert "ai-chat" in guest_chat.text
-    assert "Agente AI" in guest_chat.text
-    assert "contatto telefonico" in guest_chat.text
+    assert "Agente AI" not in guest_chat.text
+    assert "ai-chat" not in guest_chat.text
+    assert "Scrivi al team Iris Nous" in guest_chat.text
     mail = TestClient(app).get("/chatta?canale=email")
     assert "contact-mail" in mail.text
     assert "Contattaci" in mail.text

@@ -2,17 +2,14 @@
 (function () {
   const canvas = document.getElementById("iris-bg");
   if (!canvas || !canvas.getContext) return;
-  const skip =
-    window.matchMedia("(max-width: 859px), (pointer: coarse), (prefers-reduced-motion: reduce)").matches ||
-    document.body.classList.contains("page-chat") ||
-    document.body.classList.contains("page-ai-chat") ||
-    document.body.classList.contains("page-contact-mail");
-  if (skip) {
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduceMotion) {
     canvas.remove();
     return;
   }
-  const ctx = canvas.getContext("2d");
-  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const ctx = canvas.getContext("2d", { alpha: true });
+  if (!ctx) return;
+  const mobile = window.matchMedia("(max-width: 859px), (pointer: coarse)").matches;
   const mode = document.body.classList.contains("page-private") ? "vault" : "neural";
 
   let width = 0;
@@ -53,8 +50,14 @@
   }
 
   function resize() {
-    width = canvas.width = window.innerWidth;
-    height = canvas.height = window.innerHeight;
+    width = window.innerWidth;
+    height = window.innerHeight;
+    const dpr = Math.min(window.devicePixelRatio || 1, mobile ? 1.35 : 2);
+    canvas.width = Math.max(1, Math.floor(width * dpr));
+    canvas.height = Math.max(1, Math.floor(height * dpr));
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
   function rotY(p, a) {
@@ -116,7 +119,8 @@
 
   function seedNeural() {
     nodes.length = 0;
-    const count = Math.min(420, Math.max(240, Math.floor((width * height) / 3800)));
+    const density = mobile ? 7200 : 3800;
+    const count = Math.min(mobile ? 160 : 420, Math.max(mobile ? 90 : 240, Math.floor((width * height) / density)));
     for (let i = 0; i < count; i += 1) {
       nodes.push({
         x: Math.random() * 2.8 - 1.4,
@@ -128,18 +132,25 @@
   }
 
   function seedVault() {
-    shells = [
-      { points: fibSphere(120, 0.55), rot: 0.4, scale: 0.42 },
-      { points: fibSphere(160, 1), rot: 0.56, scale: 0.58 },
-      { points: fibSphere(110, 1.38), rot: 0.3, scale: 0.74 },
-      { points: fibSphere(90, 1.78), rot: 0.22, scale: 0.9 },
-    ];
+    shells = mobile
+      ? [
+          { points: fibSphere(70, 0.7), rot: 0.48, scale: 0.5 },
+          { points: fibSphere(90, 1.15), rot: 0.34, scale: 0.72 },
+          { points: fibSphere(60, 1.6), rot: 0.22, scale: 0.9 },
+        ]
+      : [
+          { points: fibSphere(120, 0.55), rot: 0.4, scale: 0.42 },
+          { points: fibSphere(160, 1), rot: 0.56, scale: 0.58 },
+          { points: fibSphere(110, 1.38), rot: 0.3, scale: 0.74 },
+          { points: fibSphere(90, 1.78), rot: 0.22, scale: 0.9 },
+        ];
     shells.forEach((shell) => {
       const span = shell.points[0] ? Math.abs(shell.points[0].x) + 0.35 : 0.45;
       shell.edges = connectNear(shell.points, span * 0.42);
     });
     rings = [];
-    for (let r = 0; r < 7; r += 1) {
+    const ringCount = mobile ? 4 : 7;
+    for (let r = 0; r < ringCount; r += 1) {
       const pts = [];
       const n = 64;
       const radius = 0.48 + r * 0.2;
@@ -157,7 +168,7 @@
   }
 
   function drawNeural() {
-    tick += reduceMotion ? 0 : 0.0018;
+    tick += mobile ? 0.0026 : 0.0018;
     ctx.clearRect(0, 0, width, height);
     const colors = palette();
     const span = Math.max(width, height) * 0.56;
@@ -194,7 +205,7 @@
   }
 
   function drawVault() {
-    tick += reduceMotion ? 0 : 0.00115;
+    tick += mobile ? 0.0017 : 0.00115;
     ctx.clearRect(0, 0, width, height);
     const colors = palette();
     const pulse = 0.55 + Math.sin(tick * 2.05) * 0.22;
@@ -270,6 +281,16 @@
     (event) => {
       mouseX = event.clientX / Math.max(window.innerWidth, 1);
       mouseY = event.clientY / Math.max(window.innerHeight, 1);
+    },
+    { passive: true }
+  );
+  window.addEventListener(
+    "touchmove",
+    (event) => {
+      const touch = event.touches && event.touches[0];
+      if (!touch) return;
+      mouseX = touch.clientX / Math.max(window.innerWidth, 1);
+      mouseY = touch.clientY / Math.max(window.innerHeight, 1);
     },
     { passive: true }
   );

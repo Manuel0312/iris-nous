@@ -187,6 +187,8 @@ def _demo_allowed() -> bool:
         return False
     if flag in {"1", "true", "yes", "on"}:
         return True
+    if _env("BCI_IOT_HTTPS").lower() in {"1", "true", "yes", "on"}:
+        return False
     env = (_env("BCI_IOT_ENV") or "dev").lower()
     return env not in {"prod", "production"}
 
@@ -362,12 +364,17 @@ def send_branded_email(
     demo_link: str = "",
 ) -> DeliveryResult:
     load_dotenv_file()
+    errors: list[str] = []
     resend = _try_resend(destination, subject=subject, text=text, html=html)
     if resend is not None:
-        return resend
+        if resend.ok:
+            return resend
+        errors.append(resend.detail)
     smtp = _try_smtp(destination, subject=subject, text=text, html=html)
     if smtp is not None:
-        return smtp
+        if smtp.ok:
+            return smtp
+        errors.append(smtp.detail)
     if _demo_allowed():
         link = demo_link or (demo_payload if demo_is_link else "")
         code = "" if demo_is_link else demo_payload
@@ -389,9 +396,12 @@ def send_branded_email(
         destination=destination,
         mode="demo",
         detail=(
-            "Invio email non configurato. Collega Gmail SMTP oppure Resend "
+            " ".join(errors).strip()
+            or "Invio email non configurato. Collega Gmail SMTP oppure Resend "
             "nelle variabili del server."
         ),
+        demo_code="" if demo_is_link else demo_payload,
+        demo_link=demo_link or (demo_payload if demo_is_link else ""),
     )
 
 
@@ -509,7 +519,7 @@ def send_pairing_code(
 
 def _from_header(cfg: dict[str, str]) -> str:
     addr = cfg.get("brand_from_email") or cfg.get("smtp_from") or DEFAULT_FROM_EMAIL
-    return formataddr((BRAND_NAME, addr))
+    return f"{BRAND_NAME} <{addr}>"
 
 
 def _try_resend(
@@ -596,13 +606,19 @@ def _try_smtp(
     msg.add_alternative(html, subtype="html")
     try:
         context = ssl.create_default_context()
-        with smtplib.SMTP(host, port, timeout=20) as smtp:
-            smtp.ehlo()
-            smtp.starttls(context=context)
-            smtp.ehlo()
-            if user and password:
-                smtp.login(user, password)
-            smtp.send_message(msg)
+        if port == 465:
+            with smtplib.SMTP_SSL(host, port, timeout=25, context=context) as smtp:
+                if user and password:
+                    smtp.login(user, password)
+                smtp.send_message(msg)
+        else:
+            with smtplib.SMTP(host, port, timeout=25) as smtp:
+                smtp.ehlo()
+                smtp.starttls(context=context)
+                smtp.ehlo()
+                if user and password:
+                    smtp.login(user, password)
+                smtp.send_message(msg)
     except (OSError, smtplib.SMTPException) as exc:
         return DeliveryResult(
             ok=False,

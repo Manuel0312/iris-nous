@@ -369,12 +369,18 @@ def create_app(
     def _send_signup_mail(request: Request, profile: UserProfile):
         profile, raw, code = store.issue_signup_confirmation(profile.username)
         confirm_url = f"{_public_base_url(request)}/conferma-iscrizione/{raw}"
-        return send_signup_confirmation(
+        delivery = send_signup_confirmation(
             destination=profile.email,
             username=profile.username,
             confirm_url=confirm_url,
             code=code,
         )
+        sent_real = bool(delivery.ok and delivery.mode != "demo")
+        if sent_real:
+            request.session.pop("email_preview_code", None)
+        else:
+            request.session["email_preview_code"] = code
+        return delivery
 
     def _pairing_mail_already_sent(profile: UserProfile) -> bool:
         last = str((profile.usage_stats or {}).get("pairing_emailed_code") or "")
@@ -611,7 +617,12 @@ def create_app(
             request.session["username"] = created.username
             _log_access(request, username=created.username, event="register", access=access)
             if not delivery.ok:
-                _flash(request, delivery.detail, kind="error")
+                _flash(
+                    request,
+                    "Account creato. La mail non è partita: usa il codice in questa pagina "
+                    "e controlla anche Spam dopo aver premuto Reinvia.",
+                    kind="error",
+                )
             elif delivery.mode == "demo" and (delivery.demo_code or delivery.demo_link):
                 bits = []
                 if delivery.demo_code:
@@ -648,7 +659,9 @@ def create_app(
         if profile is None:
             return RedirectResponse("/login", status_code=303)
         if profile.is_admin or profile.email_verified:
+            request.session.pop("email_preview_code", None)
             return RedirectResponse(_post_auth_destination(profile), status_code=303)
+        preview = str(request.session.get("email_preview_code") or "")
         return TEMPLATES.TemplateResponse(
             request,
             "attendi_conferma_email.html",
@@ -657,6 +670,7 @@ def create_app(
                 profiles,
                 profile=profile,
                 masked_email=mask_destination(profile.email, channel="email"),
+                preview_code=preview,
             ),
         )
 
@@ -679,7 +693,12 @@ def create_app(
             _flash(request, str(exc), kind="error")
             return RedirectResponse("/attendi-conferma-email", status_code=303)
         if not delivery.ok:
-            _flash(request, delivery.detail, kind="error")
+            _flash(
+                request,
+                "Non siamo riusciti a spedire la mail. Usa il codice in questa pagina "
+                "e riprova tra un minuto.",
+                kind="error",
+            )
         elif delivery.mode == "demo" and (delivery.demo_code or delivery.demo_link):
             bits = []
             if delivery.demo_code:
@@ -718,6 +737,7 @@ def create_app(
             _flash(request, str(exc), kind="error")
             return RedirectResponse("/attendi-conferma-email", status_code=303)
         _log_access(request, username=profile.username, event="email_confirmed", access=access)
+        request.session.pop("email_preview_code", None)
         _flash(request, "Email confermata. Benvenuta/o in Iris Nous: completa i tuoi dati.", kind="ok")
         return RedirectResponse("/anagrafica", status_code=303)
 
@@ -734,6 +754,7 @@ def create_app(
             _flash(request, str(exc), kind="error")
             return RedirectResponse("/attendi-conferma-email", status_code=303)
         request.session["username"] = profile.username
+        request.session.pop("email_preview_code", None)
         _log_access(request, username=profile.username, event="email_confirmed", access=access)
         _flash(request, "Email confermata. Benvenuta/o in Iris Nous: completa i tuoi dati.", kind="ok")
         return RedirectResponse("/anagrafica", status_code=303)

@@ -13,10 +13,26 @@ services:
         value: admin123
       - key: BCI_IOT_HTTPS
         value: "1"
+      - key: BCI_IOT_ENV
+        value: production
       - key: BCI_IOT_DATA_DIR
         value: /data
       - key: BCI_IOT_PUBLIC_URL
         value: https://iris-nous.onrender.com
+      - key: BCI_IOT_SMTP_HOST
+        sync: false
+      - key: BCI_IOT_SMTP_PORT
+        sync: false
+      - key: BCI_IOT_SMTP_USER
+        sync: false
+      - key: BCI_IOT_SMTP_PASSWORD
+        sync: false
+      - key: BCI_IOT_SMTP_FROM
+        sync: false
+      - key: BCI_IOT_RESEND_API_KEY
+        sync: false
+      - key: BCI_IOT_MAIL_FROM
+        sync: false
       - key: BCI_IOT_SPOTIFY_CLIENT_ID
         sync: false
       - key: BCI_IOT_SPOTIFY_CLIENT_SECRET

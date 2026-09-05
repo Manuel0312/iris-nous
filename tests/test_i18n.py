@@ -178,6 +178,49 @@ def test_local_site_banner_and_unknown_login(tmp_path: Path) -> None:
     assert "/accessi" in admin_ok.text
 
 
+def test_signup_shows_code_when_mail_cannot_send(tmp_path: Path, monkeypatch) -> None:
+    import importlib
+
+    from bci_iot.accounts.messaging import DeliveryResult
+
+    monkeypatch.setenv("BCI_IOT_OTP_DEMO", "0")
+    monkeypatch.delenv("BCI_IOT_HTTPS", raising=False)
+    monkeypatch.delenv("BCI_IOT_SMTP_HOST", raising=False)
+    monkeypatch.delenv("BCI_IOT_RESEND_API_KEY", raising=False)
+
+    def fake_send(**kwargs):
+        return DeliveryResult(
+            ok=False,
+            channel="email",
+            destination=str(kwargs.get("destination") or ""),
+            mode="demo",
+            detail="smtp missing",
+            demo_code=str(kwargs.get("code") or ""),
+        )
+
+    webapp = importlib.import_module("bci_iot.web.app")
+    monkeypatch.setattr(webapp, "send_signup_confirmation", fake_send, raising=False)
+    app = create_app(data_dir=tmp_path, session_secret="signup-mail")
+    client = TestClient(app)
+    created = client.post(
+        "/register",
+        data={
+            "username": "luca",
+            "email": "luca@gmail.com",
+            "password": "Segreta123",
+        },
+        follow_redirects=False,
+    )
+    assert created.status_code == 200
+    wait = client.get("/attendi-conferma-email", follow_redirects=False)
+    assert wait.status_code == 200
+    assert "Conferma la tua email" in wait.text
+    assert "otp-preview" in wait.text
+    chat = client.get("/chatta")
+    assert "Agente AI" not in chat.text
+    assert "bg3d.js" in chat.text
+
+
 def test_home_storytelling(tmp_path: Path) -> None:
     app = create_app(data_dir=tmp_path, session_secret="home-story")
     client = TestClient(app)

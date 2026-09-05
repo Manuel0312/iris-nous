@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{% if contact_channel|default('chat') == 'email' %}{{ t('Contattaci') }}{% else %}{{ t('Chatta con noi') }}{% endif %} · Iris{% endblock %}
-{% block body_class %}page-private page-chat{% if contact_channel|default('chat') == 'email' %} page-contact-mail{% else %} page-ai-chat{% endif %}{% endblock %}
+{% block body_class %}page-private page-chat{% if contact_channel|default('chat') == 'email' %} page-contact-mail{% endif %}{% endblock %}
 {% block main_class %}shell{% endblock %}
 {% block chat_fab %}{% endblock %}
 {% block content %}
@@ -47,13 +47,11 @@
   </form>
 </section>
 {% else %}
-<section class="ai-chat" aria-labelledby="ai-chat-title">
-  <header class="ai-chat-header">
-    <p class="ai-chat-kicker">{{ t('Agente AI') }}</p>
-    <h1 id="ai-chat-title">{{ t('Chatta con noi') }}</h1>
-    <p class="ai-chat-lead">{{ t("Parla con l'Agente AI per supporto o per richiedere un contatto telefonico") }}</p>
-  </header>
-  <form class="ai-chat-composer" method="post" action="/chatta">
+<section class="contact-mail" aria-labelledby="team-chat-title">
+  <p class="eyebrow">{{ t('Supporto') }}</p>
+  <h1 id="team-chat-title">{{ t('Chatta con noi') }}</h1>
+  <p class="lede">{{ t('Scrivi al team Iris Nous. Ti rispondiamo di persona.') }}</p>
+  <form class="panel contact-mail-form" method="post" action="/chatta">
     <input type="hidden" name="channel" value="chat" />
     {% if profile %}
     <p class="identity-note">{{ t('Stai scrivendo come') }} <strong>{{ profile.first_name }} {{ profile.last_name }}</strong> · {{ profile.email }}</p>
@@ -74,9 +72,11 @@
     {% endif %}
     <input type="hidden" name="subject" value="{{ t('Chatta con noi') }}" />
     <label>{{ t('Messaggio') }}
-      <textarea name="body" rows="5" required minlength="8" maxlength="4000" placeholder="{{ t('Scrivi un messaggio…') }}"></textarea>
+      <textarea name="body" rows="6" required minlength="8" maxlength="4000" placeholder="{{ t('Scrivi un messaggio…') }}"></textarea>
     </label>
-    <button class="btn primary ai-chat-send" type="submit">{{ t('Invia') }}</button>
+    <div class="private-actions">
+      <button class="btn primary" type="submit">{{ t('Invia') }}</button>
+    </div>
   </form>
 </section>
 {% endif %}

@@ -2790,6 +2790,33 @@ _RAW: dict[str, dict[str, str]] = {
         "ja": "© 2026 Iris Nous. インタラクションの未来。",
         "es": "© 2026 Iris Nous. El futuro de la interacción.",
     },
+    "Telefono": {
+        "en": "Phone",
+        "fr": "Téléphone",
+        "de": "Telefon",
+        "pt": "Telefone",
+        "zh": "电话",
+        "ja": "電話",
+        "es": "Teléfono",
+    },
+    "Scrivi al team Iris Nous. Ti rispondiamo di persona.": {
+        "en": "Write to the Iris Nous team. We reply in person.",
+        "fr": "Écris à l'équipe Iris Nous. On te répond en personne.",
+        "de": "Schreib dem Iris-Nous-Team. Wir antworten persönlich.",
+        "pt": "Escreve à equipa Iris Nous. Respondemos em pessoa.",
+        "zh": "写信给 Iris Nous 团队。我们会亲自回复。",
+        "ja": "Iris Nous チームへ。担当が直接返信します。",
+        "es": "Escribe al equipo de Iris Nous. Te respondemos en persona.",
+    },
+    "Se la mail non arriva, usa questo codice:": {
+        "en": "If the email does not arrive, use this code:",
+        "fr": "Si l'e-mail n'arrive pas, utilise ce code :",
+        "de": "Wenn die E-Mail nicht ankommt, nutze diesen Code:",
+        "pt": "Se o e-mail não chegar, usa este código:",
+        "zh": "如果邮件没到，请用这个验证码：",
+        "ja": "メールが届かないときは、このコードを使ってください：",
+        "es": "Si el correo no llega, usa este código:",
+    },
 }
 
 from bci_iot.web.es_strings import ES
