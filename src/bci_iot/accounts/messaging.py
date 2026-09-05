@@ -624,6 +624,8 @@ def _try_resend(
         headers={
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
+            # Resend/Cloudflare 403 code 1010 if User-Agent is missing.
+            "User-Agent": "IrisNous/1.0 (+https://iris-nous.onrender.com)",
         },
     )
     try:

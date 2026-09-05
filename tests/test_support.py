@@ -204,3 +204,37 @@ def test_resend_from_header_skips_gmail() -> None:
     )
     assert header == RESEND_TEST_FROM
     assert "onboarding@resend.dev" in header
+
+
+def test_resend_request_includes_user_agent(monkeypatch) -> None:
+    from bci_iot.accounts import messaging as messaging_mod
+
+    captured: dict[str, str] = {}
+
+    class _Resp:
+        status = 200
+
+        def read(self) -> bytes:
+            return b'{"id":"re_test"}'
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args) -> bool:
+            return False
+
+    def fake_urlopen(req, timeout=20):
+        captured.update({k.lower(): v for k, v in req.header_items()})
+        return _Resp()
+
+    monkeypatch.setenv("BCI_IOT_RESEND_API_KEY", "re_test_key")
+    monkeypatch.setattr(messaging_mod.request, "urlopen", fake_urlopen)
+    result = messaging_mod._try_resend(
+        "manu@example.com",
+        subject="Iris Nous: conferma iscrizione",
+        text="ciao",
+        html="<p>ciao</p>",
+    )
+    assert result is not None and result.ok
+    assert "user-agent" in captured
+    assert "IrisNous" in captured["user-agent"]
