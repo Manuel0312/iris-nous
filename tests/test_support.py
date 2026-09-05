@@ -100,6 +100,7 @@ def test_chatta_and_admin_inbox_flow(tmp_path: Path, monkeypatch) -> None:
     def fake_send(**kwargs):
         sent["destination"] = str(kwargs.get("destination") or "")
         sent["subject"] = str(kwargs.get("subject") or "")
+        sent["text"] = str(kwargs.get("text") or "")
         return DeliveryResult(
             ok=True,
             channel="email",
@@ -158,6 +159,8 @@ def test_chatta_and_admin_inbox_flow(tmp_path: Path, monkeypatch) -> None:
     )
     assert reply.status_code == 200
     assert sent.get("destination") == "luca@gmail.com"
+    assert "Non parte Spotify" in sent.get("text", "")
+    assert "Ciao Luca, apri Associa telefono" in sent.get("text", "")
     done = admin.get("/notifiche")
     assert "Risposto" in done.text
     assert "status-replied" in done.text
@@ -188,3 +191,16 @@ def test_chatta_and_admin_inbox_flow(tmp_path: Path, monkeypatch) -> None:
     assert "Contattaci" not in mail.text
     accessi = admin.get("/accessi?q=luca@gmail.com")
     assert accessi.status_code == 200
+
+
+def test_resend_from_header_skips_gmail() -> None:
+    from bci_iot.accounts.messaging import RESEND_TEST_FROM, _resend_from_header
+
+    header = _resend_from_header(
+        {
+            "brand_from_email": "noreply.irisnous@gmail.com",
+            "smtp_from": "noreply.irisnous@gmail.com",
+        }
+    )
+    assert header == RESEND_TEST_FROM
+    assert "onboarding@resend.dev" in header

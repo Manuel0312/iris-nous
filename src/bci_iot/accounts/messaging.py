@@ -1,12 +1,16 @@
 """Deliver Iris Nous branded email (signup confirm, recovery codes).
 
 SMS intentionally unused for password recovery.
-Order: Resend → SMTP → local demo (dev).
+Order: Resend (HTTPS) → SMTP → HTTP fallback → local demo (dev).
+
+Render's free plan blocks outbound SMTP (ports 25/465/587), so production
+must use Resend. Gmail SMTP still works on the local PC.
 """
 
 from __future__ import annotations
 
 import json
+import logging
 import os
 import smtplib
 import ssl
@@ -17,6 +21,8 @@ from pathlib import Path
 from typing import Any, Literal
 from urllib import error, request
 
+log = logging.getLogger("iris.mail")
+
 
 Channel = Literal["email", "phone"]
 
@@ -25,6 +31,7 @@ _DOTENV_LOADED = False
 
 BRAND_NAME = "Iris Nous"
 DEFAULT_FROM_EMAIL = "noreply@iris-nous.app"
+RESEND_TEST_FROM = "Iris Nous <" + "onboarding@" + "resend.dev" + ">"
 SUPPORT_LINE = "Questa è una mail automatica di Iris Nous. Non rispondere a questo indirizzo."
 
 
@@ -248,9 +255,13 @@ def build_code_email(*, code: str, purpose: str) -> tuple[str, str, str]:
         "verify_email": "verifica del tuo indirizzo email",
         "verify_phone": "verifica telefono",
         "recover": "reimpostazione della password",
+        "confirm_signup": "conferma della tua iscrizione",
     }
     label = labels.get(purpose, "il tuo account")
-    subject = f"{BRAND_NAME}: il tuo codice di sicurezza"
+    if purpose == "recover":
+        subject = f"{BRAND_NAME}: codice per recuperare la password"
+    else:
+        subject = f"{BRAND_NAME}: il tuo codice di sicurezza"
     text = (
         f"{BRAND_NAME}\n\n"
         f"Hai richiesto {label}.\n\n"
@@ -326,26 +337,60 @@ def build_signup_confirm_email(
     return subject, text, html
 
 
-def build_support_reply_email(*, name: str, body: str) -> tuple[str, str, str]:
-    who = (name or "").strip() or "ciao"
-    safe_body = (
-        (body or "")
+def _escape_mail(text: str) -> str:
+    return (
+        (text or "")
         .replace("&", "&amp;")
         .replace("<", "&lt;")
         .replace(">", "&gt;")
         .replace("\n", "<br />")
     )
+
+
+def build_support_reply_email(
+    *,
+    name: str,
+    body: str,
+    conversation: list[dict[str, Any]] | None = None,
+) -> tuple[str, str, str]:
+    who = (name or "").strip() or "ciao"
+    safe_body = _escape_mail(body)
+    thread_lines: list[str] = []
+    thread_html_bits: list[str] = []
+    for item in conversation or []:
+        sender = str(item.get("sender") or "")
+        msg = str(item.get("body") or "").strip()
+        if not msg:
+            continue
+        label = "Team Iris Nous" if sender == "admin" else "Tu"
+        thread_lines.append(f"{label}:\n{msg}")
+        thread_html_bits.append(
+            f'<p style="margin:0 0 4px;font-size:12px;color:#86868b;font-weight:700;letter-spacing:.04em;text-transform:uppercase;">{label}</p>'
+            f'<p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#1d1d1f;">{_escape_mail(msg)}</p>'
+        )
+    thread_text = ""
+    thread_html = ""
+    if thread_lines:
+        thread_text = "Conversazione:\n\n" + "\n\n".join(thread_lines) + "\n\n"
+        thread_html = (
+            '<p style="margin:0 0 14px;font-size:13px;color:#86868b;">Conversazione</p>'
+            + "".join(thread_html_bits)
+            + '<hr style="border:none;border-top:1px solid #eee;margin:8px 0 18px;" />'
+            '<p style="margin:0 0 10px;font-size:13px;color:#86868b;">Risposta del team</p>'
+        )
     subject = f"{BRAND_NAME}: risposta al tuo messaggio"
     text = (
         f"{BRAND_NAME}\n\n"
         f"Ciao {who},\n\n"
-        f"ecco la risposta del team:\n\n"
+        f"{thread_text}"
+        f"Risposta del team:\n\n"
         f"{body}\n\n"
         f"Se hai bisogno di altro, rispondi da Chatta con noi sul sito "
         f"oppure aspetta una nuova mail da questo indirizzo.\n\n"
         f"— Team {BRAND_NAME}\n"
     )
     middle = f"""
+      {thread_html}
       <p style="margin:0;font-size:15px;line-height:1.6;color:#1d1d1f;">{safe_body}</p>
     """
     html = _shell_html(
@@ -372,12 +417,16 @@ def send_branded_email(
     resend = _try_resend(destination, subject=subject, text=text, html=html)
     if resend is not None:
         if resend.ok:
+            log.info("mail sent via resend to %s", destination)
             return resend
+        log.warning("resend failed: %s", resend.detail)
         errors.append(resend.detail)
     smtp = _try_smtp(destination, subject=subject, text=text, html=html)
     if smtp is not None:
         if smtp.ok:
+            log.info("mail sent via smtp to %s", destination)
             return smtp
+        log.warning("smtp failed: %s", smtp.detail)
         errors.append(smtp.detail)
     if _demo_allowed():
         link = demo_link or (demo_payload if demo_is_link else "")
@@ -531,6 +580,25 @@ def _from_header(cfg: dict[str, str]) -> str:
     return f"{BRAND_NAME} <{addr}>"
 
 
+def _resend_from_header(cfg: dict[str, str]) -> str:
+    """Resend rejects gmail.com / unverified domains. Use their test sender."""
+    override = _env("BCI_IOT_RESEND_FROM")
+    if override:
+        return override if "<" in override else f"{BRAND_NAME} <{override}>"
+    addr = (cfg.get("brand_from_email") or cfg.get("smtp_from") or "").strip()
+    domain = addr.rsplit("@", 1)[-1].lower() if "@" in addr else ""
+    if domain in {"gmail.com", "googlemail.com", "iris-nous.app", ""}:
+        return RESEND_TEST_FROM
+    return f"{BRAND_NAME} <{addr}>"
+
+
+def _smtp_blocked_here() -> bool:
+    """Render free instances drop outbound SMTP; skip the minute-long timeout."""
+    if _env("BCI_IOT_FORCE_SMTP").lower() in {"1", "true", "yes", "on"}:
+        return False
+    return _env("BCI_IOT_HTTPS").lower() in {"1", "true", "yes", "on"}
+
+
 def _try_resend(
     to_addr: str, *, subject: str, text: str, html: str
 ) -> DeliveryResult | None:
@@ -538,15 +606,17 @@ def _try_resend(
     api_key = cfg.get("resend_api_key") or ""
     if not api_key:
         return None
-    payload = json.dumps(
-        {
-            "from": _from_header(cfg),
-            "to": [to_addr],
-            "subject": subject,
-            "text": text,
-            "html": html,
-        }
-    ).encode("utf-8")
+    reply = (cfg.get("smtp_from") or cfg.get("smtp_user") or "").strip()
+    body: dict[str, Any] = {
+        "from": _resend_from_header(cfg),
+        "to": [to_addr],
+        "subject": subject,
+        "text": text,
+        "html": html,
+    }
+    if reply and "@" in reply:
+        body["reply_to"] = reply
+    payload = json.dumps(body).encode("utf-8")
     req = request.Request(
         "https://api.resend.com/emails",
         data=payload,
@@ -627,6 +697,17 @@ def _try_smtp(
         from_addr = user
     if not host or not from_addr or not password:
         return None
+    if _smtp_blocked_here():
+        return DeliveryResult(
+            ok=False,
+            channel="email",
+            destination=to_addr,
+            mode="smtp",
+            detail=(
+                "Gmail SMTP non è raggiungibile dal piano free di Render "
+                "(porte 587/465 bloccate). Iris usa Resend via HTTPS."
+            ),
+        )
     if not user:
         user = from_addr
     configured = int(cfg.get("smtp_port") or "587")

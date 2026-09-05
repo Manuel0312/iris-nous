@@ -617,10 +617,12 @@ def create_app(
             request.session["username"] = created.username
             _log_access(request, username=created.username, event="register", access=access)
             if not delivery.ok:
+                extra = f" ({delivery.detail})" if delivery.detail else ""
                 _flash(
                     request,
                     "Account creato. La mail non è partita: usa il codice in questa pagina "
-                    "e controlla anche Spam dopo aver premuto Reinvia.",
+                    "e controlla anche Spam dopo aver premuto Reinvia."
+                    + extra,
                     kind="error",
                 )
             elif delivery.mode == "demo" and (delivery.demo_code or delivery.demo_link):
@@ -1288,7 +1290,12 @@ def create_app(
                 person = profiles.get(str(thread["username"]))
                 if person is not None:
                     display = f"{person.first_name} {person.last_name}".strip() or person.username
-            subject, mail_text, mail_html = build_support_reply_email(name=display, body=text)
+            history = access.list_support_messages(thread_id)
+            subject, mail_text, mail_html = build_support_reply_email(
+                name=display,
+                body=text,
+                conversation=history,
+            )
             result = send_branded_email(
                 destination=destination,
                 subject=subject,
