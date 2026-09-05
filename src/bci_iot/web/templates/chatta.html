@@ -1,58 +1,30 @@
 {% extends "base.html" %}
-{% block title %}{% if contact_channel|default('chat') == 'email' %}{{ t('Contattaci') }}{% else %}{{ t('Chatta con noi') }}{% endif %} · Iris{% endblock %}
-{% block body_class %}page-private page-chat{% if contact_channel|default('chat') == 'email' %} page-contact-mail{% endif %}{% endblock %}
+{% block title %}{{ t('Chatta con noi') }} · Iris{% endblock %}
+{% block body_class %}page-private page-chat{% endblock %}
 {% block main_class %}shell{% endblock %}
 {% block chat_fab %}{% endblock %}
 {% block content %}
-{% set is_email = contact_channel|default('chat') == 'email' %}
-
-<nav class="contact-modes" aria-label="{{ t('Supporto') }}">
-  <a class="contact-mode {% if not is_email %}is-on{% endif %}" href="/chatta">{{ t('Chatta con noi') }}</a>
-  <a class="contact-mode {% if is_email %}is-on{% endif %}" href="/chatta?canale=email">{{ t('Contattaci') }}</a>
-</nav>
-
-{% if is_email %}
-<section class="contact-mail">
-  <p class="eyebrow">{{ t('Supporto') }}</p>
-  <h1>{{ t('Contattaci') }}</h1>
-  <p class="lede">{{ t('Compila il modulo: ti rispondiamo di persona sulla tua casella email.') }}</p>
-  <form class="panel contact-mail-form" method="post" action="/chatta">
-    <input type="hidden" name="channel" value="email" />
-    {% if profile %}
-    <p class="identity-note">{{ t('Stai scrivendo come') }} <strong>{{ profile.first_name }} {{ profile.last_name }}</strong> · {{ profile.email }}</p>
-    {% else %}
-    <fieldset class="who-are-you">
-      <legend>{{ t('Chi sei') }}</legend>
-      <p class="form-hint">{{ t('Nome ed email servono per saperti rispondere.') }}</p>
-      <label>{{ t('Nome') }}
-        <input name="name" maxlength="80" autocomplete="name" required />
-      </label>
-      <label>{{ t('Email') }}
-        <input name="email" type="email" required maxlength="254" autocomplete="email" inputmode="email" pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}" title="{{ t('Serve un dominio con estensione, es. nome@gmail.com') }}" />
-      </label>
-      <label>{{ t('Telefono') }}
-        <input name="phone" type="tel" maxlength="20" autocomplete="tel" inputmode="numeric" pattern="[0-9+ ]*" data-digits-phone />
-      </label>
-    </fieldset>
-    {% endif %}
-    <label>{{ t('Oggetto') }}
-      <input name="subject" maxlength="160" placeholder="{{ t('Di cosa hai bisogno?') }}" />
-    </label>
-    <label>{{ t('Messaggio') }}
-      <textarea name="body" rows="8" required minlength="8" maxlength="4000"></textarea>
-    </label>
-    <div class="private-actions">
-      <button class="btn primary" type="submit">{{ t('Invia') }}</button>
-    </div>
-  </form>
-</section>
-{% else %}
 <section class="contact-mail" aria-labelledby="team-chat-title">
   <p class="eyebrow">{{ t('Supporto') }}</p>
   <h1 id="team-chat-title">{{ t('Chatta con noi') }}</h1>
-  <p class="lede">{{ t('Scrivi al team Iris Nous. Ti rispondiamo di persona.') }}</p>
+  <p class="lede">{{ t('Scrivi il problema nel form. Ti rispondiamo di persona qui e via email, da telefono o da computer.') }}</p>
+
+  {% if messages %}
+  <ol class="chat-log" id="team-chat-log">
+    {% for m in messages %}
+    <li class="chat-bubble chat-{{ m.sender }}">
+      <span class="chat-who">{{ t('Team Iris Nous') if m.sender == 'admin' else t('Tu') }}</span>
+      <p>{{ m.body }}</p>
+      <time>{{ m.created_at | it_time }}</time>
+    </li>
+    {% endfor %}
+  </ol>
+  {% if waiting %}
+  <p class="muted" id="chat-wait">{{ t('In attesa della risposta. Resta su questa pagina, oppure riaprila dopo: la trovi anche da un altro dispositivo con la stessa email.') }}</p>
+  {% endif %}
+  {% endif %}
+
   <form class="panel contact-mail-form" method="post" action="/chatta">
-    <input type="hidden" name="channel" value="chat" />
     {% if profile %}
     <p class="identity-note">{{ t('Stai scrivendo come') }} <strong>{{ profile.first_name }} {{ profile.last_name }}</strong> · {{ profile.email }}</p>
     {% else %}
@@ -60,26 +32,36 @@
       <legend>{{ t('Chi sei') }}</legend>
       <p class="form-hint">{{ t('Nome ed email servono per saperti rispondere.') }}</p>
       <label>{{ t('Nome') }}
-        <input name="name" maxlength="80" autocomplete="name" required />
+        <input name="name" maxlength="80" autocomplete="name" required value="{{ guest_name or '' }}" />
       </label>
       <label>{{ t('Email') }}
-        <input name="email" type="email" required maxlength="254" autocomplete="email" inputmode="email" pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}" title="{{ t('Serve un dominio con estensione, es. nome@gmail.com') }}" />
+        <input name="email" type="email" required maxlength="254" autocomplete="email" inputmode="email" pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}" title="{{ t('Serve un dominio con estensione, es. nome@gmail.com') }}" value="{{ guest_email or '' }}" />
       </label>
       <label>{{ t('Telefono') }}
         <input name="phone" type="tel" maxlength="20" autocomplete="tel" inputmode="numeric" pattern="[0-9+ ]*" data-digits-phone />
       </label>
     </fieldset>
     {% endif %}
-    <input type="hidden" name="subject" value="{{ t('Chatta con noi') }}" />
-    <label>{{ t('Messaggio') }}
-      <textarea name="body" rows="6" required minlength="8" maxlength="4000" placeholder="{{ t('Scrivi un messaggio…') }}"></textarea>
+    <label>{{ t('Descrivi il problema') }}
+      <textarea name="body" rows="6" required minlength="8" maxlength="4000" placeholder="{{ t('Scrivi cosa non funziona…') }}"></textarea>
     </label>
     <div class="private-actions">
       <button class="btn primary" type="submit">{{ t('Invia') }}</button>
     </div>
   </form>
+
+  {% if not profile %}
+  <form class="panel contact-mail-form reopen-chat" method="post" action="/chatta/apri">
+    <p class="form-hint">{{ t('Hai già scritto da un altro telefono o dal computer? Inserisci la stessa email per vedere le risposte.') }}</p>
+    <label>{{ t('Email') }}
+      <input name="email" type="email" required maxlength="254" autocomplete="email" inputmode="email" />
+    </label>
+    <div class="private-actions">
+      <button class="btn" type="submit">{{ t('Vedi le risposte') }}</button>
+    </div>
+  </form>
+  {% endif %}
 </section>
-{% endif %}
 <script>
 (function () {
   document.querySelectorAll("[data-digits-phone]").forEach((el) => {
@@ -90,6 +72,21 @@
       el.value = el.value.replace(/[^\d+ ]+/g, "");
     });
   });
+  const waiting = {{ 'true' if waiting else 'false' }};
+  const log = document.getElementById("team-chat-log");
+  if (!waiting && !log) return;
+  let last = {{ (messages|length) if messages else 0 }};
+  async function tick() {
+    try {
+      const res = await fetch("/chatta/stato", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Number(data.count) !== last) {
+        location.reload();
+      }
+    } catch (e) {}
+  }
+  setInterval(tick, 8000);
 })();
 </script>
 {% endblock %}

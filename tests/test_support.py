@@ -91,68 +91,100 @@ def test_support_status_dots_and_tutela_archive(tmp_path: Path) -> None:
     assert [m["sender"] for m in messages] == ["user", "admin"]
 
 
-def test_chatta_and_admin_inbox_flow(tmp_path: Path) -> None:
+def test_chatta_and_admin_inbox_flow(tmp_path: Path, monkeypatch) -> None:
+    from bci_iot.accounts.messaging import DeliveryResult
+    import importlib
+
+    sent: dict[str, str] = {}
+
+    def fake_send(**kwargs):
+        sent["destination"] = str(kwargs.get("destination") or "")
+        sent["subject"] = str(kwargs.get("subject") or "")
+        return DeliveryResult(
+            ok=True,
+            channel="email",
+            destination=sent["destination"],
+            mode="smtp",
+            detail="ok",
+        )
+
+    webapp = importlib.import_module("bci_iot.web.app")
+    monkeypatch.setattr(webapp, "send_branded_email", fake_send)
     app = create_app(
         data_dir=tmp_path,
         session_secret="support-secret",
         admin_username="admin",
         admin_password="admin123",
     )
-    client = TestClient(app)
-    guest = client.post(
+    guest = TestClient(app)
+    posted = guest.post(
         "/chatta",
         data={
-            "channel": "email",
             "name": "Luca Bianchi",
             "email": "luca@gmail.com",
             "phone": "3339998877",
-            "subject": "Spotify",
             "body": "Non parte Spotify dal telefono, come lo collego?",
         },
         follow_redirects=False,
     )
-    assert guest.status_code == 303
+    assert posted.status_code == 200
+    thread_page = guest.get("/chatta")
+    assert thread_page.status_code == 200
+    assert "contact-modes" not in thread_page.text
+    assert "canale=email" not in thread_page.text
+    assert "Non parte Spotify" in thread_page.text
+    assert "Descrivi il problema" in thread_page.text
 
-    denied = client.get("/notifiche", follow_redirects=False)
+    denied = guest.get("/notifiche", follow_redirects=False)
     assert denied.status_code == 303
 
-    client.post("/login", data={"username": "admin", "password": "admin123"})
-    inbox = client.get("/notifiche")
+    admin = TestClient(app)
+    admin.post("/login", data={"username": "admin", "password": "admin123"})
+    inbox = admin.get("/notifiche")
     assert inbox.status_code == 200
     assert "Non visualizzato" in inbox.text
     assert "status-unread" in inbox.text
     assert "Luca Bianchi" in inbox.text
 
     thread_id = app.state.access_db.list_support_threads()[0]["id"]
-    opened = client.get(f"/notifiche/{thread_id}")
+    opened = admin.get(f"/notifiche/{thread_id}")
     assert opened.status_code == 200
     assert "Visto, non risposto" in opened.text or "Visualizzato" in opened.text
 
-    reply = client.post(
+    reply = admin.post(
         f"/notifiche/{thread_id}/rispondi",
         data={"body": "Ciao Luca, apri Associa telefono e ricollega Spotify."},
         follow_redirects=False,
     )
-    assert reply.status_code == 303
-    done = client.get("/notifiche")
+    assert reply.status_code == 200
+    assert sent.get("destination") == "luca@gmail.com"
+    done = admin.get("/notifiche")
     assert "Risposto" in done.text
     assert "status-replied" in done.text
-    assert "iris-bg" in client.get("/").text
-    assert "bg3d.js" in client.get("/login").text
-    assert "page-private" in client.get("/notifiche").text
-    assert 'class="chat-fab"' not in client.get("/accessi").text
-    assert "Mail Iris Nous" not in client.get("/accessi").text
-    assert "Contattaci" not in client.get("/accessi").text
-    chat_admin = client.get("/chatta", follow_redirects=False)
+    answered = guest.get("/chatta")
+    assert "Ciao Luca, apri Associa telefono" in answered.text
+    other_device = TestClient(app)
+    other_device.post("/chatta/apri", data={"email": "luca@gmail.com"})
+    recovered = other_device.get("/chatta")
+    assert "Ciao Luca, apri Associa telefono" in recovered.text
+    assert "iris-bg" in admin.get("/").text
+    assert "bg3d.js" in admin.get("/login").text
+    assert "page-private" in admin.get("/notifiche").text
+    assert 'class="chat-fab"' not in admin.get("/accessi").text
+    assert "Mail Iris Nous" not in admin.get("/accessi").text
+    assert "Contattaci" not in admin.get("/accessi").text
+    chat_admin = admin.get("/chatta", follow_redirects=False)
     assert chat_admin.status_code in {302, 303}
     assert "/notifiche" in chat_admin.headers.get("location", "")
     guest_chat = TestClient(app).get("/chatta")
     assert "Chi sei" in guest_chat.text
     assert "Agente AI" not in guest_chat.text
     assert "ai-chat" not in guest_chat.text
-    assert "Scrivi al team Iris Nous" in guest_chat.text
+    assert "contact-modes" not in guest_chat.text
+    assert "Contattaci" not in guest_chat.text
     mail = TestClient(app).get("/chatta?canale=email")
     assert "contact-mail" in mail.text
-    assert "Contattaci" in mail.text
-    accessi = client.get("/accessi?q=luca@gmail.com")
+    assert "contact-modes" not in mail.text
+    assert "Contattaci" not in mail.text
+    accessi = admin.get("/accessi?q=luca@gmail.com")
     assert accessi.status_code == 200

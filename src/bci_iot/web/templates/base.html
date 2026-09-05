@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;600;700&family=Noto+Sans+SC:wght@400;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/styles.css?v=irisPages5" />
+  <link rel="stylesheet" href="/static/styles.css?v=irisPages6" />
   <script>
     (function () {
       function scheme() {
@@ -90,7 +90,7 @@
             <a href="/anagrafica?edit=1" class="{% if request.url.path.startswith('/anagrafica') %}is-current{% endif %}">{{ t('I miei dati') }}</a>
             <a href="/inizia" class="{% if request.url.path.startswith('/inizia') or request.url.path.startswith('/calibrazione') %}is-current{% endif %}">{{ t('Cosa puoi fare') }}</a>
             <a href="/dashboard" class="{% if request.url.path.startswith('/dashboard') %}is-current{% endif %}">{{ t('Ecosistema') }}</a>
-            <a href="/chatta?canale=email">{{ t('Contattaci') }}</a>
+            <a href="/chatta">{{ t('Chatta con noi') }}</a>
             <a href="/cambia-password">{{ t('Cambia password') }}</a>
             {% endif %}
             <form method="post" action="/logout" class="inline">
@@ -99,7 +99,7 @@
           {% else %}
           <a href="/login">{{ t('Login') }}</a>
           <a href="/register">{{ t('Iscrizione') }}</a>
-          <a href="/chatta?canale=email">{{ t('Contattaci') }}</a>
+          <a href="/chatta">{{ t('Chatta con noi') }}</a>
           {% endif %}
         </nav>
       </div>

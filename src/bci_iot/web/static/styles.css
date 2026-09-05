@@ -2903,6 +2903,15 @@ body.page-chat .chat-fab {
   background: var(--bg-elev);
 }
 
+.contact-mail .chat-log {
+  margin: 0 0 1.1rem;
+}
+
+.contact-mail .reopen-chat {
+  margin-top: 1rem;
+  background: transparent;
+}
+
 .contact-mail-form label {
   display: grid;
   gap: 0.35rem;

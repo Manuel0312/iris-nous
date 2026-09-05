@@ -232,7 +232,8 @@ def test_home_storytelling(tmp_path: Path) -> None:
     assert "La casa ti ascolta." in home.text
     assert "Il ritmo, nel pensiero." in home.text
     assert "chat-fab" in home.text
-    assert "Contattaci" in home.text
+    assert "Chatta con noi" in home.text
+    assert "canale=email" not in home.text
     assert "Manuel Bellomo" in home.text
     assert "lang-btn" in home.text
     assert "/flags/it.svg" in home.text

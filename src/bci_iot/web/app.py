@@ -16,7 +16,7 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 
 from fastapi.staticfiles import StaticFiles
 
@@ -1246,6 +1246,7 @@ def create_app(
                 thread=thread,
                 messages=messages,
                 user_profile=user_profile.public_dict() if user_profile else None,
+                email_ready=bool(messaging_status().get("email_ready")),
             ),
         )
 
@@ -1256,7 +1257,7 @@ def create_app(
         profiles: ProfileStore = Depends(_store),
         access: AccessDatabase = Depends(_access),
         body: str = Form(""),
-    ) -> RedirectResponse:
+    ) -> HTMLResponse:
         admin = _admin_or_redirect(request, profiles)
         if isinstance(admin, RedirectResponse):
             return admin
@@ -1275,8 +1276,13 @@ def create_app(
         if not destination and thread.get("username"):
             person = profiles.get(str(thread["username"]))
             if person is not None:
-                destination = person.email
-        if destination and "@" in destination:
+                destination = (person.email or "").strip()
+        if destination:
+            try:
+                destination = normalize_email(destination)
+            except ValueError:
+                destination = ""
+        if destination:
             display = str((updated or thread).get("guest_name") or "")
             if not display and thread.get("username"):
                 person = profiles.get(str(thread["username"]))
@@ -1290,69 +1296,147 @@ def create_app(
                 html=mail_html,
                 demo_payload=text,
             )
+            masked = mask_destination(destination, channel="email")
             if result.ok and result.mode == "demo":
                 _flash(
                     request,
-                    "Risposta salvata. Mail non collegata: in locale la risposta resta nella chat di tutela.",
+                    "Risposta salvata in Chatta con noi. In locale la mail di prova non parte.",
                     kind="ok",
                 )
             elif result.ok:
-                _flash(request, f"Risposta inviata via email a {mask_destination(destination, channel='email')}.", kind="ok")
+                _flash(
+                    request,
+                    f"Risposta visibile in Chatta con noi e inviata via email a {masked}.",
+                    kind="ok",
+                )
             else:
                 _flash(
                     request,
-                    "Risposta salvata nella chat, ma l’invio email non è riuscito. Controlla la configurazione email del server.",
+                    "Risposta salvata in Chatta con noi, ma la mail non è partita. "
+                    "L’utente la vede riaprendo Chatta con noi. "
+                    f"{(result.detail or '')[:180]}".strip(),
                     kind="error",
                 )
         else:
             _flash(
                 request,
-                "Risposta salvata nella chat di tutela. Manca un’email a cui scrivere.",
-                kind="ok",
+                "Risposta salvata in Chatta con noi. Manca un’email a cui scriverla in posta.",
+                kind="error",
             )
-        return RedirectResponse(f"/notifiche/{thread_id}", status_code=303)
+        return _continue(
+            request,
+            next_url=f"/notifiche/{thread_id}",
+            message="Risposta inviata...",
+        )
+
+    def _support_identity(
+        request: Request, profile: UserProfile | None
+    ) -> tuple[str, str, str]:
+        if profile is not None:
+            return (
+                profile.username,
+                (profile.email or "").strip(),
+                f"{profile.first_name} {profile.last_name}".strip() or profile.username,
+            )
+        return (
+            "",
+            str(request.session.get("support_email") or "").strip(),
+            str(request.session.get("support_name") or "").strip(),
+        )
 
     @app.get("/chatta", response_class=HTMLResponse)
     def chatta_page(
         request: Request,
         profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
     ) -> HTMLResponse:
         username = _session_username(request)
         profile = profiles.get(username) if username else None
         if profile is not None and profile.is_admin:
             return RedirectResponse("/notifiche", status_code=303)
-        channel = (request.query_params.get("canale") or "chat").strip().lower()
-        if channel not in {"chat", "email"}:
-            channel = "chat"
-        return TEMPLATES.TemplateResponse(
+        ident_user, ident_email, ident_name = _support_identity(request, profile)
+        threads = access.list_user_support_threads(username=ident_user, email=ident_email)
+        thread = threads[0] if threads else None
+        messages = access.list_support_messages(int(thread["id"])) if thread else []
+        waiting = bool(messages) and str(messages[-1].get("sender") or "") != "admin"
+        response = TEMPLATES.TemplateResponse(
             request,
             "chatta.html",
-            _template_ctx(request, profiles, profile=profile, contact_channel=channel),
+            _template_ctx(
+                request,
+                profiles,
+                profile=profile,
+                thread=thread,
+                messages=messages,
+                waiting=waiting,
+                guest_email=ident_email,
+                guest_name=ident_name,
+            ),
         )
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+    @app.get("/chatta/stato")
+    def chatta_status(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> JSONResponse:
+        username = _session_username(request)
+        profile = profiles.get(username) if username else None
+        if profile is not None and profile.is_admin:
+            return JSONResponse({"count": 0, "last": ""})
+        ident_user, ident_email, _ident_name = _support_identity(request, profile)
+        threads = access.list_user_support_threads(username=ident_user, email=ident_email)
+        thread = threads[0] if threads else None
+        messages = access.list_support_messages(int(thread["id"])) if thread else []
+        last_sender = str(messages[-1].get("sender") or "") if messages else ""
+        return JSONResponse(
+            {"count": len(messages), "last": last_sender},
+            headers={"Cache-Control": "no-store"},
+        )
+
+    @app.post("/chatta/apri")
+    def chatta_open(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        email: str = Form(""),
+    ) -> HTMLResponse:
+        username = _session_username(request)
+        profile = profiles.get(username) if username else None
+        if profile is not None and profile.is_admin:
+            return RedirectResponse("/notifiche", status_code=303)
+        try:
+            guest_email = normalize_email(email)
+        except ValueError:
+            _flash(request, "Inserisci l’email con cui hai scritto.", kind="error")
+            return _continue(request, next_url="/chatta", message="Controlla l'email...")
+        request.session["support_email"] = guest_email
+        _flash(request, "Se c’è una conversazione con questa email, la vedi qui sotto.", kind="ok")
+        return _continue(request, next_url="/chatta", message="Apro la conversazione...")
 
     @app.post("/chatta")
     def chatta_send(
         request: Request,
         profiles: ProfileStore = Depends(_store),
         access: AccessDatabase = Depends(_access),
-        channel: str = Form("chat"),
         name: str = Form(""),
         email: str = Form(""),
         phone: str = Form(""),
         subject: str = Form(""),
         body: str = Form(""),
-    ) -> RedirectResponse:
+    ) -> HTMLResponse:
         username = _session_username(request) or ""
         profile = profiles.get(username) if username else None
         if profile is not None and profile.is_admin:
             _flash(request, "L’amministratore risponde dalle Notifiche.", kind="error")
-            return RedirectResponse("/notifiche", status_code=303)
+            return _continue(request, next_url="/notifiche", message="Vai alle notifiche...")
         text = (body or "").strip()
         if len(text) < 8:
             _flash(request, "Scrivi un messaggio un po’ più lungo (almeno 8 caratteri).", kind="error")
-            return RedirectResponse("/chatta", status_code=303)
-        guest_email = (email or "").strip()
-        guest_name = (name or "").strip()
+            return _continue(request, next_url="/chatta", message="Completa il messaggio...")
+        guest_email = (email or "").strip() or str(request.session.get("support_email") or "")
+        guest_name = (name or "").strip() or str(request.session.get("support_name") or "")
         guest_phone = (phone or "").strip()
         if profile is not None:
             guest_email = guest_email or profile.email
@@ -1363,27 +1447,29 @@ def create_app(
             username = ""
             if len(guest_name) < 2:
                 _flash(request, "Scrivi il tuo nome, così sappiamo chi ci ha scritto.", kind="error")
-                return RedirectResponse("/chatta", status_code=303)
+                return _continue(request, next_url="/chatta", message="Scrivi il nome...")
             try:
                 guest_email = normalize_email(guest_email)
             except ValueError:
                 _flash(request, "Inserisci un’email a cui possiamo risponderti.", kind="error")
-                return RedirectResponse("/chatta", status_code=303)
+                return _continue(request, next_url="/chatta", message="Controlla l'email...")
+            request.session["support_email"] = guest_email
+            request.session["support_name"] = guest_name
         access.add_user_support_message(
             username=username,
             guest_name=guest_name,
             guest_email=guest_email,
             guest_phone=guest_phone,
-            channel=channel,
-            subject=subject,
+            channel="chat",
+            subject=subject or "Chatta con noi",
             body=text,
         )
         _flash(
             request,
-            "Messaggio inviato. Ti risponderemo via email il prima possibile.",
+            "Messaggio inviato. Ti rispondiamo qui e via email. Lascia aperta questa pagina, oppure riaprila dallo stesso telefono o con la stessa email.",
             kind="ok",
         )
-        return RedirectResponse("/chatta", status_code=303)
+        return _continue(request, next_url="/chatta", message="Messaggio inviato...")
 
     @app.get("/dashboard", response_class=HTMLResponse)
     def dashboard(

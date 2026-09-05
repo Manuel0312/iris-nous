@@ -7,8 +7,7 @@
   <p><a href="/accessi">← Pannello admin</a></p>
   <h1>Notifiche</h1>
   <p class="lede">
-    Messaggi da Chatta con noi e richieste via email.
-    Pallino rosso: non visualizzato · giallo: visto, non risposto · verde: risposto
+    Messaggi da Chatta con noi. Pallino rosso: non visualizzato · giallo: visto, non risposto · verde: risposto
     (i verdi escono da qui dopo 10 giorni, ma restano nella chat di tutela sul profilo).
   </p>
   <p>
@@ -44,7 +43,7 @@
               {% else %}Risposto{% endif %}
             </a>
           </td>
-          <td>{{ "Email" if trow.channel == "email" else "Chat" }}</td>
+          <td>Chatta</td>
           <td>
             {% if trow.username %}
             <a class="person-link" href="/accessi/utente/{{ trow.username }}">{{ trow.guest_name or trow.username }}</a>

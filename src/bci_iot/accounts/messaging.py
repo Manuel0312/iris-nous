@@ -12,7 +12,7 @@ import smtplib
 import ssl
 from dataclasses import dataclass
 from email.message import EmailMessage
-from email.utils import formataddr
+from email.utils import formataddr, formatdate, make_msgid
 from pathlib import Path
 from typing import Any, Literal
 from urllib import error, request
@@ -33,7 +33,7 @@ class DeliveryResult:
     ok: bool
     channel: Channel
     destination: str
-    mode: Literal["resend", "smtp", "demo"]
+    mode: Literal["resend", "smtp", "http", "demo"]
     detail: str = ""
     demo_code: str = ""
     demo_link: str = ""
@@ -162,7 +162,11 @@ def _merged_settings() -> dict[str, str]:
 def messaging_status() -> dict[str, Any]:
     cfg = _merged_settings()
     has_resend = bool(cfg.get("resend_api_key"))
-    has_smtp = bool(cfg.get("smtp_host") and (cfg.get("smtp_from") or cfg.get("smtp_user")))
+    has_smtp = bool(
+        cfg.get("smtp_host")
+        and cfg.get("smtp_password")
+        and (cfg.get("smtp_from") or cfg.get("smtp_user"))
+    )
     return {
         "email_ready": has_resend or has_smtp,
         "sms_ready": False,
@@ -390,6 +394,11 @@ def send_branded_email(
             demo_code=code,
             demo_link=link,
         )
+    http = _try_http_mail(destination, subject=subject, text=text, html=html)
+    if http is not None:
+        if http.ok:
+            return http
+        errors.append(http.detail)
     return DeliveryResult(
         ok=False,
         channel="email",
@@ -584,53 +593,164 @@ def _try_resend(
     )
 
 
-def _try_smtp(
-    to_addr: str, *, subject: str, text: str, html: str
-) -> DeliveryResult | None:
-    cfg = _merged_settings()
-    host = cfg["smtp_host"]
-    from_addr = cfg["smtp_from"] or cfg["brand_from_email"]
-    if not host or not from_addr:
-        return None
-    user = cfg["smtp_user"]
-    password = cfg["smtp_password"]
-    port = int(cfg["smtp_port"] or "587")
+def _build_message(
+    *,
+    to_addr: str,
+    from_addr: str,
+    subject: str,
+    text: str,
+    html: str,
+) -> EmailMessage:
     msg = EmailMessage()
     msg["Subject"] = subject
     msg["From"] = formataddr((BRAND_NAME, from_addr))
     msg["To"] = to_addr
     msg["Reply-To"] = from_addr
-    msg["X-Mailer"] = f"{BRAND_NAME}"
+    msg["Date"] = formatdate(localtime=False)
+    msg["Message-ID"] = make_msgid(domain="iris-nous.onrender.com")
+    msg["X-Mailer"] = BRAND_NAME
     msg["List-Unsubscribe"] = f"<mailto:{from_addr}?subject=unsubscribe>"
     msg.set_content(text)
     msg.add_alternative(html, subtype="html")
-    try:
-        context = ssl.create_default_context()
-        if port == 465:
-            with smtplib.SMTP_SSL(host, port, timeout=25, context=context) as smtp:
-                if user and password:
+    return msg
+
+
+def _try_smtp(
+    to_addr: str, *, subject: str, text: str, html: str
+) -> DeliveryResult | None:
+    cfg = _merged_settings()
+    host = (cfg.get("smtp_host") or "").strip()
+    user = (cfg.get("smtp_user") or "").strip()
+    password = (cfg.get("smtp_password") or "").strip()
+    from_addr = (cfg.get("smtp_from") or user or "").strip()
+    if from_addr == DEFAULT_FROM_EMAIL and user:
+        from_addr = user
+    if not host or not from_addr or not password:
+        return None
+    if not user:
+        user = from_addr
+    configured = int(cfg.get("smtp_port") or "587")
+    ports: list[int] = []
+    for port in (configured, 587, 465):
+        if port not in ports:
+            ports.append(port)
+    msg = _build_message(
+        to_addr=to_addr,
+        from_addr=from_addr,
+        subject=subject,
+        text=text,
+        html=html,
+    )
+    errors: list[str] = []
+    context = ssl.create_default_context()
+    for port in ports:
+        try:
+            if port == 465:
+                with smtplib.SMTP_SSL(host, port, timeout=20, context=context) as smtp:
                     smtp.login(user, password)
-                smtp.send_message(msg)
-        else:
-            with smtplib.SMTP(host, port, timeout=25) as smtp:
-                smtp.ehlo()
-                smtp.starttls(context=context)
-                smtp.ehlo()
-                if user and password:
+                    smtp.send_message(msg)
+            else:
+                with smtplib.SMTP(host, port, timeout=20) as smtp:
+                    smtp.ehlo()
+                    smtp.starttls(context=context)
+                    smtp.ehlo()
                     smtp.login(user, password)
-                smtp.send_message(msg)
-    except (OSError, smtplib.SMTPException) as exc:
-        return DeliveryResult(
-            ok=False,
-            channel="email",
-            destination=to_addr,
-            mode="smtp",
-            detail=f"Invio email non riuscito: {exc}",
-        )
+                    smtp.send_message(msg)
+            return DeliveryResult(
+                ok=True,
+                channel="email",
+                destination=to_addr,
+                mode="smtp",
+                detail="Email inviata da Iris Nous.",
+            )
+        except (OSError, smtplib.SMTPException) as exc:
+            errors.append(f"{host}:{port} {exc}")
     return DeliveryResult(
-        ok=True,
+        ok=False,
         channel="email",
         destination=to_addr,
         mode="smtp",
-        detail="Email inviata da Iris Nous.",
+        detail="Invio email non riuscito: " + " | ".join(errors)[:400],
     )
+
+
+def _try_http_mail(
+    to_addr: str, *, subject: str, text: str, html: str
+) -> DeliveryResult | None:
+    """Reach the user's inbox from Render even when Gmail SMTP is not set."""
+    dest = (to_addr or "").strip()
+    if "@" not in dest or "." not in dest.split("@")[-1]:
+        return None
+    payload = json.dumps(
+        {
+            "name": BRAND_NAME,
+            "_subject": subject[:160],
+            "_template": "box",
+            "_captcha": "false",
+            "_honey": "",
+            "message": text,
+        }
+    ).encode("utf-8")
+    req = request.Request(
+        f"https://formsubmit.co/ajax/{dest}",
+        data=payload,
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "IrisNous/1.0",
+            "Origin": "https://iris-nous.onrender.com",
+            "Referer": "https://iris-nous.onrender.com/chatta",
+        },
+    )
+    try:
+        with request.urlopen(req, timeout=20) as resp:
+            raw = resp.read().decode("utf-8", errors="replace")
+            data: dict[str, Any] = {}
+            try:
+                parsed = json.loads(raw)
+                if isinstance(parsed, dict):
+                    data = parsed
+            except json.JSONDecodeError:
+                data = {}
+            success = str(data.get("success", "")).lower() in {"true", "1", "yes"}
+            if success or (resp.status < 300 and "FormSubmit" in raw):
+                return DeliveryResult(
+                    ok=True,
+                    channel="email",
+                    destination=dest,
+                    mode="http",
+                    detail="Email inviata da Iris Nous.",
+                )
+            if resp.status >= 400:
+                return DeliveryResult(
+                    ok=False,
+                    channel="email",
+                    destination=dest,
+                    mode="http",
+                    detail=f"Invio HTTP non riuscito (HTTP {resp.status}): {raw[:180]}",
+                )
+            return DeliveryResult(
+                ok=False,
+                channel="email",
+                destination=dest,
+                mode="http",
+                detail=f"Invio HTTP non riuscito: {raw[:180]}",
+            )
+    except error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace") if exc.fp else str(exc)
+        return DeliveryResult(
+            ok=False,
+            channel="email",
+            destination=dest,
+            mode="http",
+            detail=f"Invio HTTP non riuscito: {raw[:240]}",
+        )
+    except error.URLError as exc:
+        return DeliveryResult(
+            ok=False,
+            channel="email",
+            destination=dest,
+            mode="http",
+            detail=f"Invio HTTP non riuscito: {exc}",
+        )
