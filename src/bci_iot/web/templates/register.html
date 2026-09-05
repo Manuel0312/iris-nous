@@ -10,7 +10,7 @@
       <input name="username" autocomplete="username" required maxlength="64" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="{{ t('es. maria_rossi') }}" />
     </label>
     <label>{{ t('Email') }}
-      <input name="email" type="email" autocomplete="email" required maxlength="254" placeholder="{{ t('la tua mail, es. nome@gmail.com') }}" autocapitalize="none" spellcheck="false" />
+      <input name="email" type="email" autocomplete="email" required maxlength="254" inputmode="email" placeholder="{{ t('la tua mail, es. nome@gmail.com') }}" autocapitalize="none" spellcheck="false" pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}" title="{{ t('Serve un dominio con estensione, es. nome@gmail.com') }}" />
     </label>
     <label>{{ t('Password (minimo livello medio)') }}
       <div class="password-field">

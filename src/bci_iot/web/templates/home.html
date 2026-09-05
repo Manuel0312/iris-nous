@@ -5,13 +5,15 @@
 
 {% block unito_top %}
 <div class="unito-top">
-  <img
-    class="unito-logo"
-    src="/static/brand/unito-di.png"
-    alt="di.unito.it — Dipartimento di Informatica"
-    width="80"
-    height="80"
-  />
+  <a class="unito-top-link" href="/" title="{{ t('Home') }}">
+    <img
+      class="unito-logo"
+      src="/static/brand/unito-di.png"
+      alt="{{ t('Home') }} — di.unito.it, Dipartimento di Informatica"
+      width="80"
+      height="80"
+    />
+  </a>
   <p class="unito-name">
     <span class="unito-name-main">{{ t('Università degli Studi di Torino') }}</span>
     <span class="unito-name-sub">{{ t('Dipartimento di Informatica') }}</span>
@@ -24,9 +26,9 @@
 <section class="apple-hero" aria-label="Prodotto">
   <h1 class="apple-name">Iris</h1>
   <p class="hero-verbs" aria-label="pensa, agisci, crea.">
-    <span class="hero-verb hero-verb-1" data-delay="2500">{{ t('pensa,') }}</span>
-    <span class="hero-verb hero-verb-2" data-delay="5000">{{ t('agisci,') }}</span>
-    <span class="hero-verb hero-verb-3" data-delay="7500">{{ t('crea.') }}</span>
+    <span class="hero-verb hero-verb-1" data-delay="1250">{{ t('pensa,') }}</span>
+    <span class="hero-verb hero-verb-2" data-delay="2500">{{ t('agisci,') }}</span>
+    <span class="hero-verb hero-verb-3" data-delay="3750">{{ t('crea.') }}</span>
   </p>
   <p class="apple-tagline">
     {{ t("Il pensiero diventa azione. Niente comandi vocali, nessun movimento. Iris Nous è l'interfaccia neurale che decodifica le tue intenzioni e le connette direttamente al mondo fisico. Immagina, e accade.") }}
@@ -147,7 +149,8 @@
     }
 
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduceMotion) return;
+    const coarse = window.matchMedia("(hover: none), (pointer: coarse), (max-width: 859px)").matches;
+    if (reduceMotion || coarse) return;
 
     document.querySelectorAll(".story-shot, .band-shot").forEach((card) => {
       card.addEventListener("pointermove", (event) => {

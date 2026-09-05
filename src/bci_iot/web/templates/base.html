@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ lang|default('it') }}" data-theme="auto">
+<html lang="{{ lang|default('it') }}" data-theme="system">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -13,27 +13,27 @@
   <link rel="apple-touch-icon" href="/static/icon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/styles.css?v=irisPages1" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;600;700&family=Noto+Sans+SC:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=irisPages4" />
   <script>
     (function () {
-      try {
-        var KEY = "voila-theme";
-        var saved = localStorage.getItem(KEY) || "auto";
-        if (saved !== "light" && saved !== "dark" && saved !== "auto") saved = "auto";
-        function resolve(mode) {
-          if (mode === "light" || mode === "dark") return mode;
-          var h = new Date().getHours();
-          return (h >= 7 && h < 19) ? "light" : "dark";
+      function scheme() {
+        try {
+          return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        } catch (e) {
+          return "light";
         }
-        var resolved = resolve(saved);
-        document.documentElement.setAttribute("data-theme", saved);
-        document.documentElement.setAttribute("data-theme-resolved", resolved);
-        document.documentElement.style.colorScheme = resolved;
-      } catch (e) {
-        document.documentElement.setAttribute("data-theme", "auto");
-        document.documentElement.setAttribute("data-theme-resolved", "light");
       }
+      function apply() {
+        var resolved = scheme();
+        var root = document.documentElement;
+        root.setAttribute("data-theme", "system");
+        root.setAttribute("data-theme-resolved", resolved);
+        root.style.colorScheme = resolved;
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", resolved === "dark" ? "#0b0b0d" : "#f5f5f7");
+      }
+      apply();
     })();
   </script>
 </head>
@@ -41,6 +41,17 @@
   <canvas class="iris-bg" id="iris-bg" aria-hidden="true"></canvas>
   <header class="topbar">
     <div class="topbar-left">
+      <a class="unito-home" href="/" title="{{ t('Home') if t is defined else 'Home' }}" aria-label="{{ t('Home') if t is defined else 'Home' }}">
+        <img src="/static/brand/unito-di.png" alt="UNITO — Home" width="36" height="36" />
+      </a>
+      <a class="brand-mark" href="/" aria-label="Iris Nous home">Iris Nous</a>
+      {% if site_is_local is defined %}
+      <span class="site-chip {% if site_is_local %}is-local{% else %}is-cloud{% endif %}">
+        {{ t('Locale') if site_is_local else t('Online') }}
+      </span>
+      {% endif %}
+    </div>
+    <div class="topbar-tools">
       <div class="lang-switch" data-lang-switch>
         {% set current = languages|selectattr('code', 'equalto', lang)|list if languages is defined else [] %}
         {% set cur = current[0] if current else none %}
@@ -54,10 +65,7 @@
         </button>
         <div class="lang-menu" id="lang-menu" hidden role="listbox" aria-label="{{ t('Lingua') if t is defined else 'Lingua' }}">
           {% for item in languages %}
-          <a class="lang-option {% if item.code == lang %}is-active{% endif %}"
-             role="option"
-             aria-selected="{{ 'true' if item.code == lang else 'false' }}"
-             href="/lingua/{{ item.code }}">
+          <a class="lang-option {% if item.code == lang %}is-active{% endif %}" href="/lingua/{{ item.code }}" role="option" aria-selected="{{ 'true' if item.code == lang else 'false' }}" data-lang="{{ item.code }}">
             <span class="flag-wrap" aria-hidden="true">
               <span class="lang-flag">{{ item.flag }}</span>
               <img class="flag-img" src="{{ item.flag_src }}" alt="{{ item.code }}" width="28" height="21" loading="lazy" onerror="this.classList.add('is-broken')" />
@@ -68,19 +76,6 @@
           {% endfor %}
         </div>
       </div>
-      <a class="brand-mark" href="/" aria-label="Iris Nous home">Iris Nous</a>
-      {% if site_is_local is defined %}
-      <span class="site-chip {% if site_is_local %}is-local{% else %}is-cloud{% endif %}">
-        {{ t('Locale') if site_is_local else t('Online') }}
-      </span>
-      {% endif %}
-    </div>
-    <div class="topbar-tools">
-      <div class="theme-switch" role="group" aria-label="{{ t('Tema') if t is defined else 'Tema' }}">
-        <button type="button" data-theme-set="light" title="{{ t('Chiaro') if t is defined else 'Chiaro' }}">{{ t('Chiaro') if t is defined else 'Chiaro' }}</button>
-        <button type="button" data-theme-set="dark" title="{{ t('Scuro') if t is defined else 'Scuro' }}">{{ t('Scuro') if t is defined else 'Scuro' }}</button>
-        <button type="button" data-theme-set="auto" title="{{ t('Auto') if t is defined else 'Auto' }}">{{ t('Auto') if t is defined else 'Auto' }}</button>
-      </div>
       <div class="menu-wrap">
         <button class="nav-toggle" type="button" id="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-haspopup="true">
           {{ t('Menu') if t is defined else 'Menu' }}
@@ -90,8 +85,6 @@
             {% if is_admin %}
             <a href="/accessi">{{ t('Pannello admin') }}</a>
             <a href="/notifiche">{{ t('Notifiche') }}{% if support_unread %}<span class="nav-badge">{{ support_unread }}</span>{% endif %}</a>
-            <a href="/invio-codici">{{ t('Mail Iris Nous') }}</a>
-            <a href="/chatta?canale=email">{{ t('Contattaci') }}</a>
             <a href="/cambia-password">{{ t('Cambia password') }}</a>
             {% else %}
             <a href="/anagrafica?edit=1" class="{% if request.url.path.startswith('/anagrafica') %}is-current{% endif %}">{{ t('I miei dati') }}</a>
@@ -136,87 +129,127 @@
   {% endblock %}
 
   {% block chat_fab %}
+    {% if not is_admin|default(false) %}
   <a class="chat-fab" href="/chatta" aria-label="{{ t('Chatta con noi') }}">
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v7A2.5 2.5 0 0 1 16.5 16H10l-4.2 3.2A.8.8 0 0 1 4.5 18.6V6.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
     </svg>
     <span>{{ t('Chatta con noi') }}</span>
   </a>
+  {% endif %}
   {% endblock %}
 
   <script>
     (function () {
-      const KEY = "voila-theme";
       const root = document.documentElement;
-      function resolve(mode) {
-        if (mode === "light" || mode === "dark") return mode;
-        const h = new Date().getHours();
-        return (h >= 7 && h < 19) ? "light" : "dark";
+      function scheme() {
+        try {
+          return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        } catch (e) {
+          return "light";
+        }
       }
-      function apply(mode, { animate = true } = {}) {
-        if (mode !== "light" && mode !== "dark" && mode !== "auto") mode = "auto";
-        const resolved = resolve(mode);
+      function applyTheme(animate) {
+        const resolved = scheme();
         const prev = root.getAttribute("data-theme-resolved");
         if (animate && prev && prev !== resolved) {
           root.classList.remove("theme-switching");
           void root.offsetWidth;
           root.classList.add("theme-switching");
-          window.setTimeout(() => root.classList.remove("theme-switching"), 780);
+          window.setTimeout(() => root.classList.remove("theme-switching"), 400);
         }
-        root.setAttribute("data-theme", mode);
+        root.setAttribute("data-theme", "system");
         root.setAttribute("data-theme-resolved", resolved);
         root.style.colorScheme = resolved;
-        try { localStorage.setItem(KEY, mode); } catch (e) {}
-        document.querySelectorAll("[data-theme-set]").forEach((btn) => {
-          btn.classList.toggle("is-active", btn.getAttribute("data-theme-set") === mode);
-        });
         const meta = document.querySelector('meta[name="theme-color"]');
         if (meta) meta.setAttribute("content", resolved === "dark" ? "#0b0b0d" : "#f5f5f7");
       }
-      let initial = "auto";
-      try { initial = localStorage.getItem(KEY) || "auto"; } catch (e) {}
-      apply(initial, { animate: false });
-
-      document.querySelectorAll("[data-theme-set]").forEach((btn) => {
-        btn.addEventListener("click", () => apply(btn.getAttribute("data-theme-set"), { animate: true }));
-      });
-
-      setInterval(() => {
-        if (root.getAttribute("data-theme") === "auto") apply("auto", { animate: true });
-      }, 60 * 1000);
+      applyTheme(false);
+      try {
+        const mq = window.matchMedia("(prefers-color-scheme: dark)");
+        if (mq.addEventListener) mq.addEventListener("change", () => applyTheme(true));
+        else if (mq.addListener) mq.addListener(() => applyTheme(true));
+      } catch (e) {}
 
       const toggle = document.getElementById("nav-toggle");
       const nav = document.getElementById("site-nav");
+      const langToggle = document.getElementById("lang-toggle");
+      const langMenu = document.getElementById("lang-menu");
+
+      function closeNav() {
+        if (!nav || !toggle) return;
+        nav.classList.remove("is-open");
+        document.body.classList.remove("nav-open");
+        toggle.setAttribute("aria-expanded", "false");
+      }
+      function closeLang() {
+        if (!langMenu || !langToggle) return;
+        langMenu.hidden = true;
+        document.body.classList.remove("lang-open");
+        langToggle.setAttribute("aria-expanded", "false");
+      }
+
+      function goHref(href) {
+        if (!href) return;
+        window.location.assign(href);
+      }
+
       if (toggle && nav) {
         toggle.addEventListener("click", (e) => {
+          e.preventDefault();
           e.stopPropagation();
-          const open = nav.classList.toggle("is-open");
-          toggle.setAttribute("aria-expanded", open ? "true" : "false");
+          const willOpen = !nav.classList.contains("is-open");
+          if (willOpen) closeLang();
+          nav.classList.toggle("is-open", willOpen);
+          document.body.classList.toggle("nav-open", willOpen);
+          toggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
         });
-        document.addEventListener("click", (e) => {
-          if (!nav.classList.contains("is-open")) return;
-          if (nav.contains(e.target) || toggle.contains(e.target)) return;
-          nav.classList.remove("is-open");
-          toggle.setAttribute("aria-expanded", "false");
+        nav.querySelectorAll("a[href]").forEach((a) => {
+          a.addEventListener("click", (e) => {
+            const href = a.getAttribute("href");
+            if (!href || href.startsWith("#")) return;
+            e.preventDefault();
+            e.stopPropagation();
+            closeNav();
+            window.setTimeout(() => goHref(href), 0);
+          });
         });
       }
 
-      const langToggle = document.getElementById("lang-toggle");
-      const langMenu = document.getElementById("lang-menu");
       if (langToggle && langMenu) {
         langToggle.addEventListener("click", (e) => {
+          e.preventDefault();
           e.stopPropagation();
-          const open = langMenu.hidden;
-          langMenu.hidden = !open;
-          langToggle.setAttribute("aria-expanded", open ? "true" : "false");
+          const willOpen = langMenu.hidden;
+          if (willOpen) closeNav();
+          langMenu.hidden = !willOpen;
+          document.body.classList.toggle("lang-open", willOpen);
+          langToggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
         });
-        document.addEventListener("click", (e) => {
-          if (langMenu.hidden) return;
-          if (langMenu.contains(e.target) || langToggle.contains(e.target)) return;
-          langMenu.hidden = true;
-          langToggle.setAttribute("aria-expanded", "false");
+        langMenu.querySelectorAll("a[href]").forEach((a) => {
+          a.addEventListener("click", (e) => {
+            const href = a.getAttribute("href");
+            if (!href) return;
+            e.preventDefault();
+            e.stopPropagation();
+            goHref(href);
+          });
         });
       }
+
+      document.addEventListener("click", (e) => {
+        const t = e.target;
+        if (!(t instanceof Node)) return;
+        if (t instanceof Element && (t.closest("a[href]") || t.closest("form.lang-option-form"))) {
+          return;
+        }
+        if (nav && nav.classList.contains("is-open")) {
+          if (!nav.contains(t) && !(toggle && toggle.contains(t))) closeNav();
+        }
+        if (langMenu && !langMenu.hidden) {
+          if (!langMenu.contains(t) && !(langToggle && langToggle.contains(t))) closeLang();
+        }
+      });
 
       document.querySelectorAll("[data-toggle-password]").forEach((btn) => {
         const input = document.getElementById(btn.getAttribute("data-toggle-password"));
@@ -260,6 +293,6 @@
       }
     })();
   </script>
-  <script src="/static/bg3d.js?v=irisBg3d3" defer></script>
+  <script src="/static/bg3d.js?v=irisBg3d5" defer></script>
 </body>
 </html>

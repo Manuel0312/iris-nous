@@ -139,7 +139,20 @@ def test_chatta_and_admin_inbox_flow(tmp_path: Path) -> None:
     assert "status-replied" in done.text
     assert "iris-bg" in client.get("/").text
     assert "bg3d.js" in client.get("/login").text
-    assert "page-private" in client.get("/chatta").text
-    assert 'class="chat-fab"' not in client.get("/chatta").text
+    assert "page-private" in client.get("/notifiche").text
+    assert 'class="chat-fab"' not in client.get("/accessi").text
+    assert "Mail Iris Nous" not in client.get("/accessi").text
+    assert "Contattaci" not in client.get("/accessi").text
+    chat_admin = client.get("/chatta", follow_redirects=False)
+    assert chat_admin.status_code in {302, 303}
+    assert "/notifiche" in chat_admin.headers.get("location", "")
+    guest_chat = TestClient(app).get("/chatta")
+    assert "Chi sei" in guest_chat.text
+    assert "ai-chat" in guest_chat.text
+    assert "Agente AI" in guest_chat.text
+    assert "contatto telefonico" in guest_chat.text
+    mail = TestClient(app).get("/chatta?canale=email")
+    assert "contact-mail" in mail.text
+    assert "Contattaci" in mail.text
     accessi = client.get("/accessi?q=luca@gmail.com")
     assert accessi.status_code == 200

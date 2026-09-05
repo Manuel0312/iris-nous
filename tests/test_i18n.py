@@ -23,7 +23,8 @@ def test_home_uses_detected_language(tmp_path: Path) -> None:
     client = TestClient(app)
     page = client.get("/", headers={"Accept-Language": "en-GB,en;q=0.9"})
     assert page.status_code == 200
-    assert "Il pensiero diventa azione" in page.text
+    assert "Thought becomes action" in page.text
+    assert "Il pensiero diventa azione" not in page.text
 
 
 def test_english_switch_persists(tmp_path: Path) -> None:
@@ -35,7 +36,8 @@ def test_english_switch_persists(tmp_path: Path) -> None:
     assert switched.status_code in {302, 303}
     assert switched.cookies.get(COOKIE_NAME) == "en"
     home = client.get("/")
-    assert "Il pensiero diventa azione" in home.text
+    assert "Thought becomes action" in home.text
+    assert "think," in home.text
     login = client.get("/login")
     assert "Log in" in login.text or "Sign in" in login.text
 
@@ -51,6 +53,50 @@ def test_language_switch_persists(tmp_path: Path) -> None:
     assert "Deutsch" in login.text
     assert "/flags/de.svg" in login.text
     assert "flagcdn.com" not in login.text
+
+
+def test_spanish_is_supported(tmp_path: Path) -> None:
+    app = create_app(data_dir=tmp_path, session_secret="lang-es")
+    client = TestClient(app)
+    switched = client.get("/lingua/es", follow_redirects=False)
+    assert switched.status_code in {302, 303}
+    assert switched.cookies.get(COOKIE_NAME) == "es"
+    login = client.get("/login")
+    assert "Español" in login.text
+    assert "/flags/es.svg" in login.text
+    assert "Iniciar sesión" in login.text
+    es_flag = client.get("/flags/es.svg")
+    assert es_flag.status_code == 200
+    assert b"<svg" in es_flag.content
+    home_es = client.get("/")
+    assert "piensa," in home_es.text or "Piensa" in home_es.text or "piensa" in home_es.text.lower()
+    assert "El pensamiento se convierte en acción" in home_es.text
+    assert 'href="/lingua/es"' in home_es.text
+    assert 'href="/lingua/ja"' in home_es.text
+    assert 'href="/lingua/zh"' in home_es.text
+
+
+def test_japanese_and_chinese_switch(tmp_path: Path) -> None:
+    app = create_app(data_dir=tmp_path, session_secret="lang-cjk")
+    client = TestClient(app)
+    ja = client.get("/lingua/ja", follow_redirects=False)
+    assert ja.status_code in {302, 303}
+    assert ja.cookies.get(COOKIE_NAME) == "ja"
+    login_ja = client.get("/login")
+    assert "ログイン" in login_ja.text
+    assert "Noto+Sans+JP" in login_ja.text
+    zh = client.get("/lingua/zh", follow_redirects=False)
+    assert zh.cookies.get(COOKIE_NAME) == "zh"
+    login_zh = client.get("/login")
+    assert "登录" in login_zh.text
+    home_ja = client.get("/lingua/ja", follow_redirects=True)
+    assert "考え、" in home_ja.text
+    assert "思考が行動になる" in home_ja.text
+    home_zh = client.get("/lingua/zh", follow_redirects=True)
+    assert "思考，" in home_zh.text or "思考化为行动" in home_zh.text
+    posted = client.post("/lingua", data={"lang": "es", "next": "/login"}, follow_redirects=False)
+    assert posted.status_code in {302, 303}
+    assert posted.cookies.get(COOKIE_NAME) == "es"
 
 
 def test_local_flags_are_served(tmp_path: Path) -> None:
@@ -147,3 +193,11 @@ def test_home_storytelling(tmp_path: Path) -> None:
     assert "Manuel Bellomo" in home.text
     assert "lang-btn" in home.text
     assert "/flags/it.svg" in home.text
+    assert 'class="theme-switch"' not in home.text
+    assert "data-theme-set" not in home.text
+    assert "unito-home" in home.text
+    assert 'href="/login"' in home.text
+    assert 'href="/register"' in home.text
+    css = client.get("/static/styles.css")
+    assert css.status_code == 200
+    assert "public, max-age=86400" in css.headers.get("cache-control", "")

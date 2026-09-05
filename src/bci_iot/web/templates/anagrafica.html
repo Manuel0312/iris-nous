@@ -58,7 +58,7 @@
           <input name="last_name" value="{{ profile.last_name }}" maxlength="64" autocomplete="family-name" pattern="[^0-9]*" title="Niente numeri" />
         </label>
         <label>{{ t('Email') }}
-          <input name="email" type="email" value="{{ profile.email }}" required maxlength="254" autocomplete="email" placeholder="nome@gmail.com" />
+          <input name="email" type="email" value="{{ profile.email }}" required maxlength="254" autocomplete="email" inputmode="email" placeholder="nome@gmail.com" pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}" title="Serve un dominio con estensione, es. nome@gmail.com" />
         </label>
         {% if profile.email_verified %}
         <p class="verify-ok">{{ t('Email verificata') }}</p>
@@ -79,9 +79,9 @@
         </div>
         {% endif %}
 
-        <label>{{ t('Prefisso e telefono') }}</label>
+        <label for="phone-cc-btn">{{ t('Prefisso internazionale') }}</label>
         <div class="phone-row" id="phone-row" data-locked="{{ '1' if profile.phone_country else '0' }}">
-          <button type="button" class="phone-cc-btn" id="phone-cc-btn" aria-haspopup="listbox" aria-expanded="false">
+          <button type="button" class="phone-cc-btn" id="phone-cc-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="{{ t('Prefisso internazionale') }}">
             {% if profile.phone_country %}
               {% for c in phone_countries if c.iso == profile.phone_country %}
               <img class="flag-img" id="phone-cc-flag" src="{{ c.flag_src }}" alt="{{ c.iso }}" width="28" height="21" loading="lazy" />
@@ -95,8 +95,9 @@
           <input
             name="phone_national"
             id="phone-national"
+            type="tel"
             inputmode="numeric"
-            pattern="[0-9]*"
+            pattern="[0-9]+"
             maxlength="15"
             value="{{ profile.phone_national }}"
             placeholder="{{ t('Numero senza prefisso') }}"
@@ -267,6 +268,18 @@
     });
   }
 
+  national.addEventListener("beforeinput", (e) => {
+    if (e.data && /\D/.test(e.data)) e.preventDefault();
+  });
+  national.addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key.length === 1 && /\D/.test(e.key)) e.preventDefault();
+  });
+  national.addEventListener("paste", (e) => {
+    e.preventDefault();
+    const pasted = (e.clipboardData || window.clipboardData).getData("text") || "";
+    national.value = pasted.replace(/\D+/g, "").slice(0, 15);
+  });
   national.addEventListener("input", () => {
     national.value = national.value.replace(/\D+/g, "");
   });

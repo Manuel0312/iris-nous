@@ -7,7 +7,7 @@ from typing import Any
 
 from starlette.requests import Request
 
-SUPPORTED = ("it", "en", "fr", "de", "pt", "zh", "ja")
+SUPPORTED = ("it", "en", "es", "fr", "de", "pt", "zh", "ja")
 DEFAULT_LANG = "it"
 COOKIE_NAME = "bci_iot_lang"
 
@@ -27,6 +27,7 @@ class Language:
 LANGUAGES: tuple[Language, ...] = (
     Language("it", "Italiano", "🇮🇹", "it"),
     Language("en", "English", "🇬🇧", "gb"),
+    Language("es", "Español", "🇪🇸", "es"),
     Language("fr", "Français", "🇫🇷", "fr"),
     Language("de", "Deutsch", "🇩🇪", "de"),
     Language("pt", "Português", "🇵🇹", "pt"),
@@ -49,6 +50,26 @@ COUNTRY_TO_LANG: dict[str, str] = {
     "DE": "de",
     "AT": "de",
     "LI": "de",
+    "ES": "es",
+    "MX": "es",
+    "AR": "es",
+    "CO": "es",
+    "CL": "es",
+    "PE": "es",
+    "VE": "es",
+    "EC": "es",
+    "UY": "es",
+    "PY": "es",
+    "BO": "es",
+    "CR": "es",
+    "PA": "es",
+    "GT": "es",
+    "HN": "es",
+    "NI": "es",
+    "SV": "es",
+    "DO": "es",
+    "CU": "es",
+    "PR": "es",
     "PT": "pt",
     "BR": "pt",
     "AO": "pt",
@@ -125,10 +146,16 @@ def country_from_request(request: Request) -> str | None:
 
 
 def detect_language(request: Request) -> str:
-    """Preference order: cookie → Accept-Language → country → Italian."""
+    """Preference order: cookie → session → Accept-Language → country → Italian."""
     cookie = normalize_lang(request.cookies.get(COOKIE_NAME))
     if cookie:
         return cookie
+    try:
+        session_lang = normalize_lang(str(request.session.get("lang") or ""))
+    except Exception:
+        session_lang = None
+    if session_lang:
+        return session_lang
     accept = parse_accept_language(request.headers.get("accept-language"))
     if accept:
         return accept

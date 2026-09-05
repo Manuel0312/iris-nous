@@ -1,0 +1,2 @@
+[console_scripts]
+bci-iot = bci_iot.cli:main

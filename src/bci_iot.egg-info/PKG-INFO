@@ -1,0 +1,109 @@
+Metadata-Version: 2.4
+Name: bci-iot
+Version: 0.1.0
+Summary: UNITO CS thesis: non-invasive BCI pipeline for smart-home and media intents
+Author: Maria Antonietta
+License: MIT
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: numpy>=1.26
+Requires-Dist: scipy>=1.11
+Requires-Dist: pydantic>=2.5
+Requires-Dist: pydantic-settings>=2.1
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: scikit-learn>=1.4
+Requires-Dist: joblib>=1.3
+Requires-Dist: fastapi>=0.110
+Requires-Dist: uvicorn[standard]>=0.27
+Requires-Dist: jinja2>=3.1
+Requires-Dist: python-multipart>=0.0.9
+Requires-Dist: itsdangerous>=2.1
+Requires-Dist: httpx>=0.27
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.1; extra == "dev"
+Requires-Dist: httpx>=0.27; extra == "dev"
+Provides-Extra: acquisition
+Requires-Dist: brainflow>=5.12; extra == "acquisition"
+Provides-Extra: ml
+Requires-Dist: scikit-learn>=1.4; extra == "ml"
+Requires-Dist: joblib>=1.3; extra == "ml"
+Provides-Extra: web
+Requires-Dist: fastapi>=0.110; extra == "web"
+Requires-Dist: uvicorn[standard]>=0.27; extra == "web"
+Requires-Dist: httpx>=0.27; extra == "web"
+
+# BCI → IoT Smart System (UNITO — tesi triennale Informatica)
+
+Pipeline software per decodificare EEG (prima simulato, poi cuffia reale),
+classificarlo in intenti e instradarli verso azioni digitali (smart home, media).
+Include una futura **web app** di configurazione personale (iPhone-friendly),
+non commerciale.
+
+## Struttura
+
+```text
+src/bci_iot/
+  acquisition/     # sorgenti EEG (SyntheticBoard, file, hardware)
+  preprocessing/   # filtri, artefatti, feature α/β
+  ml/              # classificatore + adaptation
+  router/          # FSM intento → azione
+  integrations/    # Home Assistant, Spotify, stub chiamate
+  accounts/        # profilo utente / registrazione cuffia (web)
+  pipeline/        # orchestrazione end-to-end
+  web/             # API/config app (fase successiva)
+configs/           # YAML di configurazione
+tests/             # pytest — eseguire a fine ogni sessione
+notebooks/         # analisi sperimentali (non runtime)
+models/            # artefatti modello (gitignored i pesi)
+data/              # dati locali (gitignored)
+```
+
+## Setup rapido
+
+```powershell
+cd "$env:USERPROFILE\OneDrive\Desktop\TESI"
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -U pip
+pip install -e ".[dev]"
+```
+
+## Test (fine sessione)
+
+```powershell
+pytest
+```
+
+## Train modello ML (sklearn)
+
+```powershell
+bci-iot train --out models/baseline.joblib
+```
+
+## Pipeline software (CLI)
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+bci-iot train --out models/baseline.joblib
+bci-iot calibrate --user maria
+bci-iot run --windows 10 --context music_mode --model models/baseline.joblib
+bci-iot run --windows 10 --user maria --context light_mode
+```
+
+`dry_run: true` in `configs/default.yaml` → nessuna chiamata reale a HA/Spotify.
+
+## Roadmap MVP (marzo)
+
+1. ~~Simulatore EEG + preprocessing + feature~~
+2. ~~Artefatti + ML sklearn (train/predict)~~
+3. ~~Web API config profilo/cuffia (scheletro)~~
+4. FSM + azioni reali (HA/Spotify) oltre al mock
+5. UI web più usabile + calibrazione utente
+6. (Opzionale) cuffia fisica meccatronica sulla stessa interfaccia
+
+## Nota account / iPhone
+
+La configurazione utente avverrà via **web app** (usabile da iPhone).
+Un account locale servirà a salvare profilo cuffia e mapping azioni —
+gratuito e non commerciale, solo personalizzazione.

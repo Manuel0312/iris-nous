@@ -378,7 +378,7 @@ def send_branded_email(
             mode="demo",
             detail=(
                 "Mail aziendale non ancora collegata: in locale trovi il contenuto qui sotto. "
-                "Collega Gmail/Resend da Admin → Mail Iris Nous per l'invio reale."
+                "Collega Gmail o Resend dalle impostazioni del server per l'invio reale."
             ),
             demo_code=code,
             demo_link=link,
@@ -389,8 +389,8 @@ def send_branded_email(
         destination=destination,
         mode="demo",
         detail=(
-            "Invio email non configurato. Vai su Admin → Mail Iris Nous "
-            "e collega Gmail SMTP oppure Resend."
+            "Invio email non configurato. Collega Gmail SMTP oppure Resend "
+            "nelle variabili del server."
         ),
     )
 

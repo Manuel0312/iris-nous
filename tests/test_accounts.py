@@ -81,6 +81,10 @@ def test_name_rejects_digits_and_email_needs_domain(tmp_path: Path) -> None:
         normalize_email("senza-chiocciola")
     with pytest.raises(ValueError):
         normalize_email("a@b")
+    with pytest.raises(ValueError):
+        normalize_email("test@test")
+    with pytest.raises(ValueError):
+        normalize_email("test@test.c")
     assert normalize_email("Nome@Gmail.com") == "nome@gmail.com"
 
     store = ProfileStore(tmp_path)

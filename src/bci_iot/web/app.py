@@ -38,6 +38,7 @@ from bci_iot.accounts.timefmt import format_access_it
 
 from bci_iot.accounts.store import ProfileStore, UserProfile
 from bci_iot.accounts.phone_countries import PHONE_COUNTRIES
+from bci_iot.accounts.validators import normalize_email
 from bci_iot.accounts.messaging import (
     configure_messaging_store,
     load_dotenv_file,
@@ -65,6 +66,18 @@ from bci_iot.web.i18n import (
 DEFAULT_PUBLIC_URL = "https://iris-nous.onrender.com"
 
 WEB_DIR = Path(__file__).resolve().parent
+
+_STATIC_CACHE = "public, max-age=86400"
+
+
+class CachedStaticFiles(StaticFiles):
+    """Serve CSS/JS/immagini con Cache-Control, così un F5 non li riscarica."""
+
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        if getattr(response, "status_code", 500) < 400:
+            response.headers["Cache-Control"] = _STATIC_CACHE
+        return response
 
 TEMPLATES = Jinja2Templates(directory=str(WEB_DIR / "templates"))
 TEMPLATES.env.filters["it_time"] = format_access_it
@@ -276,10 +289,10 @@ def create_app(
         request.state.lang = detect_language(request)
         return await call_next(request)
 
-    app.mount("/static", StaticFiles(directory=str(WEB_DIR / "static")), name="static")
+    app.mount("/static", CachedStaticFiles(directory=str(WEB_DIR / "static")), name="static")
     photos_dir = store.photos_dir
     photos_dir.mkdir(parents=True, exist_ok=True)
-    app.mount("/media/photos", StaticFiles(directory=str(photos_dir)), name="photos")
+    app.mount("/media/photos", CachedStaticFiles(directory=str(photos_dir)), name="photos")
     app.state.store = store
     app.state.access_db = access_db
     app.state.admin_username = admin_user
@@ -323,13 +336,14 @@ def create_app(
 
     def _redirect_with_lang(request: Request, url: str, lang: str) -> RedirectResponse:
         response = RedirectResponse(url, status_code=303)
+        secure = https_only or str(request.url.scheme).lower() == "https"
         response.set_cookie(
             COOKIE_NAME,
             lang,
             max_age=60 * 60 * 24 * 365,
             httponly=False,
             samesite="lax",
-            secure=https_only,
+            secure=secure,
             path="/",
         )
         return response
@@ -522,7 +536,9 @@ def create_app(
 
                 path = urlparse(referer).path or "/"
                 query = urlparse(referer).query
-                if path.startswith("/"):
+                if path.startswith("/lingua"):
+                    dest = "/"
+                elif path.startswith("/"):
                     dest = f"{path}?{query}" if query else path
             except Exception:
                 dest = "/"
@@ -1096,7 +1112,7 @@ def create_app(
         if status["email_ready"]:
             _flash(
                 request,
-                "Mail Iris Nous attiva: i codici di recupero partiranno via email reale.",
+                "Invio email attivo: i codici di recupero partiranno via email reale.",
                 kind="ok",
             )
         else:
@@ -1264,7 +1280,7 @@ def create_app(
             else:
                 _flash(
                     request,
-                    "Risposta salvata nella chat, ma l’invio email non è riuscito. Controlla Mail Iris Nous.",
+                    "Risposta salvata nella chat, ma l’invio email non è riuscito. Controlla la configurazione email del server.",
                     kind="error",
                 )
         else:
@@ -1282,6 +1298,8 @@ def create_app(
     ) -> HTMLResponse:
         username = _session_username(request)
         profile = profiles.get(username) if username else None
+        if profile is not None and profile.is_admin:
+            return RedirectResponse("/notifiche", status_code=303)
         channel = (request.query_params.get("canale") or "chat").strip().lower()
         if channel not in {"chat", "email"}:
             channel = "chat"
@@ -1322,7 +1340,12 @@ def create_app(
             username = profile.username
         else:
             username = ""
-            if "@" not in guest_email:
+            if len(guest_name) < 2:
+                _flash(request, "Scrivi il tuo nome, così sappiamo chi ci ha scritto.", kind="error")
+                return RedirectResponse("/chatta", status_code=303)
+            try:
+                guest_email = normalize_email(guest_email)
+            except ValueError:
                 _flash(request, "Inserisci un’email a cui possiamo risponderti.", kind="error")
                 return RedirectResponse("/chatta", status_code=303)
         access.add_user_support_message(

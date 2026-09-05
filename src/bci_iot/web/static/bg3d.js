@@ -2,6 +2,15 @@
 (function () {
   const canvas = document.getElementById("iris-bg");
   if (!canvas || !canvas.getContext) return;
+  const skip =
+    window.matchMedia("(max-width: 859px), (pointer: coarse), (prefers-reduced-motion: reduce)").matches ||
+    document.body.classList.contains("page-chat") ||
+    document.body.classList.contains("page-ai-chat") ||
+    document.body.classList.contains("page-contact-mail");
+  if (skip) {
+    canvas.remove();
+    return;
+  }
   const ctx = canvas.getContext("2d");
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const mode = document.body.classList.contains("page-private") ? "vault" : "neural";

@@ -40,7 +40,8 @@ def test_product_home_and_dropdown(tmp_path: Path) -> None:
     assert "password-toggle" in client.get("/login").text
     assert "data-reveal" in page.text
     assert 'name="viewport"' in page.text
-    assert 'data-theme-set="auto"' in page.text
+    assert "prefers-color-scheme" in page.text
+    assert "data-theme-set" not in page.text
 
 
 def test_register_login_logged_and_admin_sees_accessi(tmp_path: Path) -> None:
