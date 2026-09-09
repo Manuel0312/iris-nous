@@ -1882,7 +1882,13 @@ def create_app(
             "level": check.level,
             "message": check.message,
             "requirements": [
-                {"id": r.id, "label": r.label, "ok": r.ok} for r in check.requirements
+                {
+                    "id": r.id,
+                    "label": r.label,
+                    "ok": r.ok,
+                    "optional": r.optional,
+                }
+                for r in check.requirements
             ],
         }
 

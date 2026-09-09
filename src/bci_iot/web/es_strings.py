@@ -141,6 +141,8 @@ ES: dict[str, str] = {
     "se ce l’hai, altrimenti lascia vuoto": "si lo tienes, si no déjalo vacío",
     "Password (minimo livello medio)": "Contraseña (nivel medio como mínimo)",
     "Serve almeno: 8 caratteri, una maiuscola, un numero.": "Hace falta al menos: 8 caracteres, una mayúscula, un número.",
+    "Serve almeno: 8 caratteri, una maiuscola, un numero. I consigliati restano gialli finché non li soddisfi.": "Hace falta al menos: 8 caracteres, una mayúscula, un número. Los recomendados siguen en amarillo hasta que los cumplas.",
+    "Le tue bolle sono verdi a destra. Le risposte del team Iris sono grigie a sinistra.": "Tus burbujas son verdes a la derecha. Las respuestas del equipo Iris son grises a la izquierda.",
     "ID cuffia (opzionale)": "ID del casco (opcional)",
     "Crea account": "Crear cuenta",
     "Recupera password": "Recuperar contraseña",

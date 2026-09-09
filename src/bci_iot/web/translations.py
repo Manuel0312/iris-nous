@@ -1138,6 +1138,22 @@ _RAW: dict[str, dict[str, str]] = {
         "zh": "至少需要：8 个字符、一个大写字母、一个数字。",
         "ja": "最低：8文字、大文字1つ、数字1つ。",
     },
+    "Serve almeno: 8 caratteri, una maiuscola, un numero. I consigliati restano gialli finché non li soddisfi.": {
+        "en": "Need at least: 8 characters, one uppercase, one digit. Recommended rules stay yellow until met.",
+        "fr": "Il faut au moins : 8 caractères, une majuscule, un chiffre. Les conseils restent jaunes tant qu’ils ne sont pas remplis.",
+        "de": "Mindestens: 8 Zeichen, ein Großbuchstabe, eine Ziffer. Empfohlene Regeln bleiben gelb, bis sie erfüllt sind.",
+        "pt": "É preciso pelo menos: 8 caracteres, uma maiúscula, um número. Os recomendados ficam amarelos até os cumprires.",
+        "zh": "至少需要：8 个字符、一个大写字母、一个数字。建议项在满足前保持黄色。",
+        "ja": "最低：8文字、大文字1つ、数字1つ。推奨項目は満たすまで黄色のままです。",
+    },
+    "Le tue bolle sono verdi a destra. Le risposte del team Iris sono grigie a sinistra.": {
+        "en": "Your bubbles are green on the right. Iris team replies are gray on the left.",
+        "fr": "Vos bulles sont vertes à droite. Les réponses de l’équipe Iris sont grises à gauche.",
+        "de": "Deine Blasen sind rechts grün. Antworten vom Iris-Team sind links grau.",
+        "pt": "As tuas bolhas são verdes à direita. As respostas da equipa Iris são cinzentas à esquerda.",
+        "zh": "你的气泡在右侧为绿色。Iris 团队回复在左侧为灰色。",
+        "ja": "あなたの吹き出しは右側で緑。Irisチームの返信は左側でグレーです。",
+    },
     "ID cuffia (opzionale)": {
         "en": "Headset ID (optional)",
         "fr": "ID casque (optionnel)",

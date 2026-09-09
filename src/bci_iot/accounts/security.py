@@ -18,6 +18,7 @@ class PasswordRequirement:
     id: str
     label: str
     ok: bool
+    optional: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,7 +75,7 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def password_requirements(password: str) -> tuple[PasswordRequirement, ...]:
-    """Interactive checklist items (red→green as the user types)."""
+    """Interactive checklist: mandatory red→green; optional/recommended yellow→green."""
 
     pwd = password or ""
     return (
@@ -85,13 +86,20 @@ def password_requirements(password: str) -> tuple[PasswordRequirement, ...]:
             "lower",
             "Almeno una lettera minuscola (consigliato)",
             bool(re.search(r"[a-z]", pwd)),
+            optional=True,
         ),
         PasswordRequirement(
             "special",
             "Almeno un carattere speciale (consigliato)",
             bool(re.search(r"[^A-Za-z0-9]", pwd)),
+            optional=True,
         ),
-        PasswordRequirement("long", "Almeno 12 caratteri (consigliato)", len(pwd) >= 12),
+        PasswordRequirement(
+            "long",
+            "Almeno 12 caratteri (consigliato)",
+            len(pwd) >= 12,
+            optional=True,
+        ),
     )
 
 

@@ -2836,19 +2836,19 @@ body.page-chat .chat-fab {
   color: var(--ink);
 }
 
-/* Risposte del team: azzurro Iris (mai verde) */
+/* Risposte del team: grigio neutro (mai verde utente, mai azzurro) */
 .chat-bubble.chat-team,
 .chat-bubble.chat-admin {
-  background: #d7e6f7;
-  border: 1px solid #9db8d8;
-  color: #102338;
+  background: #e8eaed;
+  border: 1px solid #c5c9d0;
+  color: #1d1d1f;
 }
 
 .chat-bubble.chat-team .chat-who,
 .chat-bubble.chat-team time,
 .chat-bubble.chat-admin .chat-who,
 .chat-bubble.chat-admin time {
-  color: color-mix(in srgb, #102338 58%, transparent);
+  color: color-mix(in srgb, #1d1d1f 55%, transparent);
 }
 
 .chat-who {
@@ -3017,13 +3017,12 @@ body.page-chat .chat-fab {
   font-size: 0.7rem;
 }
 
-/* Consigliati: giallo se non soddisfatti, verde se ok */
-.pwd-reqs li.is-optional {
-  color: #c9a227;
+/* Facoltativi/consigliati: giallo finché non ok, poi verde */
+.pwd-reqs li.is-optional:not(.is-ok) {
+  color: #d4a017;
 }
 
-.pwd-reqs li.is-ok,
-.pwd-reqs li.is-optional.is-ok {
+.pwd-reqs li.is-ok {
   color: #1f7a45;
 }
 
