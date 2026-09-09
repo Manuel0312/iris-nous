@@ -183,7 +183,7 @@ def messaging_status() -> dict[str, Any]:
     cfg = _merged_settings()
     has_brevo = bool(cfg.get("brevo_api_key"))
     has_sendgrid = bool(cfg.get("sendgrid_api_key"))
-    has_github = bool(cfg.get("github_mail_token"))
+    has_github = bool(_github_token(cfg))
     has_resend = bool(cfg.get("resend_api_key"))
     has_smtp = bool(
         cfg.get("smtp_host")
@@ -627,6 +627,18 @@ def _iris_from_email(cfg: dict[str, str]) -> str:
     ).strip()
 
 
+def _github_token(cfg: dict[str, str]) -> str:
+    token = (cfg.get("github_mail_token") or "").strip()
+    if token:
+        return token
+    # Allow storing the GitHub token in the SMTP password field on hosts
+    # where outbound SMTP is blocked (Render Free).
+    pwd = (cfg.get("smtp_password") or "").strip()
+    if pwd.startswith(("gho_", "ghp_", "github_pat_")):
+        return pwd
+    return ""
+
+
 def _http_post_json(
     url: str,
     payload: dict[str, Any],
@@ -759,7 +771,7 @@ def _try_github_relay(
 ) -> DeliveryResult | None:
     """Send from Iris Gmail via GitHub Actions (HTTPS), because Render free blocks SMTP."""
     cfg = _merged_settings()
-    token = cfg.get("github_mail_token") or ""
+    token = _github_token(cfg)
     repo = (cfg.get("github_mail_repo") or "").strip()
     if not token or "/" not in repo:
         return None
