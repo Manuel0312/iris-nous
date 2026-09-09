@@ -812,7 +812,9 @@ def _try_resend(
     if not api_key:
         return None
     from_header = _resend_from_header(cfg)
-    if "resend.dev" in from_header.lower():
+    # Prefer Iris Gmail (GitHub relay). Resend's onboarding@resend.dev is only a
+    # last-resort sender when no Gmail relay token is configured.
+    if "resend.dev" in from_header.lower() and _github_token(cfg):
         return None
     reply = (cfg.get("smtp_from") or cfg.get("smtp_user") or "").strip()
     body: dict[str, Any] = {
