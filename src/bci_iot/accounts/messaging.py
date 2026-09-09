@@ -115,6 +115,8 @@ def update_messaging_config(
     *,
     brand_from_email: str | None = None,
     resend_api_key: str | None = None,
+    github_mail_token: str | None = None,
+    github_mail_repo: str | None = None,
     smtp_host: str | None = None,
     smtp_port: str | None = None,
     smtp_user: str | None = None,
@@ -125,6 +127,8 @@ def update_messaging_config(
     mapping = {
         "brand_from_email": brand_from_email,
         "resend_api_key": resend_api_key,
+        "github_mail_token": github_mail_token,
+        "github_mail_repo": github_mail_repo,
         "smtp_host": smtp_host,
         "smtp_port": smtp_port,
         "smtp_user": smtp_user,
@@ -210,6 +214,8 @@ def messaging_status() -> dict[str, Any]:
         "smtp_user": cfg.get("smtp_user") or "",
         "smtp_from": cfg.get("smtp_from") or "",
         "smtp_password_set": bool(cfg.get("smtp_password")),
+        "github_mail_token_set": bool(cfg.get("github_mail_token")),
+        "github_mail_repo": cfg.get("github_mail_repo") or "Manuel0312/iris-nous",
         "demo_allowed": _demo_allowed(),
     }
 
@@ -283,31 +289,40 @@ def build_code_email(*, code: str, purpose: str) -> tuple[str, str, str]:
     }
     label = labels.get(purpose, "il tuo account")
     if purpose == "recover":
-        subject = f"{BRAND_NAME}: codice per recuperare la password"
+        subject = f"Recupera la password · {BRAND_NAME}"
+        title = "Recupera la password"
+        intro = (
+            f"Hai chiesto di reimpostare la password su <strong>{BRAND_NAME}</strong>. "
+            "Inserisci il codice qui sotto nella pagina di recupero."
+        )
+        hint = (
+            "Scrivilo nella pagina <strong>Recupera password</strong> e scegli "
+            "la nuova password. Valido per <strong>10 minuti</strong>."
+        )
     else:
-        subject = f"{BRAND_NAME}: il tuo codice di sicurezza"
+        subject = f"Il tuo codice · {BRAND_NAME}"
+        title = "Il tuo codice"
+        intro = (
+            f"Hai richiesto <strong>{label}</strong> sul tuo account {BRAND_NAME}. "
+            "Usa il codice qui sotto per continuare."
+        )
+        hint = (
+            "Valido per <strong>10 minuti</strong>. Usalo solo sulla pagina ufficiale "
+            f"di {BRAND_NAME}."
+        )
     text = (
         f"{BRAND_NAME}\n\n"
         f"Hai richiesto {label}.\n\n"
-        f"Il tuo codice di sicurezza è: {code}\n\n"
-        f"Il codice scade tra 10 minuti. Non condividerlo con nessuno.\n"
-        f"Iris Nous non ti chiederà mai questo codice al telefono o in chat.\n\n"
-        f"Se non sei stata/o tu, ignora questa email: la password non verrà modificata.\n\n"
+        f"Il tuo codice è: {code}\n\n"
+        f"Il codice scade tra 10 minuti. Non condividerlo con nessuno.\n\n"
+        f"Se non sei stata/o tu, ignora questa email.\n\n"
         f"— Team {BRAND_NAME}\n"
     )
     middle = f"""
-      <p style="margin:0 0 8px;font-size:13px;color:#86868b;">Codice di sicurezza</p>
-      <p style="margin:0 0 20px;font-size:32px;letter-spacing:.35em;font-weight:700;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;">{code}</p>
-      <p style="margin:0;font-size:14px;line-height:1.5;color:#424245;">
-        Valido per <strong>10 minuti</strong>. Usalo solo sulla pagina ufficiale di {BRAND_NAME}.
-      </p>
+      <p style="margin:0 0 18px;font-size:36px;letter-spacing:.38em;font-weight:700;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;color:#1d1d1f;">{code}</p>
+      <p style="margin:0;font-size:15px;line-height:1.55;color:#424245;">{hint}</p>
     """
-    html = _shell_html(
-        title="Conferma la tua richiesta",
-        intro=f"Hai richiesto <strong>{label}</strong> sul tuo account {BRAND_NAME}. "
-        f"Usa il codice qui sotto per continuare.",
-        middle_html=middle,
-    )
+    html = _shell_html(title=title, intro=intro, middle_html=middle)
     return subject, text, html
 
 
@@ -319,20 +334,20 @@ def build_signup_confirm_email(
         f"{BRAND_NAME}\n\n"
         f"Ciao {username},\n\n"
         f"per completare l'iscrizione a {BRAND_NAME} inserisci questo codice "
-        f"nella pagina di conferma:\n\n"
+        f"nella pagina Conferma la tua email:\n\n"
         f"  {code}\n\n"
-        f"Il codice scade tra 24 ore.\n"
-        f"Se non trovi l'email, controlla anche Spam.\n\n"
+        f"Oppure apri questo link:\n{confirm_url}\n\n"
+        f"Codice e link scadono tra 24 ore.\n"
         f"Se non hai creato tu questo account, ignora questa email.\n\n"
         f"— Team {BRAND_NAME}\n"
     )
     middle = f"""
-      <p style="margin:0 0 8px;font-size:13px;color:#86868b;">Codice di conferma</p>
-      <p style="margin:0 0 18px;font-size:32px;letter-spacing:.35em;font-weight:700;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;">{code}</p>
-      <p style="margin:0 0 22px;font-size:14px;line-height:1.5;color:#424245;">
-        Copialo nella pagina <strong>Conferma la tua email</strong> sul sito Iris Nous.
+      <p style="margin:0 0 18px;font-size:36px;letter-spacing:.38em;font-weight:700;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;color:#1d1d1f;">{code}</p>
+      <p style="margin:0 0 22px;font-size:15px;line-height:1.55;color:#424245;">
+        Scrivilo nella pagina <strong>Conferma la tua email</strong> sul sito
+        <strong style="background:#fff3b0;padding:0 4px;border-radius:4px;">Iris</strong>.
       </p>
-      <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 20px;">
+      <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 16px;">
         <tr><td style="border-radius:980px;background:#1d1d1f;">
           <a href="{confirm_url}"
              style="display:inline-block;padding:14px 28px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;">
@@ -341,7 +356,7 @@ def build_signup_confirm_email(
         </td></tr>
       </table>
       <p style="margin:0;font-size:12px;line-height:1.5;color:#86868b;">
-        Se il pulsante non apre la pagina giusta, usa solo il codice. Controlla anche Spam.
+        Se il pulsante non apre la pagina, usa solo il codice. Controlla anche Spam.
       </p>
     """
     html = _shell_html(
@@ -521,11 +536,11 @@ def build_pairing_email(
 ) -> tuple[str, str, str]:
     who = (name or "").strip() or "ciao"
     device = (headset_id or "").strip() or "la tua cuffia"
-    subject = f"Il tuo codice Iris Nous: {code}"
+    subject = f"Il tuo codice Iris Nous"
     text = (
         f"{BRAND_NAME}\n\n"
         f"Ciao {who},\n\n"
-        f"ecco il codice a 6 cifre per associare {device} e, se vuoi, lo smartphone.\n\n"
+        f"ecco il codice a 6 cifre per associare {device}:\n\n"
         f"  {code}\n\n"
         f"Apri la pagina di associazione e inserisci il codice:\n"
         f"{pair_url}\n\n"
@@ -533,11 +548,9 @@ def build_pairing_email(
         f"— Team {BRAND_NAME}\n"
     )
     middle = f"""
-      <p style="margin:0 0 8px;font-size:13px;color:#86868b;">Codice di associazione</p>
-      <p style="margin:0 0 18px;font-size:32px;letter-spacing:.35em;font-weight:700;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;">{code}</p>
-      <p style="margin:0 0 20px;font-size:14px;line-height:1.55;color:#424245;">
-        Serve per collegare <strong>{device}</strong>.
-        Aprilo sulla pagina di associazione.
+      <p style="margin:0 0 18px;font-size:36px;letter-spacing:.38em;font-weight:700;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;color:#1d1d1f;">{code}</p>
+      <p style="margin:0 0 20px;font-size:15px;line-height:1.55;color:#424245;">
+        Serve per collegare <strong>{device}</strong>. Aprilo sulla pagina di associazione.
       </p>
       <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 16px;">
         <tr><td style="border-radius:980px;background:#1d1d1f;">
@@ -548,7 +561,7 @@ def build_pairing_email(
         </td></tr>
       </table>
       <p style="margin:0;font-size:12px;line-height:1.5;color:#86868b;">
-        Se il pulsante non apre la pagina giusta, vai su Associa telefono nel menu e scrivi il codice a mano.
+        Se il pulsante non apre la pagina, vai su Associa telefono e scrivi il codice a mano.
       </p>
     """
     html = _shell_html(

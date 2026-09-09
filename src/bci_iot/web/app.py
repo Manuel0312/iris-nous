@@ -1060,6 +1060,8 @@ def create_app(
         profiles: ProfileStore = Depends(_store),
         brand_from_email: str = Form(""),
         resend_api_key: str = Form(""),
+        github_mail_token: str = Form(""),
+        github_mail_repo: str = Form(""),
         smtp_host: str = Form(""),
         smtp_port: str = Form("587"),
         smtp_user: str = Form(""),
@@ -1076,6 +1078,8 @@ def create_app(
         update_messaging_config(
             brand_from_email=brand_from_email or None,
             resend_api_key=resend_api_key or None,
+            github_mail_token=github_mail_token or None,
+            github_mail_repo=github_mail_repo or None,
             smtp_host=smtp_host or None,
             smtp_port=smtp_port or "587",
             smtp_user=smtp_user or None,
@@ -1092,7 +1096,7 @@ def create_app(
         else:
             _flash(
                 request,
-                "Salvato, ma manca ancora Resend API key oppure Gmail SMTP.",
+                "Salvato, ma manca ancora la configurazione per inviare le email.",
                 kind="error",
             )
         return RedirectResponse("/invio-codici", status_code=303)

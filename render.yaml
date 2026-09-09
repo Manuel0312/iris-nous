@@ -33,6 +33,10 @@ services:
         sync: false
       - key: BCI_IOT_MAIL_FROM
         sync: false
+      - key: BCI_IOT_GITHUB_MAIL_REPO
+        value: Manuel0312/iris-nous
+      - key: BCI_IOT_GITHUB_MAIL_TOKEN
+        sync: false
       - key: BCI_IOT_SPOTIFY_CLIENT_ID
         sync: false
       - key: BCI_IOT_SPOTIFY_CLIENT_SECRET
