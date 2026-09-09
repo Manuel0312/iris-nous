@@ -104,5 +104,22 @@
     <p class="muted">Nessun messaggio registrato.</p>
     {% endif %}
   </div>
+
+  {% if can_purge %}
+  <form
+    method="post"
+    action="/accessi/utente/{{ target }}/elimina"
+    class="panel danger-zone reveal"
+    data-reveal
+    onsubmit="return confirm('Eliminare definitivamente l’account di {{ target }}? Username ed email torneranno liberi: dovrà iscriversi di nuovo.');"
+  >
+    <h2>Elimina account</h2>
+    <p class="muted">
+      Cancella l’account in modo definitivo. La persona non potrà più accedere:
+      per tornare su Iris dovrà creare un nuovo account.
+    </p>
+    <button class="btn danger" type="submit">Elimina definitivamente</button>
+  </form>
+  {% endif %}
 </section>
 {% endblock %}

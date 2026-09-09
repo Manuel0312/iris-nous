@@ -726,6 +726,27 @@ class ProfileStore:
         self.save(profile)
         self.db.soft_delete_user(username)
 
+    def hard_delete(self, username: str) -> None:
+        """Permanently remove an account so the person must register again."""
+        profile = self.get(username, include_deleted=True)
+        if profile is None:
+            # Anagrafica-only leftover: still purge DB rows.
+            if self.db.get_anagrafica(username) is None and not self.db.username_taken(
+                username
+            ):
+                raise KeyError(f"unknown user: {username}")
+        elif profile.is_admin:
+            raise ValueError("Non puoi eliminare l'account amministratore.")
+        else:
+            photo = (profile.photo_filename or "").strip()
+            if photo:
+                path = self.photos_dir / photo
+                try:
+                    path.unlink(missing_ok=True)
+                except OSError:
+                    pass
+        self.db.hard_delete_user(username)
+
     def update_anagrafica(
         self,
         username: str,

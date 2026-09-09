@@ -423,6 +423,29 @@ class AccessDatabase:
             conn.commit()
         self.mark_deleted(username)
 
+    def hard_delete_user(self, username: str) -> None:
+        """Remove the account row completely so username/email can be reused."""
+        key = username.strip()
+        if not key:
+            return
+        with self._connect() as conn:
+            conn.execute(
+                "DELETE FROM users WHERE username = ? COLLATE NOCASE",
+                (key,),
+            )
+            conn.execute(
+                "DELETE FROM user_anagrafica WHERE username = ? COLLATE NOCASE",
+                (key,),
+            )
+            conn.execute(
+                """
+                INSERT INTO access_logs (username, event, ip, user_agent, created_at)
+                VALUES (?, 'account_purged', '', '', ?)
+                """,
+                (key, _utc_now()),
+            )
+            conn.commit()
+
     def count_users(self, *, deleted: bool = False, exclude_admin: bool = False) -> int:
         clauses: list[str] = []
         if deleted:

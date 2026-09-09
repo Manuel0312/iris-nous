@@ -1116,8 +1116,12 @@ def create_app(
             _flash(request, "Solo l’amministratore può vedere gli accessi.", kind="error")
             return RedirectResponse("/", status_code=303)
         ana = access.get_anagrafica(target)
-        user_profile = profiles.get(target)
+        user_profile = profiles.get(target, include_deleted=True)
         events = access.list_user_events(target)
+        if user_profile is not None:
+            can_purge = not bool(user_profile.is_admin)
+        else:
+            can_purge = ana is not None
         return TEMPLATES.TemplateResponse(
             request,
             "accessi_user.html",
@@ -1127,6 +1131,7 @@ def create_app(
                 target=target,
                 anagrafica=ana,
                 user_profile=user_profile.public_dict() if user_profile else None,
+                can_purge=can_purge,
                 events=events,
                 support_threads=[
                     {
@@ -1141,6 +1146,48 @@ def create_app(
                 ],
             ),
         )
+
+    @app.post("/accessi/utente/{target}/elimina")
+    def accessi_user_purge(
+        request: Request,
+        target: str,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> RedirectResponse:
+        username = _session_username(request)
+        if not username:
+            return RedirectResponse("/login", status_code=303)
+        admin = profiles.get(username)
+        if admin is None or not admin.is_admin:
+            _flash(request, "Solo l’amministratore può eliminare gli account.", kind="error")
+            return RedirectResponse("/", status_code=303)
+        target_name = (target or "").strip()
+        if not target_name:
+            return RedirectResponse("/accessi", status_code=303)
+        if target_name.casefold() == admin.username.casefold():
+            _flash(request, "Non puoi eliminare l'account amministratore.", kind="error")
+            return RedirectResponse(f"/accessi/utente/{target_name}", status_code=303)
+        try:
+            profiles.hard_delete(target_name)
+        except KeyError:
+            _flash(request, "Account non trovato.", kind="error")
+            return RedirectResponse("/accessi", status_code=303)
+        except ValueError as exc:
+            _flash(request, str(exc), kind="error")
+            return RedirectResponse(f"/accessi/utente/{target_name}", status_code=303)
+        _log_access(
+            request,
+            username=admin.username,
+            event="admin_purge_user",
+            access=access,
+        )
+        _flash(
+            request,
+            f"Account «{target_name}» eliminato definitivamente. "
+            "Per tornare su Iris dovrà iscriversi di nuovo.",
+            kind="ok",
+        )
+        return RedirectResponse("/accessi", status_code=303)
 
     def _admin_or_redirect(
         request: Request, profiles: ProfileStore
@@ -1607,19 +1654,17 @@ def create_app(
     def delete_account(
         request: Request,
         profiles: ProfileStore = Depends(_store),
-        access: AccessDatabase = Depends(_access),
     ) -> RedirectResponse:
         loaded = _require_profile(request, profiles)
         if isinstance(loaded, RedirectResponse):
             return loaded
         try:
-            profiles.soft_delete(loaded.username)
-            access.mark_deleted(loaded.username)
+            profiles.hard_delete(loaded.username)
         except ValueError as exc:
             _flash(request, str(exc), kind="error")
             return RedirectResponse("/anagrafica?edit=1", status_code=303)
         request.session.clear()
-        _flash(request, "Account eliminato.", kind="ok")
+        _flash(request, "Account eliminato definitivamente.", kind="ok")
         return RedirectResponse("/", status_code=303)
 
     @app.get("/api/password-strength")
