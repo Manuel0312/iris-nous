@@ -375,11 +375,7 @@ def create_app(
             confirm_url=confirm_url,
             code=code,
         )
-        sent_real = bool(delivery.ok and delivery.mode != "demo")
-        if sent_real:
-            request.session.pop("email_preview_code", None)
-        else:
-            request.session["email_preview_code"] = code
+        request.session.pop("email_preview_code", None)
         return delivery
 
     def _pairing_mail_already_sent(profile: UserProfile) -> bool:
@@ -424,22 +420,18 @@ def create_app(
         if delivery.ok:
             profile = _mark_pairing_mail_sent(profiles, profile)
             if flash:
-                if delivery.mode == "demo" and delivery.demo_code:
-                    _flash(
-                        request,
-                        f"Codice inviato (demo locale): {delivery.demo_code}. "
-                        "In produzione arriva via email.",
-                        kind="ok",
-                    )
-                else:
-                    masked = mask_destination(dest, channel="email")
-                    _flash(
-                        request,
-                        f"Codice di associazione inviato via email a {masked}.",
-                        kind="ok",
-                    )
+                masked = mask_destination(dest, channel="email")
+                _flash(
+                    request,
+                    f"Codice di associazione inviato via email a {masked}.",
+                    kind="ok",
+                )
         elif flash:
-            _flash(request, delivery.detail, kind="error")
+            _flash(
+                request,
+                "Non siamo riusciti a inviare l'email. Controlla Spam e riprova.",
+                kind="error",
+            )
         return profile, delivery
 
     def _continue(
@@ -591,11 +583,7 @@ def create_app(
         except ValueError as exc:
             msg = str(exc)
             if _host_is_local(request):
-                msg = (
-                    f"{msg} "
-                    "Se questo account è sul telefono, non registrarlo di nuovo qui: "
-                    f"usa il sito online ({_configured_public_url()})."
-                )
+                msg = f"{msg} Se hai già un account, prova ad accedere."
             _flash(request, msg, kind="error")
             return _continue(
                 request,
@@ -617,30 +605,16 @@ def create_app(
             request.session["username"] = created.username
             _log_access(request, username=created.username, event="register", access=access)
             if not delivery.ok:
-                extra = f" ({delivery.detail})" if delivery.detail else ""
                 _flash(
                     request,
-                    "Account creato. La mail non è partita: usa il codice in questa pagina "
-                    "e controlla anche Spam dopo aver premuto Reinvia."
-                    + extra,
+                    "Account creato. Se non trovi l'email, controlla Spam e premi Reinvia.",
                     kind="error",
-                )
-            elif delivery.mode == "demo" and (delivery.demo_code or delivery.demo_link):
-                bits = []
-                if delivery.demo_code:
-                    bits.append(f"codice {delivery.demo_code}")
-                if delivery.demo_link:
-                    bits.append(f"link {delivery.demo_link}")
-                _flash(
-                    request,
-                    "Account creato (prova locale): " + " · ".join(bits),
-                    kind="ok",
                 )
             else:
                 _flash(
                     request,
-                    "Account creato. Controlla la posta (anche Spam): "
-                    "c’è un codice da inserire qui, oppure il pulsante di conferma.",
+                    "Account creato. Ti abbiamo inviato una email con il codice di verifica. "
+                    "Controlla anche Spam.",
                     kind="ok",
                 )
         return _continue(
@@ -663,7 +637,6 @@ def create_app(
         if profile.is_admin or profile.email_verified:
             request.session.pop("email_preview_code", None)
             return RedirectResponse(_post_auth_destination(profile), status_code=303)
-        preview = str(request.session.get("email_preview_code") or "")
         return TEMPLATES.TemplateResponse(
             request,
             "attendi_conferma_email.html",
@@ -672,7 +645,6 @@ def create_app(
                 profiles,
                 profile=profile,
                 masked_email=mask_destination(profile.email, channel="email"),
-                preview_code=preview,
             ),
         )
 
@@ -697,21 +669,13 @@ def create_app(
         if not delivery.ok:
             _flash(
                 request,
-                "Non siamo riusciti a spedire la mail. Usa il codice in questa pagina "
-                "e riprova tra un minuto.",
+                "Non siamo riusciti a inviare l'email. Controlla Spam e riprova tra un minuto.",
                 kind="error",
             )
-        elif delivery.mode == "demo" and (delivery.demo_code or delivery.demo_link):
-            bits = []
-            if delivery.demo_code:
-                bits.append(f"codice {delivery.demo_code}")
-            if delivery.demo_link:
-                bits.append(f"link {delivery.demo_link}")
-            _flash(request, "Nuova mail (locale): " + " · ".join(bits), kind="ok")
         else:
             _flash(
                 request,
-                "Ti abbiamo reinviato l'email. Controlla anche Spam e usa il codice nella pagina.",
+                "Ti abbiamo reinviato l'email. Controlla anche Spam.",
                 kind="ok",
             )
         return RedirectResponse("/attendi-conferma-email", status_code=303)
@@ -799,22 +763,11 @@ def create_app(
                     kind="error",
                 )
             else:
-                if _host_is_local(request):
-                    _flash(
-                        request,
-                        "Nessun account con questi dati su questo sito locale. "
-                        "Se ti sei iscritta dal telefono, entra dal sito online "
-                        f"({_configured_public_url()}).",
-                        kind="error",
-                    )
-                else:
-                    _flash(
-                        request,
-                        "Nessun account con questi dati. "
-                        "Se ti sei iscritta sul PC locale, quello è un database diverso: "
-                        "entra con l’account creato qui, oppure iscriviti di nuovo sul sito online.",
-                        kind="error",
-                    )
+                _flash(
+                    request,
+                    "Nessun account con questi dati. Controlla username e password, oppure iscriviti.",
+                    kind="error",
+                )
             return _continue(
                 request,
                 next_url="/login?errore=1",
@@ -908,22 +861,20 @@ def create_app(
                 purpose="recover",
             )
             if not delivery.ok:
-                _flash(request, delivery.detail, kind="error")
+                _flash(
+                    request,
+                    "Non siamo riusciti a inviare l'email. Controlla Spam e riprova.",
+                    kind="error",
+                )
                 return RedirectResponse("/recupera-password", status_code=303)
             request.session["recover_step"] = "code"
             request.session["recover_user"] = profile.username
             request.session["recover_channel"] = "email"
             masked = mask_destination(dest, channel="email")
-            if delivery.mode == "demo" and delivery.demo_code:
-                msg = (
-                    f"Codice per {masked}: {delivery.demo_code} "
-                    "(6 caratteri, senza spazi). Copialo qui sotto."
-                )
-            else:
-                msg = (
-                    f"Ti abbiamo inviato un'email da Iris Nous a {masked}. "
-                    "Controlla la posta (anche spam): codice di 6 caratteri, senza spazi."
-                )
+            msg = (
+                f"Ti abbiamo inviato un'email da Iris Nous a {masked}. "
+                "Controlla la posta (anche Spam) e inserisci il codice."
+            )
             _flash(request, msg, kind="ok")
             return RedirectResponse("/recupera-password", status_code=303)
 
@@ -1304,24 +1255,16 @@ def create_app(
                 demo_payload=text,
             )
             masked = mask_destination(destination, channel="email")
-            if result.ok and result.mode == "demo":
+            if result.ok:
                 _flash(
                     request,
-                    "Risposta salvata in Chatta con noi. In locale la mail di prova non parte.",
-                    kind="ok",
-                )
-            elif result.ok:
-                _flash(
-                    request,
-                    f"Risposta visibile in Chatta con noi e inviata via email a {masked}.",
+                    f"Risposta inviata in Chatta con noi e via email a {masked}.",
                     kind="ok",
                 )
             else:
                 _flash(
                     request,
-                    "Risposta salvata in Chatta con noi, ma la mail non è partita. "
-                    "L’utente la vede riaprendo Chatta con noi. "
-                    f"{(result.detail or '')[:180]}".strip(),
+                    "Risposta salvata in Chatta con noi. L'email non è partita: la persona la vede comunque in chat.",
                     kind="error",
                 )
         else:
@@ -1473,7 +1416,7 @@ def create_app(
         )
         _flash(
             request,
-            "Messaggio inviato. Ti rispondiamo qui e via email. Lascia aperta questa pagina, oppure riaprila dallo stesso telefono o con la stessa email.",
+            "Messaggio inviato. Ti risponderemo il prima possibile.",
             kind="ok",
         )
         return _continue(request, next_url="/chatta", message="Messaggio inviato...")
@@ -1612,22 +1555,19 @@ def create_app(
         )
         back = "/anagrafica?edit=1" if loaded.anagrafica_complete else "/anagrafica"
         if not delivery.ok:
-            _flash(request, delivery.detail, kind="error")
+            _flash(
+                request,
+                "Non siamo riusciti a inviare l'email. Controlla Spam e riprova.",
+                kind="error",
+            )
             return RedirectResponse(back, status_code=303)
-        if delivery.mode == "demo" and delivery.demo_code:
-            _flash(
-                request,
-                f"Demo locale: codice {delivery.demo_code} (6 caratteri, senza spazi).",
-                kind="ok",
-            )
-        else:
-            masked = mask_destination(dest, channel=channel)  # type: ignore[arg-type]
-            where = "email" if channel == "email" else "SMS"
-            _flash(
-                request,
-                f"Codice inviato via {where} a {masked}. Scade tra 10 minuti.",
-                kind="ok",
-            )
+        masked = mask_destination(dest, channel=channel)  # type: ignore[arg-type]
+        where = "email" if channel == "email" else "SMS"
+        _flash(
+            request,
+            f"Codice inviato via {where} a {masked}. Scade tra 10 minuti.",
+            kind="ok",
+        )
         return RedirectResponse(back, status_code=303)
 
     @app.post("/verifica/conferma")

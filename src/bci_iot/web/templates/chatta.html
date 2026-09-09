@@ -7,7 +7,7 @@
 <section class="contact-mail" aria-labelledby="team-chat-title">
   <p class="eyebrow">{{ t('Supporto') }}</p>
   <h1 id="team-chat-title">{{ t('Chatta con noi') }}</h1>
-  <p class="lede">{{ t('Scrivi il problema nel form. Ti rispondiamo di persona qui e via email, da telefono o da computer.') }}</p>
+  <p class="lede">{{ t('Spiegaci il problema e ti risponderemo il prima possibile.') }}</p>
 
   {% if messages %}
   <ol class="chat-log" id="team-chat-log">
@@ -20,7 +20,7 @@
     {% endfor %}
   </ol>
   {% if waiting %}
-  <p class="muted" id="chat-wait">{{ t('In attesa della risposta. Resta su questa pagina, oppure riaprila dopo: la trovi anche da un altro dispositivo con la stessa email.') }}</p>
+  <p class="muted" id="chat-wait">{{ t('Abbiamo ricevuto il messaggio. Ti risponderemo il prima possibile.') }}</p>
   {% endif %}
   {% endif %}
 
@@ -52,7 +52,7 @@
 
   {% if not profile %}
   <form class="panel contact-mail-form reopen-chat" method="post" action="/chatta/apri">
-    <p class="form-hint">{{ t('Hai già scritto da un altro telefono o dal computer? Inserisci la stessa email per vedere le risposte.') }}</p>
+    <p class="form-hint">{{ t('Se hai già una conversazione con noi, inserisci la mail per visualizzarla.') }}</p>
     <label>{{ t('Email') }}
       <input name="email" type="email" required maxlength="254" autocomplete="email" inputmode="email" />
     </label>

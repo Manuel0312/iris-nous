@@ -8,9 +8,6 @@
   {% if request.query_params.get('errore') %}
   <p class="flash error">{{ t('Password non corretta. Controlla username e password, senza spazi extra.') }}</p>
   {% endif %}
-  {% if not site_is_local %}
-  <p class="form-hint">{{ t('Sei sul sito online: qui vivono gli account del telefono e Spotify. Quelli creati solo sul PC locale non esistono qui.') }}</p>
-  {% endif %}
   <form method="post" action="/login" class="stack" id="login-form" autocomplete="on">
     <label>{{ t('Username o email') }}
       <input name="username" autocomplete="username" required maxlength="64" autocapitalize="none" autocorrect="off" spellcheck="false" />

@@ -181,6 +181,9 @@ def test_chatta_and_admin_inbox_flow(tmp_path: Path, monkeypatch) -> None:
     assert "/notifiche" in chat_admin.headers.get("location", "")
     guest_chat = TestClient(app).get("/chatta")
     assert "Chi sei" in guest_chat.text
+    assert "Spiegaci il problema e ti risponderemo il prima possibile." in guest_chat.text
+    assert "Ti rispondiamo di persona" not in guest_chat.text
+    assert "Hai già scritto da un altro telefono" not in guest_chat.text
     assert "Agente AI" not in guest_chat.text
     assert "ai-chat" not in guest_chat.text
     assert "contact-modes" not in guest_chat.text
@@ -228,6 +231,7 @@ def test_resend_request_includes_user_agent(monkeypatch) -> None:
         return _Resp()
 
     monkeypatch.setenv("BCI_IOT_RESEND_API_KEY", "re_test_key")
+    monkeypatch.setenv("BCI_IOT_RESEND_FROM", "Iris Nous <mail@irisnous.test>")
     monkeypatch.setattr(messaging_mod.request, "urlopen", fake_urlopen)
     result = messaging_mod._try_resend(
         "manu@example.com",
@@ -238,3 +242,97 @@ def test_resend_request_includes_user_agent(monkeypatch) -> None:
     assert result is not None and result.ok
     assert "user-agent" in captured
     assert "IrisNous" in captured["user-agent"]
+
+
+def test_resend_skipped_when_from_would_be_onboarding(monkeypatch) -> None:
+    from bci_iot.accounts import messaging as messaging_mod
+
+    monkeypatch.setenv("BCI_IOT_RESEND_API_KEY", "re_test_key")
+    monkeypatch.delenv("BCI_IOT_RESEND_FROM", raising=False)
+    monkeypatch.setenv("BCI_IOT_SMTP_FROM", "noreply.irisnous@gmail.com")
+    monkeypatch.setenv("BCI_IOT_MAIL_FROM", "noreply.irisnous@gmail.com")
+    assert (
+        messaging_mod._try_resend(
+            "ve@gmail.com",
+            subject="s",
+            text="t",
+            html="<p>t</p>",
+        )
+        is None
+    )
+
+
+def test_brevo_sends_from_iris_gmail(monkeypatch) -> None:
+    import json
+
+    from bci_iot.accounts import messaging as messaging_mod
+
+    captured: dict[str, object] = {}
+
+    class _Resp:
+        status = 201
+
+        def read(self) -> bytes:
+            return b'{"messageId":"abc"}'
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args) -> bool:
+            return False
+
+    def fake_urlopen(req, timeout=20):
+        captured["body"] = json.loads(req.data.decode("utf-8"))
+        captured["headers"] = {k.lower(): v for k, v in req.header_items()}
+        return _Resp()
+
+    monkeypatch.setenv("BCI_IOT_BREVO_API_KEY", "xkeysib-test")
+    monkeypatch.setenv("BCI_IOT_SMTP_FROM", "noreply.irisnous@gmail.com")
+    monkeypatch.setattr(messaging_mod.request, "urlopen", fake_urlopen)
+    result = messaging_mod._try_brevo(
+        "ve@gmail.com",
+        subject="Conferma la tua iscrizione a Iris Nous",
+        text="codice ABC123",
+        html="<p>ABC123</p>",
+    )
+    assert result is not None and result.ok
+    body = captured["body"]
+    assert isinstance(body, dict)
+    assert body["sender"]["email"] == "noreply.irisnous@gmail.com"
+    assert "ABC123" in body["textContent"]
+    headers = captured["headers"]
+    assert isinstance(headers, dict)
+    assert "IrisNous" in str(headers.get("user-agent") or "")
+
+
+def test_github_relay_posts_dispatch(monkeypatch) -> None:
+    from bci_iot.accounts import messaging as messaging_mod
+
+    captured: dict[str, object] = {}
+
+    def fake_http(url, payload, extra_headers, timeout=20):
+        captured["url"] = url
+        captured["payload"] = payload
+        captured["headers"] = extra_headers
+        return 204, ""
+
+    monkeypatch.setenv("BCI_IOT_GITHUB_MAIL_TOKEN", "ghs_test")
+    monkeypatch.setenv("BCI_IOT_GITHUB_MAIL_REPO", "Manuel0312/iris-nous")
+    monkeypatch.setattr(messaging_mod, "_http_post_json", fake_http)
+    result = messaging_mod._try_github_relay(
+        "ve@gmail.com",
+        subject="Conferma la tua iscrizione a Iris Nous",
+        text="Il tuo codice è ABCD12",
+        html="<p>ABCD12</p>",
+    )
+    assert result is not None and result.ok
+    assert result.mode == "github"
+    payload = captured["payload"]
+    assert isinstance(payload, dict)
+    assert payload["event_type"] == "iris-mail"
+    body = payload["client_payload"]
+    assert body["to"] == "ve@gmail.com"
+    assert "ABCD12" in body["text"]
+    headers = captured["headers"]
+    assert isinstance(headers, dict)
+    assert "Bearer ghs_test" in str(headers.get("Authorization") or "")

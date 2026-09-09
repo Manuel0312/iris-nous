@@ -45,10 +45,8 @@
         <img src="/static/brand/unito-di.png" alt="UNITO — Home" width="36" height="36" />
       </a>
       <a class="brand-mark" href="/" aria-label="Iris Nous home">Iris Nous</a>
-      {% if site_is_local is defined %}
-      <span class="site-chip {% if site_is_local %}is-local{% else %}is-cloud{% endif %}">
-        {{ t('Locale') if site_is_local else t('Online') }}
-      </span>
+      {% if site_is_local %}
+      <span class="site-chip is-local">{{ t('Computer') }}</span>
       {% endif %}
     </div>
     <div class="topbar-tools">
@@ -108,8 +106,8 @@
 
   {% if site_is_local and cloud_url %}
   <div class="site-mode-banner" role="status">
-    {{ t('Stai sul sito locale del PC. Gli account del telefono (Spotify incluso) sono sul sito online.') }}
-    <a href="{{ cloud_url }}">{{ t('Apri il sito online') }}</a>
+    {{ t('Stai usando Iris su questo computer.') }}
+    <a href="{{ cloud_url }}">{{ t('Apri il sito pubblico') }}</a>
   </div>
   {% endif %}
 

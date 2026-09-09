@@ -4,7 +4,7 @@
 {% block content %}
 <section class="auth-panel">
   <h1>{{ t('Iscrizione') }}</h1>
-  <p class="lede">{{ t('Scegli un username e una mail che non stai già usando su Iris. Nome e cognome li metti al passo dopo.') }}</p>
+  <p class="lede">{{ t('Scegli un username e un’email. Nome e cognome li inserisci al passo dopo.') }}</p>
   <form method="post" action="/register" class="stack" id="register-form">
     <label>{{ t('Username') }}
       <input name="username" autocomplete="username" required maxlength="64" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="{{ t('es. maria_rossi') }}" />

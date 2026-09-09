@@ -15,9 +15,6 @@
     {% else %}Risposto{% endif %}
     · Chatta con noi
   </p>
-  {% if not email_ready|default(false) %}
-  <p class="muted">La risposta arriva comunque in Chatta con noi (telefono e PC). Per farla arrivare anche in posta, collega Gmail da <a href="/invio-codici">questa pagina</a>.</p>
-  {% endif %}
 
   <div class="panel">
     <ul class="detail-list">
@@ -45,7 +42,7 @@
 
   <form class="panel private-form" method="post" action="/notifiche/{{ thread.id }}/rispondi">
     <h2>Rispondi</h2>
-    <p class="muted">La persona vede la risposta in Chatta con noi (stesso telefono, altro telefono o PC, con la stessa email) e riceve anche una mail.</p>
+    <p class="muted">La risposta arriva in Chatta con noi e via email.</p>
     <label>Messaggio
       <textarea name="body" rows="5" required minlength="2" maxlength="4000" placeholder="Scrivi la risposta…"></textarea>
     </label>

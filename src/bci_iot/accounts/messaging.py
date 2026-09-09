@@ -1,10 +1,10 @@
 """Deliver Iris Nous branded email (signup confirm, recovery codes).
 
 SMS intentionally unused for password recovery.
-Order: Resend (HTTPS) → SMTP → HTTP fallback → local demo (dev).
-
-Render's free plan blocks outbound SMTP (ports 25/465/587), so production
-must use Resend. Gmail SMTP still works on the local PC.
+Order: Brevo / SendGrid (HTTPS, From = Iris Gmail) → GitHub Actions relay
+(Gmail SMTP from a GitHub runner, because Render Free blocks 587/465) →
+local SMTP → Resend only if the From is a verified domain
+(never onboarding@resend.dev).
 """
 
 from __future__ import annotations
@@ -32,7 +32,8 @@ _DOTENV_LOADED = False
 BRAND_NAME = "Iris Nous"
 DEFAULT_FROM_EMAIL = "noreply@iris-nous.app"
 RESEND_TEST_FROM = "Iris Nous <" + "onboarding@" + "resend.dev" + ">"
-SUPPORT_LINE = "Questa è una mail automatica di Iris Nous. Non rispondere a questo indirizzo."
+MAIL_USER_AGENT = "IrisNous/1.0 (+https://iris-nous.onrender.com)"
+SUPPORT_LINE = "Questa è una mail automatica di Iris Nous."
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,7 +41,7 @@ class DeliveryResult:
     ok: bool
     channel: Channel
     destination: str
-    mode: Literal["resend", "smtp", "http", "demo"]
+    mode: Literal["brevo", "sendgrid", "github", "resend", "smtp", "http", "demo"]
     detail: str = ""
     demo_code: str = ""
     demo_link: str = ""
@@ -157,6 +158,14 @@ def _merged_settings() -> dict[str, str]:
         "brand_from_email": brand_from,
         "resend_api_key": _env("BCI_IOT_RESEND_API_KEY")
         or str(file_cfg.get("resend_api_key") or ""),
+        "brevo_api_key": _env("BCI_IOT_BREVO_API_KEY")
+        or str(file_cfg.get("brevo_api_key") or ""),
+        "sendgrid_api_key": _env("BCI_IOT_SENDGRID_API_KEY")
+        or str(file_cfg.get("sendgrid_api_key") or ""),
+        "github_mail_token": _env("BCI_IOT_GITHUB_MAIL_TOKEN")
+        or str(file_cfg.get("github_mail_token") or ""),
+        "github_mail_repo": _env("BCI_IOT_GITHUB_MAIL_REPO")
+        or str(file_cfg.get("github_mail_repo") or "Manuel0312/iris-nous"),
         "smtp_host": _env("BCI_IOT_SMTP_HOST") or str(file_cfg.get("smtp_host") or ""),
         "smtp_port": _env("BCI_IOT_SMTP_PORT") or str(file_cfg.get("smtp_port") or "587"),
         "smtp_user": _env("BCI_IOT_SMTP_USER") or str(file_cfg.get("smtp_user") or ""),
@@ -168,16 +177,31 @@ def _merged_settings() -> dict[str, str]:
 
 def messaging_status() -> dict[str, Any]:
     cfg = _merged_settings()
+    has_brevo = bool(cfg.get("brevo_api_key"))
+    has_sendgrid = bool(cfg.get("sendgrid_api_key"))
+    has_github = bool(cfg.get("github_mail_token"))
     has_resend = bool(cfg.get("resend_api_key"))
     has_smtp = bool(
         cfg.get("smtp_host")
         and cfg.get("smtp_password")
         and (cfg.get("smtp_from") or cfg.get("smtp_user"))
     )
+    if has_brevo:
+        provider = "brevo"
+    elif has_sendgrid:
+        provider = "sendgrid"
+    elif has_github:
+        provider = "gmail"
+    elif has_resend:
+        provider = "resend"
+    elif has_smtp:
+        provider = "smtp"
+    else:
+        provider = "none"
     return {
-        "email_ready": has_resend or has_smtp,
+        "email_ready": has_brevo or has_sendgrid or has_github or has_resend or has_smtp,
         "sms_ready": False,
-        "provider": "resend" if has_resend else ("smtp" if has_smtp else "none"),
+        "provider": provider,
         "brand_name": BRAND_NAME,
         "brand_from_email": cfg.get("brand_from_email") or DEFAULT_FROM_EMAIL,
         "resend_key_set": has_resend,
@@ -294,26 +318,20 @@ def build_signup_confirm_email(
     text = (
         f"{BRAND_NAME}\n\n"
         f"Ciao {username},\n\n"
-        f"grazie per esserti iscritta/o a {BRAND_NAME}.\n\n"
-        f"Il modo piu' semplice (anche da un altro telefono): "
-        f"torna sul sito Iris e inserisci questo codice:\n\n"
+        f"per completare l'iscrizione a {BRAND_NAME} inserisci questo codice "
+        f"nella pagina di conferma:\n\n"
         f"  {code}\n\n"
-        f"Oppure apri questo link sullo stesso dispositivo dove usi Iris:\n"
-        f"{confirm_url}\n\n"
-        f"Il codice e il link scadono tra 24 ore.\n"
-        f"Se non trovi la mail, controlla Spam/Posta indesiderata "
-        f"e segnalala come Non e' spam.\n\n"
+        f"Il codice scade tra 24 ore.\n"
+        f"Se non trovi l'email, controlla anche Spam.\n\n"
         f"Se non hai creato tu questo account, ignora questa email.\n\n"
         f"— Team {BRAND_NAME}\n"
     )
     middle = f"""
-      <p style="margin:0 0 8px;font-size:13px;color:#86868b;">Codice di conferma (consigliato)</p>
-      <p style="margin:0 0 8px;font-size:32px;letter-spacing:.35em;font-weight:700;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;">{code}</p>
+      <p style="margin:0 0 8px;font-size:13px;color:#86868b;">Codice di conferma</p>
+      <p style="margin:0 0 18px;font-size:32px;letter-spacing:.35em;font-weight:700;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;">{code}</p>
       <p style="margin:0 0 22px;font-size:14px;line-height:1.5;color:#424245;">
-        Scrivilo nella pagina <strong>Conferma la tua email</strong> sul dispositivo
-        dove hai aperto Iris (funziona anche se leggi la mail da un altro telefono).
+        Copialo nella pagina <strong>Conferma la tua email</strong> sul sito Iris Nous.
       </p>
-      <p style="margin:0 0 12px;font-size:13px;color:#86868b;">Oppure, sullo stesso dispositivo / stessa rete del sito:</p>
       <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 20px;">
         <tr><td style="border-radius:980px;background:#1d1d1f;">
           <a href="{confirm_url}"
@@ -323,8 +341,7 @@ def build_signup_confirm_email(
         </td></tr>
       </table>
       <p style="margin:0;font-size:12px;line-height:1.5;color:#86868b;">
-        Se il pulsante apre una pagina non trovata, ignoralo e usa solo il codice.
-        Controlla anche Spam e segnala il messaggio come &quot;Non è spam&quot;.
+        Se il pulsante non apre la pagina giusta, usa solo il codice. Controlla anche Spam.
       </p>
     """
     html = _shell_html(
@@ -414,20 +431,15 @@ def send_branded_email(
 ) -> DeliveryResult:
     load_dotenv_file()
     errors: list[str] = []
-    resend = _try_resend(destination, subject=subject, text=text, html=html)
-    if resend is not None:
-        if resend.ok:
-            log.info("mail sent via resend to %s", destination)
-            return resend
-        log.warning("resend failed: %s", resend.detail)
-        errors.append(resend.detail)
-    smtp = _try_smtp(destination, subject=subject, text=text, html=html)
-    if smtp is not None:
-        if smtp.ok:
-            log.info("mail sent via smtp to %s", destination)
-            return smtp
-        log.warning("smtp failed: %s", smtp.detail)
-        errors.append(smtp.detail)
+    for sender in (_try_brevo, _try_sendgrid, _try_github_relay, _try_smtp, _try_resend):
+        result = sender(destination, subject=subject, text=text, html=html)
+        if result is None:
+            continue
+        if result.ok:
+            log.info("mail sent via %s to %s", result.mode, destination)
+            return result
+        log.warning("%s failed: %s", result.mode, result.detail)
+        errors.append(result.detail)
     if _demo_allowed():
         link = demo_link or (demo_payload if demo_is_link else "")
         code = "" if demo_is_link else demo_payload
@@ -438,16 +450,11 @@ def send_branded_email(
             mode="demo",
             detail=(
                 "Mail aziendale non ancora collegata: in locale trovi il contenuto qui sotto. "
-                "Collega Gmail o Resend dalle impostazioni del server per l'invio reale."
+                "Collega Gmail o Brevo dalle impostazioni del server per l'invio reale."
             ),
             demo_code=code,
             demo_link=link,
         )
-    http = _try_http_mail(destination, subject=subject, text=text, html=html)
-    if http is not None:
-        if http.ok:
-            return http
-        errors.append(http.detail)
     return DeliveryResult(
         ok=False,
         channel="email",
@@ -455,8 +462,7 @@ def send_branded_email(
         mode="demo",
         detail=(
             " ".join(errors).strip()
-            or "Invio email non configurato. Collega Gmail SMTP oppure Resend "
-            "nelle variabili del server."
+            or "Invio email non configurato."
         ),
         demo_code="" if demo_is_link else demo_payload,
         demo_link=demo_link or (demo_payload if demo_is_link else ""),
@@ -521,7 +527,7 @@ def build_pairing_email(
         f"Ciao {who},\n\n"
         f"ecco il codice a 6 cifre per associare {device} e, se vuoi, lo smartphone.\n\n"
         f"  {code}\n\n"
-        f"Apri la pagina di associazione (stesso account) e inserisci il codice:\n"
+        f"Apri la pagina di associazione e inserisci il codice:\n"
         f"{pair_url}\n\n"
         f"Non condividerlo. Se non hai chiesto tu questo codice, ignora la mail.\n\n"
         f"— Team {BRAND_NAME}\n"
@@ -530,8 +536,8 @@ def build_pairing_email(
       <p style="margin:0 0 8px;font-size:13px;color:#86868b;">Codice di associazione</p>
       <p style="margin:0 0 18px;font-size:32px;letter-spacing:.35em;font-weight:700;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;">{code}</p>
       <p style="margin:0 0 20px;font-size:14px;line-height:1.55;color:#424245;">
-        Serve per collegare <strong>{device}</strong> e, se lo desideri, il ponte sullo smartphone.
-        Aprilo sul dispositivo dove hai effettuato l’accesso.
+        Serve per collegare <strong>{device}</strong>.
+        Aprilo sulla pagina di associazione.
       </p>
       <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 16px;">
         <tr><td style="border-radius:980px;background:#1d1d1f;">
@@ -599,6 +605,180 @@ def _smtp_blocked_here() -> bool:
     return _env("BCI_IOT_HTTPS").lower() in {"1", "true", "yes", "on"}
 
 
+def _iris_from_email(cfg: dict[str, str]) -> str:
+    return (
+        cfg.get("smtp_from")
+        or cfg.get("smtp_user")
+        or cfg.get("brand_from_email")
+        or DEFAULT_FROM_EMAIL
+    ).strip()
+
+
+def _http_post_json(
+    url: str,
+    payload: dict[str, Any],
+    extra_headers: dict[str, str],
+    *,
+    timeout: int = 20,
+) -> tuple[int, str]:
+    headers = {
+        "User-Agent": MAIL_USER_AGENT,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        **extra_headers,
+    }
+    req = request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        method="POST",
+        headers=headers,
+    )
+    try:
+        with request.urlopen(req, timeout=timeout) as resp:
+            raw = resp.read().decode("utf-8", errors="replace")
+            return int(resp.status), raw
+    except error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace") if exc.fp else str(exc)
+        return int(exc.code), raw
+    except error.URLError as exc:
+        return 0, str(exc)
+
+
+def _try_brevo(
+    to_addr: str, *, subject: str, text: str, html: str
+) -> DeliveryResult | None:
+    cfg = _merged_settings()
+    api_key = cfg.get("brevo_api_key") or ""
+    if not api_key:
+        return None
+    from_addr = _iris_from_email(cfg)
+    if "@" not in from_addr:
+        return None
+    status, raw = _http_post_json(
+        "https://api.brevo.com/v3/smtp/email",
+        {
+            "sender": {"name": BRAND_NAME, "email": from_addr},
+            "to": [{"email": to_addr}],
+            "subject": subject,
+            "htmlContent": html,
+            "textContent": text,
+            "replyTo": {"name": BRAND_NAME, "email": from_addr},
+        },
+        {"api-key": api_key},
+    )
+    if 200 <= status < 300:
+        return DeliveryResult(
+            ok=True,
+            channel="email",
+            destination=to_addr,
+            mode="brevo",
+            detail="Email inviata da Iris Nous.",
+        )
+    return DeliveryResult(
+        ok=False,
+        channel="email",
+        destination=to_addr,
+        mode="brevo",
+        detail=f"Invio Brevo non riuscito: {raw[:240]}",
+    )
+
+
+def _try_sendgrid(
+    to_addr: str, *, subject: str, text: str, html: str
+) -> DeliveryResult | None:
+    cfg = _merged_settings()
+    api_key = cfg.get("sendgrid_api_key") or ""
+    if not api_key:
+        return None
+    from_addr = _iris_from_email(cfg)
+    if "@" not in from_addr:
+        return None
+    status, raw = _http_post_json(
+        "https://api.sendgrid.com/v3/mail/send",
+        {
+            "personalizations": [{"to": [{"email": to_addr}]}],
+            "from": {"email": from_addr, "name": BRAND_NAME},
+            "reply_to": {"email": from_addr, "name": BRAND_NAME},
+            "subject": subject,
+            "content": [
+                {"type": "text/plain", "value": text},
+                {"type": "text/html", "value": html},
+            ],
+        },
+        {"Authorization": f"Bearer {api_key}"},
+    )
+    if status in {200, 202}:
+        return DeliveryResult(
+            ok=True,
+            channel="email",
+            destination=to_addr,
+            mode="sendgrid",
+            detail="Email inviata da Iris Nous.",
+        )
+    return DeliveryResult(
+        ok=False,
+        channel="email",
+        destination=to_addr,
+        mode="sendgrid",
+        detail=f"Invio SendGrid non riuscito: {raw[:240]}",
+    )
+
+
+def _github_client_payload(
+    to_addr: str, subject: str, text: str, html: str
+) -> dict[str, str]:
+    """Keep repository_dispatch under GitHub's ~10 KB client_payload limit."""
+    payload: dict[str, str] = {
+        "to": (to_addr or "").strip()[:254],
+        "subject": (subject or BRAND_NAME)[:180],
+        "text": (text or "")[:4500],
+    }
+    html_cut = (html or "")[:3500]
+    if html_cut:
+        trial = {"event_type": "iris-mail", "client_payload": {**payload, "html": html_cut}}
+        if len(json.dumps(trial)) < 9000:
+            payload["html"] = html_cut
+    return payload
+
+
+def _try_github_relay(
+    to_addr: str, *, subject: str, text: str, html: str
+) -> DeliveryResult | None:
+    """Send from Iris Gmail via GitHub Actions (HTTPS), because Render free blocks SMTP."""
+    cfg = _merged_settings()
+    token = cfg.get("github_mail_token") or ""
+    repo = (cfg.get("github_mail_repo") or "").strip()
+    if not token or "/" not in repo:
+        return None
+    status, raw = _http_post_json(
+        f"https://api.github.com/repos/{repo}/dispatches",
+        {
+            "event_type": "iris-mail",
+            "client_payload": _github_client_payload(to_addr, subject, text, html),
+        },
+        {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+    )
+    if status in {204, 200}:
+        return DeliveryResult(
+            ok=True,
+            channel="email",
+            destination=to_addr,
+            mode="github",
+            detail="Email inviata da Iris Nous.",
+        )
+    return DeliveryResult(
+        ok=False,
+        channel="email",
+        destination=to_addr,
+        mode="github",
+        detail=f"Invio Gmail non riuscito: {raw[:240]}",
+    )
+
+
 def _try_resend(
     to_addr: str, *, subject: str, text: str, html: str
 ) -> DeliveryResult | None:
@@ -606,9 +786,12 @@ def _try_resend(
     api_key = cfg.get("resend_api_key") or ""
     if not api_key:
         return None
+    from_header = _resend_from_header(cfg)
+    if "resend.dev" in from_header.lower():
+        return None
     reply = (cfg.get("smtp_from") or cfg.get("smtp_user") or "").strip()
     body: dict[str, Any] = {
-        "from": _resend_from_header(cfg),
+        "from": from_header,
         "to": [to_addr],
         "subject": subject,
         "text": text,

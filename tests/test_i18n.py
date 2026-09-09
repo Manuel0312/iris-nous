@@ -156,8 +156,8 @@ def test_local_site_banner_and_unknown_login(tmp_path: Path) -> None:
     )
     client = TestClient(app, base_url="http://127.0.0.1")
     home = client.get("/")
-    assert "sito locale" in home.text.lower() or "sito online" in home.text.lower()
     assert "iris-nous.onrender.com" in home.text
+    assert "computer" in home.text.lower() or "pubblico" in home.text.lower()
 
     fail = client.post(
         "/login",
@@ -167,7 +167,8 @@ def test_local_site_banner_and_unknown_login(tmp_path: Path) -> None:
     assert fail.status_code == 200
     assert "errore=1" in fail.text
     login_page = client.get("/login")
-    assert "sito locale" in login_page.text.lower() or "telefono" in login_page.text.lower()
+    assert "database" not in login_page.text.lower()
+    assert "sito online: qui vivono" not in login_page.text.lower()
 
     admin_ok = client.post(
         "/login",
@@ -178,7 +179,7 @@ def test_local_site_banner_and_unknown_login(tmp_path: Path) -> None:
     assert "/accessi" in admin_ok.text
 
 
-def test_signup_shows_code_when_mail_cannot_send(tmp_path: Path, monkeypatch) -> None:
+def test_signup_hides_code_when_mail_cannot_send(tmp_path: Path, monkeypatch) -> None:
     import importlib
 
     from bci_iot.accounts.messaging import DeliveryResult
@@ -215,7 +216,18 @@ def test_signup_shows_code_when_mail_cannot_send(tmp_path: Path, monkeypatch) ->
     wait = client.get("/attendi-conferma-email", follow_redirects=False)
     assert wait.status_code == 200
     assert "Conferma la tua email" in wait.text
-    assert "otp-preview" in wait.text
+    assert "otp-preview" not in wait.text
+    assert "CTGBAB" not in wait.text
+    assert "statusCode" not in wait.text
+    assert "Se la mail non arriva" not in wait.text
+    assert "usa questo codice" not in wait.text.lower()
+    guest = TestClient(app)
+    rec = guest.get("/recupera-password")
+    assert rec.status_code == 200
+    assert "Gmail, Outlook, Libero" not in rec.text
+    assert "A3K9P2" not in rec.text
+    home = guest.get("/")
+    assert "Unsplash" not in home.text
     chat = client.get("/chatta")
     assert "Agente AI" not in chat.text
     assert "bg3d.js" in chat.text
