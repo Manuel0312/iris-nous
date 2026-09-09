@@ -49,26 +49,14 @@
   </div>
 
   <div class="panel reveal" data-reveal>
-    <h2>Invio da Gmail Iris (online)</h2>
-    <p class="muted">
-      Sul sito pubblico Iris manda le mail da <strong>noreply.irisnous@gmail.com</strong>
-      tramite GitHub Actions (Render free blocca SMTP). Serve un token GitHub con permesso
-      <code>repo</code> sul repository Iris Nous.
-    </p>
+    <h2>Alternativa: Resend</h2>
+    <p class="muted">Account gratis su <a href="https://resend.com" target="_blank" rel="noopener">resend.com</a> → API key <code>re_…</code> → incolla sotto. Più “da prodotto SaaS”; Gmail va benissimo per la tesi.</p>
   </div>
 
   <form method="post" action="/invio-codici" class="panel stack reveal" data-reveal autocomplete="off">
     <h2>Identità Iris Nous</h2>
     <label>Mittente (From)
-      <input name="brand_from_email" value="{{ messaging.brand_from_email }}" placeholder="noreply.irisnous@gmail.com" autocomplete="off" />
-    </label>
-
-    <h2>Token GitHub per le mail</h2>
-    <label>Token {% if messaging.github_mail_token_set %}<span class="muted">(già salvato)</span>{% endif %}
-      <input name="github_mail_token" type="password" value="" placeholder="{% if messaging.github_mail_token_set %}••••••••{% else %}ghp_… o gho_…{% endif %}" autocomplete="new-password" />
-    </label>
-    <label>Repository
-      <input name="github_mail_repo" value="{{ messaging.github_mail_repo or 'Manuel0312/iris-nous' }}" placeholder="Manuel0312/iris-nous" autocomplete="off" />
+      <input name="brand_from_email" value="{{ messaging.brand_from_email }}" placeholder="iris.nous.app@gmail.com" autocomplete="off" />
     </label>
 
     <h2>Resend API key (opzionale)</h2>
@@ -76,7 +64,7 @@
       <input name="resend_api_key" type="password" value="" placeholder="{% if messaging.resend_key_set %}••••••••{% else %}re_xxxxxxxx{% endif %}" autocomplete="new-password" />
     </label>
 
-    <h2>Gmail SMTP (locale / PC)</h2>
+    <h2>Gmail SMTP</h2>
     <label>Host SMTP
       <input name="smtp_host" value="{{ messaging.smtp_host or 'smtp.gmail.com' }}" placeholder="smtp.gmail.com" autocomplete="off" />
     </label>
@@ -84,13 +72,13 @@
       <input name="smtp_port" value="{{ messaging.smtp_port }}" placeholder="587" autocomplete="off" />
     </label>
     <label>Utente Gmail
-      <input name="smtp_user" value="{{ messaging.smtp_user }}" placeholder="noreply.irisnous@gmail.com" autocomplete="off" />
+      <input name="smtp_user" value="{{ messaging.smtp_user }}" placeholder="iris.nous.app@gmail.com" autocomplete="off" />
     </label>
     <label>Password per le app {% if messaging.smtp_password_set %}<span class="muted">(già salvata)</span>{% endif %}
       <input name="smtp_password" type="password" value="" autocomplete="new-password" />
     </label>
     <label>Mittente SMTP
-      <input name="smtp_from" value="{{ messaging.smtp_from }}" placeholder="noreply.irisnous@gmail.com" autocomplete="off" />
+      <input name="smtp_from" value="{{ messaging.smtp_from }}" placeholder="iris.nous.app@gmail.com" autocomplete="off" />
     </label>
 
     <button class="btn primary" type="submit">Attiva mail Iris Nous</button>

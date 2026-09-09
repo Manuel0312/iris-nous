@@ -122,29 +122,9 @@ def test_register_login_logged_and_admin_sees_accessi(tmp_path: Path) -> None:
     detail = client.get("/accessi/utente/maria")
     assert detail.status_code == 200
     assert "login_ok" in detail.text or "register" in detail.text
-    assert "Elimina definitivamente" in detail.text
-
-    purged = client.post("/accessi/utente/maria/elimina", follow_redirects=False)
-    assert purged.status_code == 303
-    assert purged.headers.get("location", "").endswith("/accessi")
-    assert app.state.store.get("maria", include_deleted=True) is None
 
     api = client.get("/api/admin/accessi")
     assert api.status_code == 200
     body = api.json()
     assert "people" in body
     assert body["stats"]["total"] >= 3
-
-    # Same username/email can register again after admin purge.
-    client.post("/logout", follow_redirects=False)
-    again = client.post(
-        "/register",
-        data={
-            "username": "maria",
-            "email": "maria@gmail.com",
-            "password": "Segreta123",
-        },
-        follow_redirects=False,
-    )
-    assert again.status_code == 200
-    assert app.state.store.get("maria") is not None

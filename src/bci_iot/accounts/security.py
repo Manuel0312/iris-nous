@@ -14,10 +14,18 @@ StrengthLevel = Literal["weak", "medium", "strong"]
 
 
 @dataclass(frozen=True, slots=True)
+class PasswordRequirement:
+    id: str
+    label: str
+    ok: bool
+
+
+@dataclass(frozen=True, slots=True)
 class PasswordCheck:
     ok: bool
     level: StrengthLevel
     message: str
+    requirements: tuple[PasswordRequirement, ...] = ()
 
 
 def hash_password(password: str, *, salt: bytes | None = None) -> str:
@@ -65,25 +73,56 @@ def verify_password(password: str, password_hash: str) -> bool:
     return hmac.compare_digest(candidate, password_hash)
 
 
+def password_requirements(password: str) -> tuple[PasswordRequirement, ...]:
+    """Interactive checklist items (red→green as the user types)."""
+
+    pwd = password or ""
+    return (
+        PasswordRequirement("len", "Almeno 8 caratteri", len(pwd) >= 8),
+        PasswordRequirement("upper", "Almeno una lettera maiuscola", bool(re.search(r"[A-Z]", pwd))),
+        PasswordRequirement("digit", "Almeno un numero", bool(re.search(r"[0-9]", pwd))),
+        PasswordRequirement(
+            "lower",
+            "Almeno una lettera minuscola (consigliato)",
+            bool(re.search(r"[a-z]", pwd)),
+        ),
+        PasswordRequirement(
+            "special",
+            "Almeno un carattere speciale (consigliato)",
+            bool(re.search(r"[^A-Za-z0-9]", pwd)),
+        ),
+        PasswordRequirement("long", "Almeno 12 caratteri (consigliato)", len(pwd) >= 12),
+    )
+
+
 def password_strength(password: str) -> PasswordCheck:
     """Evaluate password; registration requires at least medium."""
 
+    reqs = password_requirements(password)
     if not password:
-        return PasswordCheck(False, "weak", "Password non abbastanza forte")
+        return PasswordCheck(
+            False,
+            "weak",
+            "Password non abbastanza forte",
+            requirements=reqs,
+        )
 
     has_upper = bool(re.search(r"[A-Z]", password))
     has_digit = bool(re.search(r"[0-9]", password))
     has_lower = bool(re.search(r"[a-z]", password))
     has_special = bool(re.search(r"[^A-Za-z0-9]", password))
     length = len(password)
+    # Mandatory for "ok": length, upper, digit.
+    mandatory_ok = all(r.ok for r in reqs if r.id in {"len", "upper", "digit"})
 
-    if length < 8 or not has_upper or not has_digit:
+    if not mandatory_ok:
         return PasswordCheck(
             False,
             "weak",
             "Password non abbastanza forte: almeno 8 caratteri, una maiuscola e un numero.",
+            requirements=reqs,
         )
 
     if length >= 12 and has_lower and has_special:
-        return PasswordCheck(True, "strong", "Password forte")
-    return PasswordCheck(True, "medium", "Password di livello medio")
+        return PasswordCheck(True, "strong", "Password forte", requirements=reqs)
+    return PasswordCheck(True, "medium", "Password di livello medio", requirements=reqs)

@@ -1,30 +1,59 @@
 # Mail Iris Nous + Gmail (guida tesi)
 
-## Devi creare un account Google?
-Sì, **se non hai già una Gmail** da usare come mittente. Serve un account che possa
-**spedire** le email (come il server di Apple, ma sulla tua Gmail). Non è l’account
-degli utenti: è solo il “postino” di Iris.
-
-## Nomi professionali da usare
-| Campo | Valore consigliato |
-|--------|---------------------|
-| Nome Google | `Iris Nous` |
-| Cognome Google | `Mail` (o lascia vuoto se possibile) |
-| Indirizzo Gmail | `iris.nous.app@gmail.com` (o variante libera) |
-| Nome password per le app | `Iris Nous Web` |
+## Indirizzo già in uso
+| Campo | Valore |
+|--------|--------|
+| Gmail Iris | `noreply.irisnous@gmail.com` |
+| Nome visualizzato | **Iris Nous** (fisso nel software) |
 | Host SMTP | `smtp.gmail.com` |
 | Porta | `587` |
-| Mittente in Iris | stessa Gmail |
-| Nome visualizzato in posta | **Iris Nous** (fisso nel software) |
 
-## Passaggi
-1. [Crea account Google](https://accounts.google.com/signup) (o usa Gmail esistente)
-2. Account Google → **Sicurezza** → attiva **Verifica in due passaggi**
-3. **Password per le app** → Mail / Altro → nome `Iris Nous Web` → genera
-4. In Iris: login **admin** → **Mail Iris Nous** → incolla host/utente/password/mittente → **Attiva**
+## Locale (già ok se ricevi le mail)
+1. File `data/messaging.json` e/o `.env` con SMTP Gmail `noreply…`
+2. Oppure admin → **Mail Iris Nous** → Attiva
+3. Avvio: `APRI IRIS (locale).bat` → http://127.0.0.1:8000/
+
+## Online = stesso mittente (Render free)
+
+Su Render le porte SMTP spesso sono **bloccate**. Iris usa un **relay GitHub Actions**
+che spedisce dalla stessa Gmail: il cliente vede ancora
+`Iris Nous <noreply.irisnous@gmail.com>`.
+
+### A) Secret sul repo GitHub `Manuel0312/iris-nous`
+Settings → Secrets and variables → Actions → New repository secret:
+
+| Secret | Valore |
+|--------|--------|
+| `IRIS_SMTP_USER` | `noreply.irisnous@gmail.com` |
+| `IRIS_SMTP_PASSWORD` | password per le app Gmail (16 lettere) |
+| `IRIS_SMTP_FROM` | `noreply.irisnous@gmail.com` |
+
+Il workflow `.github/workflows/iris-mail.yml` li usa già.
+
+### B) Token GitHub per far partire il relay da Render
+1. GitHub → Settings → Developer settings → [Personal access tokens](https://github.com/settings/tokens)
+2. Classic token con permesso **`repo`** (serve `repository_dispatch`)
+3. Copia il token (`ghp_…`)
+
+### C) Variabili su Render (dashboard → iris-nous → Environment)
+| Key | Valore |
+|-----|--------|
+| `BCI_IOT_GITHUB_MAIL_REPO` | `Manuel0312/iris-nous` |
+| `BCI_IOT_GITHUB_MAIL_TOKEN` | il `ghp_…` del passo B |
+| `BCI_IOT_MAIL_FROM` | `noreply.irisnous@gmail.com` |
+| `BCI_IOT_SMTP_USER` | `noreply.irisnous@gmail.com` |
+| `BCI_IOT_SMTP_FROM` | `noreply.irisnous@gmail.com` |
+| `BCI_IOT_SMTP_PASSWORD` | stessa password app (utile a Brevo/fallback; il relay usa i secret GitHub) |
+
+Poi **Manual Deploy** → Deploy latest commit.
+
+### Verifica
+1. Registrazione (o recupero password) sul sito online
+2. GitHub → Actions → workflow **iris-mail** deve risultare verde
+3. In posta: mittente **Iris Nous \<noreply.irisnous@gmail.com\>**
 
 ## Cosa ricevono gli utenti
-1. **Dopo registrazione:** email «Conferma la tua iscrizione a Iris Nous» con pulsante **Conferma iscrizione**
-2. **Recupero password:** email «Iris Nous: il tuo codice di sicurezza» con codice a 6 caratteri
+1. **Dopo registrazione:** conferma iscrizione + codice/link
+2. **Recupero password:** codice a 6 caratteri
 
-Finché Gmail non è collegata, in locale link/codice compaiono nel sito per i test.
+Finché in locale Gmail non è collegata, link/codice compaiono nel sito per i test.

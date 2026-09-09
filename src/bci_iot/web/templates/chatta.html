@@ -1,66 +1,110 @@
 {% extends "base.html" %}
 {% block title %}{{ t('Chatta con noi') }} · Iris{% endblock %}
 {% block body_class %}page-private page-chat{% endblock %}
-{% block main_class %}shell{% endblock %}
+{% block main_class %}shell wide{% endblock %}
 {% block chat_fab %}{% endblock %}
 {% block content %}
-<section class="contact-mail" aria-labelledby="team-chat-title">
-  <p class="eyebrow">{{ t('Supporto') }}</p>
-  <h1 id="team-chat-title">{{ t('Chatta con noi') }}</h1>
-  <p class="lede">{{ t('Spiegaci il problema e ti risponderemo il prima possibile.') }}</p>
+<section class="chat-room" aria-labelledby="team-chat-title">
+  <header class="chat-room-head">
+    <p class="eyebrow">{{ t('Spazio privato') }}</p>
+    <h1 id="team-chat-title">{{ t('Chatta con noi') }}</h1>
+    <p class="lede">{{ t('Solo tu e il team Iris. Scrivi liberamente: niente limite di caratteri.') }}</p>
+  </header>
 
-  {% if messages %}
-  <ol class="chat-log" id="team-chat-log">
-    {% for m in messages %}
-    <li class="chat-bubble chat-{{ m.sender }}">
-      <span class="chat-who">{{ t('Team Iris Nous') if m.sender == 'admin' else t('Tu') }}</span>
-      <p>{{ m.body }}</p>
-      <time>{{ m.created_at | it_time }}</time>
-    </li>
-    {% endfor %}
-  </ol>
-  {% if waiting %}
-  <p class="muted" id="chat-wait">{{ t('Abbiamo ricevuto il messaggio. Ti risponderemo il prima possibile.') }}</p>
-  {% endif %}
+  {% if show_access_code and access_code %}
+  <div class="chat-code-banner" role="status">
+    <strong>{{ t('Salva questo codice') }}</strong>
+    <span class="code">{{ access_code }}</span>
+    <p class="muted" style="color:#aeaeb2;margin:0">{{ t('Serve per riaprire la chat se non hai un account. Lo mostriamo solo ora.') }}</p>
+  </div>
   {% endif %}
 
-  <form class="panel contact-mail-form" method="post" action="/chatta">
-    {% if profile %}
-    <p class="identity-note">{{ t('Stai scrivendo come') }} <strong>{{ profile.first_name }} {{ profile.last_name }}</strong> · {{ profile.email }}</p>
-    {% else %}
-    <fieldset class="who-are-you">
-      <legend>{{ t('Chi sei') }}</legend>
-      <p class="form-hint">{{ t('Nome ed email servono per saperti rispondere.') }}</p>
-      <label>{{ t('Nome') }}
-        <input name="name" maxlength="80" autocomplete="name" required value="{{ guest_name or '' }}" />
-      </label>
-      <label>{{ t('Email') }}
-        <input name="email" type="email" required maxlength="254" autocomplete="email" inputmode="email" pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}" title="{{ t('Serve un dominio con estensione, es. nome@gmail.com') }}" value="{{ guest_email or '' }}" />
-      </label>
-      <label>{{ t('Telefono') }}
-        <input name="phone" type="tel" maxlength="20" autocomplete="tel" inputmode="numeric" pattern="[0-9+ ]*" data-digits-phone />
-      </label>
-    </fieldset>
-    {% endif %}
-    <label>{{ t('Descrivi il problema') }}
-      <textarea name="body" rows="6" required minlength="8" maxlength="4000" placeholder="{{ t('Scrivi cosa non funziona…') }}"></textarea>
-    </label>
-    <div class="private-actions">
-      <button class="btn primary" type="submit">{{ t('Invia') }}</button>
+  <div class="chat-split chat-split-request">
+    <aside class="chat-side chat-side-left" aria-label="{{ t('Richiesta di chat') }}">
+      <form class="panel contact-mail-form chat-compose" method="post" action="/chatta" id="chat-compose-form">
+        <h2>{{ t('Richiesta di chat') }}</h2>
+        {% if profile %}
+        <p class="identity-note">{{ t('Stai scrivendo come') }} <strong>{{ profile.first_name }} {{ profile.last_name }}</strong> · {{ profile.email }}</p>
+        {% else %}
+        <p class="form-hint">{{ t('Nome ed email servono per saperti rispondere. Il codice chat ti viene mostrato all’inizio.') }}</p>
+        <label>{{ t('Nome') }}
+          <input name="name" maxlength="80" autocomplete="name" required value="{{ guest_name or '' }}" />
+        </label>
+        <label>{{ t('Email') }}
+          <input name="email" type="email" required maxlength="254" autocomplete="email" inputmode="email" pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}" title="{{ t('Serve un dominio con estensione, es. nome@gmail.com') }}" value="{{ guest_email or '' }}" />
+        </label>
+        <label>{{ t('Telefono') }}
+          <input name="phone" type="tel" maxlength="20" autocomplete="tel" inputmode="numeric" pattern="[0-9+ ]*" data-digits-phone />
+        </label>
+        {% endif %}
+        <label>{{ t('Descrivi il problema') }}
+          <textarea name="body" rows="6" required minlength="2" placeholder="{{ t('Scrivi cosa non funziona…') }}"></textarea>
+        </label>
+        <div class="private-actions">
+          <button class="btn primary" type="submit">{{ t('Invia') }}</button>
+        </div>
+      </form>
+      <p class="chat-disclaimer chat-disclaimer-side">{{ chat_disclaimer }}</p>
+    </aside>
+
+    <div class="chat-main">
+      {% if messages %}
+      <ol class="chat-log" id="team-chat-log">
+        {% for m in messages %}
+        {% set mine = m.sender != 'admin' %}
+        <li class="chat-bubble {% if mine %}chat-mine chat-user{% else %}chat-theirs chat-team{% endif %} chat-{{ m.sender }}">
+          <span class="chat-who">{{ t('Team Iris Nous') if m.sender == 'admin' else t('Tu') }}</span>
+          {% if mine %}
+          <p>{{ m.body }}</p>
+          {% else %}
+          <p>{{ m.body_translated or m.body }}</p>
+          {% if m.body_translated and m.body_translated != m.body %}
+          <details class="chat-original"><summary>{{ t('Testo originale') }}</summary><p>{{ m.body }}</p></details>
+          {% endif %}
+          {% endif %}
+          <time>{{ m.created_at | it_time }}</time>
+        </li>
+        {% endfor %}
+      </ol>
+      {% if waiting %}
+      <p class="muted" id="chat-wait">{{ t('Abbiamo ricevuto il messaggio. Ti risponderemo il prima possibile.') }}</p>
+      {% endif %}
+      {% else %}
+      <p class="muted chat-empty">{{ t('La conversazione compare qui al centro dopo il primo messaggio.') }}</p>
+      {% endif %}
     </div>
-  </form>
 
-  {% if not profile %}
-  <form class="panel contact-mail-form reopen-chat" method="post" action="/chatta/apri">
-    <p class="form-hint">{{ t('Se hai già una conversazione con noi, inserisci la mail per visualizzarla.') }}</p>
-    <label>{{ t('Email') }}
-      <input name="email" type="email" required maxlength="254" autocomplete="email" inputmode="email" />
-    </label>
-    <div class="private-actions">
-      <button class="btn" type="submit">{{ t('Vedi le risposte') }}</button>
-    </div>
-  </form>
-  {% endif %}
+    <aside class="chat-side chat-side-right" aria-label="{{ t('Recupero chat') }}">
+      {% if not profile %}
+      <form class="panel contact-mail-form reopen-chat" method="post" action="/chatta/apri">
+        <h2>{{ t('Riapri la chat') }}</h2>
+        <p class="form-hint">{{ t('Hai già una chat? Inserisci il codice che ti abbiamo mostrato all’inizio.') }}</p>
+        <label>{{ t('Codice chat') }}
+          <input name="access_code" required maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="es. FEMXXK" style="letter-spacing:.2em;font-weight:700;text-transform:uppercase" />
+        </label>
+        <div class="private-actions">
+          <button class="btn" type="submit">{{ t('Riapri la chat') }}</button>
+        </div>
+      </form>
+      <form class="panel contact-mail-form reopen-chat" method="post" action="/chatta/recupera-codice">
+        <h2>{{ t('Recupera codice') }}</h2>
+        <p class="form-hint">{{ t('Non ricordi il codice? Te lo reinviamo all’email usata per aprire la chat.') }}</p>
+        <label>{{ t('Email') }}
+          <input name="email" type="email" required maxlength="254" autocomplete="email" />
+        </label>
+        <div class="private-actions">
+          <button class="btn" type="submit">{{ t('Recupera codice') }}</button>
+        </div>
+      </form>
+      {% else %}
+      <div class="panel contact-mail-form">
+        <h2>{{ t('Suggerimenti') }}</h2>
+        <p class="form-hint">{{ t('Le tue bolle sono verdi a destra. Le risposte del team Iris sono azzurre a sinistra.') }}</p>
+        <p><a href="/le-mie-notifiche">{{ t('Le mie notifiche') }}</a></p>
+      </div>
+      {% endif %}
+    </aside>
+  </div>
 </section>
 <script>
 (function () {
@@ -86,7 +130,7 @@
       }
     } catch (e) {}
   }
-  setInterval(tick, 8000);
+  setInterval(tick, 5000);
 })();
 </script>
 {% endblock %}

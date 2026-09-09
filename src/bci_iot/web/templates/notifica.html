@@ -14,6 +14,10 @@
     {% elif thread.status == "viewed" %}Visualizzato, in attesa di risposta
     {% else %}Risposto{% endif %}
     · Chatta con noi
+    {% if presence_online is not none %}
+    · <span class="presence-dot {% if presence_online %}is-online{% else %}is-offline{% endif %}"></span>
+    {{ "Online" if presence_online else "Offline" }}
+    {% endif %}
   </p>
 
   <div class="panel">
@@ -27,14 +31,23 @@
       </strong></li>
       <li><span>Email</span><strong>{{ thread.guest_email or "—" }}</strong></li>
       <li><span>Telefono</span><strong>{{ thread.guest_phone or "—" }}</strong></li>
+      <li><span>Codice chat</span><strong style="letter-spacing:.2em">{{ thread.access_code or "—" }}</strong></li>
     </ul>
   </div>
 
-  <ol class="chat-log">
+  <ol class="chat-log" id="admin-chat-log">
     {% for m in messages %}
-    <li class="chat-bubble chat-{{ m.sender }}">
+    {% set mine = m.sender == 'admin' %}
+    <li class="chat-bubble {% if mine %}chat-mine chat-team{% else %}chat-theirs chat-user{% endif %} chat-{{ m.sender }}">
       <span class="chat-who">{{ "Admin" if m.sender == "admin" else "Cliente" }}</span>
+      {% if mine %}
       <p>{{ m.body }}</p>
+      {% else %}
+      <p>{{ m.body_translated or m.body }}</p>
+      {% if m.body_translated and m.body_translated != m.body %}
+      <details class="chat-original"><summary>Testo originale</summary><p>{{ m.body }}</p></details>
+      {% endif %}
+      {% endif %}
       <time>{{ m.created_at | it_time }}</time>
     </li>
     {% endfor %}
@@ -42,13 +55,28 @@
 
   <form class="panel private-form" method="post" action="/notifiche/{{ thread.id }}/rispondi">
     <h2>Rispondi</h2>
-    <p class="muted">La risposta arriva in Chatta con noi e via email.</p>
+    <p class="muted">La risposta arriva in Chatta con noi e via email. Nessun limite di caratteri.</p>
     <label>Messaggio
-      <textarea name="body" rows="5" required minlength="2" maxlength="4000" placeholder="Scrivi la risposta…"></textarea>
+      <textarea name="body" rows="5" required minlength="2" placeholder="Scrivi la risposta…"></textarea>
     </label>
     <div class="private-actions">
       <button class="btn primary" type="submit">Invia risposta</button>
     </div>
   </form>
+  <p class="chat-disclaimer">{{ chat_disclaimer }}</p>
 </section>
+<script>
+(function () {
+  let last = {{ (messages|length) if messages else 0 }};
+  async function tick() {
+    try {
+      const res = await fetch("/notifiche/{{ thread.id }}/stato", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Number(data.count) !== last) location.reload();
+    } catch (e) {}
+  }
+  setInterval(tick, 5000);
+})();
+</script>
 {% endblock %}

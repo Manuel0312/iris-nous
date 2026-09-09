@@ -1,27 +1,21 @@
 ﻿# Aprire il sito
+
 Doppio click:  APRI IL SITO.bat
-Lascia la finestra nera aperta.
+Apre il sito ONLINE (stesso del telefono):
+https://iris-nous.onrender.com/
 
---- Dal PC ---
-http://127.0.0.1:8000/
+Se dorme (piano free), al primo click aspetta 30–60 secondi.
 
---- Dal telefono (stessa Wi-Fi del PC) ---
-1. Avvia APRI IL SITO.bat
-2. Nella finestra nera compare un indirizzo tipo:
-     http://192.168.x.x:8000/
-3. Sul telefono apri Safari/Chrome e digita QUELL’indirizzo
-   (usa l’IP del PC, non 127.0.0.1 — quello funziona solo sul PC)
-
-Se non carica:
-- PC e telefono sulla stessa Wi-Fi (non hotspot mobile diverso)
-- Firewall Windows: consenti Python/uvicorn sulla rete privata
-- In alternativa, da PowerShell sul PC:
-    ipconfig
-  cerca "Indirizzo IPv4" e usa http://QUELL-IP:8000/
-
---- Account admin ---
+--- Account ---
 Username:  admin
 Password:  admin123
 Menu → Accessi (dopo login admin)
 
-Database: data/accessi.db
+L’account creato dal telefono vive SOLO sul sito online.
+Il sito locale del PC (APRI IRIS (locale).bat) è un database diverso:
+non comunicare i due. Per Spotify e lo stesso login, usa sempre il sito online.
+
+--- Sviluppo sul PC ---
+APRI IRIS (locale).bat
+http://127.0.0.1:8000/
+Admin locale: admin / admin123

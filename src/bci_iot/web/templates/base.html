@@ -88,6 +88,7 @@
             <a href="/anagrafica?edit=1" class="{% if request.url.path.startswith('/anagrafica') %}is-current{% endif %}">{{ t('I miei dati') }}</a>
             <a href="/inizia" class="{% if request.url.path.startswith('/inizia') or request.url.path.startswith('/calibrazione') %}is-current{% endif %}">{{ t('Cosa puoi fare') }}</a>
             <a href="/dashboard" class="{% if request.url.path.startswith('/dashboard') %}is-current{% endif %}">{{ t('Ecosistema') }}</a>
+            <a href="/le-mie-notifiche">{{ t('Notifiche') }}{% if user_support_unread %}<span class="nav-badge">{{ user_support_unread }}</span>{% endif %}</a>
             <a href="/chatta">{{ t('Chatta con noi') }}</a>
             <a href="/cambia-password">{{ t('Cambia password') }}</a>
             {% endif %}

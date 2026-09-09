@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}{{ t('Le mie notifiche') }} · Iris{% endblock %}
+{% block body_class %}page-private{% endblock %}
+{% block main_class %}shell{% endblock %}
+{% block content %}
+<section class="dash">
+  <h1>{{ t('Le mie notifiche') }}</h1>
+  <p class="lede">{{ t('Chat aperte con il team e avvisi di sistema (patch, manutenzione, aggiornamenti).') }}</p>
+
+  <div class="panel">
+    <h2>{{ t('Chat con Iris') }}</h2>
+    {% if threads %}
+    <ul class="user-notice-list">
+      {% for trow in threads %}
+      <li>
+        <a href="/chatta">
+          <strong>{{ trow.subject or t('Chatta con noi') }}</strong>
+          <div class="muted">{{ trow.updated_at | it_time }} ·
+            {% if trow.status == 'replied' %}{{ t('Risposta del team') }}
+            {% elif trow.status == 'viewed' %}{{ t('In lettura') }}
+            {% else %}{{ t('In attesa') }}{% endif %}
+          </div>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">{{ t('Nessuna chat aperta. Vai su Chatta con noi per scriverci.') }}</p>
+    {% endif %}
+    <p style="margin-top:1rem"><a class="btn" href="/chatta">{{ t('Apri la chat') }}</a></p>
+  </div>
+
+  <div class="panel">
+    <h2>{{ t('Avvisi di sistema') }}</h2>
+    {% if notices %}
+    <ul class="user-notice-list">
+      {% for n in notices %}
+      <li>
+        <div style="padding:0.9rem 1rem;border:1px solid var(--line);border-radius:12px;background:var(--bg-elev)">
+          <strong>{{ n.title }}</strong>
+          <p style="margin:0.35rem 0;white-space:pre-wrap">{{ n.body }}</p>
+          <time class="muted">{{ n.created_at | it_time }}</time>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">{{ t('Nessun avviso di sistema per ora.') }}</p>
+    {% endif %}
+  </div>
+</section>
+<script>
+(function () {
+  let last = {{ user_unread }};
+  async function tick() {
+    try {
+      const res = await fetch("/le-mie-notifiche/stato", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Number(data.unread) !== last || Number(data.threads) !== {{ threads|length }}) {
+        location.reload();
+      }
+    } catch (e) {}
+  }
+  setInterval(tick, 5000);
+})();
+</script>
+{% endblock %}

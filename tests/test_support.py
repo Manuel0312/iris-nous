@@ -166,8 +166,10 @@ def test_chatta_and_admin_inbox_flow(tmp_path: Path, monkeypatch) -> None:
     assert "status-replied" in done.text
     answered = guest.get("/chatta")
     assert "Ciao Luca, apri Associa telefono" in answered.text
+    code = str(app.state.access_db.list_support_threads()[0].get("access_code") or "")
+    assert len(code) == 6
     other_device = TestClient(app)
-    other_device.post("/chatta/apri", data={"email": "luca@gmail.com"})
+    other_device.post("/chatta/apri", data={"access_code": code})
     recovered = other_device.get("/chatta")
     assert "Ciao Luca, apri Associa telefono" in recovered.text
     assert "iris-bg" in admin.get("/").text
@@ -181,13 +183,15 @@ def test_chatta_and_admin_inbox_flow(tmp_path: Path, monkeypatch) -> None:
     assert "/notifiche" in chat_admin.headers.get("location", "")
     guest_chat = TestClient(app).get("/chatta")
     assert "Chi sei" in guest_chat.text
-    assert "Spiegaci il problema e ti risponderemo il prima possibile." in guest_chat.text
+    assert "Solo tu e il team Iris" in guest_chat.text
     assert "Ti rispondiamo di persona" not in guest_chat.text
     assert "Hai già scritto da un altro telefono" not in guest_chat.text
     assert "Agente AI" not in guest_chat.text
     assert "ai-chat" not in guest_chat.text
     assert "contact-modes" not in guest_chat.text
     assert "Contattaci" not in guest_chat.text
+    assert "Codice chat" in guest_chat.text
+    assert "chat-split" in guest_chat.text
     mail = TestClient(app).get("/chatta?canale=email")
     assert "contact-mail" in mail.text
     assert "contact-modes" not in mail.text

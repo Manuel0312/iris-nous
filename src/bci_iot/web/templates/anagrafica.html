@@ -200,7 +200,12 @@
       const url = URL.createObjectURL(f);
       img.src = url;
       img.hidden = false;
-      if (fallback) fallback.hidden = true;
+      img.style.display = "block";
+      img.style.objectFit = "cover";
+      if (fallback) {
+        fallback.hidden = true;
+        fallback.style.display = "none";
+      }
     });
   }
 

@@ -74,20 +74,6 @@ def test_duplicate_email_rejected(tmp_path: Path) -> None:
         store.create_account("luca", "Segreta456", email="stessa@gmail.com")
 
 
-def test_hard_delete_frees_username_and_email(tmp_path: Path) -> None:
-    store = ProfileStore(tmp_path)
-    store.create_account("maria", "Segreta123", email="maria@gmail.com")
-    store.hard_delete("maria")
-    assert store.get("maria", include_deleted=True) is None
-    assert store.db.get_anagrafica("maria") is None
-    recreated = store.create_account("maria", "NuovaPass1", email="maria@gmail.com")
-    assert recreated.username == "maria"
-    assert store.authenticate("maria", "NuovaPass1") is not None
-    with pytest.raises(ValueError, match="amministratore"):
-        store.ensure_admin("admin", "admin123")
-        store.hard_delete("admin")
-
-
 def test_name_rejects_digits_and_email_needs_domain(tmp_path: Path) -> None:
     with pytest.raises(ValueError):
         validate_person_name("Mar1a", field_label="Il nome")

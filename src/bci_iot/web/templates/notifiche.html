@@ -9,6 +9,7 @@
   <p class="lede">
     Messaggi da Chatta con noi. Pallino rosso: non visualizzato · giallo: visto, non risposto · verde: risposto
     (i verdi escono da qui dopo 10 giorni, ma restano nella chat di tutela sul profilo).
+    Aggiornamento live attivo.
   </p>
   <p>
     {% if archive %}
@@ -20,13 +21,33 @@
     {% endif %}
   </p>
 
+  <form class="panel notice-manage" method="post" action="/notifiche/elimina" id="bulk-delete-form">
+    <input type="hidden" name="archive" value="{{ '1' if archive else '0' }}" />
+    <h2>Gestione conversazioni</h2>
+    <p class="muted">Cancella una, più chat o tutte quelle filtrate. Operazione definitiva.</p>
+    <div class="bulk-row">
+      <label>Filtro stato
+        <select name="status">
+          <option value="">Tutti</option>
+          <option value="unread">Non visualizzato</option>
+          <option value="viewed">Visto, non risposto</option>
+          <option value="replied">Risposto</option>
+        </select>
+      </label>
+      <label>Cerca
+        <input name="q" value="{{ filters.q if filters else '' }}" placeholder="nome, email, codice…" />
+      </label>
+      <button class="btn" type="submit" name="delete_all_matching" value="1" onclick="return confirm('Eliminare TUTTE le chat che corrispondono ai filtri?');">Elimina filtrate</button>
+    </div>
+
   <div class="panel table-wrap reveal" data-reveal>
     {% if threads %}
     <table class="access-table notice-table">
       <thead>
         <tr>
+          <th><input type="checkbox" id="check-all" aria-label="Seleziona tutte" /></th>
           <th>Stato</th>
-          <th>Canale</th>
+          <th>Presenza</th>
           <th>Persona</th>
           <th>Oggetto</th>
           <th>Aggiornato</th>
@@ -35,6 +56,7 @@
       <tbody>
         {% for trow in threads %}
         <tr>
+          <td><input type="checkbox" name="thread_ids" value="{{ trow.id }}" /></td>
           <td>
             <a class="person-link" href="/notifiche/{{ trow.id }}">
               <span class="status-dot status-{{ trow.status }}" aria-label="{{ trow.status }}"></span>
@@ -43,7 +65,15 @@
               {% else %}Risposto{% endif %}
             </a>
           </td>
-          <td>Chatta</td>
+          <td>
+            {% set online = presence.get(trow.username) if presence and trow.username else none %}
+            {% if online is none %}
+            <span class="muted">—</span>
+            {% else %}
+            <span class="presence-dot {% if online %}is-online{% else %}is-offline{% endif %}"></span>
+            {{ "Online" if online else "Offline" }}
+            {% endif %}
+          </td>
           <td>
             {% if trow.username %}
             <a class="person-link" href="/accessi/utente/{{ trow.username }}">{{ trow.guest_name or trow.username }}</a>
@@ -58,9 +88,41 @@
         {% endfor %}
       </tbody>
     </table>
+    <div class="private-actions" style="margin-top:1rem">
+      <button class="btn" type="submit" onclick="return confirm('Eliminare le chat selezionate?');">Elimina selezionate</button>
+    </div>
     {% else %}
     <p class="muted">{% if archive %}Nessuna chat in archivio tutela.{% else %}Nessuna notifica in inbox.{% endif %}</p>
     {% endif %}
   </div>
+  </form>
 </section>
+<script>
+(function () {
+  const all = document.getElementById("check-all");
+  if (all) {
+    all.addEventListener("change", () => {
+      document.querySelectorAll('input[name="thread_ids"]').forEach((el) => {
+        el.checked = all.checked;
+      });
+    });
+  }
+  const archive = {{ 'true' if archive else 'false' }};
+  let fingerprint = {{ fingerprint | tojson }};
+  async function tick() {
+    try {
+      const url = "/notifiche/stato" + (archive ? "?archivio=1" : "");
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (JSON.stringify(data.ids) !== JSON.stringify(fingerprint.ids)
+          || data.unread !== fingerprint.unread
+          || data.last !== fingerprint.last) {
+        location.reload();
+      }
+    } catch (e) {}
+  }
+  setInterval(tick, 5000);
+})();
+</script>
 {% endblock %}

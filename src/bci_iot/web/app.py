@@ -51,6 +51,7 @@ from bci_iot.accounts.messaging import (
     update_messaging_config,
     build_support_reply_email,
 )
+from bci_iot.accounts.chat_translate import DISCLAIMER_IT, translate_text
 from bci_iot.web.flags import ensure_flag_svgs, render_flag_svg
 from bci_iot.web.i18n import (
     COOKIE_NAME,
@@ -317,8 +318,16 @@ def create_app(
         cloud_url = _configured_public_url()
         site_is_local = _host_is_local(request)
         support_unread = 0
+        user_support_unread = 0
         if is_admin:
             support_unread = access_db.support_unread_count()
+        elif username:
+            person = profiles.get(username)
+            if person is not None and not person.is_admin:
+                user_support_unread = access_db.user_support_unread_count(
+                    username=person.username,
+                    email=person.email or "",
+                )
         return {
             "username": username,
             "is_admin": is_admin,
@@ -331,6 +340,8 @@ def create_app(
             "site_is_local": site_is_local,
             "admin_username": admin_user,
             "support_unread": support_unread,
+            "user_support_unread": user_support_unread,
+            "chat_disclaimer": DISCLAIMER_IT,
             **extra,
         }
 
@@ -575,6 +586,7 @@ def create_app(
         email: str = Form(...),
         password: str = Form(...),
         headset_id: str = Form(""),
+        phone: str = Form(""),
         profiles: ProfileStore = Depends(_store),
         access: AccessDatabase = Depends(_access),
     ) -> HTMLResponse:
@@ -593,6 +605,10 @@ def create_app(
         # Sync stub anagrafica row so admin list sees the username early
         created = profiles.get(username.strip())
         if created is not None:
+            phone_note = (phone or "").strip()[:64]
+            if phone_note:
+                created.phone_label = phone_note
+                profiles.save(created)
             access.upsert_anagrafica(
                 username=created.username,
                 user_id=created.user_id,
@@ -600,6 +616,7 @@ def create_app(
                 last_name="",
                 gender="",
                 email=created.email,
+                phone_label=phone_note,
             )
             delivery = _send_signup_mail(request, created)
             request.session["username"] = created.username
@@ -875,6 +892,8 @@ def create_app(
                 f"Ti abbiamo inviato un'email da Iris Nous a {masked}. "
                 "Controlla la posta (anche Spam) e inserisci il codice."
             )
+            if delivery.mode == "demo" and delivery.demo_code:
+                msg = f"{msg} Codice (solo locale/demo): {delivery.demo_code}"
             _flash(request, msg, kind="ok")
             return RedirectResponse("/recupera-password", status_code=303)
 
@@ -1060,8 +1079,6 @@ def create_app(
         profiles: ProfileStore = Depends(_store),
         brand_from_email: str = Form(""),
         resend_api_key: str = Form(""),
-        github_mail_token: str = Form(""),
-        github_mail_repo: str = Form(""),
         smtp_host: str = Form(""),
         smtp_port: str = Form("587"),
         smtp_user: str = Form(""),
@@ -1078,8 +1095,6 @@ def create_app(
         update_messaging_config(
             brand_from_email=brand_from_email or None,
             resend_api_key=resend_api_key or None,
-            github_mail_token=github_mail_token or None,
-            github_mail_repo=github_mail_repo or None,
             smtp_host=smtp_host or None,
             smtp_port=smtp_port or "587",
             smtp_user=smtp_user or None,
@@ -1096,7 +1111,7 @@ def create_app(
         else:
             _flash(
                 request,
-                "Salvato, ma manca ancora la configurazione per inviare le email.",
+                "Salvato, ma manca ancora Resend API key oppure Gmail SMTP.",
                 kind="error",
             )
         return RedirectResponse("/invio-codici", status_code=303)
@@ -1116,12 +1131,8 @@ def create_app(
             _flash(request, "Solo l’amministratore può vedere gli accessi.", kind="error")
             return RedirectResponse("/", status_code=303)
         ana = access.get_anagrafica(target)
-        user_profile = profiles.get(target, include_deleted=True)
+        user_profile = profiles.get(target)
         events = access.list_user_events(target)
-        if user_profile is not None:
-            can_purge = not bool(user_profile.is_admin)
-        else:
-            can_purge = ana is not None
         return TEMPLATES.TemplateResponse(
             request,
             "accessi_user.html",
@@ -1131,7 +1142,6 @@ def create_app(
                 target=target,
                 anagrafica=ana,
                 user_profile=user_profile.public_dict() if user_profile else None,
-                can_purge=can_purge,
                 events=events,
                 support_threads=[
                     {
@@ -1146,48 +1156,6 @@ def create_app(
                 ],
             ),
         )
-
-    @app.post("/accessi/utente/{target}/elimina")
-    def accessi_user_purge(
-        request: Request,
-        target: str,
-        profiles: ProfileStore = Depends(_store),
-        access: AccessDatabase = Depends(_access),
-    ) -> RedirectResponse:
-        username = _session_username(request)
-        if not username:
-            return RedirectResponse("/login", status_code=303)
-        admin = profiles.get(username)
-        if admin is None or not admin.is_admin:
-            _flash(request, "Solo l’amministratore può eliminare gli account.", kind="error")
-            return RedirectResponse("/", status_code=303)
-        target_name = (target or "").strip()
-        if not target_name:
-            return RedirectResponse("/accessi", status_code=303)
-        if target_name.casefold() == admin.username.casefold():
-            _flash(request, "Non puoi eliminare l'account amministratore.", kind="error")
-            return RedirectResponse(f"/accessi/utente/{target_name}", status_code=303)
-        try:
-            profiles.hard_delete(target_name)
-        except KeyError:
-            _flash(request, "Account non trovato.", kind="error")
-            return RedirectResponse("/accessi", status_code=303)
-        except ValueError as exc:
-            _flash(request, str(exc), kind="error")
-            return RedirectResponse(f"/accessi/utente/{target_name}", status_code=303)
-        _log_access(
-            request,
-            username=admin.username,
-            event="admin_purge_user",
-            access=access,
-        )
-        _flash(
-            request,
-            f"Account «{target_name}» eliminato definitivamente. "
-            "Per tornare su Iris dovrà iscriversi di nuovo.",
-            kind="ok",
-        )
-        return RedirectResponse("/accessi", status_code=303)
 
     def _admin_or_redirect(
         request: Request, profiles: ProfileStore
@@ -1212,6 +1180,14 @@ def create_app(
             return admin
         archive = request.query_params.get("archivio", "") in {"1", "true", "si"}
         threads = access.list_support_threads(archive=archive)
+        presence: dict[str, bool] = {}
+        for trow in threads:
+            uname = str(trow.get("username") or "").strip()
+            if not uname or uname in presence:
+                continue
+            person = profiles.get(uname)
+            presence[uname] = bool(person and person.is_online)
+        fingerprint = access.inbox_fingerprint(archive=archive)
         return TEMPLATES.TemplateResponse(
             request,
             "notifiche.html",
@@ -1220,8 +1196,62 @@ def create_app(
                 profiles,
                 threads=threads,
                 archive=archive,
+                presence=presence,
+                fingerprint=fingerprint,
+                filters={"q": request.query_params.get("q", "")},
             ),
         )
+
+    @app.get("/notifiche/stato")
+    def notifiche_status(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> JSONResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return JSONResponse({"ok": False}, status_code=403)
+        archive = request.query_params.get("archivio", "") in {"1", "true", "si"}
+        return JSONResponse(
+            access.inbox_fingerprint(archive=archive),
+            headers={"Cache-Control": "no-store"},
+        )
+
+    @app.post("/notifiche/elimina")
+    async def notifiche_delete(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> RedirectResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return admin
+        form = await request.form()
+        archive = str(form.get("archive") or "0")
+        status_f = str(form.get("status") or "")
+        q = str(form.get("q") or "")
+        delete_all = bool(form.get("delete_all_matching"))
+        raw_ids = form.getlist("thread_ids")
+        ids: list[int] = []
+        for raw in raw_ids:
+            try:
+                ids.append(int(str(raw)))
+            except (TypeError, ValueError):
+                continue
+        removed = access.delete_support_threads(
+            thread_ids=ids,
+            status=status_f,
+            q=q,
+            delete_all_matching=delete_all,
+            archive=archive in {"1", "true", "si"},
+        )
+        _flash(
+            request,
+            f"Eliminate {removed} conversazioni." if removed else "Nessuna conversazione eliminata.",
+            kind="ok" if removed else "error",
+        )
+        dest = "/notifiche?archivio=1" if archive in {"1", "true", "si"} else "/notifiche"
+        return RedirectResponse(dest, status_code=303)
 
     @app.get("/notifiche/{thread_id}", response_class=HTMLResponse)
     def notifica_thread_page(
@@ -1241,6 +1271,7 @@ def create_app(
         thread = access.get_support_thread(thread_id) or thread
         messages = access.list_support_messages(thread_id)
         user_profile = profiles.get(str(thread.get("username") or ""))
+        presence_online = bool(user_profile.is_online) if user_profile else None
         return TEMPLATES.TemplateResponse(
             request,
             "notifica.html",
@@ -1251,7 +1282,24 @@ def create_app(
                 messages=messages,
                 user_profile=user_profile.public_dict() if user_profile else None,
                 email_ready=bool(messaging_status().get("email_ready")),
+                presence_online=presence_online,
             ),
+        )
+
+    @app.get("/notifiche/{thread_id}/stato")
+    def notifica_thread_status(
+        request: Request,
+        thread_id: int,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> JSONResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return JSONResponse({"count": 0}, status_code=403)
+        messages = access.list_support_messages(thread_id)
+        return JSONResponse(
+            {"count": len(messages)},
+            headers={"Cache-Control": "no-store"},
         )
 
     @app.post("/notifiche/{thread_id}/rispondi")
@@ -1273,7 +1321,16 @@ def create_app(
         if len(text) < 2:
             _flash(request, "Scrivi una risposta prima di inviare.", kind="error")
             return RedirectResponse(f"/notifiche/{thread_id}", status_code=303)
-        updated = access.add_admin_support_reply(thread_id, text)
+        admin_lang = get_request_language(request)
+        user_lang = str(thread.get("user_lang") or "it")
+        translated = translate_text(text, source=admin_lang, target=user_lang)
+        updated = access.add_admin_support_reply(
+            thread_id,
+            text,
+            body_translated=translated if translated != text else "",
+            lang_src=admin_lang,
+            lang_dst=user_lang,
+        )
         destination = ""
         if updated:
             destination = str(updated.get("guest_email") or "").strip()
@@ -1345,6 +1402,59 @@ def create_app(
             str(request.session.get("support_name") or "").strip(),
         )
 
+    @app.get("/le-mie-notifiche", response_class=HTMLResponse)
+    def mie_notifiche_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> HTMLResponse:
+        loaded = _require_profile(request, profiles)
+        if isinstance(loaded, RedirectResponse):
+            return loaded
+        if loaded.is_admin:
+            return RedirectResponse("/notifiche", status_code=303)
+        threads = access.list_user_support_threads(
+            username=loaded.username, email=loaded.email or ""
+        )
+        for thread in threads:
+            access.mark_user_support_read(int(thread["id"]))
+        notices = access.list_system_notices()
+        return TEMPLATES.TemplateResponse(
+            request,
+            "mie_notifiche.html",
+            _template_ctx(
+                request,
+                profiles,
+                profile=loaded,
+                threads=threads,
+                notices=notices,
+                user_unread=0,
+            ),
+        )
+
+    @app.get("/le-mie-notifiche/stato")
+    def mie_notifiche_status(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> JSONResponse:
+        username = _session_username(request)
+        profile = profiles.get(username) if username else None
+        if profile is None or profile.is_admin:
+            return JSONResponse({"unread": 0, "threads": 0})
+        threads = access.list_user_support_threads(
+            username=profile.username, email=profile.email or ""
+        )
+        return JSONResponse(
+            {
+                "unread": access.user_support_unread_count(
+                    username=profile.username, email=profile.email or ""
+                ),
+                "threads": len(threads),
+            },
+            headers={"Cache-Control": "no-store"},
+        )
+
     @app.get("/chatta", response_class=HTMLResponse)
     def chatta_page(
         request: Request,
@@ -1356,10 +1466,25 @@ def create_app(
         if profile is not None and profile.is_admin:
             return RedirectResponse("/notifiche", status_code=303)
         ident_user, ident_email, ident_name = _support_identity(request, profile)
-        threads = access.list_user_support_threads(username=ident_user, email=ident_email)
-        thread = threads[0] if threads else None
+        thread = None
+        code = str(request.session.get("support_access_code") or "").strip().upper()
+        if code:
+            thread = access.get_support_thread_by_code(code)
+        if thread is None and profile is not None:
+            threads = access.list_user_support_threads(username=ident_user, email=ident_email)
+            thread = threads[0] if threads else None
         messages = access.list_support_messages(int(thread["id"])) if thread else []
+        if thread is not None:
+            access.mark_user_support_read(int(thread["id"]))
         waiting = bool(messages) and str(messages[-1].get("sender") or "") != "admin"
+        show_code = False
+        access_code = ""
+        if thread is not None:
+            access_code = str(thread.get("access_code") or "")
+            if access_code and not int(thread.get("access_code_shown") or 0):
+                show_code = True
+                access.mark_access_code_shown(int(thread["id"]))
+                request.session["support_access_code"] = access_code
         response = TEMPLATES.TemplateResponse(
             request,
             "chatta.html",
@@ -1372,6 +1497,8 @@ def create_app(
                 waiting=waiting,
                 guest_email=ident_email,
                 guest_name=ident_name,
+                show_access_code=show_code,
+                access_code=access_code,
             ),
         )
         response.headers["Cache-Control"] = "no-store"
@@ -1388,8 +1515,13 @@ def create_app(
         if profile is not None and profile.is_admin:
             return JSONResponse({"count": 0, "last": ""})
         ident_user, ident_email, _ident_name = _support_identity(request, profile)
-        threads = access.list_user_support_threads(username=ident_user, email=ident_email)
-        thread = threads[0] if threads else None
+        thread = None
+        code = str(request.session.get("support_access_code") or "").strip().upper()
+        if code:
+            thread = access.get_support_thread_by_code(code)
+        if thread is None and profile is not None:
+            threads = access.list_user_support_threads(username=ident_user, email=ident_email)
+            thread = threads[0] if threads else None
         messages = access.list_support_messages(int(thread["id"])) if thread else []
         last_sender = str(messages[-1].get("sender") or "") if messages else ""
         return JSONResponse(
@@ -1401,6 +1533,35 @@ def create_app(
     def chatta_open(
         request: Request,
         profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+        access_code: str = Form(""),
+    ) -> HTMLResponse:
+        username = _session_username(request)
+        profile = profiles.get(username) if username else None
+        if profile is not None and profile.is_admin:
+            return RedirectResponse("/notifiche", status_code=303)
+        code = (access_code or "").strip().upper()
+        thread = access.get_support_thread_by_code(code)
+        if thread is None:
+            _flash(
+                request,
+                "Codice non valido. Controlla e riprova, oppure recuperalo via email.",
+                kind="error",
+            )
+            return _continue(request, next_url="/chatta", message="Codice non trovato...")
+        request.session["support_access_code"] = code
+        if thread.get("guest_email"):
+            request.session["support_email"] = str(thread["guest_email"])
+        if thread.get("guest_name"):
+            request.session["support_name"] = str(thread["guest_name"])
+        _flash(request, "Conversazione riaperta con il codice.", kind="ok")
+        return _continue(request, next_url="/chatta", message="Apro la conversazione...")
+
+    @app.post("/chatta/recupera-codice")
+    def chatta_recover_code(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
         email: str = Form(""),
     ) -> HTMLResponse:
         username = _session_username(request)
@@ -1410,11 +1571,36 @@ def create_app(
         try:
             guest_email = normalize_email(email)
         except ValueError:
-            _flash(request, "Inserisci l’email con cui hai scritto.", kind="error")
+            _flash(request, "Inserisci l'email con cui hai aperto la chat.", kind="error")
             return _continue(request, next_url="/chatta", message="Controlla l'email...")
-        request.session["support_email"] = guest_email
-        _flash(request, "Se c’è una conversazione con questa email, la vedi qui sotto.", kind="ok")
-        return _continue(request, next_url="/chatta", message="Apro la conversazione...")
+        threads = access.list_user_support_threads(email=guest_email)
+        thread = threads[0] if threads else None
+        code = str((thread or {}).get("access_code") or "").strip().upper()
+        if thread and code:
+            subject = "Iris Nous: il tuo codice chat"
+            text = (
+                "Iris Nous\n\n"
+                f"Il codice per riaprire la tua chat e':\n\n  {code}\n\n"
+                "Inseriscilo nella pagina Chatta con noi.\n\n— Team Iris Nous\n"
+            )
+            html = (
+                "<p>Il codice per riaprire la tua chat e':</p>"
+                f"<p style='font-size:28px;letter-spacing:.3em;font-weight:700'>{code}</p>"
+                "<p>Inseriscilo nella pagina <strong>Chatta con noi</strong>.</p>"
+            )
+            send_branded_email(
+                destination=guest_email,
+                subject=subject,
+                text=text,
+                html=html,
+                demo_payload=code,
+            )
+        _flash(
+            request,
+            "Se esiste una chat con questa email, ti abbiamo inviato il codice (controlla anche Spam).",
+            kind="ok",
+        )
+        return _continue(request, next_url="/chatta", message="Codice inviato...")
 
     @app.post("/chatta")
     def chatta_send(
@@ -1430,46 +1616,56 @@ def create_app(
         username = _session_username(request) or ""
         profile = profiles.get(username) if username else None
         if profile is not None and profile.is_admin:
-            _flash(request, "L’amministratore risponde dalle Notifiche.", kind="error")
+            _flash(request, "L'amministratore risponde dalle Notifiche.", kind="error")
             return _continue(request, next_url="/notifiche", message="Vai alle notifiche...")
         text = (body or "").strip()
-        if len(text) < 8:
-            _flash(request, "Scrivi un messaggio un po’ più lungo (almeno 8 caratteri).", kind="error")
+        if len(text) < 2:
+            _flash(request, "Scrivi un messaggio prima di inviare.", kind="error")
             return _continue(request, next_url="/chatta", message="Completa il messaggio...")
         guest_email = (email or "").strip() or str(request.session.get("support_email") or "")
         guest_name = (name or "").strip() or str(request.session.get("support_name") or "")
         guest_phone = (phone or "").strip()
         if profile is not None:
             guest_email = guest_email or profile.email
-            guest_name = guest_name or f"{profile.first_name} {profile.last_name}".strip() or profile.username
+            guest_name = (
+                guest_name
+                or f"{profile.first_name} {profile.last_name}".strip()
+                or profile.username
+            )
             guest_phone = guest_phone or profile.phone_e164 or profile.phone_label
             username = profile.username
         else:
             username = ""
             if len(guest_name) < 2:
-                _flash(request, "Scrivi il tuo nome, così sappiamo chi ci ha scritto.", kind="error")
+                _flash(request, "Scrivi il tuo nome, cosi sappiamo chi ci ha scritto.", kind="error")
                 return _continue(request, next_url="/chatta", message="Scrivi il nome...")
             try:
                 guest_email = normalize_email(guest_email)
             except ValueError:
-                _flash(request, "Inserisci un’email a cui possiamo risponderti.", kind="error")
+                _flash(request, "Inserisci un'email a cui possiamo risponderti.", kind="error")
                 return _continue(request, next_url="/chatta", message="Controlla l'email...")
             request.session["support_email"] = guest_email
             request.session["support_name"] = guest_name
-        access.add_user_support_message(
+        user_lang = get_request_language(request)
+        admin_lang = "it"
+        translated = translate_text(text, source=user_lang, target=admin_lang)
+        thread_id = access.add_user_support_message(
             username=username,
             guest_name=guest_name,
             guest_email=guest_email,
             guest_phone=guest_phone,
             channel="chat",
-            subject=subject or "Chatta con noi",
+            subject=subject,
             body=text,
+            user_lang=user_lang,
+            body_translated=translated if translated != text else "",
+            lang_src=user_lang,
+            lang_dst=admin_lang,
         )
-        _flash(
-            request,
-            "Messaggio inviato. Ti risponderemo il prima possibile.",
-            kind="ok",
-        )
+        thread = access.get_support_thread(thread_id)
+        if thread and thread.get("access_code"):
+            request.session["support_access_code"] = str(thread["access_code"])
+        _flash(request, "Messaggio inviato. Ti rispondiamo qui e, se serve, via email.", kind="ok")
         return _continue(request, next_url="/chatta", message="Messaggio inviato...")
 
     @app.get("/dashboard", response_class=HTMLResponse)
@@ -1522,11 +1718,20 @@ def create_app(
         current_password: str = Form(...),
         new_password: str = Form(...),
         new_password2: str = Form(...),
+        current_password_confirm: str = Form(""),
         profiles: ProfileStore = Depends(_store),
     ) -> RedirectResponse:
         loaded = _require_profile(request, profiles)
         if isinstance(loaded, RedirectResponse):
             return loaded
+        if loaded.is_admin:
+            if current_password_confirm != current_password:
+                _flash(
+                    request,
+                    "Per l'admin serve ripetere la password attuale (doppia conferma).",
+                    kind="error",
+                )
+                return RedirectResponse("/cambia-password", status_code=303)
         if new_password != new_password2:
             _flash(request, "Le nuove password non coincidono.", kind="error")
             return RedirectResponse("/cambia-password", status_code=303)
@@ -1654,23 +1859,32 @@ def create_app(
     def delete_account(
         request: Request,
         profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
     ) -> RedirectResponse:
         loaded = _require_profile(request, profiles)
         if isinstance(loaded, RedirectResponse):
             return loaded
         try:
-            profiles.hard_delete(loaded.username)
+            profiles.soft_delete(loaded.username, photos_dir=Path(app.state.photos_dir))
+            access.mark_deleted(loaded.username)
         except ValueError as exc:
             _flash(request, str(exc), kind="error")
             return RedirectResponse("/anagrafica?edit=1", status_code=303)
         request.session.clear()
-        _flash(request, "Account eliminato definitivamente.", kind="ok")
+        _flash(request, "Account eliminato.", kind="ok")
         return RedirectResponse("/", status_code=303)
 
     @app.get("/api/password-strength")
     def api_password_strength(password: str = "") -> dict:
         check = password_strength(password)
-        return {"ok": check.ok, "level": check.level, "message": check.message}
+        return {
+            "ok": check.ok,
+            "level": check.level,
+            "message": check.message,
+            "requirements": [
+                {"id": r.id, "label": r.label, "ok": r.ok} for r in check.requirements
+            ],
+        }
 
     # --- Calibrazione cuffia (parola ↔ segnale) + associazione telefono ---
     def _calib_session_for(username: str, profiles: ProfileStore):
@@ -1956,7 +2170,7 @@ def create_app(
             return RedirectResponse("/associa-telefono", status_code=303)
         state = new_oauth_state()
         request.session["spotify_oauth_state"] = state
-        redir = redirect_uri(str(request.base_url))
+        redir = redirect_uri(_public_base_url(request))
         return RedirectResponse(authorize_url(redirect=redir, state=state), status_code=302)
 
     @app.get("/auth/spotify/callback")
@@ -1984,7 +2198,7 @@ def create_app(
         if not code or not state or state != expected:
             _flash(request, "Sessione Spotify non valida. Riprova.", kind="error")
             return RedirectResponse("/associa-telefono", status_code=303)
-        redir = redirect_uri(str(request.base_url))
+        redir = redirect_uri(_public_base_url(request))
         try:
             tokens = exchange_code(code, redirect=redir)
             access = str(tokens.get("access_token") or "")

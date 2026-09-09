@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import secrets
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -10,6 +11,12 @@ from typing import Any, Literal
 
 
 INBOX_KEEP_DAYS = 10
+SUPPORT_BODY_MAX = 50_000
+_ACCESS_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+
+def new_support_access_code() -> str:
+    return "".join(secrets.choice(_ACCESS_CODE_ALPHABET) for _ in range(6))
 
 
 def _utc_now() -> str:
@@ -227,6 +234,10 @@ class AccessDatabase:
                 viewed_at TEXT NOT NULL DEFAULT '',
                 replied_at TEXT NOT NULL DEFAULT '',
                 inbox_hidden INTEGER NOT NULL DEFAULT 0,
+                access_code TEXT NOT NULL DEFAULT '',
+                access_code_shown INTEGER NOT NULL DEFAULT 0,
+                user_lang TEXT NOT NULL DEFAULT 'it',
+                user_last_read_at TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             )
@@ -239,10 +250,45 @@ class AccessDatabase:
                 thread_id INTEGER NOT NULL,
                 sender TEXT NOT NULL,
                 body TEXT NOT NULL,
+                body_translated TEXT NOT NULL DEFAULT '',
+                lang_src TEXT NOT NULL DEFAULT '',
+                lang_dst TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS system_notices (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL DEFAULT '',
+                body TEXT NOT NULL DEFAULT '',
+                audience TEXT NOT NULL DEFAULT 'users',
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        thread_cols = {
+            row[1] for row in conn.execute("PRAGMA table_info(support_threads)").fetchall()
+        }
+        for name, decl in {
+            "access_code": "TEXT NOT NULL DEFAULT ''",
+            "access_code_shown": "INTEGER NOT NULL DEFAULT 0",
+            "user_lang": "TEXT NOT NULL DEFAULT 'it'",
+            "user_last_read_at": "TEXT NOT NULL DEFAULT ''",
+        }.items():
+            if name not in thread_cols:
+                conn.execute(f"ALTER TABLE support_threads ADD COLUMN {name} {decl}")
+        msg_cols = {
+            row[1] for row in conn.execute("PRAGMA table_info(support_messages)").fetchall()
+        }
+        for name, decl in {
+            "body_translated": "TEXT NOT NULL DEFAULT ''",
+            "lang_src": "TEXT NOT NULL DEFAULT ''",
+            "lang_dst": "TEXT NOT NULL DEFAULT ''",
+        }.items():
+            if name not in msg_cols:
+                conn.execute(f"ALTER TABLE support_messages ADD COLUMN {name} {decl}")
         conn.execute(
             """
             CREATE INDEX IF NOT EXISTS idx_support_threads_status
@@ -253,6 +299,12 @@ class AccessDatabase:
             """
             CREATE INDEX IF NOT EXISTS idx_support_threads_user
             ON support_threads (username, updated_at DESC)
+            """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_support_threads_code
+            ON support_threads (access_code)
             """
         )
         conn.execute(
@@ -422,29 +474,6 @@ class AccessDatabase:
             )
             conn.commit()
         self.mark_deleted(username)
-
-    def hard_delete_user(self, username: str) -> None:
-        """Remove the account row completely so username/email can be reused."""
-        key = username.strip()
-        if not key:
-            return
-        with self._connect() as conn:
-            conn.execute(
-                "DELETE FROM users WHERE username = ? COLLATE NOCASE",
-                (key,),
-            )
-            conn.execute(
-                "DELETE FROM user_anagrafica WHERE username = ? COLLATE NOCASE",
-                (key,),
-            )
-            conn.execute(
-                """
-                INSERT INTO access_logs (username, event, ip, user_agent, created_at)
-                VALUES (?, 'account_purged', '', '', ?)
-                """,
-                (key, _utc_now()),
-            )
-            conn.commit()
 
     def count_users(self, *, deleted: bool = False, exclude_admin: bool = False) -> int:
         clauses: list[str] = []
@@ -691,6 +720,7 @@ class AccessDatabase:
                 LEFT JOIN access_logs l
                   ON a.username = l.username
                  AND l.event IN ('login_ok', 'register', 'logout', 'login_fail')
+                 AND COALESCE(u.email_verified, 0) = 1
                 GROUP BY a.username
                 """
             ).fetchall()
@@ -856,6 +886,10 @@ class AccessDatabase:
         channel: str = "chat",
         subject: str = "",
         body: str = "",
+        user_lang: str = "it",
+        body_translated: str = "",
+        lang_src: str = "",
+        lang_dst: str = "",
     ) -> int:
         username = (username or "").strip()
         guest_name = (guest_name or "").strip()[:80]
@@ -865,7 +899,11 @@ class AccessDatabase:
         subject = (subject or "").strip()[:160] or (
             "Messaggio via email" if channel == "email" else "Chatta con noi"
         )
-        body = (body or "").strip()[:4000]
+        body = (body or "").strip()[:SUPPORT_BODY_MAX]
+        user_lang = (user_lang or "it").strip().lower()[:8] or "it"
+        body_translated = (body_translated or "").strip()[:SUPPORT_BODY_MAX]
+        lang_src = (lang_src or user_lang).strip().lower()[:8]
+        lang_dst = (lang_dst or "").strip().lower()[:8]
         if not body:
             raise ValueError("message required")
         now = _utc_now()
@@ -873,6 +911,9 @@ class AccessDatabase:
             existing = self._latest_open_thread(conn, username=username, email=guest_email)
             if existing is not None:
                 thread_id = int(existing["id"])
+                code = str(existing["access_code"] or "").strip()
+                if not code:
+                    code = new_support_access_code()
                 conn.execute(
                     """
                     UPDATE support_threads
@@ -884,6 +925,8 @@ class AccessDatabase:
                         guest_email = CASE WHEN guest_email = '' THEN ? ELSE guest_email END,
                         guest_phone = CASE WHEN guest_phone = '' THEN ? ELSE guest_phone END,
                         username = CASE WHEN username = '' THEN ? ELSE username END,
+                        access_code = ?,
+                        user_lang = ?,
                         updated_at = ?
                     WHERE id = ?
                     """,
@@ -894,18 +937,22 @@ class AccessDatabase:
                         guest_email,
                         guest_phone,
                         username,
+                        code,
+                        user_lang,
                         now,
                         thread_id,
                     ),
                 )
             else:
+                code = new_support_access_code()
                 cur = conn.execute(
                     """
                     INSERT INTO support_threads (
                         username, guest_name, guest_email, guest_phone, channel,
                         subject, status, viewed_at, replied_at, inbox_hidden,
+                        access_code, access_code_shown, user_lang, user_last_read_at,
                         created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, 'unread', '', '', 0, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, 'unread', '', '', 0, ?, 0, ?, '', ?, ?)
                     """,
                     (
                         username,
@@ -914,6 +961,8 @@ class AccessDatabase:
                         guest_phone,
                         channel,
                         subject,
+                        code,
+                        user_lang,
                         now,
                         now,
                     ),
@@ -921,10 +970,12 @@ class AccessDatabase:
                 thread_id = int(cur.lastrowid)
             conn.execute(
                 """
-                INSERT INTO support_messages (thread_id, sender, body, created_at)
-                VALUES (?, 'user', ?, ?)
+                INSERT INTO support_messages (
+                    thread_id, sender, body, body_translated, lang_src, lang_dst, created_at
+                )
+                VALUES (?, 'user', ?, ?, ?, ?, ?)
                 """,
-                (thread_id, body, now),
+                (thread_id, body, body_translated, lang_src, lang_dst, now),
             )
             conn.commit()
         return thread_id
@@ -944,10 +995,58 @@ class AccessDatabase:
             )
             conn.commit()
 
-    def add_admin_support_reply(self, thread_id: int, body: str) -> dict[str, Any] | None:
-        body = (body or "").strip()[:4000]
+    def mark_access_code_shown(self, thread_id: int) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE support_threads SET access_code_shown = 1 WHERE id = ?",
+                (int(thread_id),),
+            )
+            conn.commit()
+
+    def mark_user_support_read(self, thread_id: int) -> None:
+        now = _utc_now()
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE support_threads
+                SET user_last_read_at = ?, updated_at = updated_at
+                WHERE id = ?
+                """,
+                (now, int(thread_id)),
+            )
+            conn.commit()
+
+    def get_support_thread_by_code(self, access_code: str) -> dict[str, Any] | None:
+        code = (access_code or "").strip().upper()
+        if len(code) < 4:
+            return None
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT * FROM support_threads
+                WHERE upper(access_code) = ?
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (code,),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def add_admin_support_reply(
+        self,
+        thread_id: int,
+        body: str,
+        *,
+        body_translated: str = "",
+        lang_src: str = "",
+        lang_dst: str = "",
+    ) -> dict[str, Any] | None:
+        body = (body or "").strip()[:SUPPORT_BODY_MAX]
         if not body:
             raise ValueError("message required")
+        body_translated = (body_translated or "").strip()[:SUPPORT_BODY_MAX]
+        lang_src = (lang_src or "").strip().lower()[:8]
+        lang_dst = (lang_dst or "").strip().lower()[:8]
         now = _utc_now()
         with self._connect() as conn:
             row = conn.execute(
@@ -958,10 +1057,12 @@ class AccessDatabase:
                 return None
             conn.execute(
                 """
-                INSERT INTO support_messages (thread_id, sender, body, created_at)
-                VALUES (?, 'admin', ?, ?)
+                INSERT INTO support_messages (
+                    thread_id, sender, body, body_translated, lang_src, lang_dst, created_at
+                )
+                VALUES (?, 'admin', ?, ?, ?, ?, ?)
                 """,
-                (int(thread_id), body, now),
+                (int(thread_id), body, body_translated, lang_src, lang_dst, now),
             )
             conn.execute(
                 """
@@ -980,6 +1081,141 @@ class AccessDatabase:
                 (int(thread_id),),
             ).fetchone()
         return dict(fresh) if fresh else dict(row)
+
+    def delete_support_threads(
+        self,
+        *,
+        thread_ids: list[int] | None = None,
+        status: str = "",
+        q: str = "",
+        delete_all_matching: bool = False,
+        archive: bool = False,
+    ) -> int:
+        """Hard-delete one/many/all matching support threads and their messages."""
+
+        ids = [int(x) for x in (thread_ids or []) if int(x) > 0]
+        status = (status or "").strip().lower()
+        q = (q or "").strip().lower()
+        with self._connect() as conn:
+            if delete_all_matching or not ids:
+                clauses = ["1=1"]
+                params: list[Any] = []
+                if archive:
+                    clauses.append("inbox_hidden = 1")
+                else:
+                    clauses.append("inbox_hidden = 0")
+                if status in {"unread", "viewed", "replied"}:
+                    clauses.append("status = ?")
+                    params.append(status)
+                if q:
+                    clauses.append(
+                        "(lower(guest_name) LIKE ? OR lower(guest_email) LIKE ? "
+                        "OR lower(username) LIKE ? OR lower(subject) LIKE ? OR lower(access_code) LIKE ?)"
+                    )
+                    like = f"%{q}%"
+                    params.extend([like, like, like, like, like])
+                rows = conn.execute(
+                    f"SELECT id FROM support_threads WHERE {' AND '.join(clauses)}",
+                    params,
+                ).fetchall()
+                ids = [int(r["id"]) for r in rows]
+            if not ids:
+                return 0
+            placeholders = ",".join("?" for _ in ids)
+            conn.execute(
+                f"DELETE FROM support_messages WHERE thread_id IN ({placeholders})",
+                ids,
+            )
+            conn.execute(
+                f"DELETE FROM support_threads WHERE id IN ({placeholders})",
+                ids,
+            )
+            conn.commit()
+        return len(ids)
+
+    def purge_user_support(self, *, username: str = "", email: str = "") -> int:
+        username = (username or "").strip()
+        email = (email or "").strip().lower()
+        if not username and not email:
+            return 0
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id FROM support_threads
+                WHERE (username != '' AND username = ?)
+                   OR (? != '' AND lower(guest_email) = ?)
+                """,
+                (username, email, email),
+            ).fetchall()
+            ids = [int(r["id"]) for r in rows]
+            if not ids:
+                return 0
+            placeholders = ",".join("?" for _ in ids)
+            conn.execute(
+                f"DELETE FROM support_messages WHERE thread_id IN ({placeholders})",
+                ids,
+            )
+            conn.execute(
+                f"DELETE FROM support_threads WHERE id IN ({placeholders})",
+                ids,
+            )
+            conn.commit()
+        return len(ids)
+
+    def user_support_unread_count(self, *, username: str = "", email: str = "") -> int:
+        threads = self.list_user_support_threads(username=username, email=email)
+        unread = 0
+        for thread in threads:
+            last_read = str(thread.get("user_last_read_at") or "")
+            messages = self.list_support_messages(int(thread["id"]))
+            for msg in reversed(messages):
+                if str(msg.get("sender") or "") != "admin":
+                    continue
+                created = str(msg.get("created_at") or "")
+                if not last_read or created > last_read:
+                    unread += 1
+                break
+        return unread
+
+    def inbox_fingerprint(self, *, archive: bool = False) -> dict[str, Any]:
+        threads = self.list_support_threads(archive=archive)
+        last = threads[0]["updated_at"] if threads else ""
+        return {
+            "count": len(threads),
+            "unread": self.support_unread_count(),
+            "last": last,
+            "ids": [int(t["id"]) for t in threads[:40]],
+        }
+
+    def list_system_notices(self, *, limit: int = 40) -> list[dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM system_notices
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                (max(1, int(limit)),),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def add_system_notice(self, *, title: str, body: str, audience: str = "users") -> int:
+        now = _utc_now()
+        with self._connect() as conn:
+            cur = conn.execute(
+                """
+                INSERT INTO system_notices (title, body, audience, created_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    (title or "").strip()[:160],
+                    (body or "").strip()[:SUPPORT_BODY_MAX],
+                    (audience or "users").strip()[:32] or "users",
+                    now,
+                ),
+            )
+            conn.commit()
+            return int(cur.lastrowid)
 
     def stats(self) -> dict[str, Any]:
         with self._connect() as conn:

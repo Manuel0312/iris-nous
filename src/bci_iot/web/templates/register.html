@@ -4,13 +4,16 @@
 {% block content %}
 <section class="auth-panel">
   <h1>{{ t('Iscrizione') }}</h1>
-  <p class="lede">{{ t('Scegli un username e un’email. Nome e cognome li inserisci al passo dopo.') }}</p>
+  <p class="lede">{{ t('Scegli un username e un’email. Nome e cognome li inserisci al passo dopo. Il telefono è opzionale.') }}</p>
   <form method="post" action="/register" class="stack" id="register-form">
     <label>{{ t('Username') }}
       <input name="username" autocomplete="username" required maxlength="64" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="{{ t('es. maria_rossi') }}" />
     </label>
     <label>{{ t('Email') }}
       <input name="email" type="email" autocomplete="email" required maxlength="254" inputmode="email" placeholder="{{ t('la tua mail, es. nome@gmail.com') }}" autocapitalize="none" spellcheck="false" pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}" title="{{ t('Serve un dominio con estensione, es. nome@gmail.com') }}" />
+    </label>
+    <label>{{ t('Telefono (opzionale)') }}
+      <input name="phone" type="tel" maxlength="20" autocomplete="tel" inputmode="tel" placeholder="{{ t('es. +39 333…') }}" />
     </label>
     <label>{{ t('Password (minimo livello medio)') }}
       <div class="password-field">
@@ -25,11 +28,12 @@
         </button>
       </div>
     </label>
+    <ul class="pwd-reqs" id="reg-reqs" aria-live="polite"></ul>
     <p class="strength-meter" id="reg-strength" data-level="weak">{{ t('Serve almeno: 8 caratteri, una maiuscola, un numero.') }}</p>
     <label>{{ t('ID cuffia (opzionale)') }}
       <input name="headset_id" maxlength="128" placeholder="{{ t('se ce l’hai, altrimenti lascia vuoto') }}" />
     </label>
-    <button class="btn primary" type="submit">{{ t('Crea account') }}</button>
+    <button class="btn primary" type="submit" id="reg-submit">{{ t('Crea account') }}</button>
   </form>
   <p class="muted auth-switch">{{ t('Hai già un account?') }} <a href="/login">{{ t('Login') }}</a> · <a href="/recupera-password">{{ t('Password dimenticata?') }}</a></p>
 </section>
@@ -37,13 +41,30 @@
 (function () {
   const input = document.getElementById("register-password");
   const meter = document.getElementById("reg-strength");
-  if (!input || !meter) return;
-  input.addEventListener("input", async () => {
+  const list = document.getElementById("reg-reqs");
+  const submit = document.getElementById("reg-submit");
+  if (!input || !meter || !list) return;
+  const mandatory = new Set(["len", "upper", "digit"]);
+  async function check() {
     const res = await fetch("/api/password-strength?password=" + encodeURIComponent(input.value));
     const data = await res.json();
     meter.dataset.level = data.level;
     meter.textContent = data.message;
-  });
+    list.innerHTML = "";
+    (data.requirements || []).forEach((r) => {
+      const li = document.createElement("li");
+      li.textContent = r.label;
+      if (!mandatory.has(r.id)) li.classList.add("is-optional");
+      if (r.ok) li.classList.add("is-ok");
+      list.appendChild(li);
+    });
+    const ok = (data.requirements || [])
+      .filter((r) => mandatory.has(r.id))
+      .every((r) => r.ok);
+    if (submit) submit.disabled = !ok;
+  }
+  input.addEventListener("input", check);
+  check();
 })();
 </script>
 {% endblock %}

@@ -716,36 +716,17 @@ class ProfileStore:
         self.save(profile)
         return profile
 
-    def soft_delete(self, username: str) -> None:
+    def soft_delete(self, username: str, *, photos_dir: Path | None = None) -> None:
         profile = self.get(username)
         if profile is None:
             raise KeyError(f"unknown user: {username}")
         if profile.is_admin:
             raise ValueError("Non puoi eliminare l'account amministratore.")
+        self.purge_account_data(username, photos_dir=photos_dir)
+        profile = self.get(username) or profile
         profile.deleted_at = _utc_now()
         self.save(profile)
         self.db.soft_delete_user(username)
-
-    def hard_delete(self, username: str) -> None:
-        """Permanently remove an account so the person must register again."""
-        profile = self.get(username, include_deleted=True)
-        if profile is None:
-            # Anagrafica-only leftover: still purge DB rows.
-            if self.db.get_anagrafica(username) is None and not self.db.username_taken(
-                username
-            ):
-                raise KeyError(f"unknown user: {username}")
-        elif profile.is_admin:
-            raise ValueError("Non puoi eliminare l'account amministratore.")
-        else:
-            photo = (profile.photo_filename or "").strip()
-            if photo:
-                path = self.photos_dir / photo
-                try:
-                    path.unlink(missing_ok=True)
-                except OSError:
-                    pass
-        self.db.hard_delete_user(username)
 
     def update_anagrafica(
         self,
@@ -984,10 +965,41 @@ class ProfileStore:
         return out
 
     def count_online(self) -> int:
-        return sum(1 for p in self.list_profiles() if p.is_online and not p.is_admin)
+        return sum(
+            1
+            for p in self.list_profiles()
+            if p.is_online and not p.is_admin and p.email_verified
+        )
 
     def count_registered(self) -> int:
         return self.db.count_users(deleted=False, exclude_admin=True)
 
     def count_deleted(self) -> int:
-        return self.db.count_users(deleted=True, exclude_admin=False)
+        # Prefer users.deleted_at; fall back to anagrafica if rows diverge.
+        from_users = self.db.count_users(deleted=True, exclude_admin=False)
+        if from_users:
+            return from_users
+        return int(self.db.stats().get("deleted") or 0)
+
+    def purge_account_data(self, username: str, *, photos_dir: Path | None = None) -> None:
+        """Remove chats and photo file when an account is deleted."""
+
+        profile = self.get(username)
+        email = (profile.email if profile else "") or ""
+        photo = (profile.photo_filename if profile else "") or ""
+        self.db.purge_user_support(username=username, email=email)
+        if photos_dir is not None and photo:
+            path = Path(photos_dir) / photo
+            try:
+                if path.is_file():
+                    path.unlink()
+            except OSError:
+                pass
+        if profile is not None:
+            profile.photo_filename = ""
+            profile.spotify_access_token = ""
+            profile.spotify_refresh_token = ""
+            profile.spotify_token_expires_at = ""
+            profile.spotify_user_id = ""
+            profile.spotify_display_name = ""
+            self.save(profile)

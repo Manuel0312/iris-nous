@@ -62,15 +62,15 @@
   </figure>
 </section>
 
-<section class="story-band dark">
-  <div class="band-inner reveal" data-reveal>
-    <p class="kicker light">{{ t('Casa') }}</p>
-    <h2 class="display-xxl">{{ t('La casa ti ascolta.') }}</h2>
-    <p class="story-text light">
+<section class="story-panel">
+  <div class="story-copy reveal" data-reveal>
+    <p class="kicker">{{ t('Casa') }}</p>
+    <h2 class="display-xl">{{ t('La casa ti ascolta.') }}</h2>
+    <p class="story-text">
       {{ t("Il confine tra mente e materia si dissolve. Concentrati, e l'ambiente reagisce. Le luci si accendono, gli scenari cambiano. Il controllo del tuo spazio vitale è ora una naturale estensione della tua volontà.") }}
     </p>
   </div>
-  <figure class="band-shot reveal" data-reveal>
+  <figure class="story-shot reveal" data-reveal>
     <img src="/static/product/home.jpg" alt="Casa" width="1600" height="1067" loading="lazy" />
   </figure>
 </section>
@@ -128,7 +128,7 @@
       window.setTimeout(() => el.classList.add("is-on"), delay);
     });
 
-    const nodes = document.querySelectorAll(".story [data-reveal], .story-close [data-reveal], .story-band [data-reveal]");
+    const nodes = document.querySelectorAll(".story [data-reveal], .story-close [data-reveal], .story-panel [data-reveal]");
     if (!("IntersectionObserver" in window)) {
       nodes.forEach((el) => { el.classList.add("is-in"); el.classList.add("is-visible"); });
     } else {
@@ -151,7 +151,7 @@
     const coarse = window.matchMedia("(hover: none), (pointer: coarse), (max-width: 859px)").matches;
     if (reduceMotion || coarse) return;
 
-    document.querySelectorAll(".story-shot, .band-shot").forEach((card) => {
+    document.querySelectorAll(".story-shot").forEach((card) => {
       card.addEventListener("pointermove", (event) => {
         const box = card.getBoundingClientRect();
         const px = (event.clientX - box.left) / box.width;
