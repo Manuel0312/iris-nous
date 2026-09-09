@@ -1,0 +1,27 @@
+name: iris-mail
+
+on:
+  repository_dispatch:
+    types: [iris-mail]
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            fs.writeFileSync(
+              'mail_payload.json',
+              JSON.stringify(context.payload.client_payload || {})
+            );
+      - name: Send from Iris Gmail
+        env:
+          SMTP_USER: ${{ secrets.IRIS_SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.IRIS_SMTP_PASSWORD }}
+          SMTP_FROM: ${{ secrets.IRIS_SMTP_FROM }}
+          MAIL_FILE: mail_payload.json
+        run: python3 scripts/send_iris_mail.py
