@@ -334,6 +334,7 @@ ES: dict[str, str] = {
     "Scrivi il tuo nome, così sappiamo chi ci ha scritto.": "Escribe tu nombre para saber quién nos ha escrito.",
     "Scrivi al team Iris Nous. Ti rispondiamo di persona.": "Escribe al equipo de Iris Nous. Te respondemos en persona.",
     "Scrivi il problema nel form. Ti rispondiamo di persona qui e via email, da telefono o da computer.": "Escribe el problema en el formulario. Te respondemos aquí y por correo, desde el teléfono o el ordenador.",
+    "Spiegaci il problema.": "Cuéntanos el problema.",
     "Spiegaci il problema e ti risponderemo il prima possibile.": "Cuéntanos el problema y te responderemos lo antes posible.",
     "Se hai già una conversazione con noi, inserisci la mail per visualizzarla.": "Si ya tienes una conversación con nosotros, introduce el correo para verla.",
     "Abbiamo ricevuto il messaggio. Ti risponderemo il prima possibile.": "Hemos recibido el mensaje. Te responderemos lo antes posible.",

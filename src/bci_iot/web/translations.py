@@ -2932,6 +2932,15 @@ _RAW: dict[str, dict[str, str]] = {
         "ja": "メールが届かないときは、このコードを使ってください：",
         "es": "Si el correo no llega, usa este código:",
     },
+    "Spiegaci il problema.": {
+        "en": "Tell us the problem.",
+        "fr": "Explique-nous le problème.",
+        "de": "Schildere uns das Problem.",
+        "pt": "Explica-nos o problema.",
+        "zh": "告诉我们问题。",
+        "ja": "問題を書いてください。",
+        "es": "Cuéntanos el problema.",
+    },
     "Spiegaci il problema e ti risponderemo il prima possibile.": {
         "en": "Tell us the problem and we will get back to you as soon as possible.",
         "fr": "Explique-nous le problème et nous te répondrons dès que possible.",

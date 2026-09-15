@@ -8,7 +8,7 @@
   <header class="chat-room-head">
     <p class="eyebrow">{{ t('Spazio privato') }}</p>
     <h1 id="team-chat-title">{{ t('Chatta con noi') }}</h1>
-    <p class="lede">{{ t('Solo tu e il team Iris. Scrivi liberamente: niente limite di caratteri.') }}</p>
+    <p class="lede">{{ t('Spiegaci il problema.') }}</p>
   </header>
 
   {% if show_access_code and access_code %}
@@ -19,7 +19,7 @@
   </div>
   {% endif %}
 
-  <div class="chat-split chat-split-request">
+  <div class="chat-split chat-split-request{% if messages %} has-thread{% endif %}">
     <aside class="chat-side chat-side-left" aria-label="{{ t('Richiesta di chat') }}">
       <form class="panel contact-mail-form chat-compose" method="post" action="/chatta" id="chat-compose-form">
         <h2>{{ t('Richiesta di chat') }}</h2>
@@ -44,7 +44,6 @@
           <button class="btn primary" type="submit">{{ t('Invia') }}</button>
         </div>
       </form>
-      <p class="chat-disclaimer chat-disclaimer-side">{{ chat_disclaimer }}</p>
     </aside>
 
     <div class="chat-main">
@@ -69,8 +68,6 @@
       {% if waiting %}
       <p class="muted" id="chat-wait">{{ t('Abbiamo ricevuto il messaggio. Ti risponderemo il prima possibile.') }}</p>
       {% endif %}
-      {% else %}
-      <p class="muted chat-empty">{{ t('La conversazione compare qui al centro dopo il primo messaggio.') }}</p>
       {% endif %}
     </div>
 
@@ -105,6 +102,8 @@
       {% endif %}
     </aside>
   </div>
+
+  <p class="chat-disclaimer chat-disclaimer-full">{{ chat_disclaimer }}</p>
 </section>
 <script>
 (function () {

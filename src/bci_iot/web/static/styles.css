@@ -675,6 +675,9 @@ img.unito-logo {
     width: min(42rem, calc(100% - 1.1rem));
     padding-top: calc(4.2rem + var(--safe-top));
   }
+  body.page-chat .shell.wide {
+    width: min(1180px, calc(100% - 1.1rem));
+  }
   .ai-chat-header h1,
   .contact-mail h1 {
     overflow-wrap: anywhere;
@@ -2882,9 +2885,10 @@ body.page-chat .chat-fab {
   color: var(--muted);
 }
 
-.chat-disclaimer-side {
-  margin-top: auto;
-  font-size: 0.75rem;
+.chat-disclaimer-full {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 1.15rem;
 }
 
 .chat-room {
@@ -2900,15 +2904,16 @@ body.page-chat .chat-fab {
   display: grid;
   grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) minmax(220px, 280px);
   gap: 1rem;
-  align-items: start;
+  align-items: stretch;
 }
 
 .chat-side {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
-  position: sticky;
-  top: 5.5rem;
+  position: relative;
+  top: auto;
+  height: 100%;
 }
 
 .chat-side .panel h2 {
@@ -2930,6 +2935,7 @@ body.page-chat .chat-fab {
   padding: 1rem;
   max-height: min(58vh, 560px);
   overflow: auto;
+  flex: 1;
 }
 
 .chat-empty {
@@ -2941,6 +2947,7 @@ body.page-chat .chat-fab {
 
 .chat-compose {
   margin: 0;
+  height: 100%;
 }
 
 @media (max-width: 960px) {
@@ -2949,6 +2956,7 @@ body.page-chat .chat-fab {
   }
   .chat-side {
     position: static;
+    height: auto;
   }
   /* Sinistra = richiesta, centro = chat, destra = riapri/recupera */
   .chat-side-left { order: 1; }
@@ -3195,6 +3203,11 @@ body.page-chat .shell,
 body.page-contact-mail .shell {
   width: min(420px, calc(100% - 1.25rem));
   padding-bottom: calc(1.5rem + var(--safe-bottom));
+}
+
+body.page-chat .shell.wide,
+.page-private.page-chat .shell.wide {
+  width: min(1180px, calc(100% - 2rem));
 }
 
 .who-are-you {

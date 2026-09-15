@@ -182,8 +182,11 @@ def test_chatta_and_admin_inbox_flow(tmp_path: Path, monkeypatch) -> None:
     assert chat_admin.status_code in {302, 303}
     assert "/notifiche" in chat_admin.headers.get("location", "")
     guest_chat = TestClient(app).get("/chatta")
-    assert "Chi sei" in guest_chat.text
-    assert "Solo tu e il team Iris" in guest_chat.text
+    assert "Richiesta di chat" in guest_chat.text
+    assert "Spiegaci il problema" in guest_chat.text
+    assert "Solo tu e il team Iris" not in guest_chat.text
+    assert "La conversazione compare qui al centro" not in guest_chat.text
+    assert "chat-disclaimer-full" in guest_chat.text
     assert "Ti rispondiamo di persona" not in guest_chat.text
     assert "Hai già scritto da un altro telefono" not in guest_chat.text
     assert "Agente AI" not in guest_chat.text
