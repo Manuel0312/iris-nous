@@ -38,9 +38,9 @@
         </label>
         {% endif %}
         <label>{{ t('Descrivi il problema') }}
-          <textarea name="body" rows="6" required minlength="2" placeholder="{{ t('Scrivi cosa non funziona…') }}"></textarea>
+          <textarea name="body" rows="5" required minlength="2" placeholder="{{ t('Scrivi cosa non funziona…') }}"></textarea>
         </label>
-        <div class="private-actions">
+        <div class="private-actions chat-side-actions">
           <button class="btn primary" type="submit">{{ t('Invia') }}</button>
         </div>
       </form>
@@ -73,28 +73,31 @@
 
     <aside class="chat-side chat-side-right" aria-label="{{ t('Recupero chat') }}">
       {% if not profile %}
-      <form class="panel contact-mail-form reopen-chat" method="post" action="/chatta/apri">
-        <h2>{{ t('Riapri la chat') }}</h2>
-        <p class="form-hint">{{ t('Hai già una chat? Inserisci il codice che ti abbiamo mostrato all’inizio.') }}</p>
-        <label>{{ t('Codice chat') }}
-          <input name="access_code" required maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="es. FEMXXK" style="letter-spacing:.2em;font-weight:700;text-transform:uppercase" />
-        </label>
-        <div class="private-actions">
-          <button class="btn" type="submit">{{ t('Riapri la chat') }}</button>
-        </div>
-      </form>
-      <form class="panel contact-mail-form reopen-chat" method="post" action="/chatta/recupera-codice">
-        <h2>{{ t('Recupera codice') }}</h2>
-        <p class="form-hint">{{ t('Non ricordi il codice? Te lo reinviamo all’email usata per aprire la chat.') }}</p>
-        <label>{{ t('Email') }}
-          <input name="email" type="email" required maxlength="254" autocomplete="email" />
-        </label>
-        <div class="private-actions">
-          <button class="btn" type="submit">{{ t('Recupera codice') }}</button>
-        </div>
-      </form>
+      <div class="panel chat-side-card">
+        <form class="contact-mail-form chat-side-block" method="post" action="/chatta/apri">
+          <h2>{{ t('Riapri la chat') }}</h2>
+          <p class="form-hint">{{ t('Hai già una chat? Inserisci il codice che ti abbiamo mostrato all’inizio.') }}</p>
+          <label>{{ t('Codice chat') }}
+            <input name="access_code" required maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="es. FEMXXK" style="letter-spacing:.2em;font-weight:700;text-transform:uppercase" />
+          </label>
+          <div class="private-actions chat-side-actions">
+            <button class="btn primary" type="submit">{{ t('Riapri la chat') }}</button>
+          </div>
+        </form>
+        <hr class="chat-side-divider" />
+        <form class="contact-mail-form chat-side-block" method="post" action="/chatta/recupera-codice">
+          <h2>{{ t('Recupera codice') }}</h2>
+          <p class="form-hint">{{ t('Non ricordi il codice? Te lo reinviamo all’email usata per aprire la chat.') }}</p>
+          <label>{{ t('Email') }}
+            <input name="email" type="email" required maxlength="254" autocomplete="email" />
+          </label>
+          <div class="private-actions chat-side-actions">
+            <button class="btn primary" type="submit">{{ t('Recupera codice') }}</button>
+          </div>
+        </form>
+      </div>
       {% else %}
-      <div class="panel contact-mail-form">
+      <div class="panel contact-mail-form chat-side-card">
         <h2>{{ t('Suggerimenti') }}</h2>
         <p class="form-hint">{{ t('Le tue bolle sono verdi a destra. Le risposte del team Iris sono grigie a sinistra.') }}</p>
         <p><a href="/le-mie-notifiche">{{ t('Le mie notifiche') }}</a></p>
