@@ -1,43 +1,41 @@
 {% extends "base.html" %}
-{% block title %}Notifiche · Admin{% endblock %}
+{% block title %}{{ t('Notifiche') }} · Admin{% endblock %}
 {% block body_class %}page-private{% endblock %}
 {% block main_class %}shell wide{% endblock %}
 {% block content %}
 <section class="dash admin-dash">
-  <p><a href="/accessi">← Pannello admin</a></p>
-  <h1>Notifiche</h1>
+  <p><a href="/accessi">{{ t('← Pannello admin') }}</a></p>
+  <h1>{{ t('Notifiche') }}</h1>
   <p class="lede">
-    Messaggi da Chatta con noi. Pallino rosso: non visualizzato · giallo: visto, non risposto · verde: risposto
-    (i verdi escono da qui dopo 10 giorni, ma restano nella chat di tutela sul profilo).
-    Aggiornamento live attivo.
+    {{ t('Messaggi da Chatta con noi. Pallino rosso: non visualizzato · giallo: visto, non risposto · verde: risposto (i verdi escono da qui dopo 10 giorni, ma restano nella chat di tutela sul profilo). Aggiornamento live attivo.') }}
   </p>
   <p>
     {% if archive %}
     <a href="/notifiche">Inbox</a>
-    · <strong>Archivio tutela</strong>
+    · <strong>{{ t('Archivio tutela') }}</strong>
     {% else %}
     <strong>Inbox</strong>
-    · <a href="/notifiche?archivio=1">Archivio tutela</a>
+    · <a href="/notifiche?archivio=1">{{ t('Archivio tutela') }}</a>
     {% endif %}
   </p>
 
   <form class="panel notice-manage" method="post" action="/notifiche/elimina" id="bulk-delete-form">
     <input type="hidden" name="archive" value="{{ '1' if archive else '0' }}" />
-    <h2>Gestione conversazioni</h2>
-    <p class="muted">Cancella una, più chat o tutte quelle filtrate. Operazione definitiva.</p>
+    <h2>{{ t('Gestione conversazioni') }}</h2>
+    <p class="muted">{{ t('Cancella una, più chat o tutte quelle filtrate. Operazione definitiva.') }}</p>
     <div class="bulk-row">
-      <label>Filtro stato
+      <label>{{ t('Filtro stato') }}
         <select name="status">
-          <option value="">Tutti</option>
-          <option value="unread">Non visualizzato</option>
-          <option value="viewed">Visto, non risposto</option>
-          <option value="replied">Risposto</option>
+          <option value="">{{ t('Tutti') }}</option>
+          <option value="unread">{{ t('Non visualizzato') }}</option>
+          <option value="viewed">{{ t('Visto, non risposto') }}</option>
+          <option value="replied">{{ t('Risposto') }}</option>
         </select>
       </label>
-      <label>Cerca
-        <input name="q" value="{{ filters.q if filters else '' }}" placeholder="nome, email, codice…" />
+      <label>{{ t('Cerca') }}
+        <input name="q" value="{{ filters.q if filters else '' }}" placeholder="{{ t('nome, email, codice…') }}" />
       </label>
-      <button class="btn" type="submit" name="delete_all_matching" value="1" onclick="return confirm('Eliminare TUTTE le chat che corrispondono ai filtri?');">Elimina filtrate</button>
+      <button class="btn" type="submit" name="delete_all_matching" value="1" onclick="return confirm({{ t('Eliminare TUTTE le chat che corrispondono ai filtri?')|tojson }});">{{ t('Elimina filtrate') }}</button>
     </div>
 
   <div class="panel table-wrap reveal" data-reveal>
@@ -45,12 +43,12 @@
     <table class="access-table notice-table">
       <thead>
         <tr>
-          <th><input type="checkbox" id="check-all" aria-label="Seleziona tutte" /></th>
-          <th>Stato</th>
-          <th>Presenza</th>
-          <th>Persona</th>
-          <th>Oggetto</th>
-          <th>Aggiornato</th>
+          <th><input type="checkbox" id="check-all" aria-label="{{ t('Seleziona tutte') }}" /></th>
+          <th>{{ t('Stato') }}</th>
+          <th>{{ t('Presenza') }}</th>
+          <th>{{ t('Persona') }}</th>
+          <th>{{ t('Oggetto') }}</th>
+          <th>{{ t('Aggiornato') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -60,9 +58,9 @@
           <td>
             <a class="person-link" href="/notifiche/{{ trow.id }}">
               <span class="status-dot status-{{ trow.status }}" aria-label="{{ trow.status }}"></span>
-              {% if trow.status == 'unread' %}Non visualizzato
-              {% elif trow.status == 'viewed' %}Visto, non risposto
-              {% else %}Risposto{% endif %}
+              {% if trow.status == 'unread' %}{{ t('Non visualizzato') }}
+              {% elif trow.status == 'viewed' %}{{ t('Visto, non risposto') }}
+              {% else %}{{ t('Risposto') }}{% endif %}
             </a>
           </td>
           <td>
@@ -71,14 +69,14 @@
             <span class="muted">—</span>
             {% else %}
             <span class="presence-dot {% if online %}is-online{% else %}is-offline{% endif %}"></span>
-            {{ "Online" if online else "Offline" }}
+            {{ t('Online') if online else t('Offline') }}
             {% endif %}
           </td>
           <td>
             {% if trow.username %}
             <a class="person-link" href="/accessi/utente/{{ trow.username }}">{{ trow.guest_name or trow.username }}</a>
             {% else %}
-            {{ trow.guest_name or trow.guest_email or "Ospite" }}
+            {{ trow.guest_name or trow.guest_email or t('Ospite') }}
             {% endif %}
             <div class="muted">{{ trow.guest_email }}{% if trow.guest_phone %} · {{ trow.guest_phone }}{% endif %}</div>
           </td>
@@ -89,10 +87,10 @@
       </tbody>
     </table>
     <div class="private-actions" style="margin-top:1rem">
-      <button class="btn" type="submit" onclick="return confirm('Eliminare le chat selezionate?');">Elimina selezionate</button>
+      <button class="btn" type="submit" onclick="return confirm({{ t('Eliminare le chat selezionate?')|tojson }});">{{ t('Elimina selezionate') }}</button>
     </div>
     {% else %}
-    <p class="muted">{% if archive %}Nessuna chat in archivio tutela.{% else %}Nessuna notifica in inbox.{% endif %}</p>
+    <p class="muted">{% if archive %}{{ t('Nessuna chat in archivio tutela.') }}{% else %}{{ t('Nessuna notifica in inbox.') }}{% endif %}</p>
     {% endif %}
   </div>
   </form>

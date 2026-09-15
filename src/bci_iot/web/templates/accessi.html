@@ -1,63 +1,63 @@
 ﻿{% extends "base.html" %}
-{% block title %}Pannello admin · Iris{% endblock %}
+{% block title %}{{ t('Pannello admin') }} · Iris{% endblock %}
 {% block body_class %}page-private{% endblock %}
 {% block main_class %}shell wide{% endblock %}
 {% block content %}
 <section class="dash admin-dash">
-  <h1>Pannello amministratore</h1>
+  <h1>{{ t('Pannello amministratore') }}</h1>
   <p class="lede">
-    Solo dati database: persone, accessi e statistiche.
-    Nessuna associazione cuffia in quest’area.
-    · <a href="/notifiche">Notifiche</a>
+    {{ t('Solo dati database: persone, accessi e statistiche.') }}
+    {{ t('Nessuna associazione cuffia in quest’area.') }}
+    · <a href="/notifiche">{{ t('Notifiche') }}</a>
   </p>
 
   <div class="card-grid stats-grid reveal" data-reveal>
     <div class="panel stat-card">
-      <div class="device-label">Online ora</div>
+      <div class="device-label">{{ t('Online ora') }}</div>
       <p class="stat-num">{{ stats.online }}</p>
     </div>
     <div class="panel stat-card">
-      <div class="device-label">Iscritti attivi</div>
+      <div class="device-label">{{ t('Iscritti attivi') }}</div>
       <p class="stat-num">{{ stats.registered }}</p>
     </div>
     <div class="panel stat-card">
-      <div class="device-label">Account cancellati</div>
+      <div class="device-label">{{ t('Account cancellati') }}</div>
       <p class="stat-num">{{ stats.deleted_accounts }}</p>
     </div>
   </div>
 
   <form class="admin-filters panel reveal" data-reveal method="get" action="/accessi">
-    <h2>Persone</h2>
+    <h2>{{ t('Persone') }}</h2>
     <div class="filter-search">
-      <label for="admin-q">Cerca (nome, cognome, email, telefono)</label>
-      <input id="admin-q" name="q" value="{{ filters.q }}" placeholder="es. Maria Rossi, email o +39…" />
+      <label for="admin-q">{{ t('Cerca (nome, cognome, email, telefono)') }}</label>
+      <input id="admin-q" name="q" value="{{ filters.q }}" placeholder="{{ t('es. Maria Rossi, email o +39…') }}" />
     </div>
     <div class="filter-meta">
-      <label>Dal
+      <label>{{ t('Dal') }}
         <input type="date" name="from" value="{{ filters.from }}" />
       </label>
-      <label>Al
+      <label>{{ t('Al') }}
         <input type="date" name="to" value="{{ filters.to }}" />
       </label>
-      <label>Ordina
+      <label>{{ t('Ordina') }}
         <select name="sort">
-          <option value="name_asc" {% if filters.sort == 'name_asc' %}selected{% endif %}>Nome A→Z</option>
-          <option value="name_desc" {% if filters.sort == 'name_desc' %}selected{% endif %}>Nome Z→A</option>
-          <option value="accesses_desc" {% if filters.sort == 'accesses_desc' %}selected{% endif %}>Accessi ↓</option>
-          <option value="accesses_asc" {% if filters.sort == 'accesses_asc' %}selected{% endif %}>Accessi ↑</option>
-          <option value="last_desc" {% if filters.sort == 'last_desc' %}selected{% endif %}>Ultimo accesso ↓</option>
-          <option value="last_asc" {% if filters.sort == 'last_asc' %}selected{% endif %}>Ultimo accesso ↑</option>
+          <option value="name_asc" {% if filters.sort == 'name_asc' %}selected{% endif %}>{{ t('Nome A→Z') }}</option>
+          <option value="name_desc" {% if filters.sort == 'name_desc' %}selected{% endif %}>{{ t('Nome Z→A') }}</option>
+          <option value="accesses_desc" {% if filters.sort == 'accesses_desc' %}selected{% endif %}>{{ t('Accessi ↓') }}</option>
+          <option value="accesses_asc" {% if filters.sort == 'accesses_asc' %}selected{% endif %}>{{ t('Accessi ↑') }}</option>
+          <option value="last_desc" {% if filters.sort == 'last_desc' %}selected{% endif %}>{{ t('Ultimo accesso ↓') }}</option>
+          <option value="last_asc" {% if filters.sort == 'last_asc' %}selected{% endif %}>{{ t('Ultimo accesso ↑') }}</option>
         </select>
       </label>
-      <label>Stato
+      <label>{{ t('Stato') }}
         <select name="status">
-          <option value="active" {% if filters.status == 'active' %}selected{% endif %}>Attivi</option>
-          <option value="deleted" {% if filters.status == 'deleted' %}selected{% endif %}>Cancellati</option>
-          <option value="all" {% if filters.status == 'all' %}selected{% endif %}>Tutti</option>
+          <option value="active" {% if filters.status == 'active' %}selected{% endif %}>{{ t('Attivi') }}</option>
+          <option value="deleted" {% if filters.status == 'deleted' %}selected{% endif %}>{{ t('Cancellati') }}</option>
+          <option value="all" {% if filters.status == 'all' %}selected{% endif %}>{{ t('Tutti') }}</option>
         </select>
       </label>
     </div>
-    <button class="btn primary" type="submit">Applica filtri</button>
+    <button class="btn primary" type="submit">{{ t('Applica filtri') }}</button>
   </form>
 
   <div class="panel table-wrap reveal" data-reveal>
@@ -65,10 +65,10 @@
     <table class="access-table people-table">
       <thead>
         <tr>
-          <th>Nome</th>
-          <th>Cognome</th>
+          <th>{{ t('Nome') }}</th>
+          <th>{{ t('Cognome') }}</th>
           <th>Email</th>
-          <th>Telefono</th>
+          <th>{{ t('Telefono') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -91,10 +91,10 @@
       </tbody>
     </table>
     {% else %}
-    <p class="muted">Nessuna persona trovata con questi filtri.</p>
+    <p class="muted">{{ t('Nessuna persona trovata con questi filtri.') }}</p>
     {% endif %}
   </div>
 
-  <p class="muted">File database: <code>{{ db_path }}</code></p>
+  <p class="muted">{{ t('File database:') }} <code>{{ db_path }}</code></p>
 </section>
 {% endblock %}

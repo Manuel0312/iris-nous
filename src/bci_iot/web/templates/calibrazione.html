@@ -14,7 +14,7 @@
     <p class="setup-accuracy">{{ t('Precisione stimata') }}
       <strong>{{ '%.0f'|format(accuracy * 100) if accuracy is not none else '—' }}%</strong>
     </p>
-    <p class="lede muted">Calibrazione avvenuta</p>
+    <p class="lede muted">{{ t('Calibrazione avvenuta') }}</p>
     <div class="private-actions">
       <a class="btn primary" href="/dashboard">{{ t('Apri l’ecosistema') }}</a>
       <a class="btn" href="/inizia">{{ t('Cosa puoi fare') }}</a>
@@ -107,6 +107,11 @@
   const err = document.getElementById("calib-error");
   const cue = document.getElementById("calib-cue");
   const needed = {{ samples_needed }};
+  const L = {
+    erroreCattura: {{ t('Errore cattura')|tojson }},
+    intensita: {{ t('→ intensità')|tojson }},
+    erroreSalvataggio: {{ t('Errore salvataggio')|tojson }}
+  };
   const labels = {
     {% for c in colours %}"{{ c.key }}": "{{ c.color_name }} ({{ c.label }})",{% endfor %}
   };
@@ -135,10 +140,10 @@
           body: JSON.stringify({ command: word }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || "Errore cattura");
+        if (!res.ok) throw new Error(data.detail || L.erroreCattura);
         meter.hidden = false;
         last.textContent = (data.color_name || data.command) +
-          " → intensità " + data.intensity + " · " + data.intent;
+          " " + L.intensita + " " + data.intensity + " · " + data.intent;
         fill.style.width = data.intensity + "%";
         fill.style.background = btn.style.getPropertyValue("--folder-color") || "";
         renderProgress(data.progress);
@@ -155,7 +160,7 @@
     try {
       const res = await fetch("/api/calibrate/finish", { method: "POST" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Errore salvataggio");
+      if (!res.ok) throw new Error(data.detail || L.erroreSalvataggio);
       location.href = "/calibrazione?done=1&acc=" + encodeURIComponent(data.accuracy);
     } catch (e) {
       err.hidden = false;

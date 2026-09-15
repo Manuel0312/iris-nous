@@ -23,12 +23,12 @@
         <button class="btn primary" type="submit">{{ t('Invia il codice via email') }}</button>
       </form>
       <p class="pair-box">
-        <span>Codice a 6 cifre</span>
+        <span>{{ t('Codice a 6 cifre') }}</span>
         <strong class="pair-code">{{ profile.pairing_code }}</strong>
       </p>
       {% if qr_url %}
       <p class="pair-qr">
-        <img src="{{ qr_url }}" width="220" height="220" alt="QR verso associazione telefono" />
+        <img src="{{ qr_url }}" width="220" height="220" alt="{{ t('QR verso associazione telefono') }}" />
       </p>
       <p class="form-hint">{{ t('Inquadra il QR col telefono (dopo il login).') }}</p>
       {% endif %}
@@ -49,7 +49,7 @@
     </div>
 
     <div class="form-block">
-      <h2>Telefono in linea</h2>
+      <h2>{{ t('Telefono in linea') }}</h2>
       <p class="form-hint">
         {{ t('Quando vuoi chiamate e notifiche in diretta, tieni aperta la pagina') }}
         <a href="/telefono"><strong>{{ t('Telefono live') }}</strong></a>
@@ -103,22 +103,28 @@
   var form = document.getElementById("music-test-form");
   var msg = document.getElementById("music-test-msg");
   if (!form) return;
+  var L = {
+    invioComando: {{ t('Invio comando…')|tojson }},
+    comandoInviato: {{ t('Comando inviato: prossima canzone.')|tojson }},
+    comandoNonRiuscito: {{ t('Comando non riuscito.')|tojson }},
+    erroreRete: {{ t('Errore di rete.')|tojson }}
+  };
   form.addEventListener("submit", async function (ev) {
     ev.preventDefault();
     msg.hidden = false;
-    msg.textContent = "Invio comando…";
+    msg.textContent = L.invioComando;
     try {
       var res = await fetch("/api/music/next", { method: "POST", headers: { "Accept": "application/json" } });
       var data = await res.json();
       if (data.status === "ok") {
-        msg.textContent = "Comando inviato: prossima canzone.";
+        msg.textContent = L.comandoInviato;
         msg.className = "flash ok";
       } else {
-        msg.textContent = data.detail || "Comando non riuscito.";
+        msg.textContent = data.detail || L.comandoNonRiuscito;
         msg.className = "flash error";
       }
     } catch (err) {
-      msg.textContent = "Errore di rete.";
+      msg.textContent = L.erroreRete;
       msg.className = "flash error";
     }
   });

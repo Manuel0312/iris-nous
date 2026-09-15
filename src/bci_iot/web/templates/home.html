@@ -9,7 +9,7 @@
     <img
       class="unito-logo"
       src="/static/brand/unito-di.png"
-      alt="{{ t('Home') }} — di.unito.it, Dipartimento di Informatica"
+      alt="{{ t('Home') }} — {{ t('di.unito.it, Dipartimento di Informatica') }}"
       width="80"
       height="80"
     />
@@ -23,9 +23,9 @@
 
 {% block content %}
 
-<section class="apple-hero" aria-label="Prodotto">
+<section class="apple-hero" aria-label="{{ t('Prodotto') }}">
   <h1 class="apple-name">Iris</h1>
-  <p class="hero-verbs" aria-label="pensa, agisci, crea.">
+  <p class="hero-verbs" aria-label="{{ t('pensa, agisci, crea.') }}">
     <span class="hero-verb hero-verb-1" data-delay="1250">{{ t('pensa,') }}</span>
     <span class="hero-verb hero-verb-2" data-delay="2500">{{ t('agisci,') }}</span>
     <span class="hero-verb hero-verb-3" data-delay="3750">{{ t('crea.') }}</span>
@@ -45,7 +45,7 @@
     </p>
   </div>
   <figure class="story-shot reveal" data-reveal>
-    <img src="/static/product/headset.jpg" alt="Cuffia" width="1600" height="1067" loading="lazy" />
+    <img src="/static/product/headset.jpg" alt="{{ t('Cuffia') }}" width="1600" height="1067" loading="lazy" />
   </figure>
 </section>
 
@@ -58,7 +58,7 @@
     </p>
   </div>
   <figure class="story-shot tall reveal" data-reveal>
-    <img src="/static/product/phone.jpg" alt="Telefono" width="1400" height="1800" loading="lazy" />
+    <img src="/static/product/phone.jpg" alt="{{ t('Telefono') }}" width="1400" height="1800" loading="lazy" />
   </figure>
 </section>
 
@@ -71,7 +71,7 @@
     </p>
   </div>
   <figure class="story-shot reveal" data-reveal>
-    <img src="/static/product/home.jpg" alt="Casa" width="1600" height="1067" loading="lazy" />
+    <img src="/static/product/home.jpg" alt="{{ t('Casa') }}" width="1600" height="1067" loading="lazy" />
   </figure>
 </section>
 
@@ -84,7 +84,7 @@
     </p>
   </div>
   <figure class="story-shot reveal" data-reveal>
-    <img src="/static/product/music.jpg" alt="Musica" width="1600" height="1067" loading="lazy" />
+    <img src="/static/product/music.jpg" alt="{{ t('Musica') }}" width="1600" height="1067" loading="lazy" />
   </figure>
 </section>
 
@@ -97,7 +97,7 @@
     </p>
   </div>
   <figure class="story-shot reveal" data-reveal>
-    <img src="/static/product/connect.jpg" alt="Connessione" width="1600" height="1067" loading="lazy" />
+    <img src="/static/product/connect.jpg" alt="{{ t('Connessione') }}" width="1600" height="1067" loading="lazy" />
   </figure>
 </section>
 

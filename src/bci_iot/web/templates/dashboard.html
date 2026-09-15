@@ -18,7 +18,7 @@
 
   <div class="hub-identity reveal" data-reveal>
     {% if profile.photo_filename %}
-    <img class="avatar" src="/media/photos/{{ profile.photo_filename }}" alt="La tua foto" width="88" height="88" />
+    <img class="avatar" src="/media/photos/{{ profile.photo_filename }}" alt="{{ t('La tua foto') }}" width="88" height="88" />
     {% else %}
     <div class="avatar avatar-placeholder" aria-hidden="true">
       <svg viewBox="0 0 64 64" width="44" height="44" fill="none" aria-hidden="true">
@@ -192,7 +192,7 @@
     <div class="panel">
       <div class="device-label">{{ t('Funzionamento') }}</div>
       <p class="stat-num">{{ "OK" if profile.calibration_complete else "Setup" }}</p>
-      <p class="muted">{{ t('Calibrazione') }} {{ "completa" if profile.calibration_complete else t('da fare') }}</p>
+      <p class="muted">{% if profile.calibration_complete %}{{ t('Calibrazione completa') }}{% else %}{{ t('Calibrazione') }} {{ t('da fare') }}{% endif %}</p>
     </div>
     <div class="panel">
       <div class="device-label">{{ t('Attività cerebrale (demo)') }}</div>
