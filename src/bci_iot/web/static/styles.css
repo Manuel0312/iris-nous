@@ -2902,9 +2902,20 @@ body.page-chat .chat-fab {
 
 .chat-split {
   display: grid;
-  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) minmax(220px, 280px);
+  grid-template-columns: minmax(240px, 320px) minmax(240px, 320px);
   gap: 1rem;
   align-items: stretch;
+  justify-content: center;
+  width: min(100%, 680px);
+  margin-inline: auto;
+  transition: width 0.28s ease;
+}
+
+/* Con chat aperta: le colonne si allargano e la conversazione va al centro */
+.chat-split.has-thread {
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) minmax(220px, 280px);
+  width: 100%;
+  max-width: none;
 }
 
 .chat-side {
@@ -2914,6 +2925,7 @@ body.page-chat .chat-fab {
   position: relative;
   top: auto;
   height: 100%;
+  min-width: 0;
 }
 
 .chat-side .panel h2 {
@@ -2951,8 +2963,10 @@ body.page-chat .chat-fab {
 }
 
 @media (max-width: 960px) {
-  .chat-split {
+  .chat-split,
+  .chat-split.has-thread {
     grid-template-columns: 1fr;
+    width: 100%;
   }
   .chat-side {
     position: static;

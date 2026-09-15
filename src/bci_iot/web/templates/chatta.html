@@ -46,8 +46,8 @@
       </form>
     </aside>
 
+    {% if messages %}
     <div class="chat-main">
-      {% if messages %}
       <ol class="chat-log" id="team-chat-log">
         {% for m in messages %}
         {% set mine = m.sender != 'admin' %}
@@ -68,8 +68,8 @@
       {% if waiting %}
       <p class="muted" id="chat-wait">{{ t('Abbiamo ricevuto il messaggio. Ti risponderemo il prima possibile.') }}</p>
       {% endif %}
-      {% endif %}
     </div>
+    {% endif %}
 
     <aside class="chat-side chat-side-right" aria-label="{{ t('Recupero chat') }}">
       {% if not profile %}

@@ -195,6 +195,8 @@ def test_chatta_and_admin_inbox_flow(tmp_path: Path, monkeypatch) -> None:
     assert "Contattaci" not in guest_chat.text
     assert "Codice chat" in guest_chat.text
     assert "chat-split" in guest_chat.text
+    assert "has-thread" not in guest_chat.text
+    assert "chat-main" not in guest_chat.text
     mail = TestClient(app).get("/chatta?canale=email")
     assert "contact-mail" in mail.text
     assert "contact-modes" not in mail.text
