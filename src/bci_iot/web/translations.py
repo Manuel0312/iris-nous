@@ -3007,6 +3007,7 @@ _RAW: dict[str, dict[str, str]] = {
 }
 
 from bci_iot.web.es_strings import ES
+from bci_iot.web.translations_gap import ES_EXTRA, EXTRA_RAW
 
 # Flatten to lang → {italian: translation}
 CATALOG: dict[str, dict[str, str]] = {
@@ -3016,7 +3017,12 @@ for italian, mapping in _RAW.items():
     for code, text in mapping.items():
         if code in CATALOG:
             CATALOG[code][italian] = text
+for italian, mapping in EXTRA_RAW.items():
+    for code, text in mapping.items():
+        if code in CATALOG and text:
+            CATALOG[code][italian] = text
 CATALOG["es"].update(ES)
+CATALOG["es"].update(ES_EXTRA)
 
 # Chrome + pagine principali in spagnolo (il resto resta in italiano).
 _ES: dict[str, str] = {

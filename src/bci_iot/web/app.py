@@ -51,7 +51,11 @@ from bci_iot.accounts.messaging import (
     update_messaging_config,
     build_support_reply_email,
 )
-from bci_iot.accounts.chat_translate import DISCLAIMER_IT, translate_text
+from bci_iot.accounts.chat_translate import (
+    DISCLAIMER_IT,
+    present_support_messages,
+    translate_text,
+)
 from bci_iot.web.flags import ensure_flag_svgs, render_flag_svg
 from bci_iot.web.i18n import (
     COOKIE_NAME,
@@ -1269,7 +1273,12 @@ def create_app(
             return RedirectResponse("/notifiche", status_code=303)
         access.mark_support_viewed(thread_id)
         thread = access.get_support_thread(thread_id) or thread
-        messages = access.list_support_messages(thread_id)
+        raw_messages = access.list_support_messages(thread_id)
+        messages = present_support_messages(
+            raw_messages,
+            viewer_is_admin=True,
+            viewer_lang=get_request_language(request),
+        )
         user_profile = profiles.get(str(thread.get("username") or ""))
         presence_online = bool(user_profile.is_online) if user_profile else None
         return TEMPLATES.TemplateResponse(
@@ -1476,6 +1485,11 @@ def create_app(
         messages = access.list_support_messages(int(thread["id"])) if thread else []
         if thread is not None:
             access.mark_user_support_read(int(thread["id"]))
+        messages = present_support_messages(
+            messages,
+            viewer_is_admin=False,
+            viewer_lang=get_request_language(request),
+        )
         waiting = bool(messages) and str(messages[-1].get("sender") or "") != "admin"
         show_code = False
         access_code = ""
@@ -1647,8 +1661,8 @@ def create_app(
             request.session["support_email"] = guest_email
             request.session["support_name"] = guest_name
         user_lang = get_request_language(request)
-        admin_lang = "it"
-        translated = translate_text(text, source=user_lang, target=admin_lang)
+        # Original text is always stored in ``body`` (tutela). Translation for the
+        # admin is produced at view time in their current UI language.
         thread_id = access.add_user_support_message(
             username=username,
             guest_name=guest_name,
@@ -1658,9 +1672,9 @@ def create_app(
             subject=subject,
             body=text,
             user_lang=user_lang,
-            body_translated=translated if translated != text else "",
+            body_translated="",
             lang_src=user_lang,
-            lang_dst=admin_lang,
+            lang_dst="",
         )
         thread = access.get_support_thread(thread_id)
         if thread and thread.get("access_code"):

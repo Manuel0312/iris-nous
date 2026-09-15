@@ -53,13 +53,9 @@
         {% set mine = m.sender != 'admin' %}
         <li class="chat-bubble {% if mine %}chat-mine chat-user{% else %}chat-theirs chat-team{% endif %} chat-{{ m.sender }}">
           <span class="chat-who">{{ t('Team Iris Nous') if m.sender == 'admin' else t('Tu') }}</span>
-          {% if mine %}
-          <p>{{ m.body }}</p>
-          {% else %}
-          <p>{{ m.body_translated or m.body }}</p>
-          {% if m.body_translated and m.body_translated != m.body %}
-          <details class="chat-original"><summary>{{ t('Testo originale') }}</summary><p>{{ m.body }}</p></details>
-          {% endif %}
+          <p>{{ m.display_body or m.body }}</p>
+          {% if m.show_original %}
+          <details class="chat-original"><summary>{{ t('Testo originale') }}</summary><p>{{ m.original_body or m.body }}</p></details>
           {% endif %}
           <time>{{ m.created_at | it_time }}</time>
         </li>
@@ -106,7 +102,7 @@
     </aside>
   </div>
 
-  <p class="chat-disclaimer chat-disclaimer-full">{{ chat_disclaimer }}</p>
+  <p class="chat-disclaimer chat-disclaimer-full">{{ t(chat_disclaimer) }}</p>
 </section>
 <script>
 (function () {
