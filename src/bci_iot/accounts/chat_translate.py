@@ -22,6 +22,27 @@ def _norm_lang(code: str | None, default: str = "it") -> str:
     return (code or default).strip().lower()[:2] or default
 
 
+def _looks_like_english(text: str) -> bool:
+    tokens = {w.strip(".,!?;:\"'").lower() for w in (text or "").split()}
+    clues = {
+        "the",
+        "and",
+        "cannot",
+        "can't",
+        "don't",
+        "hello",
+        "help",
+        "with",
+        "please",
+        "headset",
+        "headphone",
+        "headphones",
+        "associate",
+        "phone",
+    }
+    return "hi" in tokens or bool(tokens & clues)
+
+
 def translate_text(text: str, *, source: str, target: str) -> str:
     """Translate ``text`` from ``source`` to ``target`` language codes.
 
@@ -122,7 +143,15 @@ def present_support_messages(
         if sender == "admin":
             lang_src = _norm_lang(raw_src or "it")
         else:
-            lang_src = _norm_lang(raw_src or user_fallback)
+            lang_src = _norm_lang(raw_src or user_fallback or "it")
+            # Message rows sometimes landed as "it" when the UI was English;
+            # prefer the thread's remembered user language in that case.
+            if lang_src == "it" and user_fallback not in {"", "it"}:
+                lang_src = _norm_lang(user_fallback)
+            elif lang_src == "it" and lang != "it" and _looks_like_english(body):
+                lang_src = "en"
+            elif lang_src == "it" and lang == "it" and _looks_like_english(body):
+                lang_src = "en"
         mine = (viewer_is_admin and sender == "admin") or (
             (not viewer_is_admin) and sender != "admin"
         )

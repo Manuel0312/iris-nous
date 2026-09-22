@@ -1656,6 +1656,7 @@ def create_app(
         phone: str = Form(""),
         subject: str = Form(""),
         body: str = Form(""),
+        ui_lang: str = Form(""),
     ) -> HTMLResponse:
         username = _session_username(request) or ""
         profile = profiles.get(username) if username else None
@@ -1690,7 +1691,7 @@ def create_app(
                 return _continue(request, next_url="/chatta", message="Controlla l'email...")
             request.session["support_email"] = guest_email
             request.session["support_name"] = guest_name
-        user_lang = get_request_language(request)
+        user_lang = (ui_lang or "").strip().lower()[:2] or get_request_language(request)
         # Original text is always stored in ``body`` (tutela). Translation for the
         # admin is produced at view time in their current UI language.
         thread_id = access.add_user_support_message(
