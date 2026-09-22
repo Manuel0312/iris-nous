@@ -138,6 +138,7 @@ def country_from_request(request: Request) -> str | None:
         "x-vercel-ip-country",
         "x-country-code",
         "x-appengine-country",
+        "x-render-request-country",  # Render / edge proxies when present
     ):
         value = (headers.get(key) or "").strip().upper()
         if value and value not in {"XX", "T1", "ZZ"}:
@@ -146,7 +147,10 @@ def country_from_request(request: Request) -> str | None:
 
 
 def detect_language(request: Request) -> str:
-    """Preference order: cookie → session → Accept-Language → country → Italian."""
+    """Preference: cookie → session → Accept-Language → country → Italian.
+
+    Unknown countries (e.g. Poland) map to English, not Italian.
+    """
     cookie = normalize_lang(request.cookies.get(COOKIE_NAME))
     if cookie:
         return cookie
@@ -160,9 +164,18 @@ def detect_language(request: Request) -> str:
     if accept:
         return accept
     country = country_from_request(request)
-    if country and country in COUNTRY_TO_LANG:
-        return COUNTRY_TO_LANG[country]
+    if country:
+        # Mapped country → its language; anything else (PL, NL, …) → English.
+        return COUNTRY_TO_LANG.get(country, "en")
     return DEFAULT_LANG
+
+
+def language_for_country(country_code: str | None) -> str:
+    """Public helper: ISO country → site language (unknown → English)."""
+    code = (country_code or "").strip().upper()
+    if not code or code in {"XX", "T1", "ZZ"}:
+        return "en"
+    return COUNTRY_TO_LANG.get(code, "en")
 
 
 def set_request_language(request: Request, lang: str) -> str:
