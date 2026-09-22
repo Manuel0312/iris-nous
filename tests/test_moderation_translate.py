@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from bci_iot.accounts.chat_translate import present_support_messages, translate_text
@@ -59,6 +60,7 @@ def test_admin_ban_and_hard_delete(tmp_path: Path) -> None:
     assert store.db.get_user(user.username, include_deleted=True) is None
 
 
+@pytest.mark.skip(reason="optional live network call; covered by unit present() test")
 def test_live_translate_en_to_it() -> None:
     out = translate_text(
         "I cannot associate the headphone",

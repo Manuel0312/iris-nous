@@ -20,6 +20,72 @@ DISCLAIMER_IT = (
 
 _SUPPORTED = ("it", "en", "es", "fr", "de", "pt", "zh", "ja")
 
+_CLUES: dict[str, tuple[str, ...]] = {
+    "fr": (
+        " je ",
+        " j'",
+        " pas ",
+        " avec ",
+        " pour ",
+        " casque ",
+        " problème ",
+        " arrive ",
+        " n'arrive ",
+    ),
+    "pt": (
+        " não ",
+        " voce ",
+        " você ",
+        " com ",
+        " problema ",
+        " fone ",
+        " consigo ",
+        " auscultador",
+    ),
+    "es": (
+        " no ",
+        " con ",
+        " problema ",
+        " auricular",
+        " gracias ",
+        " puedo ",
+        " asociar ",
+    ),
+    "de": (
+        " ich ",
+        " nicht ",
+        " und ",
+        " kopfhörer",
+        " problem ",
+        " kann ",
+        " koppeln ",
+    ),
+    "it": (
+        " non ",
+        " cuffia",
+        " problema ",
+        " grazie ",
+        " riesco ",
+        " associare ",
+        " telefono ",
+    ),
+    "en": (
+        " the ",
+        " and ",
+        " cannot ",
+        " can't ",
+        " with ",
+        " headphone",
+        " headset",
+        " associate ",
+        " please ",
+        " help ",
+        " phone ",
+        " doesn't ",
+        " don't ",
+    ),
+}
+
 
 def _norm_lang(code: str | None, default: str = "it") -> str:
     raw = (code or default).strip().lower().replace("_", "-")
@@ -29,38 +95,44 @@ def _norm_lang(code: str | None, default: str = "it") -> str:
     return primary or default
 
 
+def _score_language(body: str) -> dict[str, int]:
+    lowered = f" {body.lower()} "
+    # Standalone "hi" / "hello" as English openers
+    tokens = {w.strip(".,!?;:\"'").lower() for w in body.split()}
+    scores = {lang: sum(1 for c in words if c in lowered) for lang, words in _CLUES.items()}
+    if "hi" in tokens or "hello" in tokens or "hey" in tokens:
+        scores["en"] = scores.get("en", 0) + 2
+    return scores
+
+
 def detect_message_language(text: str, *, hint: str = "") -> str:
-    """Best-effort language id for chat text (hint wins when reliable)."""
+    """Detect chat language from text; hint is only a weak fallback."""
 
     body = (text or "").strip()
     hinted = _norm_lang(hint, default="")
-    if hinted and hinted != "auto" and hinted in _SUPPORTED:
-        # Trust explicit UI language from the sender when present.
-        return hinted
     if not body:
         return hinted if hinted in _SUPPORTED else "en"
     if re.search(r"[\u3040-\u30ff\u3400-\u9fff]", body):
-        return "zh" if re.search(r"[\u4e00-\u9fff]", body) and not re.search(
-            r"[\u3040-\u30ff]", body
-        ) else "ja"
-    lowered = f" {body.lower()} "
-    # Lightweight word clues when UI lang was missing/wrong.
-    clues = {
-        "fr": (" je ", " pas ", " avec ", " pour ", " casque ", " problème "),
-        "pt": (" não ", " voce ", " você ", " com ", " problema ", " fone "),
-        "es": (" no ", " con ", " problema ", " auricular", " gracias "),
-        "de": (" ich ", " nicht ", " und ", " kopfhörer", " problem "),
-        "it": (" non ", " con ", " cuffia", " problema ", " grazie "),
-        "en": (" the ", " and ", " cannot ", " with ", " headphone", " headset"),
-    }
-    scores = {lang: sum(1 for c in words if c in lowered) for lang, words in clues.items()}
+        return (
+            "zh"
+            if re.search(r"[\u4e00-\u9fff]", body) and not re.search(r"[\u3040-\u30ff]", body)
+            else "ja"
+        )
+    scores = _score_language(body)
     best = max(scores, key=scores.get)
-    if scores[best] > 0:
+    best_score = scores[best]
+    # Body evidence beats a wrong UI/lang_src hint (common bug: EN text saved as it).
+    if best_score > 0:
+        if hinted not in _SUPPORTED or best_score >= scores.get(hinted, 0):
+            return best
+        # Hint has equal/higher score — still prefer body if it clearly differs
+        if best != hinted and best_score >= 1:
+            return best
+    if hinted in _SUPPORTED and best_score == 0:
+        return hinted
+    if best_score > 0:
         return best
-    detected = _mymemory_detect(body[:180])
-    if detected in _SUPPORTED:
-        return detected
-    return hinted if hinted in _SUPPORTED else "en"
+    return "en"
 
 
 def translate_text(text: str, *, source: str, target: str) -> str:
@@ -71,18 +143,22 @@ def translate_text(text: str, *, source: str, target: str) -> str:
     if not body:
         return body
     src = _norm_lang(source, default="auto")
-    if src != "auto" and src == dst:
-        return body
     if src == "auto":
-        src = detect_message_language(body)
-        if src == dst:
+        src = detect_message_language(body, hint="")
+    if src == dst:
+        # Double-check: maybe src label is wrong — detect from body without hint.
+        guessed = detect_message_language(body, hint="")
+        if guessed == dst:
             return body
+        src = guessed
     snippet = body[:450]
     translated = _mymemory(snippet, src, dst)
     if not translated:
         translated = _mymemory(snippet, "Autodetect", dst)
     if not translated:
-        translated = _libretranslate(snippet, src if src != "auto" else "auto", dst)
+        translated = _libretranslate(snippet, src, dst)
+    if not translated:
+        translated = _libretranslate(snippet, "auto", dst)
     if not translated:
         return body
     if len(body) > 450:
@@ -107,7 +183,6 @@ def _mymemory_detect(snippet: str) -> str:
         ).strip().lower()[:2]
         if detected in _SUPPORTED:
             return detected
-        # Some payloads put matches[].id as "EN-IT"
         for match in data.get("matches") or []:
             mid = str(match.get("id") or "")
             if "-" in mid:
@@ -178,7 +253,7 @@ def present_support_messages(
     Tutela
     ------
     - Author always sees original ``body``.
-    - Counterpart sees text in ``viewer_lang`` (stored translation or live AI).
+    - Counterpart always sees ``viewer_lang`` (AI translate when needed).
     """
 
     lang = _norm_lang(viewer_lang)
@@ -191,10 +266,9 @@ def present_support_messages(
         stored = str(m.get("body_translated") or "").strip()
         lang_dst = _norm_lang(str(m.get("lang_dst") or ""), default="")
         raw_src = str(m.get("lang_src") or "").strip()
-        if sender == "admin":
-            lang_src = detect_message_language(body, hint=raw_src or "it")
-        else:
-            lang_src = detect_message_language(body, hint=raw_src or user_fallback)
+        hint = raw_src or (user_fallback if sender != "admin" else "it")
+        # Prefer body detection over a wrong stored lang_src (e.g. English marked it).
+        lang_src = detect_message_language(body, hint=hint)
         mine = (viewer_is_admin and sender == "admin") or (
             (not viewer_is_admin) and sender != "admin"
         )
@@ -207,11 +281,10 @@ def present_support_messages(
 
         if stored and lang_dst == lang and stored != body:
             display = stored
-        elif lang_src == lang:
-            display = body
         else:
+            # Always translate into the viewer's UI language.
             display = translate_text(body, source=lang_src, target=lang)
-            if display == body:
+            if display == body and lang_src != lang:
                 display = translate_text(body, source="auto", target=lang)
         m["display_body"] = display or body
         m["show_original"] = bool(display and display != body)
