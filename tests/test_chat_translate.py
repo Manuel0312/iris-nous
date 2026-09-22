@@ -83,6 +83,31 @@ def test_fallback_user_lang_when_lang_src_missing(monkeypatch) -> None:
     assert shown[0]["show_original"] is True
 
 
+def test_wrong_lang_src_still_translates_english_for_italian_admin() -> None:
+    from bci_iot.accounts.chat_translate import present_support_messages
+
+    shown = present_support_messages(
+        [
+            {
+                "sender": "user",
+                "body": "hi, I cannot associate the headphone",
+                "body_translated": "",
+                "lang_src": "it",
+                "lang_dst": "",
+            }
+        ],
+        viewer_is_admin=True,
+        viewer_lang="it",
+        fallback_user_lang="it",
+    )
+    assert shown[0]["show_original"] is True
+    assert shown[0]["display_body"].lower() != "hi, i cannot associate the headphone"
+    assert any(
+        w in shown[0]["display_body"].lower()
+        for w in ("cuffia", "auricolare", "associare", "cuffie")
+    )
+
+
 def test_gap_catalog_covers_home_and_chatta_keys() -> None:
     from bci_iot.web.translations import CATALOG
 
