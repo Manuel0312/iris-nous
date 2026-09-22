@@ -149,7 +149,8 @@ def country_from_request(request: Request) -> str | None:
 def detect_language(request: Request) -> str:
     """Preference: cookie → session → Accept-Language → country → Italian.
 
-    Unknown countries (e.g. Poland) map to English, not Italian.
+    Unsupported browser languages (e.g. only Polish) and unknown countries
+    resolve to English.
     """
     cookie = normalize_lang(request.cookies.get(COOKIE_NAME))
     if cookie:
@@ -165,8 +166,11 @@ def detect_language(request: Request) -> str:
         return accept
     country = country_from_request(request)
     if country:
-        # Mapped country → its language; anything else (PL, NL, …) → English.
         return COUNTRY_TO_LANG.get(country, "en")
+    # Browser sent a language we don't support (pl, nl, …) and no country → English
+    raw_accept = (request.headers.get("accept-language") or "").strip()
+    if raw_accept:
+        return "en"
     return DEFAULT_LANG
 
 

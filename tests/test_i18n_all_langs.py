@@ -132,7 +132,7 @@ def test_language_for_country(country: str | None, expected: str) -> None:
 def test_poland_geo_header_selects_english(tmp_path: Path) -> None:
     app = create_app(data_dir=tmp_path, session_secret="geo-pl")
     client = TestClient(app)
-    # No cookie, Accept-Language only Polish (unsupported) → country PL → en
+    # No cookie, Accept-Language only Polish (unsupported) → English
     page = client.get(
         "/",
         headers={
@@ -143,6 +143,11 @@ def test_poland_geo_header_selects_english(tmp_path: Path) -> None:
     assert page.status_code == 200
     assert "invisible bridge" in page.text.lower() or "An invisible bridge" in page.text
     assert "Un ponte invisibile" not in page.text
+
+    # Even without country header, unsupported Accept-Language → English
+    page2 = client.get("/", headers={"Accept-Language": "pl-PL,pl;q=0.9"})
+    assert "invisible bridge" in page2.text.lower() or "An invisible bridge" in page2.text
+    assert "Un ponte invisibile" not in page2.text
 
 
 def test_italy_geo_header_selects_italian(tmp_path: Path) -> None:
