@@ -1766,8 +1766,16 @@ def create_app(
             request.session["support_name"] = guest_name
         user_lang = (ui_lang or "").strip().lower()[:2] or get_request_language(request)
         lang_src = detect_message_language(text, hint=user_lang)
-        # Original text is always stored in ``body`` (tutela). Translation for the
-        # admin is produced at view time in their current UI language.
+        # Tutela: original stays in ``body``. Pre-translate toward Italian so the
+        # admin inbox has a ready translation; present() still re-translates into
+        # whatever UI language the viewer is using.
+        body_translated = ""
+        lang_dst = ""
+        if lang_src != "it":
+            preview = translate_text(text, source=lang_src, target="it")
+            if preview and preview != text:
+                body_translated = preview
+                lang_dst = "it"
         thread_id = access.add_user_support_message(
             username=username,
             guest_name=guest_name,
@@ -1777,9 +1785,9 @@ def create_app(
             subject=subject,
             body=text,
             user_lang=user_lang,
-            body_translated="",
+            body_translated=body_translated,
             lang_src=lang_src,
-            lang_dst="",
+            lang_dst=lang_dst,
         )
         thread = access.get_support_thread(thread_id)
         if thread and thread.get("access_code"):

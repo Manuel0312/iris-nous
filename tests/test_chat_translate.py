@@ -108,6 +108,33 @@ def test_wrong_lang_src_still_translates_english_for_italian_admin() -> None:
     )
 
 
+def test_hi_how_are_you_detected_english() -> None:
+    from bci_iot.accounts.chat_translate import detect_message_language
+
+    assert detect_message_language("hi how are you", hint="it") == "en"
+
+
+def test_hi_how_are_you_translates_for_italian_admin() -> None:
+    shown = present_support_messages(
+        [
+            {
+                "sender": "user",
+                "body": "hi how are you",
+                "body_translated": "",
+                "lang_src": "it",
+                "lang_dst": "",
+            }
+        ],
+        viewer_is_admin=True,
+        viewer_lang="it",
+        fallback_user_lang="en",
+    )
+    assert shown[0]["show_original"] is True
+    low = shown[0]["display_body"].lower()
+    assert low != "hi how are you"
+    assert any(w in low for w in ("ciao", "come", "stai", "sta"))
+
+
 def test_gap_catalog_covers_home_and_chatta_keys() -> None:
     from bci_iot.web.translations import CATALOG
 

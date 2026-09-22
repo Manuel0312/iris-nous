@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 from typing import Any
@@ -31,6 +32,9 @@ _CLUES: dict[str, tuple[str, ...]] = {
         " problème ",
         " arrive ",
         " n'arrive ",
+        " comment ",
+        " ça va",
+        " ca va",
     ),
     "pt": (
         " não ",
@@ -41,6 +45,8 @@ _CLUES: dict[str, tuple[str, ...]] = {
         " fone ",
         " consigo ",
         " auscultador",
+        " como vai",
+        " tudo bem",
     ),
     "es": (
         " no ",
@@ -50,6 +56,9 @@ _CLUES: dict[str, tuple[str, ...]] = {
         " gracias ",
         " puedo ",
         " asociar ",
+        " cómo estás",
+        " como estas",
+        " hola ",
     ),
     "de": (
         " ich ",
@@ -59,6 +68,8 @@ _CLUES: dict[str, tuple[str, ...]] = {
         " problem ",
         " kann ",
         " koppeln ",
+        " wie geht",
+        " hallo ",
     ),
     "it": (
         " non ",
@@ -68,6 +79,8 @@ _CLUES: dict[str, tuple[str, ...]] = {
         " riesco ",
         " associare ",
         " telefono ",
+        " come stai",
+        " ciao ",
     ),
     "en": (
         " the ",
@@ -83,6 +96,12 @@ _CLUES: dict[str, tuple[str, ...]] = {
         " phone ",
         " doesn't ",
         " don't ",
+        " how are you",
+        " are you",
+        " what is",
+        " what's",
+        " thank you",
+        " thanks ",
     ),
 }
 
@@ -97,11 +116,14 @@ def _norm_lang(code: str | None, default: str = "it") -> str:
 
 def _score_language(body: str) -> dict[str, int]:
     lowered = f" {body.lower()} "
-    # Standalone "hi" / "hello" as English openers
     tokens = {w.strip(".,!?;:\"'").lower() for w in body.split()}
     scores = {lang: sum(1 for c in words if c in lowered) for lang, words in _CLUES.items()}
-    if "hi" in tokens or "hello" in tokens or "hey" in tokens:
+    if tokens & {"hi", "hello", "hey", "yo"}:
         scores["en"] = scores.get("en", 0) + 2
+    if "how" in tokens and "are" in tokens:
+        scores["en"] = scores.get("en", 0) + 2
+    if "you" in tokens and len(tokens) <= 6:
+        scores["en"] = scores.get("en", 0) + 1
     return scores
 
 
@@ -125,7 +147,6 @@ def detect_message_language(text: str, *, hint: str = "") -> str:
     if best_score > 0:
         if hinted not in _SUPPORTED or best_score >= scores.get(hinted, 0):
             return best
-        # Hint has equal/higher score — still prefer body if it clearly differs
         if best != hinted and best_score >= 1:
             return best
     if hinted in _SUPPORTED and best_score == 0:
@@ -146,24 +167,30 @@ def translate_text(text: str, *, source: str, target: str) -> str:
     if src == "auto":
         src = detect_message_language(body, hint="")
     if src == dst:
-        # Double-check: maybe src label is wrong — detect from body without hint.
         guessed = detect_message_language(body, hint="")
         if guessed == dst:
             return body
         src = guessed
     snippet = body[:450]
-    translated = _mymemory(snippet, src, dst)
-    if not translated:
-        translated = _mymemory(snippet, "Autodetect", dst)
-    if not translated:
-        translated = _libretranslate(snippet, src, dst)
-    if not translated:
-        translated = _libretranslate(snippet, "auto", dst)
-    if not translated:
-        return body
-    if len(body) > 450:
-        return f"{translated}\n…"
-    return translated
+    engines = (
+        lambda: _google_clients5(snippet, src, dst),
+        lambda: _mymemory(snippet, src, dst),
+        lambda: _mymemory(snippet, "Autodetect", dst),
+        lambda: _google_clients5(snippet, "auto", dst),
+        lambda: _libretranslate(snippet, src, dst),
+        lambda: _libretranslate(snippet, "auto", dst),
+    )
+    for run in engines:
+        try:
+            translated = (run() or "").strip()
+        except Exception as exc:  # noqa: BLE001
+            log.warning("chat translate engine error: %s", exc)
+            translated = ""
+        if translated and translated.lower() != snippet.lower():
+            if len(body) > 450:
+                return f"{translated}\n…"
+            return translated
+    return body
 
 
 def _mymemory_detect(snippet: str) -> str:
@@ -201,7 +228,7 @@ def _mymemory(snippet: str, src: str, dst: str) -> str:
         f"?q={quote(snippet)}&langpair={quote(pair_src)}|{quote(dst)}"
     )
     try:
-        with httpx.Client(timeout=12.0) as client:
+        with httpx.Client(timeout=10.0) as client:
             resp = client.get(url)
             resp.raise_for_status()
             data = resp.json()
@@ -216,6 +243,59 @@ def _mymemory(snippet: str, src: str, dst: str) -> str:
         return ""
 
 
+def _google_clients5(snippet: str, src: str, dst: str) -> str:
+    sl = "auto" if src.lower() in {"auto", "autodetect", ""} else src
+    url = (
+        "https://clients5.google.com/translate_a/t"
+        f"?client=dict-chrome-ex&sl={quote(sl)}&tl={quote(dst)}&q={quote(snippet)}"
+    )
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            resp = client.get(
+                url,
+                headers={
+                    "User-Agent": (
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/124.0.0.0 Safari/537.36"
+                    ),
+                    "Accept": "*/*",
+                },
+            )
+            if resp.status_code >= 400:
+                return ""
+            data = resp.json()
+        translated = _parse_google_payload(data)
+        if translated and translated.lower() != snippet.lower():
+            return translated
+    except Exception as exc:  # noqa: BLE001
+        log.warning("chat translate Google failed (%s→%s): %s", src, dst, exc)
+    return ""
+
+
+def _parse_google_payload(data: Any) -> str:
+    """Parse clients5 / translate_a JSON into plain text."""
+
+    if isinstance(data, str):
+        try:
+            data = json.loads(data)
+        except json.JSONDecodeError:
+            return data.strip()
+    if isinstance(data, list) and data:
+        first = data[0]
+        if isinstance(first, str):
+            return first.strip()
+        if isinstance(first, list):
+            parts: list[str] = []
+            for chunk in data:
+                if isinstance(chunk, list) and chunk and isinstance(chunk[0], str):
+                    parts.append(chunk[0])
+                elif isinstance(chunk, str):
+                    parts.append(chunk)
+            return "".join(parts).strip()
+    return ""
+
+
 def _libretranslate(snippet: str, src: str, dst: str) -> str:
     endpoints = (
         "https://libretranslate.com/translate",
@@ -224,7 +304,7 @@ def _libretranslate(snippet: str, src: str, dst: str) -> str:
     source = "auto" if src in {"auto", "Autodetect"} else src
     for url in endpoints:
         try:
-            with httpx.Client(timeout=12.0) as client:
+            with httpx.Client(timeout=10.0, follow_redirects=True) as client:
                 resp = client.post(
                     url,
                     json={"q": snippet, "source": source, "target": dst, "format": "text"},
@@ -267,7 +347,6 @@ def present_support_messages(
         lang_dst = _norm_lang(str(m.get("lang_dst") or ""), default="")
         raw_src = str(m.get("lang_src") or "").strip()
         hint = raw_src or (user_fallback if sender != "admin" else "it")
-        # Prefer body detection over a wrong stored lang_src (e.g. English marked it).
         lang_src = detect_message_language(body, hint=hint)
         mine = (viewer_is_admin and sender == "admin") or (
             (not viewer_is_admin) and sender != "admin"
@@ -282,7 +361,6 @@ def present_support_messages(
         if stored and lang_dst == lang and stored != body:
             display = stored
         else:
-            # Always translate into the viewer's UI language.
             display = translate_text(body, source=lang_src, target=lang)
             if display == body and lang_src != lang:
                 display = translate_text(body, source="auto", target=lang)

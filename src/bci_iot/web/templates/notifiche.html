@@ -113,12 +113,24 @@
   }
   const archive = {{ 'true' if archive else 'false' }};
   let fingerprint = {{ fingerprint | tojson }};
+  // Clicking a thread marks it viewed server-side; a parallel /stato poll must NOT
+  // reload this list or it cancels navigation and leaves the admin on the inbox.
+  let navigating = false;
+  document.addEventListener("click", (ev) => {
+    const a = ev.target && ev.target.closest ? ev.target.closest('a[href^="/notifiche/"]') : null;
+    if (!a) return;
+    const href = a.getAttribute("href") || "";
+    if (/^\/notifiche\/\d+/.test(href)) navigating = true;
+  }, true);
+  window.addEventListener("pagehide", () => { navigating = true; });
   async function tick() {
+    if (navigating || document.hidden) return;
     try {
       const url = "/notifiche/stato" + (archive ? "?archivio=1" : "");
       const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) return;
+      if (!res.ok || navigating) return;
       const data = await res.json();
+      if (navigating) return;
       if (JSON.stringify(data.ids) !== JSON.stringify(fingerprint.ids)
           || data.unread !== fingerprint.unread
           || data.last !== fingerprint.last) {
