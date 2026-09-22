@@ -2854,10 +2854,10 @@ body.page-chat .chat-fab {
   max-width: min(88%, 28rem);
   padding: 0.85rem 1rem;
   border-radius: 16px;
-  background: #eceef1;
-  border: 1px solid color-mix(in srgb, #000 6%, transparent);
+  background: #f3f4f6 !important;
+  border: 1px solid #c5c9d0;
   align-self: flex-start;
-  color: #1d1d1f;
+  color: #111111 !important;
 }
 
 .chat-bubble.chat-theirs {
@@ -2872,95 +2872,75 @@ body.page-chat .chat-fab {
 
 /* Messaggi utente (tuoi): verde WhatsApp-like */
 .chat-bubble.chat-user.chat-mine {
-  background: #25d366;
+  background: #25d366 !important;
   border-color: transparent;
-  color: #0b1a10;
+  color: #0b1a10 !important;
 }
 
 .chat-bubble.chat-user.chat-mine .chat-who,
-.chat-bubble.chat-user.chat-mine time {
-  color: color-mix(in srgb, #0b1a10 62%, transparent);
+.chat-bubble.chat-user.chat-mine time,
+.chat-bubble.chat-user.chat-mine p {
+  color: #0b1a10 !important;
 }
 
-.chat-bubble.chat-user.chat-theirs {
-  background: #1f242b;
-  border: 1px solid #3a424c;
-  color: #f5f5f7;
+/* Messaggi cliente in admin / team: sfondo scuro + testo chiaro (mai bianco su bianco) */
+.chat-bubble.chat-user.chat-theirs,
+.chat-bubble.chat-team,
+.chat-bubble.chat-admin {
+  background: #2b3038 !important;
+  border: 1px solid #5a6270;
+  color: #f5f5f7 !important;
 }
 
 .chat-bubble.chat-user.chat-theirs .chat-who,
 .chat-bubble.chat-user.chat-theirs time,
-.chat-bubble.chat-user.chat-theirs p {
-  color: #f5f5f7;
-}
-
-.chat-bubble.chat-user.chat-theirs .chat-who,
-.chat-bubble.chat-user.chat-theirs time {
-  color: color-mix(in srgb, #f5f5f7 62%, transparent);
-}
-
-/* Risposte del team: grigio neutro leggibile su tema chiaro e scuro */
-.chat-bubble.chat-team,
-.chat-bubble.chat-admin {
-  background: #2a2e35;
-  border: 1px solid #4a515a;
-  color: #f5f5f7;
-}
-
+.chat-bubble.chat-user.chat-theirs p,
 .chat-bubble.chat-team .chat-who,
 .chat-bubble.chat-team time,
 .chat-bubble.chat-team p,
 .chat-bubble.chat-admin .chat-who,
 .chat-bubble.chat-admin time,
 .chat-bubble.chat-admin p {
-  color: #f5f5f7;
+  color: #f5f5f7 !important;
 }
 
+.chat-bubble.chat-user.chat-theirs .chat-who,
+.chat-bubble.chat-user.chat-theirs time,
 .chat-bubble.chat-team .chat-who,
 .chat-bubble.chat-team time,
 .chat-bubble.chat-admin .chat-who,
 .chat-bubble.chat-admin time {
-  color: color-mix(in srgb, #f5f5f7 62%, transparent);
+  opacity: 0.75;
 }
 
-html[data-theme-resolved="light"] .chat-bubble.chat-user.chat-theirs {
-  background: #eceef1;
+html[data-theme-resolved="light"] .chat-bubble.chat-user.chat-theirs,
+html[data-theme-resolved="light"] .chat-bubble.chat-team,
+html[data-theme-resolved="light"] .chat-bubble.chat-admin {
+  background: #e8eaed !important;
   border-color: #c5c9d0;
-  color: #1d1d1f;
+  color: #111111 !important;
 }
 
 html[data-theme-resolved="light"] .chat-bubble.chat-user.chat-theirs .chat-who,
 html[data-theme-resolved="light"] .chat-bubble.chat-user.chat-theirs time,
-html[data-theme-resolved="light"] .chat-bubble.chat-user.chat-theirs p {
-  color: #1d1d1f;
-}
-
-html[data-theme-resolved="light"] .chat-bubble.chat-user.chat-theirs .chat-who,
-html[data-theme-resolved="light"] .chat-bubble.chat-user.chat-theirs time {
-  color: color-mix(in srgb, #1d1d1f 55%, transparent);
-}
-
-html[data-theme-resolved="light"] .chat-bubble.chat-team,
-html[data-theme-resolved="light"] .chat-bubble.chat-admin {
-  background: #e8eaed;
-  border-color: #c5c9d0;
-  color: #1d1d1f;
-}
-
+html[data-theme-resolved="light"] .chat-bubble.chat-user.chat-theirs p,
 html[data-theme-resolved="light"] .chat-bubble.chat-team .chat-who,
 html[data-theme-resolved="light"] .chat-bubble.chat-team time,
 html[data-theme-resolved="light"] .chat-bubble.chat-team p,
 html[data-theme-resolved="light"] .chat-bubble.chat-admin .chat-who,
 html[data-theme-resolved="light"] .chat-bubble.chat-admin time,
 html[data-theme-resolved="light"] .chat-bubble.chat-admin p {
-  color: #1d1d1f;
+  color: #111111 !important;
+  opacity: 1;
 }
 
+html[data-theme-resolved="light"] .chat-bubble.chat-user.chat-theirs .chat-who,
+html[data-theme-resolved="light"] .chat-bubble.chat-user.chat-theirs time,
 html[data-theme-resolved="light"] .chat-bubble.chat-team .chat-who,
 html[data-theme-resolved="light"] .chat-bubble.chat-team time,
 html[data-theme-resolved="light"] .chat-bubble.chat-admin .chat-who,
 html[data-theme-resolved="light"] .chat-bubble.chat-admin time {
-  color: color-mix(in srgb, #1d1d1f 55%, transparent);
+  opacity: 0.7;
 }
 
 .chat-who {
