@@ -728,6 +728,61 @@ class ProfileStore:
         self.save(profile)
         self.db.soft_delete_user(username)
 
+    def hard_delete(self, username: str, *, photos_dir: Path | None = None) -> None:
+        row = self.db.get_user(username, include_deleted=True)
+        if row is None:
+            raise KeyError(f"unknown user: {username}")
+        if int(row.get("is_admin") or 0):
+            raise ValueError("Non puoi eliminare l'account amministratore.")
+        self.purge_account_data(username, photos_dir=photos_dir)
+        self.db.hard_delete_user(username)
+
+    BAN_DURATIONS: dict[str, int] = {
+        "1d": 1,
+        "3d": 3,
+        "7d": 7,
+        "30d": 30,
+    }
+
+    def ban_user(self, username: str, duration_key: str) -> str:
+        profile = self.get(username)
+        if profile is None:
+            raise KeyError(f"unknown user: {username}")
+        if profile.is_admin:
+            raise ValueError("Non puoi bannare l'account amministratore.")
+        days = self.BAN_DURATIONS.get(duration_key)
+        if days is None:
+            raise ValueError("Durata ban non valida.")
+        until = (datetime.now(timezone.utc) + timedelta(days=days)).isoformat()
+        labels = {"1d": "1 giorno", "3d": "3 giorni", "7d": "7 giorni", "30d": "1 mese"}
+        label = labels[duration_key]
+        self.db.set_ban(username, banned_until=until, ban_label=label)
+        return until
+
+    def unban_user(self, username: str) -> None:
+        if self.get(username) is None and self.db.get_user(username, include_deleted=True) is None:
+            raise KeyError(f"unknown user: {username}")
+        self.db.clear_ban(username)
+
+    def ban_status(self, username: str) -> dict[str, Any]:
+        row = self.db.get_ban(username) or {}
+        until = str(row.get("banned_until") or "").strip()
+        label = str(row.get("ban_label") or "").strip()
+        active = False
+        if until:
+            try:
+                dt = datetime.fromisoformat(until.replace("Z", "+00:00"))
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                active = dt > datetime.now(timezone.utc)
+            except ValueError:
+                active = False
+        if until and not active:
+            self.db.clear_ban(username)
+            until = ""
+            label = ""
+        return {"active": active, "banned_until": until, "ban_label": label}
+
     def update_anagrafica(
         self,
         username: str,

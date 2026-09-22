@@ -14,6 +14,32 @@
   </h1>
   <p class="lede">{{ t('Dati completi e cronologia accessi (dal primo all’ultimo).') }}</p>
 
+  {% if user_profile and not user_profile.is_admin %}
+  <div class="panel reveal admin-moderation" data-reveal>
+    <h2>{{ t('Moderazione') }}</h2>
+    {% if ban and ban.active %}
+    <p class="lede">{{ t('Sospeso') }}: <strong>{{ ban.ban_label or '—' }}</strong>
+      · {{ t('fino a') }} {{ ban.banned_until[:16].replace('T', ' ') }} UTC
+    </p>
+    <form method="post" action="/accessi/utente/{{ target }}/sblocca" class="private-actions">
+      <button class="btn" type="submit">{{ t('Rimuovi sospensione') }}</button>
+    </form>
+    {% else %}
+    <p class="muted">{{ t('Sospendi l’accesso per un periodo, oppure elimina l’account per sempre.') }}</p>
+    <form method="post" action="/accessi/utente/{{ target }}/ban" class="bulk-row">
+      <button class="btn" type="submit" name="duration" value="1d">{{ t('Ban 1 giorno') }}</button>
+      <button class="btn" type="submit" name="duration" value="3d">{{ t('Ban 3 giorni') }}</button>
+      <button class="btn" type="submit" name="duration" value="7d">{{ t('Ban 7 giorni') }}</button>
+      <button class="btn" type="submit" name="duration" value="30d">{{ t('Ban 1 mese') }}</button>
+    </form>
+    {% endif %}
+    <form method="post" action="/accessi/utente/{{ target }}/elimina" class="private-actions" style="margin-top:1rem"
+          onsubmit="return confirm({{ t('Eliminare DEFINITIVAMENTE questo account? Non si può annullare.')|tojson }});">
+      <button class="btn danger" type="submit">{{ t('Elimina account definitivamente') }}</button>
+    </form>
+  </div>
+  {% endif %}
+
   <div class="card-grid reveal" data-reveal>
     <div class="panel">
       <h2>{{ t('Anagrafica') }}</h2>

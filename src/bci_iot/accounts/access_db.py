@@ -144,7 +144,20 @@ class AccessDatabase:
                 )
             self._init_users_table(conn)
             self._init_support_tables(conn)
+            self._init_moderation_table(conn)
             conn.commit()
+
+    def _init_moderation_table(self, conn: sqlite3.Connection) -> None:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS account_moderation (
+                username TEXT PRIMARY KEY,
+                banned_until TEXT NOT NULL DEFAULT '',
+                ban_label TEXT NOT NULL DEFAULT '',
+                updated_at TEXT NOT NULL DEFAULT ''
+            )
+            """
+        )
 
     def _init_users_table(self, conn: sqlite3.Connection) -> None:
         """Full account table (replaces JSON ProfileStore files)."""
@@ -474,6 +487,84 @@ class AccessDatabase:
             )
             conn.commit()
         self.mark_deleted(username)
+
+    def get_ban(self, username: str) -> dict[str, str] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM account_moderation WHERE username = ? COLLATE NOCASE",
+                (username.strip(),),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def set_ban(self, username: str, *, banned_until: str, ban_label: str = "") -> None:
+        now = _utc_now()
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO account_moderation (username, banned_until, ban_label, updated_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(username) DO UPDATE SET
+                    banned_until=excluded.banned_until,
+                    ban_label=excluded.ban_label,
+                    updated_at=excluded.updated_at
+                """,
+                (username.strip(), banned_until.strip(), ban_label.strip()[:64], now),
+            )
+            conn.execute(
+                """
+                INSERT INTO access_logs (username, event, ip, user_agent, created_at)
+                VALUES (?, ?, '', '', ?)
+                """,
+                (username.strip(), f"ban_{ban_label or 'set'}", now),
+            )
+            conn.commit()
+
+    def clear_ban(self, username: str) -> None:
+        now = _utc_now()
+        with self._connect() as conn:
+            conn.execute(
+                "DELETE FROM account_moderation WHERE username = ? COLLATE NOCASE",
+                (username.strip(),),
+            )
+            conn.execute(
+                """
+                INSERT INTO access_logs (username, event, ip, user_agent, created_at)
+                VALUES (?, 'ban_cleared', '', '', ?)
+                """,
+                (username.strip(), now),
+            )
+            conn.commit()
+
+    def hard_delete_user(self, username: str) -> None:
+        """Permanently remove the account and linked rows."""
+
+        key = username.strip()
+        email = ""
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT email FROM users WHERE username = ? COLLATE NOCASE",
+                (key,),
+            ).fetchone()
+            if row:
+                email = str(row["email"] or "")
+        self.purge_user_support(username=key, email=email)
+        with self._connect() as conn:
+            conn.execute("DELETE FROM access_logs WHERE username = ? COLLATE NOCASE", (key,))
+            conn.execute(
+                "DELETE FROM account_moderation WHERE username = ? COLLATE NOCASE", (key,)
+            )
+            conn.execute(
+                "DELETE FROM user_anagrafica WHERE username = ? COLLATE NOCASE", (key,)
+            )
+            conn.execute("DELETE FROM users WHERE username = ? COLLATE NOCASE", (key,))
+            conn.execute(
+                """
+                INSERT INTO access_logs (username, event, ip, user_agent, created_at)
+                VALUES (?, 'account_hard_deleted', '', '', ?)
+                """,
+                (key, _utc_now()),
+            )
+            conn.commit()
 
     def count_users(self, *, deleted: bool = False, exclude_admin: bool = False) -> int:
         clauses: list[str] = []

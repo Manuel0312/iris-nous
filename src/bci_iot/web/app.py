@@ -53,6 +53,7 @@ from bci_iot.accounts.messaging import (
 )
 from bci_iot.accounts.chat_translate import (
     DISCLAIMER_IT,
+    detect_message_language,
     present_support_messages,
     translate_text,
 )
@@ -804,6 +805,20 @@ def create_app(
                 next_url="/login?errore=1",
                 message="Accesso non riuscito, riprova...",
             )
+        ban = profiles.ban_status(profile.username)
+        if ban.get("active"):
+            _log_access(request, username=profile.username, event="login_banned", access=access)
+            label = ban.get("ban_label") or ""
+            _flash(
+                request,
+                f"Account sospeso{(' (' + label + ')') if label else ''}. Riprova più tardi o contatta il supporto.",
+                kind="error",
+            )
+            return _continue(
+                request,
+                next_url="/login?errore=1",
+                message="Account sospeso...",
+            )
         request.session["username"] = profile.username
         _log_access(request, username=profile.username, event="login_ok", access=access)
         if profile.anagrafica_complete:
@@ -1147,6 +1162,7 @@ def create_app(
         ana = access.get_anagrafica(target)
         user_profile = profiles.get(target)
         events = access.list_user_events(target)
+        ban = profiles.ban_status(target)
         return TEMPLATES.TemplateResponse(
             request,
             "accessi_user.html",
@@ -1157,6 +1173,7 @@ def create_app(
                 anagrafica=ana,
                 user_profile=user_profile.public_dict() if user_profile else None,
                 events=events,
+                ban=ban,
                 support_threads=[
                     {
                         **thread,
@@ -1175,6 +1192,60 @@ def create_app(
                 ],
             ),
         )
+
+    @app.post("/accessi/utente/{target}/ban")
+    def accessi_user_ban(
+        request: Request,
+        target: str,
+        duration: str = Form(""),
+        profiles: ProfileStore = Depends(_store),
+    ) -> RedirectResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return admin
+        try:
+            until = profiles.ban_user(target, (duration or "").strip())
+            _flash(request, f"Utente sospeso fino al {until[:16].replace('T', ' ')} UTC.", kind="ok")
+        except KeyError:
+            _flash(request, "Utente non trovato.", kind="error")
+        except ValueError as exc:
+            _flash(request, str(exc), kind="error")
+        return RedirectResponse(f"/accessi/utente/{target}", status_code=303)
+
+    @app.post("/accessi/utente/{target}/sblocca")
+    def accessi_user_unban(
+        request: Request,
+        target: str,
+        profiles: ProfileStore = Depends(_store),
+    ) -> RedirectResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return admin
+        try:
+            profiles.unban_user(target)
+            _flash(request, "Sospensione rimossa.", kind="ok")
+        except KeyError:
+            _flash(request, "Utente non trovato.", kind="error")
+        return RedirectResponse(f"/accessi/utente/{target}", status_code=303)
+
+    @app.post("/accessi/utente/{target}/elimina")
+    def accessi_user_hard_delete(
+        request: Request,
+        target: str,
+        profiles: ProfileStore = Depends(_store),
+    ) -> RedirectResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return admin
+        try:
+            profiles.hard_delete(target, photos_dir=Path(app.state.photos_dir))
+            _flash(request, "Account eliminato definitivamente.", kind="ok")
+            return RedirectResponse("/accessi", status_code=303)
+        except KeyError:
+            _flash(request, "Utente non trovato.", kind="error")
+        except ValueError as exc:
+            _flash(request, str(exc), kind="error")
+        return RedirectResponse(f"/accessi/utente/{target}", status_code=303)
 
     def _admin_or_redirect(
         request: Request, profiles: ProfileStore
@@ -1349,6 +1420,8 @@ def create_app(
         admin_lang = get_request_language(request)
         user_lang = str(thread.get("user_lang") or "it")
         translated = translate_text(text, source=admin_lang, target=user_lang)
+        if translated == text and admin_lang != user_lang:
+            translated = translate_text(text, source="auto", target=user_lang)
         updated = access.add_admin_support_reply(
             thread_id,
             text,
@@ -1692,6 +1765,7 @@ def create_app(
             request.session["support_email"] = guest_email
             request.session["support_name"] = guest_name
         user_lang = (ui_lang or "").strip().lower()[:2] or get_request_language(request)
+        lang_src = detect_message_language(text, hint=user_lang)
         # Original text is always stored in ``body`` (tutela). Translation for the
         # admin is produced at view time in their current UI language.
         thread_id = access.add_user_support_message(
@@ -1704,7 +1778,7 @@ def create_app(
             body=text,
             user_lang=user_lang,
             body_translated="",
-            lang_src=user_lang,
+            lang_src=lang_src,
             lang_dst="",
         )
         thread = access.get_support_thread(thread_id)

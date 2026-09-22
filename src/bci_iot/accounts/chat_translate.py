@@ -1,8 +1,9 @@
-"""Present support-chat messages with tutela rules + recipient translation."""
+"""Present support-chat messages with tutela rules + auto translation."""
 
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 from urllib.parse import quote
 
@@ -17,47 +18,71 @@ DISCLAIMER_IT = (
     "traduzione automatica. In caso di dubbio fai riferimento al testo originale."
 )
 
+_SUPPORTED = ("it", "en", "es", "fr", "de", "pt", "zh", "ja")
+
 
 def _norm_lang(code: str | None, default: str = "it") -> str:
-    return (code or default).strip().lower()[:2] or default
+    raw = (code or default).strip().lower().replace("_", "-")
+    if raw in {"auto", "autodetect", "detect"}:
+        return "auto"
+    primary = raw.split("-", 1)[0][:2]
+    return primary or default
 
 
-def _looks_like_english(text: str) -> bool:
-    tokens = {w.strip(".,!?;:\"'").lower() for w in (text or "").split()}
+def detect_message_language(text: str, *, hint: str = "") -> str:
+    """Best-effort language id for chat text (hint wins when reliable)."""
+
+    body = (text or "").strip()
+    hinted = _norm_lang(hint, default="")
+    if hinted and hinted != "auto" and hinted in _SUPPORTED:
+        # Trust explicit UI language from the sender when present.
+        return hinted
+    if not body:
+        return hinted if hinted in _SUPPORTED else "en"
+    if re.search(r"[\u3040-\u30ff\u3400-\u9fff]", body):
+        return "zh" if re.search(r"[\u4e00-\u9fff]", body) and not re.search(
+            r"[\u3040-\u30ff]", body
+        ) else "ja"
+    lowered = f" {body.lower()} "
+    # Lightweight word clues when UI lang was missing/wrong.
     clues = {
-        "the",
-        "and",
-        "cannot",
-        "can't",
-        "don't",
-        "hello",
-        "help",
-        "with",
-        "please",
-        "headset",
-        "headphone",
-        "headphones",
-        "associate",
-        "phone",
+        "fr": (" je ", " pas ", " avec ", " pour ", " casque ", " problème "),
+        "pt": (" não ", " voce ", " você ", " com ", " problema ", " fone "),
+        "es": (" no ", " con ", " problema ", " auricular", " gracias "),
+        "de": (" ich ", " nicht ", " und ", " kopfhörer", " problem "),
+        "it": (" non ", " con ", " cuffia", " problema ", " grazie "),
+        "en": (" the ", " and ", " cannot ", " with ", " headphone", " headset"),
     }
-    return "hi" in tokens or bool(tokens & clues)
+    scores = {lang: sum(1 for c in words if c in lowered) for lang, words in clues.items()}
+    best = max(scores, key=scores.get)
+    if scores[best] > 0:
+        return best
+    detected = _mymemory_detect(body[:180])
+    if detected in _SUPPORTED:
+        return detected
+    return hinted if hinted in _SUPPORTED else "en"
 
 
 def translate_text(text: str, *, source: str, target: str) -> str:
-    """Translate ``text`` from ``source`` to ``target`` language codes.
+    """Translate ``text`` from ``source`` to ``target`` (``auto`` allowed)."""
 
-    Returns the original text unchanged if translation is unnecessary or fails.
-    """
-
-    src = _norm_lang(source)
     dst = _norm_lang(target)
     body = (text or "").strip()
-    if not body or src == dst:
+    if not body:
         return body
+    src = _norm_lang(source, default="auto")
+    if src != "auto" and src == dst:
+        return body
+    if src == "auto":
+        src = detect_message_language(body)
+        if src == dst:
+            return body
     snippet = body[:450]
     translated = _mymemory(snippet, src, dst)
     if not translated:
-        translated = _libretranslate(snippet, src, dst)
+        translated = _mymemory(snippet, "Autodetect", dst)
+    if not translated:
+        translated = _libretranslate(snippet, src if src != "auto" else "auto", dst)
     if not translated:
         return body
     if len(body) > 450:
@@ -65,10 +90,40 @@ def translate_text(text: str, *, source: str, target: str) -> str:
     return translated
 
 
-def _mymemory(snippet: str, src: str, dst: str) -> str:
+def _mymemory_detect(snippet: str) -> str:
     url = (
         "https://api.mymemory.translated.net/get"
-        f"?q={quote(snippet)}&langpair={quote(src)}|{quote(dst)}"
+        f"?q={quote(snippet)}&langpair={quote('Autodetect|en')}"
+    )
+    try:
+        with httpx.Client(timeout=8.0) as client:
+            resp = client.get(url)
+            resp.raise_for_status()
+            data = resp.json()
+        detected = str(
+            ((data.get("responseData") or {}).get("detectedLanguage") or {})
+            or data.get("detectedLanguage")
+            or ""
+        ).strip().lower()[:2]
+        if detected in _SUPPORTED:
+            return detected
+        # Some payloads put matches[].id as "EN-IT"
+        for match in data.get("matches") or []:
+            mid = str(match.get("id") or "")
+            if "-" in mid:
+                left = mid.split("-", 1)[0].lower()[:2]
+                if left in _SUPPORTED:
+                    return left
+    except Exception as exc:  # noqa: BLE001
+        log.warning("chat lang detect failed: %s", exc)
+    return ""
+
+
+def _mymemory(snippet: str, src: str, dst: str) -> str:
+    pair_src = "Autodetect" if src.lower() in {"auto", "autodetect"} else src
+    url = (
+        "https://api.mymemory.translated.net/get"
+        f"?q={quote(snippet)}&langpair={quote(pair_src)}|{quote(dst)}"
     )
     try:
         with httpx.Client(timeout=12.0) as client:
@@ -78,7 +133,6 @@ def _mymemory(snippet: str, src: str, dst: str) -> str:
         translated = str((data.get("responseData") or {}).get("translatedText") or "").strip()
         if not translated or translated.lower() == snippet.lower():
             return ""
-        # MyMemory sometimes returns QUOTA ERROR text
         if "mymemory" in translated.lower() and "quota" in translated.lower():
             return ""
         return translated
@@ -88,18 +142,17 @@ def _mymemory(snippet: str, src: str, dst: str) -> str:
 
 
 def _libretranslate(snippet: str, src: str, dst: str) -> str:
-    """Best-effort public LibreTranslate fallback (may be rate-limited)."""
-
     endpoints = (
         "https://libretranslate.com/translate",
         "https://translate.argosopentech.com/translate",
     )
+    source = "auto" if src in {"auto", "Autodetect"} else src
     for url in endpoints:
         try:
             with httpx.Client(timeout=12.0) as client:
                 resp = client.post(
                     url,
-                    json={"q": snippet, "source": src, "target": dst, "format": "text"},
+                    json={"q": snippet, "source": source, "target": dst, "format": "text"},
                     headers={"Accept": "application/json"},
                 )
                 if resp.status_code >= 400:
@@ -122,12 +175,10 @@ def present_support_messages(
 ) -> list[dict[str, Any]]:
     """Build display payloads for chat bubbles.
 
-    Tutela rules
-    ------------
-    - The author always sees their own text as written (``body``), even if they
-      change the site language later.
-    - The counterpart sees a translation into ``viewer_lang``; the original
-      remains available via ``show_original``.
+    Tutela
+    ------
+    - Author always sees original ``body``.
+    - Counterpart sees text in ``viewer_lang`` (stored translation or live AI).
     """
 
     lang = _norm_lang(viewer_lang)
@@ -141,17 +192,9 @@ def present_support_messages(
         lang_dst = _norm_lang(str(m.get("lang_dst") or ""), default="")
         raw_src = str(m.get("lang_src") or "").strip()
         if sender == "admin":
-            lang_src = _norm_lang(raw_src or "it")
+            lang_src = detect_message_language(body, hint=raw_src or "it")
         else:
-            lang_src = _norm_lang(raw_src or user_fallback or "it")
-            # Message rows sometimes landed as "it" when the UI was English;
-            # prefer the thread's remembered user language in that case.
-            if lang_src == "it" and user_fallback not in {"", "it"}:
-                lang_src = _norm_lang(user_fallback)
-            elif lang_src == "it" and lang != "it" and _looks_like_english(body):
-                lang_src = "en"
-            elif lang_src == "it" and lang == "it" and _looks_like_english(body):
-                lang_src = "en"
+            lang_src = detect_message_language(body, hint=raw_src or user_fallback)
         mine = (viewer_is_admin and sender == "admin") or (
             (not viewer_is_admin) and sender != "admin"
         )
@@ -162,13 +205,14 @@ def present_support_messages(
             out.append(m)
             continue
 
-        # Counterpart: translate into the viewer's current UI language.
-        if lang_src == lang:
-            display = body
-        elif stored and lang_dst == lang and stored != body:
+        if stored and lang_dst == lang and stored != body:
             display = stored
+        elif lang_src == lang:
+            display = body
         else:
             display = translate_text(body, source=lang_src, target=lang)
+            if display == body:
+                display = translate_text(body, source="auto", target=lang)
         m["display_body"] = display or body
         m["show_original"] = bool(display and display != body)
         m["original_body"] = body
