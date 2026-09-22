@@ -91,10 +91,14 @@
         </p>
         <ol class="chat-log">
           {% for m in thread.messages %}
-          <li class="chat-bubble chat-{{ m.sender }}">
+          {% set mine = m.sender == 'admin' %}
+          <li class="chat-bubble {% if mine %}chat-mine chat-team{% else %}chat-theirs chat-user{% endif %} chat-{{ m.sender }}">
             <span class="chat-who">{{ t('Admin') if m.sender == 'admin' else t('Utente') }}</span>
-            <p>{{ m.body }}</p>
-            <time>{{ m.created_at | it_time }}</time>
+            <p>{{ m.display_body or m.body }}</p>
+            {% if m.show_original %}
+            <details class="chat-original"><summary>{{ t('Testo originale') }}</summary><p>{{ m.original_body or m.body }}</p></details>
+            {% endif %}
+            <time>{{ m.created_at | it_time(lang) }}</time>
           </li>
           {% endfor %}
         </ol>

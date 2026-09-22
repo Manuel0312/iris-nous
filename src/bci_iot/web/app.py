@@ -279,19 +279,29 @@ def create_app(
         version=__version__,
     )
     https_only = (os.getenv("BCI_IOT_HTTPS", "").strip().lower() in {"1", "true", "yes"})
-    app.add_middleware(
-        SessionMiddleware,
-        secret_key=secret,
-        session_cookie="bci_iot_session",
-        same_site="lax",
-        https_only=https_only,
-        max_age=60 * 60 * 24 * 14,
-        path="/",
-    )
 
     @app.middleware("http")
     async def language_middleware(request: Request, call_next):
         request.state.lang = detect_language(request)
+        path = request.url.path or "/"
+        # Guest chat: leaving Chatta drops the session code (SessionMiddleware is
+        # outermost, so the session is already loaded here).
+        keep_guest_chat = (
+            path.startswith("/chatta")
+            or path.startswith("/lingua")
+            or path.startswith("/static")
+            or path.startswith("/flags")
+            or path.startswith("/media")
+            or path.startswith("/api/")
+            or path in {"/health", "/favicon.ico"}
+        )
+        if not keep_guest_chat:
+            try:
+                if not request.session.get("username"):
+                    request.session.pop("support_access_code", None)
+                    request.session.pop("support_chat_sticky", None)
+            except Exception:
+                pass
         return await call_next(request)
 
     app.mount("/static", CachedStaticFiles(directory=str(WEB_DIR / "static")), name="static")
@@ -1150,7 +1160,12 @@ def create_app(
                 support_threads=[
                     {
                         **thread,
-                        "messages": access.list_support_messages(int(thread["id"])),
+                        "messages": present_support_messages(
+                            access.list_support_messages(int(thread["id"])),
+                            viewer_is_admin=True,
+                            viewer_lang=get_request_language(request),
+                            fallback_user_lang=str(thread.get("user_lang") or "it"),
+                        ),
                     }
                     for thread in access.list_user_support_threads(
                         username=target,
@@ -1278,6 +1293,7 @@ def create_app(
             raw_messages,
             viewer_is_admin=True,
             viewer_lang=get_request_language(request),
+            fallback_user_lang=str(thread.get("user_lang") or "it"),
         )
         user_profile = profiles.get(str(thread.get("username") or ""))
         presence_online = bool(user_profile.is_online) if user_profile else None
@@ -1359,9 +1375,10 @@ def create_app(
                 if person is not None:
                     display = f"{person.first_name} {person.last_name}".strip() or person.username
             history = access.list_support_messages(thread_id)
+            mail_body = translated if translated and translated != text else text
             subject, mail_text, mail_html = build_support_reply_email(
                 name=display,
-                body=text,
+                body=mail_body,
                 conversation=history,
             )
             result = send_branded_email(
@@ -1369,7 +1386,7 @@ def create_app(
                 subject=subject,
                 text=mail_text,
                 html=mail_html,
-                demo_payload=text,
+                demo_payload=mail_body,
             )
             masked = mask_destination(destination, channel="email")
             if result.ok:
@@ -1477,11 +1494,18 @@ def create_app(
         ident_user, ident_email, ident_name = _support_identity(request, profile)
         thread = None
         code = str(request.session.get("support_access_code") or "").strip().upper()
-        if code:
+        sticky = bool(request.session.get("support_chat_sticky"))
+        if profile is not None:
+            if code:
+                thread = access.get_support_thread_by_code(code)
+            if thread is None:
+                threads = access.list_user_support_threads(username=ident_user, email=ident_email)
+                thread = threads[0] if threads else None
+        elif sticky and code:
             thread = access.get_support_thread_by_code(code)
-        if thread is None and profile is not None:
-            threads = access.list_user_support_threads(username=ident_user, email=ident_email)
-            thread = threads[0] if threads else None
+        else:
+            request.session.pop("support_access_code", None)
+            request.session.pop("support_chat_sticky", None)
         messages = access.list_support_messages(int(thread["id"])) if thread else []
         if thread is not None:
             access.mark_user_support_read(int(thread["id"]))
@@ -1489,6 +1513,7 @@ def create_app(
             messages,
             viewer_is_admin=False,
             viewer_lang=get_request_language(request),
+            fallback_user_lang=str((thread or {}).get("user_lang") or get_request_language(request)),
         )
         waiting = bool(messages) and str(messages[-1].get("sender") or "") != "admin"
         show_code = False
@@ -1531,11 +1556,15 @@ def create_app(
         ident_user, ident_email, _ident_name = _support_identity(request, profile)
         thread = None
         code = str(request.session.get("support_access_code") or "").strip().upper()
-        if code:
+        sticky = bool(request.session.get("support_chat_sticky"))
+        if profile is not None:
+            if code:
+                thread = access.get_support_thread_by_code(code)
+            if thread is None:
+                threads = access.list_user_support_threads(username=ident_user, email=ident_email)
+                thread = threads[0] if threads else None
+        elif sticky and code:
             thread = access.get_support_thread_by_code(code)
-        if thread is None and profile is not None:
-            threads = access.list_user_support_threads(username=ident_user, email=ident_email)
-            thread = threads[0] if threads else None
         messages = access.list_support_messages(int(thread["id"])) if thread else []
         last_sender = str(messages[-1].get("sender") or "") if messages else ""
         return JSONResponse(
@@ -1564,6 +1593,7 @@ def create_app(
             )
             return _continue(request, next_url="/chatta", message="Codice non trovato...")
         request.session["support_access_code"] = code
+        request.session["support_chat_sticky"] = True
         if thread.get("guest_email"):
             request.session["support_email"] = str(thread["guest_email"])
         if thread.get("guest_name"):
@@ -1679,6 +1709,7 @@ def create_app(
         thread = access.get_support_thread(thread_id)
         if thread and thread.get("access_code"):
             request.session["support_access_code"] = str(thread["access_code"])
+            request.session["support_chat_sticky"] = True
         _flash(request, "Messaggio inviato. Ti rispondiamo qui e, se serve, via email.", kind="ok")
         return _continue(request, next_url="/chatta", message="Messaggio inviato...")
 
@@ -2536,6 +2567,16 @@ def create_app(
                 status_code=400,
                 detail=f"Unknown command: {body.command}",
             ) from exc
+    # Outermost so request.session is available to http middlewares above.
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=secret,
+        session_cookie="bci_iot_session",
+        same_site="lax",
+        https_only=https_only,
+        max_age=60 * 60 * 24 * 14,
+        path="/",
+    )
     return app
 
 app = create_app()

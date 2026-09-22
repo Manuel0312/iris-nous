@@ -165,9 +165,13 @@ def test_chatta_and_admin_inbox_flow(tmp_path: Path, monkeypatch) -> None:
     assert "Risposto" in done.text
     assert "status-replied" in done.text
     answered = guest.get("/chatta")
-    assert "Ciao Luca, apri Associa telefono" in answered.text
+    assert "Ciao Luca, apri Associa telefono" not in answered.text
+    assert "has-thread" not in answered.text
     code = str(app.state.access_db.list_support_threads()[0].get("access_code") or "")
     assert len(code) == 6
+    guest.post("/chatta/apri", data={"access_code": code})
+    answered = guest.get("/chatta")
+    assert "Ciao Luca, apri Associa telefono" in answered.text
     other_device = TestClient(app)
     other_device.post("/chatta/apri", data={"access_code": code})
     recovered = other_device.get("/chatta")

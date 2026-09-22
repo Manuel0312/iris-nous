@@ -59,6 +59,30 @@ def test_recipient_uses_stored_translation_when_lang_matches(monkeypatch) -> Non
     assert called["n"] == 0
 
 
+def test_fallback_user_lang_when_lang_src_missing(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "bci_iot.accounts.chat_translate.translate_text",
+        lambda text, source, target: f"{source}->{target}:{text}",
+    )
+    messages = [
+        {
+            "sender": "user",
+            "body": "Hello",
+            "body_translated": "",
+            "lang_src": "",
+            "lang_dst": "",
+        }
+    ]
+    shown = present_support_messages(
+        messages,
+        viewer_is_admin=True,
+        viewer_lang="it",
+        fallback_user_lang="en",
+    )
+    assert shown[0]["display_body"] == "en->it:Hello"
+    assert shown[0]["show_original"] is True
+
+
 def test_gap_catalog_covers_home_and_chatta_keys() -> None:
     from bci_iot.web.translations import CATALOG
 

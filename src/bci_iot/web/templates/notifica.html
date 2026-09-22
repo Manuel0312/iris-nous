@@ -44,14 +44,14 @@
       {% if m.show_original %}
       <details class="chat-original"><summary>{{ t('Testo originale') }}</summary><p>{{ m.original_body or m.body }}</p></details>
       {% endif %}
-      <time>{{ m.created_at | it_time }}</time>
+          <time>{{ m.created_at | it_time(lang) }}</time>
     </li>
     {% endfor %}
   </ol>
 
   <form class="panel private-form" method="post" action="/notifiche/{{ thread.id }}/rispondi">
     <h2>{{ t('Rispondi') }}</h2>
-    <p class="muted">{{ t('La risposta arriva in Chatta con noi e via email. Nessun limite di caratteri.') }}</p>
+    <p class="muted">{{ t('La risposta arriva in chat e via email.') }}</p>
     <label>{{ t('Messaggio') }}
       <textarea name="body" rows="5" required minlength="2" placeholder="{{ t('Scrivi la risposta…') }}"></textarea>
     </label>

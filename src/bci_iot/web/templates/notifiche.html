@@ -6,9 +6,15 @@
 <section class="dash admin-dash">
   <p><a href="/accessi">{{ t('← Pannello admin') }}</a></p>
   <h1>{{ t('Notifiche') }}</h1>
-  <p class="lede">
-    {{ t('Messaggi da Chatta con noi. Pallino rosso: non visualizzato · giallo: visto, non risposto · verde: risposto (i verdi escono da qui dopo 10 giorni, ma restano nella chat di tutela sul profilo). Aggiornamento live attivo.') }}
+  <p class="lede notice-lede">
+    {{ t('Messaggi da Chatta con noi.') }}
   </p>
+  <ul class="notice-legend" aria-label="{{ t('Legenda stati') }}">
+    <li><span class="status-dot status-unread" aria-hidden="true"></span>{{ t('Nuovo') }}</li>
+    <li><span class="status-dot status-viewed" aria-hidden="true"></span>{{ t('Letto') }}</li>
+    <li><span class="status-dot status-replied" aria-hidden="true"></span>{{ t('Risposto') }}</li>
+  </ul>
+  <p class="muted notice-live">{{ t('Aggiornamento automatico attivo.') }}</p>
   <p>
     {% if archive %}
     <a href="/notifiche">Inbox</a>
@@ -81,7 +87,7 @@
             <div class="muted">{{ trow.guest_email }}{% if trow.guest_phone %} · {{ trow.guest_phone }}{% endif %}</div>
           </td>
           <td><a class="person-link" href="/notifiche/{{ trow.id }}">{{ trow.subject or "—" }}</a></td>
-          <td>{{ trow.updated_at | it_time }}</td>
+          <td>{{ trow.updated_at | it_time(lang) }}</td>
         </tr>
         {% endfor %}
       </tbody>

@@ -57,7 +57,7 @@
           {% if m.show_original %}
           <details class="chat-original"><summary>{{ t('Testo originale') }}</summary><p>{{ m.original_body or m.body }}</p></details>
           {% endif %}
-          <time>{{ m.created_at | it_time }}</time>
+          <time>{{ m.created_at | it_time(lang) }}</time>
         </li>
         {% endfor %}
       </ol>
