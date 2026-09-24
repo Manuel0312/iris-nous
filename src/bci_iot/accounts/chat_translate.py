@@ -369,3 +369,26 @@ def present_support_messages(
         m["original_body"] = body
         out.append(m)
     return out
+
+
+def resolve_support_recipient_lang(
+    *,
+    thread_user_lang: str = "",
+    messages: list[dict[str, Any]] | tuple[dict[str, Any], ...] | None = None,
+) -> str:
+    """Pick the language for email/chat delivery to the end user."""
+
+    stored = _norm_lang(thread_user_lang, default="")
+    for raw in reversed(list(messages or ())):
+        if str(raw.get("sender") or "") == "admin":
+            continue
+        body = str(raw.get("body") or "").strip()
+        if not body:
+            continue
+        detected = detect_message_language(body, hint=stored or "en")
+        # Prefer what they write when it clearly differs from a wrong UI hint.
+        if detected in _SUPPORTED:
+            return detected
+    if stored in _SUPPORTED:
+        return stored
+    return "en"

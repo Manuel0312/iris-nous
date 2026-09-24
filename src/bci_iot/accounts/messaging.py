@@ -242,10 +242,67 @@ def mask_destination(destination: str, *, channel: Channel) -> str:
     return f"+***{digits[-4:]}"
 
 
-def _shell_html(*, title: str, intro: str, middle_html: str, footer_extra: str = "") -> str:
+_SHELL_FOOTER: dict[str, str] = {
+    "it": (
+        f"© {BRAND_NAME} · Tesi UNITO · Messaggio automatico relativo al tuo account. "
+        "Se non hai richiesto questa operazione, puoi ignorare questa email in sicurezza."
+    ),
+    "en": (
+        f"© {BRAND_NAME} · UNITO thesis · Automatic message about your account. "
+        "If you did not request this, you can safely ignore this email."
+    ),
+    "es": (
+        f"© {BRAND_NAME} · Tesis UNITO · Mensaje automático sobre tu cuenta. "
+        "Si no pediste esto, puedes ignorar este correo."
+    ),
+    "fr": (
+        f"© {BRAND_NAME} · Thèse UNITO · Message automatique lié à votre compte. "
+        "Si vous n’avez pas demandé ceci, ignorez cet e-mail."
+    ),
+    "de": (
+        f"© {BRAND_NAME} · UNITO-Thesis · Automatische Nachricht zu Ihrem Konto. "
+        "Falls Sie dies nicht angefordert haben, können Sie diese E-Mail ignorieren."
+    ),
+    "pt": (
+        f"© {BRAND_NAME} · Tese UNITO · Mensagem automática sobre a sua conta. "
+        "Se não pediu isto, pode ignorar este e-mail."
+    ),
+    "zh": (
+        f"© {BRAND_NAME} · UNITO 论文 · 与您账户相关的自动邮件。"
+        "如非本人操作，可忽略本邮件。"
+    ),
+    "ja": (
+        f"© {BRAND_NAME} · UNITO学位論文 · アカウントに関する自動メールです。"
+        "心当たりがない場合はこのメールを無視してください。"
+    ),
+}
+
+_SUPPORT_LINE_I18N: dict[str, str] = {
+    "it": SUPPORT_LINE,
+    "en": "This is an automatic email from Iris Nous.",
+    "es": "Este es un correo automático de Iris Nous.",
+    "fr": "Ceci est un e-mail automatique d’Iris Nous.",
+    "de": "Dies ist eine automatische E-Mail von Iris Nous.",
+    "pt": "Este é um e-mail automático da Iris Nous.",
+    "zh": "这是来自 Iris Nous 的自动邮件。",
+    "ja": "これは Iris Nous からの自動メールです。",
+}
+
+
+def _shell_html(
+    *,
+    title: str,
+    intro: str,
+    middle_html: str,
+    footer_extra: str = "",
+    lang: str = "it",
+) -> str:
+    code = (lang or "it").strip().lower()[:2] or "it"
+    footer = _SHELL_FOOTER.get(code, _SHELL_FOOTER["en"])
+    support = _SUPPORT_LINE_I18N.get(code, _SUPPORT_LINE_I18N["en"])
     return f"""\
 <!DOCTYPE html>
-<html lang="it">
+<html lang="{code}">
 <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
 <body style="margin:0;background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#1d1d1f;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f5f7;padding:32px 16px;">
@@ -258,12 +315,11 @@ def _shell_html(*, title: str, intro: str, middle_html: str, footer_extra: str =
         <tr><td style="padding:8px 28px 24px;">
           <p style="margin:0 0 20px;font-size:15px;line-height:1.55;color:#1d1d1f;">{intro}</p>
           {middle_html}
-          <p style="margin:24px 0 0;font-size:12px;line-height:1.5;color:#86868b;">{SUPPORT_LINE}{footer_extra}</p>
+          <p style="margin:24px 0 0;font-size:12px;line-height:1.5;color:#86868b;">{support}{footer_extra}</p>
         </td></tr>
         <tr><td style="padding:16px 28px 24px;border-top:1px solid #e8e8ed;">
           <p style="margin:0;font-size:11px;color:#aeaeb2;line-height:1.45;">
-            © {BRAND_NAME} · Tesi UNITO · Messaggio automatico relativo al tuo account.
-            Se non hai richiesto questa operazione, puoi ignorare questa email in sicurezza.
+            {footer}
           </p>
         </td></tr>
       </table>
@@ -364,22 +420,166 @@ def _escape_mail(text: str) -> str:
     )
 
 
+_SUPPORT_REPLY_COPY: dict[str, dict[str, str]] = {
+    "it": {
+        "hello": "ciao",
+        "you": "Tu",
+        "team": "Team Iris Nous",
+        "conversation": "Conversazione",
+        "team_reply": "Risposta del team",
+        "subject": f"{BRAND_NAME}: risposta al tuo messaggio",
+        "title": "Risposta del team",
+        "intro": "Ciao <strong>{who}</strong>, abbiamo letto il tuo messaggio.",
+        "intro_text": "Ciao {who},",
+        "cta": (
+            "Se hai bisogno di altro, rispondi da Chatta con noi sul sito "
+            "oppure aspetta una nuova mail da questo indirizzo."
+        ),
+        "footer_extra": " Questa mail è una risposta personale del team Iris Nous.",
+        "signoff": f"— Team {BRAND_NAME}",
+    },
+    "en": {
+        "hello": "there",
+        "you": "You",
+        "team": "Iris Nous Team",
+        "conversation": "Conversation",
+        "team_reply": "Team reply",
+        "subject": f"{BRAND_NAME}: reply to your message",
+        "title": "Team reply",
+        "intro": "Hi <strong>{who}</strong>, we’ve read your message.",
+        "intro_text": "Hi {who},",
+        "cta": (
+            "If you need anything else, reply from Chat with us on the site "
+            "or wait for another email from this address."
+        ),
+        "footer_extra": " This email is a personal reply from the Iris Nous team.",
+        "signoff": f"— {BRAND_NAME} Team",
+    },
+    "es": {
+        "hello": "hola",
+        "you": "Tú",
+        "team": "Equipo Iris Nous",
+        "conversation": "Conversación",
+        "team_reply": "Respuesta del equipo",
+        "subject": f"{BRAND_NAME}: respuesta a tu mensaje",
+        "title": "Respuesta del equipo",
+        "intro": "Hola <strong>{who}</strong>, hemos leído tu mensaje.",
+        "intro_text": "Hola {who},",
+        "cta": (
+            "Si necesitas algo más, responde desde Chatea con nosotros en el sitio "
+            "o espera otro correo de esta dirección."
+        ),
+        "footer_extra": " Este correo es una respuesta personal del equipo Iris Nous.",
+        "signoff": f"— Equipo {BRAND_NAME}",
+    },
+    "fr": {
+        "hello": "bonjour",
+        "you": "Vous",
+        "team": "Équipe Iris Nous",
+        "conversation": "Conversation",
+        "team_reply": "Réponse de l’équipe",
+        "subject": f"{BRAND_NAME}: réponse à votre message",
+        "title": "Réponse de l’équipe",
+        "intro": "Bonjour <strong>{who}</strong>, nous avons lu votre message.",
+        "intro_text": "Bonjour {who},",
+        "cta": (
+            "Si vous avez besoin d’autre chose, répondez depuis Discutez avec nous "
+            "sur le site ou attendez un nouvel e-mail de cette adresse."
+        ),
+        "footer_extra": " Cet e-mail est une réponse personnelle de l’équipe Iris Nous.",
+        "signoff": f"— Équipe {BRAND_NAME}",
+    },
+    "de": {
+        "hello": "hallo",
+        "you": "Du",
+        "team": "Iris-Nous-Team",
+        "conversation": "Unterhaltung",
+        "team_reply": "Antwort des Teams",
+        "subject": f"{BRAND_NAME}: Antwort auf deine Nachricht",
+        "title": "Antwort des Teams",
+        "intro": "Hallo <strong>{who}</strong>, wir haben deine Nachricht gelesen.",
+        "intro_text": "Hallo {who},",
+        "cta": (
+            "Wenn du noch etwas brauchst, antworte über Chatte mit uns auf der Website "
+            "oder warte auf eine weitere E-Mail von dieser Adresse."
+        ),
+        "footer_extra": " Diese E-Mail ist eine persönliche Antwort vom Iris-Nous-Team.",
+        "signoff": f"— Team {BRAND_NAME}",
+    },
+    "pt": {
+        "hello": "olá",
+        "you": "Tu",
+        "team": "Equipa Iris Nous",
+        "conversation": "Conversa",
+        "team_reply": "Resposta da equipa",
+        "subject": f"{BRAND_NAME}: resposta à sua mensagem",
+        "title": "Resposta da equipa",
+        "intro": "Olá <strong>{who}</strong>, lemos a sua mensagem.",
+        "intro_text": "Olá {who},",
+        "cta": (
+            "Se precisar de mais alguma coisa, responda em Fale connosco no site "
+            "ou aguarde outro e-mail deste endereço."
+        ),
+        "footer_extra": " Este e-mail é uma resposta pessoal da equipa Iris Nous.",
+        "signoff": f"— Equipa {BRAND_NAME}",
+    },
+    "zh": {
+        "hello": "你好",
+        "you": "你",
+        "team": "Iris Nous 团队",
+        "conversation": "对话",
+        "team_reply": "团队回复",
+        "subject": f"{BRAND_NAME}：对您消息的回复",
+        "title": "团队回复",
+        "intro": "<strong>{who}</strong>，您好，我们已阅读您的消息。",
+        "intro_text": "{who}，您好，",
+        "cta": "如需进一步帮助，请在网站「与我们聊天」中回复，或等待此邮箱的下一封邮件。",
+        "footer_extra": " 此邮件为 Iris Nous 团队的个人回复。",
+        "signoff": f"— {BRAND_NAME} 团队",
+    },
+    "ja": {
+        "hello": "さま",
+        "you": "あなた",
+        "team": "Iris Nous チーム",
+        "conversation": "会話",
+        "team_reply": "チームからの返信",
+        "subject": f"{BRAND_NAME}: メッセージへの返信",
+        "title": "チームからの返信",
+        "intro": "<strong>{who}</strong> 様、メッセージを確認しました。",
+        "intro_text": "{who} 様、",
+        "cta": (
+            "追加のご質問があれば、サイトの「チャットで問い合わせ」から返信するか、"
+            "このアドレスからの次のメールをお待ちください。"
+        ),
+        "footer_extra": " このメールは Iris Nous チームからの個人返信です。",
+        "signoff": f"— {BRAND_NAME} チーム",
+    },
+}
+
+
 def build_support_reply_email(
     *,
     name: str,
     body: str,
     conversation: list[dict[str, Any]] | None = None,
+    lang: str = "it",
 ) -> tuple[str, str, str]:
-    who = (name or "").strip() or "ciao"
+    """Build support-reply mail already localized for the recipient ``lang``."""
+
+    code = (lang or "it").strip().lower()[:2] or "it"
+    copy = _SUPPORT_REPLY_COPY.get(code) or _SUPPORT_REPLY_COPY["en"]
+    who = (name or "").strip() or copy["hello"]
     safe_body = _escape_mail(body)
     thread_lines: list[str] = []
     thread_html_bits: list[str] = []
     for item in conversation or []:
         sender = str(item.get("sender") or "")
-        msg = str(item.get("body") or "").strip()
+        msg = str(
+            item.get("display_body") or item.get("body_translated") or item.get("body") or ""
+        ).strip()
         if not msg:
             continue
-        label = "Team Iris Nous" if sender == "admin" else "Tu"
+        label = copy["team"] if sender == "admin" else copy["you"]
         thread_lines.append(f"{label}:\n{msg}")
         thread_html_bits.append(
             f'<p style="margin:0 0 4px;font-size:12px;color:#86868b;font-weight:700;letter-spacing:.04em;text-transform:uppercase;">{label}</p>'
@@ -388,33 +588,33 @@ def build_support_reply_email(
     thread_text = ""
     thread_html = ""
     if thread_lines:
-        thread_text = "Conversazione:\n\n" + "\n\n".join(thread_lines) + "\n\n"
+        thread_text = f"{copy['conversation']}:\n\n" + "\n\n".join(thread_lines) + "\n\n"
         thread_html = (
-            '<p style="margin:0 0 14px;font-size:13px;color:#86868b;">Conversazione</p>'
+            f'<p style="margin:0 0 14px;font-size:13px;color:#86868b;">{copy["conversation"]}</p>'
             + "".join(thread_html_bits)
             + '<hr style="border:none;border-top:1px solid #eee;margin:8px 0 18px;" />'
-            '<p style="margin:0 0 10px;font-size:13px;color:#86868b;">Risposta del team</p>'
+            f'<p style="margin:0 0 10px;font-size:13px;color:#86868b;">{copy["team_reply"]}</p>'
         )
-    subject = f"{BRAND_NAME}: risposta al tuo messaggio"
+    subject = copy["subject"]
     text = (
         f"{BRAND_NAME}\n\n"
-        f"Ciao {who},\n\n"
+        f"{copy['intro_text'].format(who=who)}\n\n"
         f"{thread_text}"
-        f"Risposta del team:\n\n"
+        f"{copy['team_reply']}:\n\n"
         f"{body}\n\n"
-        f"Se hai bisogno di altro, rispondi da Chatta con noi sul sito "
-        f"oppure aspetta una nuova mail da questo indirizzo.\n\n"
-        f"— Team {BRAND_NAME}\n"
+        f"{copy['cta']}\n\n"
+        f"{copy['signoff']}\n"
     )
     middle = f"""
       {thread_html}
       <p style="margin:0;font-size:15px;line-height:1.6;color:#1d1d1f;">{safe_body}</p>
     """
     html = _shell_html(
-        title="Risposta del team",
-        intro=f"Ciao <strong>{who}</strong>, abbiamo letto il tuo messaggio.",
+        title=copy["title"],
+        intro=copy["intro"].format(who=who),
         middle_html=middle,
-        footer_extra=" Questa mail è una risposta personale del team Iris Nous.",
+        footer_extra=copy["footer_extra"],
+        lang=code,
     )
     return subject, text, html
 

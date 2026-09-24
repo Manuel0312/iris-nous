@@ -135,6 +135,36 @@ def test_hi_how_are_you_translates_for_italian_admin() -> None:
     assert any(w in low for w in ("ciao", "come", "stai", "sta"))
 
 
+def test_resolve_recipient_lang_from_english_message() -> None:
+    from bci_iot.accounts.chat_translate import resolve_support_recipient_lang
+
+    lang = resolve_support_recipient_lang(
+        thread_user_lang="it",
+        messages=[{"sender": "user", "body": "hi how are you"}],
+    )
+    assert lang == "en"
+
+
+def test_support_reply_email_is_localized_english() -> None:
+    from bci_iot.accounts.messaging import build_support_reply_email
+
+    subject, text, html = build_support_reply_email(
+        name="Manuel",
+        body="Please check the headset pairing.",
+        conversation=[
+            {"sender": "user", "display_body": "hi how are you", "body": "hi how are you"},
+        ],
+        lang="en",
+    )
+    assert "reply to your message" in subject.lower()
+    assert "Hi Manuel" in text or "Hi Manuel," in text
+    assert "Please check the headset pairing." in text
+    assert "Risposta del team" not in text
+    assert "Conversazione" not in text
+    assert 'lang="en"' in html
+
+
+
 def test_gap_catalog_covers_home_and_chatta_keys() -> None:
     from bci_iot.web.translations import CATALOG
 

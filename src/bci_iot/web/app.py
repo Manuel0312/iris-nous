@@ -55,6 +55,7 @@ from bci_iot.accounts.chat_translate import (
     DISCLAIMER_IT,
     detect_message_language,
     present_support_messages,
+    resolve_support_recipient_lang,
     translate_text,
 )
 from bci_iot.web.flags import ensure_flag_svgs, render_flag_svg
@@ -1418,16 +1419,24 @@ def create_app(
             _flash(request, "Scrivi una risposta prima di inviare.", kind="error")
             return RedirectResponse(f"/notifiche/{thread_id}", status_code=303)
         admin_lang = get_request_language(request)
-        user_lang = str(thread.get("user_lang") or "it")
-        translated = translate_text(text, source=admin_lang, target=user_lang)
-        if translated == text and admin_lang != user_lang:
-            translated = translate_text(text, source="auto", target=user_lang)
+        prior = access.list_support_messages(thread_id)
+        user_lang = resolve_support_recipient_lang(
+            thread_user_lang=str(thread.get("user_lang") or ""),
+            messages=prior,
+        )
+        # Detect admin reply language from the text itself (UI lang can disagree).
+        reply_src = detect_message_language(text, hint=admin_lang)
+        translated = text
+        if reply_src != user_lang:
+            translated = translate_text(text, source=reply_src, target=user_lang)
+            if translated == text:
+                translated = translate_text(text, source="auto", target=user_lang)
         updated = access.add_admin_support_reply(
             thread_id,
             text,
             body_translated=translated if translated != text else "",
-            lang_src=admin_lang,
-            lang_dst=user_lang,
+            lang_src=reply_src,
+            lang_dst=user_lang if translated != text else "",
         )
         destination = ""
         if updated:
@@ -1448,11 +1457,20 @@ def create_app(
                 if person is not None:
                     display = f"{person.first_name} {person.last_name}".strip() or person.username
             history = access.list_support_messages(thread_id)
-            mail_body = translated if translated and translated != text else text
+            # Email shows prior turns in the user's language; latest reply is separate.
+            prior_for_mail = history[:-1] if history else []
+            mail_thread = present_support_messages(
+                prior_for_mail,
+                viewer_is_admin=False,
+                viewer_lang=user_lang,
+                fallback_user_lang=user_lang,
+            )
+            mail_body = translated if translated else text
             subject, mail_text, mail_html = build_support_reply_email(
                 name=display,
                 body=mail_body,
-                conversation=history,
+                conversation=mail_thread,
+                lang=user_lang,
             )
             result = send_branded_email(
                 destination=destination,
