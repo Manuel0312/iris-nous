@@ -58,6 +58,7 @@ from bci_iot.accounts.chat_translate import (
     resolve_support_recipient_lang,
     translate_text,
 )
+from bci_iot.web.whats_new import whats_new_payload
 from bci_iot.web.flags import ensure_flag_svgs, render_flag_svg
 from bci_iot.web.i18n import (
     COOKIE_NAME,
@@ -382,6 +383,8 @@ def create_app(
             "support_unread": support_unread,
             "user_support_unread": user_support_unread,
             "chat_disclaimer": DISCLAIMER_IT,
+            "app_version": __version__,
+            "whats_new": whats_new_payload(),
             **extra,
         }
 

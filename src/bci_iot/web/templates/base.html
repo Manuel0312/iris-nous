@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;600;700&family=Noto+Sans+SC:wght@400;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/styles.css?v=irisPages9" />
+  <link rel="stylesheet" href="/static/styles.css?v=irisPages10" />
   <script>
     (function () {
       function scheme() {
@@ -50,6 +50,10 @@
       {% endif %}
     </div>
     <div class="topbar-tools">
+      <button type="button" class="whats-new-btn" id="whats-new-open" aria-haspopup="dialog" aria-controls="whats-new-dialog" title="{{ t('Novità') if t is defined else 'Novità' }}">
+        <span>{{ t('Novità') if t is defined else 'Novità' }}</span>
+        <span class="whats-new-dot" id="whats-new-dot" hidden aria-hidden="true"></span>
+      </button>
       <div class="lang-switch" data-lang-switch>
         {% set current = languages|selectattr('code', 'equalto', lang)|list if languages is defined else [] %}
         {% set cur = current[0] if current else none %}
@@ -111,6 +115,34 @@
     <a href="{{ cloud_url }}">{{ t('Apri il sito pubblico') }}</a>
   </div>
   {% endif %}
+
+  <div class="whats-new-overlay" id="whats-new-overlay" hidden>
+    <div
+      class="whats-new-dialog"
+      id="whats-new-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="whats-new-title"
+      tabindex="-1"
+    >
+      <div class="whats-new-head">
+        <p class="whats-new-kicker">{{ t('Versione') }} {{ app_version if app_version is defined else whats_new.version }}</p>
+        <h2 id="whats-new-title">{{ t('Novità') }}</h2>
+        <button type="button" class="whats-new-close" id="whats-new-close" aria-label="{{ t('Chiudi') }}">{{ t('Chiudi') }}</button>
+      </div>
+      {% if whats_new is defined %}
+      <p class="whats-new-intro">{{ t(whats_new.intro) }}</p>
+      <ul class="whats-new-list">
+        {% for item in whats_new.entries %}
+        <li>
+          <strong>{{ t(item.title) }}</strong>
+          <span>{{ t(item.body) }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+  </div>
 
   {% block unito_top %}{% endblock %}
 
@@ -235,6 +267,52 @@
           });
         });
       }
+
+      const newsOpen = document.getElementById("whats-new-open");
+      const newsOverlay = document.getElementById("whats-new-overlay");
+      const newsDialog = document.getElementById("whats-new-dialog");
+      const newsClose = document.getElementById("whats-new-close");
+      const newsDot = document.getElementById("whats-new-dot");
+      const newsVersion = {{ (app_version if app_version is defined else '0')|tojson }};
+      const newsSeenKey = "iris_whats_new_seen_" + newsVersion;
+
+      function newsSeen() {
+        try { return localStorage.getItem(newsSeenKey) === "1"; } catch (e) { return false; }
+      }
+      function markNewsSeen() {
+        try { localStorage.setItem(newsSeenKey, "1"); } catch (e) {}
+        if (newsDot) newsDot.hidden = true;
+      }
+      function openNews() {
+        if (!newsOverlay) return;
+        closeNav();
+        closeLang();
+        newsOverlay.hidden = false;
+        document.body.classList.add("whats-new-open");
+        if (newsDialog) newsDialog.focus();
+        markNewsSeen();
+      }
+      function closeNews() {
+        if (!newsOverlay) return;
+        newsOverlay.hidden = true;
+        document.body.classList.remove("whats-new-open");
+      }
+      if (newsDot && !newsSeen()) newsDot.hidden = false;
+      if (newsOpen) newsOpen.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openNews();
+      });
+      if (newsClose) newsClose.addEventListener("click", (e) => {
+        e.preventDefault();
+        closeNews();
+      });
+      if (newsOverlay) newsOverlay.addEventListener("click", (e) => {
+        if (e.target === newsOverlay) closeNews();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && newsOverlay && !newsOverlay.hidden) closeNews();
+      });
 
       document.addEventListener("click", (e) => {
         const t = e.target;
