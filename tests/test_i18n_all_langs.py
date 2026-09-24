@@ -132,11 +132,11 @@ def test_language_for_country(country: str | None, expected: str) -> None:
 def test_poland_geo_header_selects_english(tmp_path: Path) -> None:
     app = create_app(data_dir=tmp_path, session_secret="geo-pl")
     client = TestClient(app)
-    # No cookie, Accept-Language only Polish (unsupported) → English
+    # Geo country wins even if the browser prefers English.
     page = client.get(
         "/",
         headers={
-            "Accept-Language": "pl-PL,pl;q=0.9",
+            "Accept-Language": "en-US,en;q=0.9",
             "cf-ipcountry": "PL",
         },
     )
@@ -144,7 +144,7 @@ def test_poland_geo_header_selects_english(tmp_path: Path) -> None:
     assert "invisible bridge" in page.text.lower() or "An invisible bridge" in page.text
     assert "Un ponte invisibile" not in page.text
 
-    # Even without country header, unsupported Accept-Language → English
+    # Unsupported Accept-Language and no country → English
     page2 = client.get("/", headers={"Accept-Language": "pl-PL,pl;q=0.9"})
     assert "invisible bridge" in page2.text.lower() or "An invisible bridge" in page2.text
     assert "Un ponte invisibile" not in page2.text
@@ -153,15 +153,24 @@ def test_poland_geo_header_selects_english(tmp_path: Path) -> None:
 def test_italy_geo_header_selects_italian(tmp_path: Path) -> None:
     app = create_app(data_dir=tmp_path, session_secret="geo-it")
     client = TestClient(app)
+    # English browser in Italy → Italian (geo beats Accept-Language).
     page = client.get(
         "/",
         headers={
-            "Accept-Language": "pl-PL,pl;q=0.9",
+            "Accept-Language": "en-US,en;q=0.9",
             "cf-ipcountry": "IT",
         },
     )
-    # Accept-Language pl is unsupported → falls through to country IT → it
     assert "Un ponte invisibile" in page.text
+
+
+def test_explicit_cookie_beats_geo(tmp_path: Path) -> None:
+    app = create_app(data_dir=tmp_path, session_secret="geo-cookie")
+    client = TestClient(app)
+    client.cookies.set("bci_iot_lang", "en")
+    page = client.get("/", headers={"cf-ipcountry": "IT", "Accept-Language": "it-IT"})
+    assert "invisible bridge" in page.text.lower() or "An invisible bridge" in page.text
+    assert "Un ponte invisibile" not in page.text
 
 
 @pytest.mark.parametrize("user_lang", list(SUPPORTED))
@@ -347,6 +356,6 @@ def test_detect_language_helper_uses_country(monkeypatch: pytest.MonkeyPatch) ->
     class _ReqIt:
         cookies: dict = {}
         session: dict = {}
-        headers: dict = {"cf-ipcountry": "IT", "accept-language": ""}
+        headers: dict = {"cf-ipcountry": "IT", "accept-language": "en-US,en;q=0.9"}
 
     assert detect_language(_ReqIt()) == "it"  # type: ignore[arg-type]

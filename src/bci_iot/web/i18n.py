@@ -2,14 +2,25 @@
 
 from __future__ import annotations
 
+import logging
+import time
 from dataclasses import dataclass
+from ipaddress import ip_address
 from typing import Any
+from urllib.parse import quote
 
+import httpx
 from starlette.requests import Request
 
 SUPPORTED = ("it", "en", "es", "fr", "de", "pt", "zh", "ja")
 DEFAULT_LANG = "it"
 COOKIE_NAME = "bci_iot_lang"
+
+log = logging.getLogger(__name__)
+
+# IP → (country_code, expires_monotonic)
+_IP_COUNTRY_CACHE: dict[str, tuple[str, float]] = {}
+_IP_CACHE_TTL_S = 60 * 60 * 24  # 24h
 
 
 @dataclass(frozen=True, slots=True)
@@ -130,27 +141,11 @@ def parse_accept_language(header: str | None) -> str | None:
     return parts[0][1]
 
 
-def country_from_request(request: Request) -> str | None:
-    headers = request.headers
-    for key in (
-        "cf-ipcountry",
-        "cloudfront-viewer-country",
-        "x-vercel-ip-country",
-        "x-country-code",
-        "x-appengine-country",
-        "x-render-request-country",  # Render / edge proxies when present
-    ):
-        value = (headers.get(key) or "").strip().upper()
-        if value and value not in {"XX", "T1", "ZZ"}:
-            return value
-    return None
-
-
 def detect_language(request: Request) -> str:
-    """Preference: cookie → session → Accept-Language → country → Italian.
+    """Preference: explicit cookie/session → country (geo) → Accept-Language → fallback.
 
-    Unsupported browser languages (e.g. only Polish) and unknown countries
-    resolve to English.
+    Geo wins over the browser language so an Italian visitor with an English OS
+    still gets Italian. Unknown countries / unsupported Accept-Language → English.
     """
     cookie = normalize_lang(request.cookies.get(COOKIE_NAME))
     if cookie:
@@ -161,17 +156,127 @@ def detect_language(request: Request) -> str:
         session_lang = None
     if session_lang:
         return session_lang
+
+    path = request.url.path if hasattr(request, "url") else ""
+    # Skip IP geo on static assets (headers still used if present).
+    use_ip_geo = not str(path or "").startswith(
+        ("/static", "/flags", "/media", "/favicon", "/health")
+    )
+    country = country_from_request(request, allow_ip_lookup=use_ip_geo)
+    if country:
+        return COUNTRY_TO_LANG.get(country, "en")
+
     accept = parse_accept_language(request.headers.get("accept-language"))
     if accept:
         return accept
-    country = country_from_request(request)
-    if country:
-        return COUNTRY_TO_LANG.get(country, "en")
-    # Browser sent a language we don't support (pl, nl, …) and no country → English
+    # Browser sent only unsupported languages (pl, nl, …) → English
     raw_accept = (request.headers.get("accept-language") or "").strip()
     if raw_accept:
         return "en"
     return DEFAULT_LANG
+
+
+def country_from_request(request: Request, *, allow_ip_lookup: bool = True) -> str | None:
+    """Country from CDN/proxy headers, then optional IP geolocation (cached)."""
+
+    headers = request.headers
+    for key in (
+        "cf-ipcountry",
+        "cloudfront-viewer-country",
+        "x-vercel-ip-country",
+        "x-country-code",
+        "x-appengine-country",
+        "x-render-request-country",
+    ):
+        value = (headers.get(key) or "").strip().upper()
+        if value and value not in {"XX", "T1", "ZZ"}:
+            return value
+    if not allow_ip_lookup:
+        return None
+    ip = client_ip_from_request(request)
+    if not ip:
+        return None
+    return country_from_ip(ip)
+
+
+def client_ip_from_request(request: Request) -> str | None:
+    """Best-effort public client IP (Render/Cloudflare use X-Forwarded-For)."""
+
+    for key in ("cf-connecting-ip", "true-client-ip", "x-real-ip"):
+        raw = (request.headers.get(key) or "").strip()
+        if raw and _is_public_ip(raw):
+            return raw
+    xff = (request.headers.get("x-forwarded-for") or "").strip()
+    if xff:
+        for part in xff.split(","):
+            candidate = part.strip()
+            if _is_public_ip(candidate):
+                return candidate
+    host = getattr(request.client, "host", None) if request.client else None
+    if host and _is_public_ip(host):
+        return host
+    return None
+
+
+def _is_public_ip(value: str) -> bool:
+    try:
+        addr = ip_address(value.strip())
+    except ValueError:
+        return False
+    return not (
+        addr.is_private
+        or addr.is_loopback
+        or addr.is_link_local
+        or addr.is_multicast
+        or addr.is_reserved
+        or addr.is_unspecified
+    )
+
+
+def country_from_ip(ip: str) -> str | None:
+    """Resolve ISO country for ``ip`` via free lookup APIs (in-memory cache)."""
+
+    cached = _IP_COUNTRY_CACHE.get(ip)
+    now = time.monotonic()
+    if cached and cached[1] > now:
+        return cached[0] or None
+    country = _lookup_ip_country(ip) or ""
+    _IP_COUNTRY_CACHE[ip] = (country, now + _IP_CACHE_TTL_S)
+    if len(_IP_COUNTRY_CACHE) > 4000:
+        stale = [k for k, (_, exp) in _IP_COUNTRY_CACHE.items() if exp <= now]
+        for k in stale[:1000]:
+            _IP_COUNTRY_CACHE.pop(k, None)
+    return country or None
+
+
+def _lookup_ip_country(ip: str) -> str | None:
+    # Keep this fast: middleware runs on every HTML request.
+    endpoints = (
+        (f"https://get.geojs.io/v1/ip/country/{quote(ip)}.json", "geojs"),
+        (f"https://ipapi.co/{quote(ip)}/country_code/", "ipapi"),
+        (f"http://ip-api.com/json/{quote(ip)}?fields=status,countryCode", "ipapi_http"),
+    )
+    for url, kind in endpoints:
+        try:
+            with httpx.Client(timeout=1.2, follow_redirects=True) as client:
+                resp = client.get(url, headers={"User-Agent": "IrisNous/1.0"})
+            if resp.status_code >= 400:
+                continue
+            if kind == "geojs":
+                data = resp.json()
+                code = str(data.get("country") or data.get("country_code") or "").upper()
+            elif kind == "ipapi_http":
+                data = resp.json()
+                if str(data.get("status") or "") != "success":
+                    continue
+                code = str(data.get("countryCode") or "").upper()
+            else:
+                code = (resp.text or "").strip().upper()[:2]
+            if len(code) == 2 and code.isalpha() and code not in {"XX", "T1", "ZZ"}:
+                return code
+        except Exception as exc:  # noqa: BLE001
+            log.debug("ip country lookup failed (%s): %s", url, exc)
+    return None
 
 
 def language_for_country(country_code: str | None) -> str:
