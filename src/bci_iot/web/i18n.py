@@ -14,7 +14,8 @@ from starlette.requests import Request
 
 SUPPORTED = ("it", "en", "es", "fr", "de", "pt", "zh", "ja")
 DEFAULT_LANG = "it"
-COOKIE_NAME = "bci_iot_lang"
+COOKIE_NAME = "iris_nous_lang"  # renamed to invalidate sticky en from older builds
+
 
 log = logging.getLogger(__name__)
 
@@ -117,6 +118,12 @@ def normalize_lang(code: str | None) -> str | None:
 
 
 def parse_accept_language(header: str | None) -> str | None:
+    """Pick the best supported UI language from Accept-Language.
+
+    If both English and another supported language are listed (common on
+    Italian Windows installs: ``en-US,en;q=0.9,it;q=0.8``), prefer the
+    non-English one — English is often the OS default, not the visitor locale.
+    """
     if not header:
         return None
     parts: list[tuple[float, str]] = []
@@ -138,27 +145,28 @@ def parse_accept_language(header: str | None) -> str | None:
     if not parts:
         return None
     parts.sort(key=lambda pair: pair[0], reverse=True)
+    non_en = [(q, lang) for q, lang in parts if lang != "en"]
+    if non_en:
+        non_en.sort(key=lambda pair: pair[0], reverse=True)
+        return non_en[0][1]
     return parts[0][1]
 
 
 def detect_language(request: Request) -> str:
-    """Preference: explicit cookie/session → country (geo) → Accept-Language → fallback.
+    """Preference: explicit cookie/session → country (geo) → Accept-Language → Italian.
 
     Geo wins over the browser language so an Italian visitor with an English OS
-    still gets Italian. Unknown countries / unsupported Accept-Language → English.
+    still gets Italian. Unknown countries → English. English-only Accept-Language
+    without a known country falls back to Italian (product default), because
+    Windows/Chrome often report ``en-US`` even in Italy when geo headers are missing.
     """
     cookie = normalize_lang(request.cookies.get(COOKIE_NAME))
     if cookie:
         return cookie
-    try:
-        session_lang = normalize_lang(str(request.session.get("lang") or ""))
-    except Exception:
-        session_lang = None
-    if session_lang:
-        return session_lang
+    # Do not trust session["lang"] alone: older builds stuck English in the
+    # session without the new cookie, which re-forced EN on every visit.
 
     path = request.url.path if hasattr(request, "url") else ""
-    # Skip IP geo on static assets (headers still used if present).
     use_ip_geo = not str(path or "").startswith(
         ("/static", "/flags", "/media", "/favicon", "/health")
     )
@@ -167,11 +175,15 @@ def detect_language(request: Request) -> str:
         return COUNTRY_TO_LANG.get(country, "en")
 
     accept = parse_accept_language(request.headers.get("accept-language"))
-    if accept:
+    if accept and accept != "en":
         return accept
-    # Browser sent only unsupported languages (pl, nl, …) → English
+    # English-only browser language without geo → Italian default (tesi / IT product).
+    # Real English locales still win when country maps to en (US/GB/…).
+    if accept == "en":
+        return DEFAULT_LANG
     raw_accept = (request.headers.get("accept-language") or "").strip()
     if raw_accept:
+        # Unsupported only (pl, nl, …) and no country → English
         return "en"
     return DEFAULT_LANG
 
@@ -250,19 +262,24 @@ def country_from_ip(ip: str) -> str | None:
 
 
 def _lookup_ip_country(ip: str) -> str | None:
-    # Keep this fast: middleware runs on every HTML request.
     endpoints = (
+        (f"https://ipwho.is/{quote(ip)}", "ipwho"),
         (f"https://get.geojs.io/v1/ip/country/{quote(ip)}.json", "geojs"),
         (f"https://ipapi.co/{quote(ip)}/country_code/", "ipapi"),
         (f"http://ip-api.com/json/{quote(ip)}?fields=status,countryCode", "ipapi_http"),
     )
     for url, kind in endpoints:
         try:
-            with httpx.Client(timeout=1.2, follow_redirects=True) as client:
+            with httpx.Client(timeout=2.0, follow_redirects=True) as client:
                 resp = client.get(url, headers={"User-Agent": "IrisNous/1.0"})
             if resp.status_code >= 400:
                 continue
-            if kind == "geojs":
+            if kind == "ipwho":
+                data = resp.json()
+                if not data.get("success", True):
+                    continue
+                code = str(data.get("country_code") or "").upper()
+            elif kind == "geojs":
                 data = resp.json()
                 code = str(data.get("country") or data.get("country_code") or "").upper()
             elif kind == "ipapi_http":

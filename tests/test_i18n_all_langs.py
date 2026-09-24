@@ -167,8 +167,14 @@ def test_italy_geo_header_selects_italian(tmp_path: Path) -> None:
 def test_explicit_cookie_beats_geo(tmp_path: Path) -> None:
     app = create_app(data_dir=tmp_path, session_secret="geo-cookie")
     client = TestClient(app)
-    client.cookies.set("bci_iot_lang", "en")
-    page = client.get("/", headers={"cf-ipcountry": "IT", "Accept-Language": "it-IT"})
+    page = client.get(
+        "/",
+        headers={
+            "cf-ipcountry": "IT",
+            "Accept-Language": "it-IT",
+            "Cookie": f"{COOKIE_NAME}=en",
+        },
+    )
     assert "invisible bridge" in page.text.lower() or "An invisible bridge" in page.text
     assert "Un ponte invisibile" not in page.text
 

@@ -62,6 +62,7 @@ from bci_iot.web.flags import ensure_flag_svgs, render_flag_svg
 from bci_iot.web.i18n import (
     COOKIE_NAME,
     LANGUAGES,
+    SUPPORTED,
     detect_language,
     get_request_language,
     make_translator,
@@ -284,6 +285,7 @@ def create_app(
 
     @app.middleware("http")
     async def language_middleware(request: Request, call_next):
+        had_lang_cookie = bool(normalize_lang(request.cookies.get(COOKIE_NAME)))
         request.state.lang = detect_language(request)
         path = request.url.path or "/"
         # Guest chat: leaving Chatta drops the session code (SessionMiddleware is
@@ -304,7 +306,29 @@ def create_app(
                     request.session.pop("support_chat_sticky", None)
             except Exception:
                 pass
-        return await call_next(request)
+        response = await call_next(request)
+        # Persist auto-detected language so the next visit stays consistent.
+        # Skip assets; only set when the visitor had no explicit cookie yet.
+        if (
+            not had_lang_cookie
+            and not path.startswith(("/static", "/flags", "/media", "/favicon"))
+            and getattr(response, "status_code", 500) < 400
+        ):
+            lang = getattr(request.state, "lang", None)
+            if isinstance(lang, str) and lang in SUPPORTED:
+                secure = https_only or str(request.url.scheme).lower() == "https"
+                response.set_cookie(
+                    COOKIE_NAME,
+                    lang,
+                    max_age=60 * 60 * 24 * 365,
+                    httponly=False,
+                    samesite="lax",
+                    secure=secure,
+                    path="/",
+                )
+                # Drop legacy cookie that forced English after earlier builds.
+                response.delete_cookie("bci_iot_lang", path="/")
+        return response
 
     app.mount("/static", CachedStaticFiles(directory=str(WEB_DIR / "static")), name="static")
     photos_dir = store.photos_dir
@@ -373,6 +397,7 @@ def create_app(
             secure=secure,
             path="/",
         )
+        response.delete_cookie("bci_iot_lang", path="/")
         return response
     def _public_base_url(request: Request) -> str:
         if _host_is_local(request):

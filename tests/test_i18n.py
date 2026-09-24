@@ -11,8 +11,10 @@ from bci_iot.web.i18n import COOKIE_NAME, parse_accept_language, translate
 
 
 def test_accept_language_and_translate() -> None:
-    assert parse_accept_language("en-US,en;q=0.9,it;q=0.8") == "en"
+    # Non-English listed alongside en → prefer the locale language (it).
+    assert parse_accept_language("en-US,en;q=0.9,it;q=0.8") == "it"
     assert parse_accept_language("ja,en;q=0.5") == "ja"
+    assert parse_accept_language("en-GB,en;q=0.9") == "en"
     assert translate("en", "Login") == "Log in"
     assert translate("it", "Login") == "Login"
     assert translate("fr", "Iscriviti") == "S'inscrire"
@@ -20,11 +22,17 @@ def test_accept_language_and_translate() -> None:
 
 def test_home_uses_detected_language(tmp_path: Path) -> None:
     app = create_app(data_dir=tmp_path, session_secret="lang-secret")
-    client = TestClient(app)
-    page = client.get("/", headers={"Accept-Language": "en-GB,en;q=0.9"})
-    assert page.status_code == 200
-    assert "invisible bridge" in page.text.lower() or "An invisible bridge" in page.text
-    assert "Un ponte invisibile" not in page.text
+    # English browser without country → Italian product default.
+    page_it = TestClient(app).get("/", headers={"Accept-Language": "en-GB,en;q=0.9"})
+    assert page_it.status_code == 200
+    assert "Un ponte invisibile" in page_it.text
+    # Known English country still forces English (fresh client: no sticky cookie).
+    page_en = TestClient(app).get(
+        "/",
+        headers={"Accept-Language": "en-GB,en;q=0.9", "cf-ipcountry": "US"},
+    )
+    assert "invisible bridge" in page_en.text.lower() or "An invisible bridge" in page_en.text
+    assert "Un ponte invisibile" not in page_en.text
 
 
 def test_english_switch_persists(tmp_path: Path) -> None:
