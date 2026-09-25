@@ -163,6 +163,15 @@ EXTRA_RAW: dict[str, dict[str, str]] = {
         "ja": "チャットを再開",
         "es": "Vuelve a abrir el chat",
     },
+    "Hai già una chat?": {
+        "en": "Already have a chat?",
+        "fr": "Vous avez déjà un chat ?",
+        "de": "Hast du bereits einen Chat?",
+        "pt": "Já tem um chat?",
+        "zh": "已经有聊天？",
+        "ja": "すでにチャットがありますか？",
+        "es": "¿Ya tienes un chat?",
+    },
     "Hai già una chat? Inserisci il codice che ti abbiamo mostrato all’inizio.": {
         "en": "Already have a chat? Enter the code we showed you at the start.",
         "fr": "Vous avez déjà un chat ? Saisissez le code que nous vous avons indiqué au début.",
@@ -171,6 +180,15 @@ EXTRA_RAW: dict[str, dict[str, str]] = {
         "zh": "已经有聊天记录？请输入我们一开始向你显示的代码。",
         "ja": "すでにチャットがありますか？開始時に表示されたコードを入力してください。",
         "es": "¿Ya tienes un chat? Introduce el código que te mostramos al principio.",
+    },
+    "facoltativo": {
+        "en": "optional",
+        "fr": "facultatif",
+        "de": "optional",
+        "pt": "opcional",
+        "zh": "可选",
+        "ja": "任意",
+        "es": "opcional",
     },
     "Codice chat": {
         "en": "Chat code",

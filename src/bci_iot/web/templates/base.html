@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;600;700&family=Noto+Sans+SC:wght@400;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/styles.css?v=irisPages11" />
+  <link rel="stylesheet" href="/static/styles.css?v=irisPages13" />
   <script>
     (function () {
       function scheme() {
@@ -44,7 +44,7 @@
       <a class="unito-home" href="/" title="{{ t('Home') if t is defined else 'Home' }}" aria-label="{{ t('Home') if t is defined else 'Home' }}">
         <img src="/static/brand/unito-di.png" alt="UNITO — Home" width="36" height="36" />
       </a>
-      <a class="brand-mark" href="/" aria-label="Iris Nous home">Iris Nous</a>
+      <a class="brand-mark" href="/" aria-label="Iris Nous home">Iris<span class="brand-mark-rest"> Nous</span></a>
       {% if site_is_local %}
       <span class="site-chip is-local">{{ t('Computer') }}</span>
       {% endif %}

@@ -15,38 +15,11 @@
   <div class="chat-code-banner" role="status">
     <strong>{{ t('Salva questo codice') }}</strong>
     <span class="code">{{ access_code }}</span>
-    <p class="muted" style="color:#aeaeb2;margin:0">{{ t('Serve per riaprire la chat se non hai un account. Lo mostriamo solo ora.') }}</p>
+    <p class="muted chat-code-note">{{ t('Serve per riaprire la chat se non hai un account. Lo mostriamo solo ora.') }}</p>
   </div>
   {% endif %}
 
   <div class="chat-split chat-split-request{% if messages %} has-thread{% endif %}">
-    <aside class="chat-side chat-side-left" aria-label="{{ t('Richiesta di chat') }}">
-      <form class="panel contact-mail-form chat-compose" method="post" action="/chatta" id="chat-compose-form">
-        <h2>{{ t('Richiesta di chat') }}</h2>
-        {% if profile %}
-        <p class="identity-note">{{ t('Stai scrivendo come') }} <strong>{{ profile.first_name }} {{ profile.last_name }}</strong> · {{ profile.email }}</p>
-        {% else %}
-        <p class="form-hint">{{ t('Nome ed email servono per saperti rispondere. Il codice chat ti viene mostrato all’inizio.') }}</p>
-        <label>{{ t('Nome') }}
-          <input name="name" maxlength="80" autocomplete="name" required value="{{ guest_name or '' }}" />
-        </label>
-        <label>{{ t('Email') }}
-          <input name="email" type="email" required maxlength="254" autocomplete="email" inputmode="email" pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}" title="{{ t('Serve un dominio con estensione, es. nome@gmail.com') }}" value="{{ guest_email or '' }}" />
-        </label>
-        <label>{{ t('Telefono') }}
-          <input name="phone" type="tel" maxlength="20" autocomplete="tel" inputmode="numeric" pattern="[0-9+ ]*" data-digits-phone />
-        </label>
-        {% endif %}
-        <label>{{ t('Descrivi il problema') }}
-          <textarea name="body" rows="5" required minlength="2" placeholder="{{ t('Scrivi cosa non funziona…') }}"></textarea>
-        </label>
-        <input type="hidden" name="ui_lang" value="{{ lang }}" />
-        <div class="private-actions chat-side-actions">
-          <button class="btn primary" type="submit">{{ t('Invia') }}</button>
-        </div>
-      </form>
-    </aside>
-
     {% if messages %}
     <div class="chat-main">
       <ol class="chat-log" id="team-chat-log">
@@ -68,33 +41,63 @@
     </div>
     {% endif %}
 
+    <aside class="chat-side chat-side-left" aria-label="{{ t('Richiesta di chat') }}">
+      <form class="panel contact-mail-form chat-compose" method="post" action="/chatta" id="chat-compose-form">
+        <h2>{{ t('Scrivi al team') if messages else t('Richiesta di chat') }}</h2>
+        {% if profile %}
+        <p class="identity-note">{{ t('Stai scrivendo come') }} <strong>{{ profile.first_name }} {{ profile.last_name }}</strong> · {{ profile.email }}</p>
+        {% else %}
+        <p class="form-hint">{{ t('Nome ed email servono per saperti rispondere. Il codice chat ti viene mostrato all’inizio.') }}</p>
+        <label>{{ t('Nome') }}
+          <input name="name" maxlength="80" autocomplete="name" required value="{{ guest_name or '' }}" />
+        </label>
+        <label>{{ t('Email') }}
+          <input name="email" type="email" required maxlength="254" autocomplete="email" inputmode="email" pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}" title="{{ t('Serve un dominio con estensione, es. nome@gmail.com') }}" value="{{ guest_email or '' }}" />
+        </label>
+        <label>{{ t('Telefono') }} <span class="opt-tag">{{ t('facoltativo') }}</span>
+          <input name="phone" type="tel" maxlength="20" autocomplete="tel" inputmode="numeric" pattern="[0-9+ ]*" data-digits-phone />
+        </label>
+        {% endif %}
+        <label>{{ t('Descrivi il problema') }}
+          <textarea name="body" rows="4" required minlength="2" placeholder="{{ t('Scrivi cosa non funziona…') }}"></textarea>
+        </label>
+        <input type="hidden" name="ui_lang" value="{{ lang }}" />
+        <div class="private-actions chat-side-actions">
+          <button class="btn primary" type="submit">{{ t('Invia') }}</button>
+        </div>
+      </form>
+    </aside>
+
     <aside class="chat-side chat-side-right" aria-label="{{ t('Recupero chat') }}">
       {% if not profile %}
-      <div class="panel chat-side-card">
-        <form class="contact-mail-form chat-side-block" method="post" action="/chatta/apri">
-          <h2>{{ t('Riapri la chat') }}</h2>
-          <p class="form-hint">{{ t('Hai già una chat? Inserisci il codice che ti abbiamo mostrato all’inizio.') }}</p>
-          <label>{{ t('Codice chat') }}
-            <input name="access_code" required maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="es. FEMXXK" style="letter-spacing:.2em;font-weight:700;text-transform:uppercase" />
-          </label>
-          <div class="private-actions chat-side-actions">
-            <button class="btn primary" type="submit">{{ t('Riapri la chat') }}</button>
-          </div>
-        </form>
-        <hr class="chat-side-divider" />
-        <form class="contact-mail-form chat-side-block" method="post" action="/chatta/recupera-codice">
-          <h2>{{ t('Recupera codice') }}</h2>
-          <p class="form-hint">{{ t('Non ricordi il codice? Te lo reinviamo all’email usata per aprire la chat.') }}</p>
-          <label>{{ t('Email') }}
-            <input name="email" type="email" required maxlength="254" autocomplete="email" />
-          </label>
-          <div class="private-actions chat-side-actions">
-            <button class="btn primary" type="submit">{{ t('Recupera codice') }}</button>
-          </div>
-        </form>
-      </div>
+      <details class="chat-more panel chat-side-card" open>
+        <summary class="chat-more-summary">{{ t('Hai già una chat?') }}</summary>
+        <div class="chat-more-body">
+          <form class="contact-mail-form chat-side-block" method="post" action="/chatta/apri">
+            <h2>{{ t('Riapri la chat') }}</h2>
+            <p class="form-hint">{{ t('Hai già una chat? Inserisci il codice che ti abbiamo mostrato all’inizio.') }}</p>
+            <label>{{ t('Codice chat') }}
+              <input name="access_code" required maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="es. FEMXXK" class="chat-code-input" />
+            </label>
+            <div class="private-actions chat-side-actions">
+              <button class="btn primary" type="submit">{{ t('Riapri la chat') }}</button>
+            </div>
+          </form>
+          <hr class="chat-side-divider" />
+          <form class="contact-mail-form chat-side-block" method="post" action="/chatta/recupera-codice">
+            <h2>{{ t('Recupera codice') }}</h2>
+            <p class="form-hint">{{ t('Non ricordi il codice? Te lo reinviamo all’email usata per aprire la chat.') }}</p>
+            <label>{{ t('Email') }}
+              <input name="email" type="email" required maxlength="254" autocomplete="email" />
+            </label>
+            <div class="private-actions chat-side-actions">
+              <button class="btn primary" type="submit">{{ t('Recupera codice') }}</button>
+            </div>
+          </form>
+        </div>
+      </details>
       {% else %}
-      <div class="panel contact-mail-form chat-side-card">
+      <div class="panel contact-mail-form chat-side-card chat-side-hints">
         <h2>{{ t('Suggerimenti') }}</h2>
         <p class="form-hint">{{ t('Le tue bolle sono verdi a destra. Le risposte del team Iris sono grigie a sinistra.') }}</p>
         <p><a href="/le-mie-notifiche">{{ t('Le mie notifiche') }}</a></p>
@@ -115,6 +118,15 @@
       el.value = el.value.replace(/[^\d+ ]+/g, "");
     });
   });
+  // Desktop: keep "Hai già una chat?" panel open; phone starts collapsed.
+  const more = document.querySelector(".chat-more");
+  if (more) {
+    const mq = window.matchMedia("(min-width: 860px)");
+    const sync = () => { more.open = mq.matches; };
+    sync();
+    if (mq.addEventListener) mq.addEventListener("change", sync);
+    else if (mq.addListener) mq.addListener(sync);
+  }
   const waiting = {{ 'true' if waiting else 'false' }};
   const log = document.getElementById("team-chat-log");
   if (!waiting && !log) return;
