@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;600;700&family=Noto+Sans+SC:wght@400;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/styles.css?v=irisPages13" />
+  <link rel="stylesheet" href="/static/styles.css?v=irisPages14" />
   <script>
     (function () {
       function scheme() {
@@ -140,6 +140,26 @@
         </li>
         {% endfor %}
       </ul>
+      {% if whats_new.history %}
+      <details class="whats-new-history">
+        <summary class="whats-new-history-toggle">{{ t('Versioni precedenti') }}</summary>
+        <div class="whats-new-history-body">
+          {% for rel in whats_new.history %}
+          <section class="whats-new-past">
+            <p class="whats-new-kicker">{{ t('Versione') }} {{ rel.version }}</p>
+            <ul class="whats-new-list">
+              {% for item in rel.entries %}
+              <li>
+                <strong>{{ t(item.title) }}</strong>
+                <span>{{ t(item.body) }}</span>
+              </li>
+              {% endfor %}
+            </ul>
+          </section>
+          {% endfor %}
+        </div>
+      </details>
+      {% endif %}
       {% endif %}
     </div>
   </div>

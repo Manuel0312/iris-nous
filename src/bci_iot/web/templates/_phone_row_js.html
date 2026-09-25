@@ -1,0 +1,105 @@
+{# Phone country picker behaviour. Include once per page with a phone row. #}
+<script>
+(function () {
+  const row = document.getElementById("phone-row");
+  const btn = document.getElementById("phone-cc-btn");
+  const menu = document.getElementById("phone-cc-menu");
+  const filter = document.getElementById("phone-cc-filter");
+  const list = document.getElementById("phone-cc-list");
+  const isoInput = document.getElementById("phone-country");
+  const national = document.getElementById("phone-national");
+  const flagEl = document.getElementById("phone-cc-flag");
+  const dialEl = document.getElementById("phone-cc-dial");
+  const hint = document.getElementById("phone-hint");
+  const L = {
+    prefissoFissato: {{ t('Prefisso fissato')|tojson }},
+    digita: {{ t('Digita')|tojson }},
+    cifreDelNumero: {{ t('cifre del numero.')|tojson }},
+    optionalHint: {{ t('Scegli la bandiera/prefisso, poi digita solo le cifre. Il telefono è opzionale.')|tojson }}
+  };
+  if (!btn || !menu || !national || !isoInput) return;
+
+  function lockCountry(iso, dial, flagSrc, minLen, maxLen) {
+    isoInput.value = iso;
+    if (flagEl) {
+      flagEl.src = flagSrc;
+      flagEl.alt = iso;
+    }
+    dialEl.textContent = dial;
+    national.disabled = false;
+    national.focus();
+    row.dataset.locked = "1";
+    btn.classList.add("is-locked");
+    menu.hidden = true;
+    btn.setAttribute("aria-expanded", "false");
+    if (hint && minLen && maxLen) {
+      hint.textContent = L.prefissoFissato + " (" + dial + "). " + L.digita + " " + minLen + "–" + maxLen + " " + L.cifreDelNumero;
+    }
+  }
+
+  btn.addEventListener("click", () => {
+    if (row.dataset.locked === "1") {
+      row.dataset.locked = "0";
+      btn.classList.remove("is-locked");
+    }
+    const open = menu.hidden;
+    menu.hidden = !open;
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open && filter) filter.focus();
+  });
+
+  list.querySelectorAll(".phone-cc-option").forEach((opt) => {
+    opt.addEventListener("click", () => {
+      lockCountry(
+        opt.dataset.iso,
+        opt.dataset.dial,
+        opt.dataset.flagSrc,
+        opt.dataset.min,
+        opt.dataset.max
+      );
+    });
+  });
+
+  if (filter) {
+    filter.addEventListener("input", () => {
+      const q = filter.value.trim().toLowerCase();
+      list.querySelectorAll(".phone-cc-option").forEach((opt) => {
+        const text = opt.textContent.toLowerCase();
+        opt.hidden = q && !text.includes(q);
+      });
+    });
+  }
+
+  national.addEventListener("beforeinput", (e) => {
+    if (e.data && /\D/.test(e.data)) e.preventDefault();
+  });
+  national.addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key.length === 1 && /\D/.test(e.key)) e.preventDefault();
+  });
+  national.addEventListener("paste", (e) => {
+    e.preventDefault();
+    const pasted = (e.clipboardData || window.clipboardData).getData("text") || "";
+    national.value = pasted.replace(/\D+/g, "").slice(0, 15);
+  });
+  national.addEventListener("input", () => {
+    national.value = national.value.replace(/\D+/g, "");
+  });
+
+  // Before submit: if no digits, clear country so empty optional phone is valid.
+  const form = national.closest("form");
+  if (form) {
+    form.addEventListener("submit", () => {
+      if (!national.value.trim()) {
+        national.disabled = false;
+        isoInput.value = "";
+      }
+    });
+  }
+
+  if (row.dataset.locked === "1") {
+    btn.classList.add("is-locked");
+    national.disabled = false;
+  }
+})();
+</script>

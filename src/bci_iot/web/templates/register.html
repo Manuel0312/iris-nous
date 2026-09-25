@@ -12,9 +12,13 @@
     <label>{{ t('Email') }}
       <input name="email" type="email" autocomplete="email" required maxlength="254" inputmode="email" placeholder="{{ t('la tua mail, es. nome@gmail.com') }}" autocapitalize="none" spellcheck="false" pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}" title="{{ t('Serve un dominio con estensione, es. nome@gmail.com') }}" />
     </label>
-    <label>{{ t('Telefono (opzionale)') }}
-      <input name="phone" type="tel" maxlength="20" autocomplete="tel" inputmode="tel" placeholder="{{ t('es. +39 333…') }}" />
-    </label>
+
+    {% set phone_country = '' %}
+    {% set phone_dial = '' %}
+    {% set phone_national = '' %}
+    {% set phone_required = false %}
+    {% include "_phone_row.html" %}
+
     <label>{{ t('Password (minimo livello medio)') }}
       <div class="password-field">
         <input id="register-password" name="password" type="password" autocomplete="new-password" required minlength="8" />
@@ -31,12 +35,13 @@
     <ul class="pwd-reqs" id="reg-reqs" aria-live="polite"></ul>
     <p class="strength-meter" id="reg-strength" data-level="weak">{{ t('Serve almeno: 8 caratteri, una maiuscola, un numero.') }}</p>
     <label>{{ t('ID cuffia (opzionale)') }}
-      <input name="headset_id" maxlength="128" placeholder="{{ t('se ce l’hai, altrimenti lascia vuoto') }}" />
+      <input name="headset_id" maxlength="128" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="{{ t('se ce l’hai, altrimenti lascia vuoto') }}" />
     </label>
     <button class="btn primary" type="submit" id="reg-submit">{{ t('Crea account') }}</button>
   </form>
   <p class="muted auth-switch">{{ t('Hai già un account?') }} <a href="/login">{{ t('Login') }}</a> · <a href="/recupera-password">{{ t('Password dimenticata?') }}</a></p>
 </section>
+{% include "_phone_row_js.html" %}
 <script>
 (function () {
   const input = document.getElementById("register-password");

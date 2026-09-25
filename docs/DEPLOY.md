@@ -18,9 +18,14 @@ Accesso admin sul sito online: username `admin`, password `admin123`
 (o il valore di `BCI_IOT_ADMIN_PASSWORD` nel dashboard Render). All’avvio
 Iris ricrea/allinea questo account, anche se il disco free si è svuotato.
 
-Sul piano free i file in `/data` si perdono quando il servizio si spegne.
-Per tenere gli account tra un riavvio e l’altro serve un disco persistente
-(istanza a pagamento su Render → Disk mount `/data`).
+Sul piano free i file in `/data` si perdono al redeploy. Iris salva automaticamente
+un **bundle cifrato** degli account su GitHub (stesso token mail
+`BCI_IOT_GITHUB_MAIL_TOKEN` + chiave `BCI_IOT_DATA_BACKUP_KEY`) e lo ripristina
+all’avvio. Gli account restano; si eliminano solo con **Elimina account** (admin
+o utente). Non rigenerare `BCI_IOT_DATA_BACKUP_KEY` o i backup non si aprono più.
+
+Per un disco persistente vero (piano a pagamento): Disk mount `/data` nel
+dashboard Render.
 
 ## Variabili
 - `BCI_IOT_SESSION_SECRET` (generata da Render)

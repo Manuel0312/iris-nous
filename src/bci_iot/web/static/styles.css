@@ -573,6 +573,49 @@ body:has(.site-mode-banner) .shell {
   line-height: 1.45;
   color: var(--muted);
 }
+.whats-new-history {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+.whats-new-history-toggle {
+  list-style: none;
+  cursor: pointer;
+  font-weight: 650;
+  font-size: 0.95rem;
+  color: var(--ink);
+  padding: 0.35rem 0;
+}
+.whats-new-history-toggle::-webkit-details-marker { display: none; }
+.whats-new-history-toggle::after {
+  content: " →";
+  opacity: 0.55;
+}
+.whats-new-history[open] .whats-new-history-toggle::after {
+  content: " ↓";
+}
+.whats-new-history-body {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 0.85rem;
+}
+.whats-new-past .whats-new-kicker {
+  margin-bottom: 0.55rem;
+}
+.photo-preview [hidden] {
+  display: none !important;
+}
+.photo-preview {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.photo-preview > .avatar.lg + .avatar.lg {
+  display: none;
+}
+.photo-preview > .avatar.lg:not([hidden]) ~ .avatar.lg:not([hidden]) {
+  display: none;
+}
 body.whats-new-open {
   overflow: hidden;
 }

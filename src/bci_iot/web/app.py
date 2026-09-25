@@ -232,6 +232,15 @@ def create_app(
         data_root = Path(env_data)
     else:
         data_root = root / "data"
+    # Survive free-tier redeploys: restore accounts from GitHub when using env data dir.
+    # Skip when tests pass an explicit data_dir.
+    if data_dir is None and env_data:
+        try:
+            from bci_iot.accounts.data_backup import restore_data_dir
+
+            restore_data_dir(data_root)
+        except Exception:
+            pass
     # Back-compat: tests pass a profiles folder; put DB beside it.
     if data_dir is not None and Path(data_dir).name == "profiles":
         profiles_dir = Path(data_dir)
@@ -630,12 +639,20 @@ def create_app(
         email: str = Form(...),
         password: str = Form(...),
         headset_id: str = Form(""),
-        phone: str = Form(""),
+        phone_country: str = Form(""),
+        phone_national: str = Form(""),
         profiles: ProfileStore = Depends(_store),
         access: AccessDatabase = Depends(_access),
     ) -> HTMLResponse:
         try:
-            profiles.create_account(username, password, email=email, headset_id=headset_id)
+            profiles.create_account(
+                username,
+                password,
+                email=email,
+                headset_id=headset_id,
+                phone_country=phone_country,
+                phone_national=phone_national,
+            )
         except ValueError as exc:
             msg = str(exc)
             if _host_is_local(request):
@@ -649,10 +666,6 @@ def create_app(
         # Sync stub anagrafica row so admin list sees the username early
         created = profiles.get(username.strip())
         if created is not None:
-            phone_note = (phone or "").strip()[:64]
-            if phone_note:
-                created.phone_label = phone_note
-                profiles.save(created)
             access.upsert_anagrafica(
                 username=created.username,
                 user_id=created.user_id,
@@ -660,7 +673,9 @@ def create_app(
                 last_name="",
                 gender="",
                 email=created.email,
-                phone_label=phone_note,
+                phone_label="",
+                phone_e164=created.phone_e164,
+                headset_id=created.headset_id,
             )
             delivery = _send_signup_mail(request, created)
             request.session["username"] = created.username

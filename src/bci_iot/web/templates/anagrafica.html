@@ -25,7 +25,7 @@
 
   <div class="panel photo-block reveal" data-reveal>
     <h2>{{ t('Foto profilo') }} <span class="muted">{{ t('(opzionale)') }}</span></h2>
-    <div class="photo-preview">
+    <div class="photo-preview" id="photo-preview">
       {% if profile.photo_filename %}
       <img class="avatar lg" id="photo-preview-img" src="/media/photos/{{ profile.photo_filename }}" alt="{{ t('Foto profilo') }}" width="120" height="120" />
       {% else %}
@@ -79,57 +79,16 @@
         </div>
         {% endif %}
 
-        <label for="phone-cc-btn">{{ t('Prefisso internazionale') }}</label>
-        <div class="phone-row" id="phone-row" data-locked="{{ '1' if profile.phone_country else '0' }}">
-          <button type="button" class="phone-cc-btn" id="phone-cc-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="{{ t('Prefisso internazionale') }}">
-            {% if profile.phone_country %}
-              {% for c in phone_countries if c.iso == profile.phone_country %}
-              <img class="flag-img" id="phone-cc-flag" src="{{ c.flag_src }}" alt="{{ c.iso }}" width="28" height="21" loading="lazy" />
-              {% endfor %}
-            {% else %}
-              <img class="flag-img" id="phone-cc-flag" src="/flags/un.svg" alt="" width="28" height="21" />
-            {% endif %}
-            <span id="phone-cc-dial">{{ profile.phone_dial or t('Prefisso') }}</span>
-          </button>
-          <input type="hidden" name="phone_country" id="phone-country" value="{{ profile.phone_country }}" />
-          <input
-            name="phone_national"
-            id="phone-national"
-            type="tel"
-            inputmode="numeric"
-            pattern="[0-9]+"
-            maxlength="15"
-            value="{{ profile.phone_national }}"
-            placeholder="{{ t('Numero senza prefisso') }}"
-            autocomplete="tel-national"
-            required
-            {% if not profile.phone_country %}disabled{% endif %}
-          />
-        </div>
-        <div class="phone-cc-menu" id="phone-cc-menu" hidden role="listbox">
-          <input type="search" id="phone-cc-filter" placeholder="{{ t('Cerca paese…') }}" autocomplete="off" />
-          <div class="phone-cc-list" id="phone-cc-list">
-            {% for c in phone_countries %}
-            <button type="button" class="phone-cc-option" role="option"
-              data-iso="{{ c.iso }}" data-dial="{{ c.dial }}" data-flag-src="{{ c.flag_src }}"
-              data-min="{{ c.min_len }}" data-max="{{ c.max_len }}">
-              <img class="flag-img" src="{{ c.flag_src }}" alt="{{ c.iso }}" width="28" height="21" loading="lazy" />
-              <span class="phone-cc-name">{{ c.name }}</span>
-              <span class="muted">{{ c.dial }}</span>
-            </button>
-            {% endfor %}
-          </div>
-        </div>
-        <p class="form-hint" id="phone-hint">{{ t('Scegli la bandiera/prefisso: si fissa, poi digita solo le cifre del numero.') }}</p>
+        {% set phone_country = profile.phone_country %}
+        {% set phone_dial = profile.phone_dial %}
+        {% set phone_national = profile.phone_national %}
+        {% set phone_required = false %}
+        {% include "_phone_row.html" %}
         {% if profile.phone_verified %}
         <p class="verify-ok">{{ t('Telefono verificato') }}</p>
         {% elif profile.phone_e164 %}
         <p class="verify-warn">{{ t('Telefono non verificato') }}</p>
         {% endif %}
-
-        <label>{{ t('Etichetta dispositivo (opzionale)') }}
-          <input name="phone_label" value="{{ profile.phone_label }}" maxlength="64" placeholder="{{ t('es. iPhone di Maria') }}" autocomplete="off" />
-        </label>
       </div>
 
       <div class="form-block">
@@ -199,107 +158,17 @@
       if (!f) return;
       const url = URL.createObjectURL(f);
       img.src = url;
+      img.removeAttribute("hidden");
       img.hidden = false;
-      img.style.display = "block";
-      img.style.objectFit = "cover";
       if (fallback) {
+        fallback.setAttribute("hidden", "");
         fallback.hidden = true;
-        fallback.style.display = "none";
       }
     });
   }
-
-  const row = document.getElementById("phone-row");
-  const btn = document.getElementById("phone-cc-btn");
-  const menu = document.getElementById("phone-cc-menu");
-  const filter = document.getElementById("phone-cc-filter");
-  const list = document.getElementById("phone-cc-list");
-  const isoInput = document.getElementById("phone-country");
-  const national = document.getElementById("phone-national");
-  const flagEl = document.getElementById("phone-cc-flag");
-  const dialEl = document.getElementById("phone-cc-dial");
-  const hint = document.getElementById("phone-hint");
-  const L = {
-    prefissoFissato: {{ t('Prefisso fissato')|tojson }},
-    digita: {{ t('Digita')|tojson }},
-    cifreDelNumero: {{ t('cifre del numero.')|tojson }}
-  };
-  if (!btn || !menu || !national) return;
-
-  function lockCountry(iso, dial, flagSrc, minLen, maxLen) {
-    isoInput.value = iso;
-    if (flagEl) {
-      flagEl.src = flagSrc;
-      flagEl.alt = iso;
-    }
-    dialEl.textContent = dial;
-    national.disabled = false;
-    national.focus();
-    row.dataset.locked = "1";
-    btn.classList.add("is-locked");
-    menu.hidden = true;
-    btn.setAttribute("aria-expanded", "false");
-    if (hint) {
-      hint.textContent = L.prefissoFissato + " (" + dial + "). " + L.digita + " " + minLen + "–" + maxLen + " " + L.cifreDelNumero;
-    }
-  }
-
-  btn.addEventListener("click", () => {
-    if (row.dataset.locked === "1") {
-      // Allow changing prefix explicitly by unlocking
-      row.dataset.locked = "0";
-      btn.classList.remove("is-locked");
-    }
-    const open = menu.hidden;
-    menu.hidden = !open;
-    btn.setAttribute("aria-expanded", open ? "true" : "false");
-    if (open && filter) filter.focus();
-  });
-
-  list.querySelectorAll(".phone-cc-option").forEach((opt) => {
-    opt.addEventListener("click", () => {
-      lockCountry(
-        opt.dataset.iso,
-        opt.dataset.dial,
-        opt.dataset.flagSrc,
-        opt.dataset.min,
-        opt.dataset.max
-      );
-    });
-  });
-
-  if (filter) {
-    filter.addEventListener("input", () => {
-      const q = filter.value.trim().toLowerCase();
-      list.querySelectorAll(".phone-cc-option").forEach((opt) => {
-        const text = opt.textContent.toLowerCase();
-        opt.hidden = q && !text.includes(q);
-      });
-    });
-  }
-
-  national.addEventListener("beforeinput", (e) => {
-    if (e.data && /\D/.test(e.data)) e.preventDefault();
-  });
-  national.addEventListener("keydown", (e) => {
-    if (e.ctrlKey || e.metaKey || e.altKey) return;
-    if (e.key.length === 1 && /\D/.test(e.key)) e.preventDefault();
-  });
-  national.addEventListener("paste", (e) => {
-    e.preventDefault();
-    const pasted = (e.clipboardData || window.clipboardData).getData("text") || "";
-    national.value = pasted.replace(/\D+/g, "").slice(0, 15);
-  });
-  national.addEventListener("input", () => {
-    national.value = national.value.replace(/\D+/g, "");
-  });
-
-  if (row.dataset.locked === "1") {
-    btn.classList.add("is-locked");
-    national.disabled = false;
-  }
 })();
 </script>
+{% include "_phone_row_js.html" %}
 <script>
 (function () {
   document.querySelectorAll(".otp-code").forEach((el) => {

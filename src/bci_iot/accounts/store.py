@@ -311,6 +311,12 @@ class ProfileStore:
     def save(self, profile: UserProfile) -> None:
         self.db.upsert_user(self._profile_to_row(profile))
         self._sync_anagrafica_mirror(profile)
+        try:
+            from bci_iot.accounts.data_backup import schedule_backup
+
+            schedule_backup(self.data_root)
+        except Exception:
+            pass
 
     def find_by_email(self, email: str) -> UserProfile | None:
         try:
@@ -373,6 +379,8 @@ class ProfileStore:
         notes: str = "",
         action_map: dict[str, str] | None = None,
         is_admin: bool = False,
+        phone_country: str = "",
+        phone_national: str = "",
     ) -> UserProfile:
         """Register a new account. Raises ``ValueError`` if username/email exists."""
 
@@ -396,6 +404,31 @@ class ProfileStore:
                 "«Password dimenticata?» e recupera l'accesso."
             )
 
+        phone_iso = (phone_country or "").strip()
+        phone_nat = (phone_national or "").strip()
+        phone_fields: dict[str, str] = {
+            "phone_country": "",
+            "phone_dial": "",
+            "phone_national": "",
+            "phone_e164": "",
+        }
+        if phone_iso or phone_nat:
+            if not phone_iso or not phone_nat:
+                raise ValueError("Seleziona il prefisso e inserisci il numero, oppure lascia tutto vuoto.")
+            country, digits, e164 = normalize_phone(
+                country_iso=phone_iso,
+                national=phone_nat,
+            )
+            conflict = self.find_by_phone_e164(e164)
+            if conflict is not None:
+                raise ValueError("Questo numero di telefono è già associato a un altro account.")
+            phone_fields = {
+                "phone_country": country.iso,
+                "phone_dial": country.dial,
+                "phone_national": digits,
+                "phone_e164": e164,
+            }
+
         profile = UserProfile(
             username=username,
             password_hash=hash_password(password),
@@ -412,6 +445,11 @@ class ProfileStore:
             gender="non_binary" if is_admin else "",
             pairing_code="" if not is_admin else "000000",
             phone_paired=bool(is_admin),
+            phone_country=phone_fields["phone_country"],
+            phone_dial=phone_fields["phone_dial"],
+            phone_national=phone_fields["phone_national"],
+            phone_e164=phone_fields["phone_e164"],
+            phone_label="",
             usage_stats={
                 "intents_fired": 0,
                 "sessions": 0,
@@ -804,6 +842,9 @@ class ProfileStore:
         phone_label_clean = (phone_label or "").strip()
         if len(phone_label_clean) > 64:
             raise ValueError("Etichetta telefono troppo lunga.")
+        # Legacy: register used to dump the number into phone_label — never keep digits as label.
+        if phone_label_clean and phone_label_clean.replace(" ", "").replace("+", "").isdigit():
+            phone_label_clean = ""
 
         email_raw = (email or "").strip() or profile.email
         email_norm = normalize_email(email_raw)
@@ -816,25 +857,34 @@ class ProfileStore:
 
         country_iso = (phone_country or "").strip()
         national_raw = (phone_national or "").strip()
-        if not country_iso or not national_raw:
-            raise ValueError("Seleziona il prefisso e inserisci il numero di telefono.")
-        country, digits, e164 = normalize_phone(
-            country_iso=country_iso,
-            national=national_raw,
-        )
-        conflict = self.find_by_phone_e164(e164)
-        if conflict is not None and conflict.username.casefold() != profile.username.casefold():
-            raise ValueError("Questo numero di telefono è già associato a un altro account.")
-        if (
-            profile.phone_e164
-            and profile.phone_e164 != e164
-            and profile.phone_verified
-        ):
-            profile.phone_verified = False
-        profile.phone_country = country.iso
-        profile.phone_dial = country.dial
-        profile.phone_national = digits
-        profile.phone_e164 = e164
+        if country_iso or national_raw:
+            if not country_iso or not national_raw:
+                raise ValueError("Seleziona il prefisso e inserisci il numero, oppure lascia tutto vuoto.")
+            country, digits, e164 = normalize_phone(
+                country_iso=country_iso,
+                national=national_raw,
+            )
+            conflict = self.find_by_phone_e164(e164)
+            if conflict is not None and conflict.username.casefold() != profile.username.casefold():
+                raise ValueError("Questo numero di telefono è già associato a un altro account.")
+            if (
+                profile.phone_e164
+                and profile.phone_e164 != e164
+                and profile.phone_verified
+            ):
+                profile.phone_verified = False
+            profile.phone_country = country.iso
+            profile.phone_dial = country.dial
+            profile.phone_national = digits
+            profile.phone_e164 = e164
+        else:
+            # Optional phone: clear structured fields; never touch headset_id.
+            if profile.phone_e164 and profile.phone_verified:
+                profile.phone_verified = False
+            profile.phone_country = ""
+            profile.phone_dial = ""
+            profile.phone_national = ""
+            profile.phone_e164 = ""
 
         if profile.email and profile.email != email_norm and profile.email_verified:
             profile.email_verified = False

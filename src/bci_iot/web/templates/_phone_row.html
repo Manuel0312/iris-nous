@@ -1,0 +1,48 @@
+{# Shared international phone row. Expects phone_countries in context.
+   Optional: phone_country, phone_dial, phone_national, phone_required (bool). #}
+{% set _iso = phone_country|default('') %}
+{% set _dial = phone_dial|default('') %}
+{% set _national = phone_national|default('') %}
+{% set _required = phone_required|default(false) %}
+<label for="phone-cc-btn">{{ t('Prefisso internazionale') }} <span class="opt-tag">{{ t('facoltativo') if not _required else '' }}</span></label>
+<div class="phone-row" id="phone-row" data-locked="{{ '1' if _iso else '0' }}">
+  <button type="button" class="phone-cc-btn" id="phone-cc-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="{{ t('Prefisso internazionale') }}">
+    {% if _iso %}
+      {% for c in phone_countries if c.iso == _iso %}
+      <img class="flag-img" id="phone-cc-flag" src="{{ c.flag_src }}" alt="{{ c.iso }}" width="28" height="21" loading="lazy" />
+      {% endfor %}
+    {% else %}
+      <img class="flag-img" id="phone-cc-flag" src="/flags/un.svg" alt="" width="28" height="21" />
+    {% endif %}
+    <span id="phone-cc-dial">{{ _dial or t('Prefisso') }}</span>
+  </button>
+  <input type="hidden" name="phone_country" id="phone-country" value="{{ _iso }}" />
+  <input
+    name="phone_national"
+    id="phone-national"
+    type="tel"
+    inputmode="numeric"
+    pattern="[0-9]*"
+    maxlength="15"
+    value="{{ _national }}"
+    placeholder="{{ t('Numero senza prefisso') }}"
+    autocomplete="tel-national"
+    {% if _required %}required{% endif %}
+    {% if not _iso %}disabled{% endif %}
+  />
+</div>
+<div class="phone-cc-menu" id="phone-cc-menu" hidden role="listbox">
+  <input type="search" id="phone-cc-filter" placeholder="{{ t('Cerca paese…') }}" autocomplete="off" />
+  <div class="phone-cc-list" id="phone-cc-list">
+    {% for c in phone_countries %}
+    <button type="button" class="phone-cc-option" role="option"
+      data-iso="{{ c.iso }}" data-dial="{{ c.dial }}" data-flag-src="{{ c.flag_src }}"
+      data-min="{{ c.min_len }}" data-max="{{ c.max_len }}">
+      <img class="flag-img" src="{{ c.flag_src }}" alt="{{ c.iso }}" width="28" height="21" loading="lazy" />
+      <span class="phone-cc-name">{{ c.name }}</span>
+      <span class="muted">{{ c.dial }}</span>
+    </button>
+    {% endfor %}
+  </div>
+</div>
+<p class="form-hint" id="phone-hint">{{ t('Scegli la bandiera/prefisso, poi digita solo le cifre. Il telefono è opzionale.') }}</p>

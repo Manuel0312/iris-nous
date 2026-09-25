@@ -69,3 +69,54 @@ def test_anagrafica_persisted_and_mirrored_to_sqlite(tmp_path: Path) -> None:
     assert row["gender"] == "female"
     assert row["email"] == "maria@gmail.com"
     assert row["phone_e164"] == "+393331234567"
+
+
+def test_register_phone_optional_and_not_headset(tmp_path: Path) -> None:
+    store = ProfileStore(tmp_path / "profiles")
+    profile = store.create_account(
+        "luca",
+        "Segreta123",
+        email="luca@gmail.com",
+        headset_id="",
+        phone_country="IT",
+        phone_national="3339876543",
+    )
+    assert profile.phone_e164 == "+393339876543"
+    assert profile.phone_country == "IT"
+    assert profile.headset_id == ""
+    assert profile.phone_label == ""
+
+    bare = store.create_account("anna", "Segreta123", email="anna@gmail.com")
+    assert bare.phone_e164 == ""
+    done = store.update_anagrafica(
+        "anna",
+        first_name="Anna",
+        last_name="",
+        gender="female",
+        email="anna@gmail.com",
+        phone_country="",
+        phone_national="",
+    )
+    assert done.anagrafica_complete is True
+    assert done.phone_e164 == ""
+    assert done.headset_id == ""
+
+
+def test_data_backup_roundtrip(tmp_path: Path, monkeypatch) -> None:
+    from bci_iot.accounts import data_backup as dbk
+
+    secret = "test-backup-secret"
+    monkeypatch.setenv("BCI_IOT_DATA_BACKUP", "1")
+    monkeypatch.setenv("BCI_IOT_GITHUB_MAIL_TOKEN", "fake-token")
+    monkeypatch.setenv("BCI_IOT_DATA_BACKUP_KEY", secret)
+
+    root = tmp_path / "data"
+    root.mkdir()
+    (root / "accessi.db").write_bytes(b"sqlite-fake-content-for-backup-test")
+    packed = dbk._pack_bundle(root)
+    assert packed
+    enc = dbk._encrypt(packed, secret)
+    raw = dbk._decrypt(enc, secret)
+    out = tmp_path / "restored"
+    dbk._unpack_bundle(out, raw)
+    assert (out / "accessi.db").read_bytes() == b"sqlite-fake-content-for-backup-test"

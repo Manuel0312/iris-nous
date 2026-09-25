@@ -17,6 +17,10 @@ services:
         value: production
       - key: BCI_IOT_DATA_DIR
         value: /data
+      - key: BCI_IOT_DATA_BACKUP
+        value: "1"
+      - key: BCI_IOT_DATA_BACKUP_KEY
+        generateValue: true
       - key: BCI_IOT_PUBLIC_URL
         value: https://iris-nous.onrender.com
       - key: BCI_IOT_SMTP_HOST
