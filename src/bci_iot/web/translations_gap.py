@@ -1711,6 +1711,33 @@ EXTRA_RAW: dict[str, dict[str, str]] = {
         "ja": "削除しました。上にはロゴ・新着・メニューだけが残り、不透明な帯はありません。",
         "es": "La quitamos: arriba solo quedan el logo, Novedades y el menú, sin franja opaca.",
     },
+    "Messaggio e Invia sotto i messaggi": {
+        "en": "Message and Send under the messages",
+        "fr": "Message et Envoyer sous les messages",
+        "de": "Nachricht und Senden unter den Nachrichten",
+        "pt": "Mensagem e Enviar debaixo das mensagens",
+        "zh": "消息和发送在消息下方",
+        "ja": "メッセージと送信を吹き出しの下に",
+        "es": "Mensaje y Enviar bajo los mensajes",
+    },
+    "Nella chat aperta, Messaggio e Invia stavano sopra invece che sotto, come su WhatsApp.": {
+        "en": "In an open chat, Message and Send were at the top instead of at the bottom, like on WhatsApp.",
+        "fr": "Dans un chat ouvert, Message et Envoyer étaient en haut au lieu d’être en bas, comme sur WhatsApp.",
+        "de": "Im offenen Chat waren Nachricht und Senden oben statt unten, wie bei WhatsApp.",
+        "pt": "Num chat aberto, Mensagem e Enviar estavam em cima em vez de em baixo, como no WhatsApp.",
+        "zh": "打开的聊天里，「消息」和「发送」在上方而不是下方，不像 WhatsApp。",
+        "ja": "開いたチャットで、メッセージと送信がWhatsAppのように下ではなく上にありました。",
+        "es": "En un chat abierto, Mensaje y Enviar estaban arriba en vez de abajo, como en WhatsApp.",
+    },
+    "Ora la barra per scrivere è in basso sotto i messaggi; Termina conversazione resta subito sotto.": {
+        "en": "Now the writing bar is at the bottom under the messages; End conversation stays right below.",
+        "fr": "Désormais la barre d’écriture est en bas sous les messages ; Terminer la conversation reste juste en dessous.",
+        "de": "Jetzt ist die Schreibleiste unten unter den Nachrichten; Gespräch beenden bleibt direkt darunter.",
+        "pt": "Agora a barra para escrever está em baixo sob as mensagens; Terminar conversa fica logo abaixo.",
+        "zh": "现在输入栏在消息下方；结束对话紧挨其下。",
+        "ja": "入力バーはメッセージの下に。会話終了はそのすぐ下にあります。",
+        "es": "Ahora la barra para escribir está abajo bajo los mensajes; Terminar conversación queda justo debajo.",
+    },
 }
 
 ES_EXTRA: dict[str, str] = {

@@ -489,3 +489,12 @@ def test_chat_live_has_whatsapp_dock(tmp_path: Path) -> None:
     assert "Hai già una chat su un altro dispositivo?" in live.text
     assert "Recupera codice" in live.text
     assert "Scrivi sotto, come su WhatsApp." in live.text
+    # Composer must come after the message log in the HTML (WhatsApp-style bottom bar).
+    assert live.text.index('id="team-chat-log"') < live.text.index("chat-composer-dock")
+    assert live.text.index("chat-composer-dock") < live.text.index("Hai già una chat su un altro dispositivo?")
+    # CSS must pin dock under messages (chat-main order:2 was putting the bar on top).
+    css = (Path(__file__).resolve().parents[1] / "src/bci_iot/web/static/styles.css").read_text(
+        encoding="utf-8"
+    )
+    assert ".chat-live-wrap > .chat-composer-dock" in css
+    assert "order: 2" in css.split(".chat-live-wrap > .chat-composer-dock", 1)[1][:120]

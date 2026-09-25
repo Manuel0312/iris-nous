@@ -3447,9 +3447,20 @@ html[data-theme-resolved="light"] .chat-bubble.chat-admin time {
   box-shadow: 0 10px 36px rgba(0, 0, 0, 0.06);
 }
 
-.chat-live-main {
+/* .chat-main has order:2 for the split layout — reset here so the dock stays under the messages */
+.chat-live-wrap > .chat-live-main,
+.chat-live-wrap > .chat-main {
+  order: 1;
   flex: 1 1 auto;
   min-height: 0;
+}
+
+.chat-live-wrap > .chat-composer-dock {
+  order: 2;
+  margin-top: auto;
+}
+
+.chat-live-main {
   display: flex;
   flex-direction: column;
   padding: 0.75rem 0.75rem 0.35rem;
