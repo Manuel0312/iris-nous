@@ -796,13 +796,7 @@ img.unito-logo {
   body.nav-open .site-chip {
     visibility: hidden;
   }
-  .apple-name,
-  .hero-verb,
-  .reveal {
-    animation: none !important;
-    opacity: 1 !important;
-    transform: none !important;
-  }
+  /* Keep soft motion on mobile; only flatten heavy 3D transforms */
   .story-shot,
   .band-shot {
     transform: none !important;
@@ -810,7 +804,7 @@ img.unito-logo {
   }
   .story-shot img,
   .band-shot img {
-    min-height: 180px;
+    min-height: 200px;
     transform: none !important;
   }
   body.page-contact-mail .shell,
@@ -3270,8 +3264,9 @@ html[data-theme-resolved="light"] .chat-bubble.chat-admin time {
   .chat-split,
   .chat-split.has-thread {
     flex-direction: column;
-    width: min(100%, 26rem);
-    gap: 1rem;
+    width: 100%;
+    max-width: none;
+    gap: 1.15rem;
   }
   .chat-side,
   .chat-split.has-thread .chat-side {
@@ -3649,6 +3644,283 @@ body.page-chat .shell.wide,
 .ai-chat-send {
   justify-self: end;
   min-width: 6.5rem;
+}
+
+/* —— Phone / tablet: home + Chatta as polished as desktop —— */
+@media (max-width: 859px) {
+  .page-home {
+    overflow-x: clip;
+  }
+
+  .page-home .apple-hero {
+    width: min(36rem, calc(100% - 1.5rem));
+    min-height: calc(100dvh - 4.25rem);
+    padding: calc(4.75rem + var(--safe-top)) 0 3.25rem;
+    transform: none;
+    align-content: center;
+  }
+
+  .page-home .apple-name {
+    font-size: clamp(3.2rem, 16vw, 5.2rem);
+    opacity: 0;
+    animation: rise 0.4s ease 0.05s forwards;
+  }
+
+  .page-home .hero-verbs {
+    gap: 0.35rem 0.7rem;
+    margin-top: 0.75rem;
+    font-size: clamp(1.45rem, 7.2vw, 2.35rem);
+  }
+
+  .page-home .hero-verb {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.28s ease, transform 0.28s ease;
+  }
+
+  .page-home .hero-verb.is-on {
+    opacity: 1;
+    transform: none;
+  }
+
+  .page-home .apple-tagline {
+    margin-top: 1.25rem;
+    max-width: 34rem;
+    font-size: clamp(1rem, 3.8vw, 1.2rem);
+    line-height: 1.5;
+    opacity: 0;
+    animation: rise 0.45s ease 3.6s forwards;
+  }
+
+  .page-home .scroll-hint {
+    margin-top: 2.4rem;
+  }
+
+  .page-home .story-panel {
+    width: 100%;
+    margin: 0;
+    padding: 2.75rem 1.1rem 2.25rem;
+    gap: 1.35rem;
+    box-sizing: border-box;
+  }
+
+  .page-home .story-copy {
+    text-align: left;
+  }
+
+  .page-home .display-xl {
+    font-size: clamp(2.15rem, 9.5vw, 3.35rem);
+    line-height: 1.02;
+  }
+
+  .page-home .story-text {
+    max-width: none;
+    font-size: clamp(1rem, 3.6vw, 1.12rem);
+    line-height: 1.55;
+  }
+
+  .page-home .story-shot {
+    border-radius: 22px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.14);
+  }
+
+  .page-home .story-shot img {
+    width: 100%;
+    height: auto;
+    min-height: 210px;
+    max-height: min(52vh, 420px);
+    object-fit: cover;
+    display: block;
+  }
+
+  .page-home .story-shot.tall img {
+    min-height: 280px;
+    max-height: min(62vh, 520px);
+  }
+
+  .page-home .story-close {
+    padding: 3.5rem 1.25rem 2.75rem;
+    text-align: center;
+  }
+
+  .page-home .display-xxl {
+    font-size: clamp(2.4rem, 11vw, 3.8rem);
+  }
+
+  .page-home .site-footer {
+    padding: 2rem 1.15rem calc(2.5rem + var(--safe-bottom));
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+
+  .page-home .reveal {
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+
+  .page-home .reveal.is-visible,
+  .page-home .reveal.is-in {
+    opacity: 1;
+    transform: none;
+  }
+
+  body.page-chat .shell,
+  body.page-chat .shell.wide,
+  body.page-private.page-chat .shell.wide {
+    width: calc(100% - 1.2rem);
+    max-width: 34rem;
+    margin-inline: auto;
+    padding-top: calc(4.6rem + var(--safe-top));
+    padding-bottom: calc(1.75rem + var(--safe-bottom));
+  }
+
+  .page-chat .chat-room {
+    display: grid;
+    gap: 1.1rem;
+  }
+
+  .page-chat .chat-room-head {
+    text-align: center;
+    padding: 0.15rem 0.25rem 0.35rem;
+  }
+
+  .page-chat .chat-room-head h1 {
+    margin: 0.2rem 0 0.45rem;
+    font-size: clamp(1.7rem, 7vw, 2.35rem);
+    letter-spacing: -0.035em;
+    line-height: 1.1;
+  }
+
+  .page-chat .chat-room-head .lede {
+    margin: 0 auto;
+    max-width: 28rem;
+    font-size: 1rem;
+    line-height: 1.45;
+  }
+
+  .page-chat .chat-split,
+  .page-chat .chat-split.has-thread {
+    width: 100%;
+    gap: 1.15rem;
+  }
+
+  .page-chat .chat-side-card,
+  .page-chat .chat-compose.panel,
+  .page-chat .contact-mail-form {
+    border-radius: 20px;
+    padding: 1.2rem 1.1rem 1.25rem;
+    box-shadow: 0 10px 36px rgba(0, 0, 0, 0.06);
+  }
+
+  .page-chat .contact-mail-form input,
+  .page-chat .contact-mail-form textarea,
+  .page-chat .chat-side-block input {
+    font-size: 16px;
+    min-height: 2.75rem;
+    border-radius: 12px;
+    padding: 0.75rem 0.85rem;
+  }
+
+  .page-chat .contact-mail-form textarea {
+    min-height: 7.5rem;
+    line-height: 1.45;
+  }
+
+  .page-chat .chat-side .panel h2,
+  .page-chat .chat-side-block h2 {
+    font-size: 1.12rem;
+  }
+
+  .page-chat .btn,
+  .page-chat .btn.primary {
+    min-height: 48px;
+    border-radius: 980px;
+    font-size: 1rem;
+    font-weight: 650;
+  }
+
+  .page-chat .chat-main .chat-log {
+    max-height: min(48dvh, 440px);
+    border-radius: 20px;
+    padding: 0.95rem;
+    box-shadow: 0 10px 36px rgba(0, 0, 0, 0.05);
+  }
+
+  .page-chat .chat-bubble {
+    max-width: min(92%, 22rem);
+    border-radius: 18px;
+    padding: 0.7rem 0.85rem;
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
+
+  .page-chat .chat-code-banner {
+    border-radius: 18px;
+    padding: 1.1rem 1rem;
+  }
+
+  .page-chat .chat-code-banner .code {
+    font-size: clamp(1.45rem, 7vw, 1.85rem);
+    letter-spacing: 0.28em;
+  }
+
+  .page-chat .chat-disclaimer {
+    font-size: 0.78rem;
+    line-height: 1.45;
+    text-align: center;
+    padding: 0 0.35rem;
+  }
+
+  .topbar-tools {
+    gap: 0.4rem;
+  }
+
+  .whats-new-btn {
+    padding: 0.35rem 0.65rem;
+    min-height: 36px;
+    font-size: 0.78rem;
+  }
+}
+
+@media (min-width: 600px) and (max-width: 859px) {
+  .page-home .story-panel {
+    width: min(40rem, calc(100% - 2rem));
+    margin-inline: auto;
+    padding-top: 3.5rem;
+    padding-bottom: 3rem;
+  }
+
+  .page-home .story-shot img {
+    min-height: 260px;
+    max-height: 460px;
+  }
+
+  body.page-chat .shell,
+  body.page-chat .shell.wide {
+    max-width: 38rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .whats-new-btn {
+    padding: 0.35rem 0.5rem;
+  }
+  .page-home .apple-hero {
+    width: calc(100% - 1.1rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-home .apple-name,
+  .page-home .apple-tagline,
+  .page-home .hero-verb,
+  .page-home .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 
