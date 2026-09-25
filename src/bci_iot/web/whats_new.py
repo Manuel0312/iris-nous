@@ -6,12 +6,33 @@ from bci_iot import __version__
 
 # Italian source strings (also used as i18n keys via t()).
 WHATS_NEW_INTRO = (
-    "Ogni aggiornamento spiega prima il problema che risolve, "
-    "poi cosa è cambiato. Così capisci subito a cosa si riferisce."
+    "Ecco cosa c’è di nuovo. "
+    "Ogni voce racconta cosa non andava e come l’abbiamo sistemato."
 )
 
 # Newest first. Each entry: (title, problem, fix) — always problem → improvement.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
+    {
+        "version": "0.4.5",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Novità più chiare",
+                "Nelle Novità si leggeva solo il risultato, senza capire quale problema risolveva l’aggiornamento.",
+                "Ora ogni voce racconta cosa non andava e come l’abbiamo sistemato, in un unico testo senza etichette separate.",
+            ),
+            (
+                "Chatta con noi come una chat vera",
+                "Dopo aver inviato un messaggio bisognava di nuovo compilare tutto il form per scrivere altro.",
+                "Con la chat aperta hai barra e Invio come una chat normale; con Termina conversazione la chiudi e poi ne apri una nuova dal form.",
+            ),
+            (
+                "Storico chat nel profilo",
+                "Non c’era un posto chiaro per rivedere le conversazioni aperte e quelle già chiuse.",
+                "In Le mie chat trovi lo storico completo e puoi rileggere ogni conversazione.",
+            ),
+        ),
+    },
     {
         "version": "0.4.4",
         "intro": WHATS_NEW_INTRO,
@@ -19,7 +40,7 @@ WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
             (
                 "Novità più chiare",
                 "Nelle Novità si leggeva solo il risultato, senza capire quale problema risolveva l’aggiornamento.",
-                "Ora ogni voce indica prima il problema, poi la miglioria apportata.",
+                "Ora ogni voce racconta cosa non andava e come l’abbiamo sistemato, in un unico testo.",
             ),
             (
                 "Chatta con noi come una chat vera",
