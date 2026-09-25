@@ -1562,6 +1562,42 @@ def create_app(
             str(request.session.get("support_name") or "").strip(),
         )
 
+    def _resolve_support_thread(
+        request: Request,
+        access: AccessDatabase,
+        *,
+        profile: UserProfile | None,
+        ident_user: str,
+        ident_email: str,
+        prefer_thread_id: int | None = None,
+    ) -> dict | None:
+        """Active open chat, or a specific owned thread (for history)."""
+        if prefer_thread_id:
+            thread = access.get_support_thread(prefer_thread_id)
+            if thread and access.user_owns_support_thread(
+                thread, username=ident_user, email=ident_email
+            ):
+                return thread
+            return None
+        code = str(request.session.get("support_access_code") or "").strip().upper()
+        sticky = bool(request.session.get("support_chat_sticky"))
+        if code and (profile is not None or sticky):
+            by_code = access.get_support_thread_by_code(code)
+            if by_code and access.is_support_thread_open(by_code):
+                if profile is None or access.user_owns_support_thread(
+                    by_code, username=ident_user, email=ident_email
+                ):
+                    return by_code
+        open_thread = access.get_open_support_thread(
+            username=ident_user, email=ident_email
+        )
+        if open_thread is not None:
+            return open_thread
+        if profile is None and not sticky:
+            request.session.pop("support_access_code", None)
+            request.session.pop("support_chat_sticky", None)
+        return None
+
     @app.get("/le-mie-notifiche", response_class=HTMLResponse)
     def mie_notifiche_page(
         request: Request,
@@ -1626,20 +1662,19 @@ def create_app(
         if profile is not None and profile.is_admin:
             return RedirectResponse("/notifiche", status_code=303)
         ident_user, ident_email, ident_name = _support_identity(request, profile)
-        thread = None
-        code = str(request.session.get("support_access_code") or "").strip().upper()
-        sticky = bool(request.session.get("support_chat_sticky"))
-        if profile is not None:
-            if code:
-                thread = access.get_support_thread_by_code(code)
-            if thread is None:
-                threads = access.list_user_support_threads(username=ident_user, email=ident_email)
-                thread = threads[0] if threads else None
-        elif sticky and code:
-            thread = access.get_support_thread_by_code(code)
-        else:
-            request.session.pop("support_access_code", None)
-            request.session.pop("support_chat_sticky", None)
+        prefer_id = None
+        raw_tid = (request.query_params.get("thread") or "").strip()
+        if raw_tid.isdigit():
+            prefer_id = int(raw_tid)
+        thread = _resolve_support_thread(
+            request,
+            access,
+            profile=profile,
+            ident_user=ident_user,
+            ident_email=ident_email,
+            prefer_thread_id=prefer_id,
+        )
+        chat_open = access.is_support_thread_open(thread)
         messages = access.list_support_messages(int(thread["id"])) if thread else []
         if thread is not None:
             access.mark_user_support_read(int(thread["id"]))
@@ -1649,15 +1684,21 @@ def create_app(
             viewer_lang=get_request_language(request),
             fallback_user_lang=str((thread or {}).get("user_lang") or get_request_language(request)),
         )
-        waiting = bool(messages) and str(messages[-1].get("sender") or "") != "admin"
+        waiting = bool(messages) and chat_open and str(messages[-1].get("sender") or "") != "admin"
         show_code = False
         access_code = ""
-        if thread is not None:
+        if thread is not None and chat_open:
             access_code = str(thread.get("access_code") or "")
             if access_code and not int(thread.get("access_code_shown") or 0):
                 show_code = True
                 access.mark_access_code_shown(int(thread["id"]))
                 request.session["support_access_code"] = access_code
+                request.session["support_chat_sticky"] = True
+        history = []
+        if profile is not None:
+            history = access.list_user_support_threads(
+                username=ident_user, email=ident_email
+            )
         response = TEMPLATES.TemplateResponse(
             request,
             "chatta.html",
@@ -1668,10 +1709,12 @@ def create_app(
                 thread=thread,
                 messages=messages,
                 waiting=waiting,
+                chat_open=chat_open,
                 guest_email=ident_email,
                 guest_name=ident_name,
                 show_access_code=show_code,
                 access_code=access_code,
+                chat_history=history,
             ),
         )
         response.headers["Cache-Control"] = "no-store"
@@ -1686,23 +1729,28 @@ def create_app(
         username = _session_username(request)
         profile = profiles.get(username) if username else None
         if profile is not None and profile.is_admin:
-            return JSONResponse({"count": 0, "last": ""})
+            return JSONResponse({"count": 0, "last": "", "open": False})
         ident_user, ident_email, _ident_name = _support_identity(request, profile)
-        thread = None
-        code = str(request.session.get("support_access_code") or "").strip().upper()
-        sticky = bool(request.session.get("support_chat_sticky"))
-        if profile is not None:
-            if code:
-                thread = access.get_support_thread_by_code(code)
-            if thread is None:
-                threads = access.list_user_support_threads(username=ident_user, email=ident_email)
-                thread = threads[0] if threads else None
-        elif sticky and code:
-            thread = access.get_support_thread_by_code(code)
+        prefer_id = None
+        raw_tid = (request.query_params.get("thread") or "").strip()
+        if raw_tid.isdigit():
+            prefer_id = int(raw_tid)
+        thread = _resolve_support_thread(
+            request,
+            access,
+            profile=profile,
+            ident_user=ident_user,
+            ident_email=ident_email,
+            prefer_thread_id=prefer_id,
+        )
         messages = access.list_support_messages(int(thread["id"])) if thread else []
         last_sender = str(messages[-1].get("sender") or "") if messages else ""
         return JSONResponse(
-            {"count": len(messages), "last": last_sender},
+            {
+                "count": len(messages),
+                "last": last_sender,
+                "open": access.is_support_thread_open(thread),
+            },
             headers={"Cache-Control": "no-store"},
         )
 
@@ -1732,8 +1780,57 @@ def create_app(
             request.session["support_email"] = str(thread["guest_email"])
         if thread.get("guest_name"):
             request.session["support_name"] = str(thread["guest_name"])
-        _flash(request, "Conversazione riaperta con il codice.", kind="ok")
-        return _continue(request, next_url="/chatta", message="Apro la conversazione...")
+        if access.is_support_thread_open(thread):
+            _flash(request, "Conversazione riaperta con il codice.", kind="ok")
+            return _continue(request, next_url="/chatta", message="Apro la conversazione...")
+        _flash(
+            request,
+            "Questa conversazione è chiusa. Puoi leggerla qui; per un nuovo problema apri una nuova chat.",
+            kind="ok",
+        )
+        return _continue(
+            request,
+            next_url=f"/chatta?thread={int(thread['id'])}",
+            message="Conversazione chiusa...",
+        )
+
+    @app.post("/chatta/termina")
+    def chatta_end(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+        thread_id: str = Form(""),
+    ) -> HTMLResponse:
+        username = _session_username(request)
+        profile = profiles.get(username) if username else None
+        if profile is not None and profile.is_admin:
+            return RedirectResponse("/notifiche", status_code=303)
+        ident_user, ident_email, _ = _support_identity(request, profile)
+        tid = int(thread_id) if str(thread_id).strip().isdigit() else 0
+        thread = access.get_support_thread(tid) if tid else None
+        if thread is None or not access.user_owns_support_thread(
+            thread, username=ident_user, email=ident_email
+        ):
+            # Fall back to current open thread from session/identity
+            thread = _resolve_support_thread(
+                request,
+                access,
+                profile=profile,
+                ident_user=ident_user,
+                ident_email=ident_email,
+            )
+        if thread is None or not access.is_support_thread_open(thread):
+            _flash(request, "Non c’è una conversazione aperta da chiudere.", kind="error")
+            return _continue(request, next_url="/chatta", message="Nessuna chat aperta...")
+        access.close_support_thread(int(thread["id"]))
+        request.session.pop("support_access_code", None)
+        request.session.pop("support_chat_sticky", None)
+        _flash(
+            request,
+            "Conversazione terminata. Puoi aprirne una nuova quando vuoi; lo storico resta nel tuo profilo.",
+            kind="ok",
+        )
+        return _continue(request, next_url="/chatta", message="Conversazione chiusa...")
 
     @app.post("/chatta/recupera-codice")
     def chatta_recover_code(
@@ -1751,8 +1848,9 @@ def create_app(
         except ValueError:
             _flash(request, "Inserisci l'email con cui hai aperto la chat.", kind="error")
             return _continue(request, next_url="/chatta", message="Controlla l'email...")
+        open_thread = access.get_open_support_thread(email=guest_email)
         threads = access.list_user_support_threads(email=guest_email)
-        thread = threads[0] if threads else None
+        thread = open_thread or (threads[0] if threads else None)
         code = str((thread or {}).get("access_code") or "").strip().upper()
         if thread and code:
             subject = "Iris Nous: il tuo codice chat"
@@ -1801,6 +1899,11 @@ def create_app(
         if len(text) < 2:
             _flash(request, "Scrivi un messaggio prima di inviare.", kind="error")
             return _continue(request, next_url="/chatta", message="Completa il messaggio...")
+        ident_user, ident_email, ident_name = _support_identity(request, profile)
+        open_thread = access.get_open_support_thread(
+            username=ident_user, email=ident_email
+        )
+        continuing = open_thread is not None
         guest_email = (email or "").strip() or str(request.session.get("support_email") or "")
         guest_name = (name or "").strip() or str(request.session.get("support_name") or "")
         guest_phone = (phone or "").strip()
@@ -1815,7 +1918,10 @@ def create_app(
             username = profile.username
         else:
             username = ""
-            if len(guest_name) < 2:
+            if continuing:
+                guest_email = guest_email or ident_email or str(open_thread.get("guest_email") or "")
+                guest_name = guest_name or ident_name or str(open_thread.get("guest_name") or "")
+            elif len(guest_name) < 2:
                 _flash(request, "Scrivi il tuo nome, cosi sappiamo chi ci ha scritto.", kind="error")
                 return _continue(request, next_url="/chatta", message="Scrivi il nome...")
             try:
@@ -1827,9 +1933,6 @@ def create_app(
             request.session["support_name"] = guest_name
         user_lang = (ui_lang or "").strip().lower()[:2] or get_request_language(request)
         lang_src = detect_message_language(text, hint=user_lang)
-        # Tutela: original stays in ``body``. Pre-translate toward Italian so the
-        # admin inbox has a ready translation; present() still re-translates into
-        # whatever UI language the viewer is using.
         body_translated = ""
         lang_dst = ""
         if lang_src != "it":

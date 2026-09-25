@@ -4,11 +4,17 @@
 {% block main_class %}shell wide{% endblock %}
 {% block chat_fab %}{% endblock %}
 {% block content %}
-<section class="chat-room" aria-labelledby="team-chat-title">
+{% set live = messages and chat_open %}
+{% set closed_view = messages and not chat_open %}
+<section class="chat-room{% if live %} chat-room-live{% endif %}" aria-labelledby="team-chat-title">
   <header class="chat-room-head">
     <p class="eyebrow">{{ t('Spazio privato') }}</p>
     <h1 id="team-chat-title">{{ t('Chatta con noi') }}</h1>
-    <p class="lede">{{ t('Spiegaci il problema.') }}</p>
+    <p class="lede">
+      {% if live %}{{ t('Continua pure: scrivi sotto come in una chat normale.') }}
+      {% elif closed_view %}{{ t('Questa conversazione è chiusa. Puoi leggerla qui; per un nuovo problema apri una nuova chat.') }}
+      {% else %}{{ t('Spiegaci il problema.') }}{% endif %}
+    </p>
   </header>
 
   {% if show_access_code and access_code %}
@@ -19,9 +25,9 @@
   </div>
   {% endif %}
 
-  <div class="chat-split chat-split-request{% if messages %} has-thread{% endif %}">
-    {% if messages %}
-    <div class="chat-main">
+  {% if live or closed_view %}
+  <div class="chat-live-wrap">
+    <div class="chat-main chat-live-main">
       <ol class="chat-log" id="team-chat-log">
         {% for m in messages %}
         {% set mine = m.sender != 'admin' %}
@@ -38,12 +44,40 @@
       {% if waiting %}
       <p class="muted" id="chat-wait">{{ t('Abbiamo ricevuto il messaggio. Ti risponderemo il prima possibile.') }}</p>
       {% endif %}
+      {% if closed_view %}
+      <p class="chat-closed-banner" role="status">{{ t('Conversazione terminata') }}</p>
+      <p class="private-actions"><a class="btn primary" href="/chatta">{{ t('Nuova chat') }}</a></p>
+      {% endif %}
     </div>
-    {% endif %}
 
+    {% if live %}
+    <form class="chat-bar" method="post" action="/chatta" id="chat-bar-form">
+      <label class="sr-only" for="chat-bar-input">{{ t('Messaggio') }}</label>
+      <textarea
+        id="chat-bar-input"
+        name="body"
+        rows="1"
+        required
+        minlength="2"
+        maxlength="8000"
+        placeholder="{{ t('Scrivi un messaggio…') }}"
+        autocomplete="off"
+      ></textarea>
+      <input type="hidden" name="ui_lang" value="{{ lang }}" />
+      <button class="btn primary chat-bar-send" type="submit">{{ t('Invia') }}</button>
+    </form>
+    <form class="chat-end-form" method="post" action="/chatta/termina" onsubmit="return confirm('{{ t('Terminare questa conversazione? Potrai aprirne una nuova dopo.') }}');">
+      <input type="hidden" name="thread_id" value="{{ thread.id }}" />
+      <button class="btn chat-end-btn" type="submit">{{ t('Termina conversazione') }}</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% else %}
+  <div class="chat-split chat-split-request">
     <aside class="chat-side chat-side-left" aria-label="{{ t('Richiesta di chat') }}">
       <form class="panel contact-mail-form chat-compose" method="post" action="/chatta" id="chat-compose-form">
-        <h2>{{ t('Scrivi al team') if messages else t('Richiesta di chat') }}</h2>
+        <h2>{{ t('Richiesta di chat') }}</h2>
         {% if profile %}
         <p class="identity-note">{{ t('Stai scrivendo come') }} <strong>{{ profile.first_name }} {{ profile.last_name }}</strong> · {{ profile.email }}</p>
         {% else %}
@@ -100,11 +134,36 @@
       <div class="panel contact-mail-form chat-side-card chat-side-hints">
         <h2>{{ t('Suggerimenti') }}</h2>
         <p class="form-hint">{{ t('Le tue bolle sono verdi a destra. Le risposte del team Iris sono grigie a sinistra.') }}</p>
-        <p><a href="/le-mie-notifiche">{{ t('Le mie notifiche') }}</a></p>
+        <p><a href="/le-mie-notifiche">{{ t('Le mie chat') }}</a></p>
       </div>
       {% endif %}
     </aside>
   </div>
+  {% endif %}
+
+  {% if profile and chat_history %}
+  <div class="panel chat-history-panel">
+    <h2>{{ t('Le tue chat') }}</h2>
+    <p class="form-hint">{{ t('Aperte e chiuse: tocca per leggere. Solo una chat alla volta può restare aperta.') }}</p>
+    <ul class="user-notice-list chat-history-list">
+      {% for trow in chat_history %}
+      <li>
+        <a href="/chatta?thread={{ trow.id }}">
+          <strong>{{ trow.subject or t('Chatta con noi') }}</strong>
+          <div class="muted">{{ trow.updated_at | it_time(lang) }} ·
+            {% if trow.closed_at %}{{ t('Chiusa') }}
+            {% elif trow.status == 'replied' %}{{ t('Aperta · risposta del team') }}
+            {% elif trow.status == 'viewed' %}{{ t('Aperta · in lettura') }}
+            {% else %}{{ t('Aperta · in attesa') }}{% endif %}
+          </div>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% elif profile %}
+  <p class="muted chat-history-empty"><a href="/le-mie-notifiche">{{ t('Le mie chat') }}</a></p>
+  {% endif %}
 
   <p class="chat-disclaimer chat-disclaimer-full">{{ t(chat_disclaimer) }}</p>
 </section>
@@ -118,7 +177,6 @@
       el.value = el.value.replace(/[^\d+ ]+/g, "");
     });
   });
-  // Desktop: keep "Hai già una chat?" panel open; phone starts collapsed.
   const more = document.querySelector(".chat-more");
   if (more) {
     const mq = window.matchMedia("(min-width: 860px)");
@@ -127,18 +185,37 @@
     if (mq.addEventListener) mq.addEventListener("change", sync);
     else if (mq.addListener) mq.addListener(sync);
   }
+  const bar = document.getElementById("chat-bar-input");
+  if (bar) {
+    const grow = () => {
+      bar.style.height = "auto";
+      bar.style.height = Math.min(bar.scrollHeight, 140) + "px";
+    };
+    bar.addEventListener("input", grow);
+    bar.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        const form = document.getElementById("chat-bar-form");
+        if (form && bar.value.trim().length >= 2) form.requestSubmit();
+      }
+    });
+    grow();
+    const log = document.getElementById("team-chat-log");
+    if (log) log.scrollTop = log.scrollHeight;
+  }
+  const live = {{ 'true' if live else 'false' }};
   const waiting = {{ 'true' if waiting else 'false' }};
   const log = document.getElementById("team-chat-log");
-  if (!waiting && !log) return;
+  if (!live && !waiting && !log) return;
   let last = {{ (messages|length) if messages else 0 }};
+  const statoUrl = {{ (('/chatta/stato?thread=' ~ thread.id) if thread else '/chatta/stato')|tojson }};
   async function tick() {
     try {
-      const res = await fetch("/chatta/stato", { cache: "no-store" });
+      const res = await fetch(statoUrl, { cache: "no-store" });
       if (!res.ok) return;
       const data = await res.json();
-      if (Number(data.count) !== last) {
-        location.reload();
-      }
+      if (Number(data.count) !== last) location.reload();
+      if (live && data.open === false) location.reload();
     } catch (e) {}
   }
   setInterval(tick, 5000);

@@ -3400,6 +3400,112 @@ html[data-theme-resolved="light"] .chat-bubble.chat-admin time {
   margin: 0;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.chat-live-wrap {
+  display: grid;
+  gap: 0.85rem;
+  width: min(100%, 42rem);
+  margin-inline: auto;
+}
+
+.chat-live-main .chat-log {
+  max-height: min(52dvh, 480px);
+}
+
+.chat-bar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.55rem;
+  align-items: end;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--bg-elev);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.06);
+}
+
+.chat-bar textarea {
+  width: 100%;
+  min-height: 2.75rem;
+  max-height: 140px;
+  resize: none;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.35;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.chat-bar-send {
+  min-height: 2.75rem;
+  min-width: 5.5rem;
+  border-radius: 980px;
+}
+
+.chat-end-form {
+  display: flex;
+  justify-content: center;
+  margin: 0;
+}
+
+.chat-end-btn {
+  min-height: 44px;
+  border-radius: 980px;
+  font-size: 0.92rem;
+  color: var(--danger, #c62828);
+  border-color: color-mix(in srgb, var(--danger, #c62828) 35%, var(--line));
+  background: transparent;
+}
+
+.chat-closed-banner {
+  margin: 0.35rem 0 0;
+  text-align: center;
+  font-weight: 650;
+  color: var(--muted);
+}
+
+.chat-history-panel {
+  width: min(100%, 42rem);
+  margin: 1.5rem auto 0;
+}
+
+.chat-history-list a {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.chat-history-empty {
+  text-align: center;
+  margin-top: 1.25rem;
+}
+
+@media (max-width: 860px) {
+  .chat-bar {
+    grid-template-columns: 1fr;
+  }
+  .chat-bar-send {
+    width: 100%;
+  }
+  .chat-live-main .chat-log {
+    max-height: min(42dvh, 360px);
+  }
+}
+
 @media (max-width: 860px) {
   .chat-split,
   .chat-split.has-thread {

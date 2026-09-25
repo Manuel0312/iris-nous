@@ -134,7 +134,7 @@ def test_chatta_and_admin_inbox_flow(tmp_path: Path, monkeypatch) -> None:
     assert "contact-modes" not in thread_page.text
     assert "canale=email" not in thread_page.text
     assert "Non parte Spotify" in thread_page.text
-    assert "Descrivi il problema" in thread_page.text
+    assert "chat-bar-input" in thread_page.text or "Termina conversazione" in thread_page.text
 
     denied = guest.get("/notifiche", follow_redirects=False)
     assert denied.status_code == 303
@@ -165,8 +165,8 @@ def test_chatta_and_admin_inbox_flow(tmp_path: Path, monkeypatch) -> None:
     assert "Risposto" in done.text
     assert "status-replied" in done.text
     answered = guest.get("/chatta")
-    assert "Ciao Luca, apri Associa telefono" not in answered.text
-    assert "has-thread" not in answered.text
+    assert "Ciao Luca, apri Associa telefono" in answered.text
+    assert "chat-bar-form" in answered.text or "chat-live" in answered.text
     code = str(app.state.access_db.list_support_threads()[0].get("access_code") or "")
     assert len(code) == 6
     guest.post("/chatta/apri", data={"access_code": code})
@@ -350,3 +350,63 @@ def test_github_relay_posts_dispatch(monkeypatch) -> None:
     headers = captured["headers"]
     assert isinstance(headers, dict)
     assert "Bearer ghs_test" in str(headers.get("Authorization") or "")
+
+
+def test_chat_live_bar_end_and_new_thread(tmp_path: Path) -> None:
+    app = create_app(
+        data_dir=tmp_path,
+        session_secret="chat-live",
+        admin_username="admin",
+        admin_password="admin123",
+    )
+    guest = TestClient(app)
+    guest.post(
+        "/chatta",
+        data={
+            "name": "Sara Verdi",
+            "email": "sara@gmail.com",
+            "body": "Primo messaggio sul problema cuffia",
+        },
+        follow_redirects=False,
+    )
+    live = guest.get("/chatta")
+    assert live.status_code == 200
+    assert "chat-bar-form" in live.text
+    assert "Termina conversazione" in live.text
+    assert "Primo messaggio" in live.text
+
+    guest.post(
+        "/chatta",
+        data={"body": "Secondo messaggio senza rifare il form"},
+        follow_redirects=False,
+    )
+    again = guest.get("/chatta")
+    assert "Secondo messaggio" in again.text
+    threads = app.state.access_db.list_user_support_threads(email="sara@gmail.com")
+    assert len(threads) == 1
+    tid = int(threads[0]["id"])
+
+    end = guest.post("/chatta/termina", data={"thread_id": str(tid)}, follow_redirects=False)
+    assert end.status_code == 200
+    assert "Conversazione chiusa" in end.text or "chatta" in end.text.lower()
+    closed = app.state.access_db.get_support_thread(tid)
+    assert closed is not None
+    assert str(closed.get("closed_at") or "").strip()
+    form_page = guest.get("/chatta")
+    assert 'id="chat-bar-form"' not in form_page.text
+    assert 'id="chat-compose-form"' in form_page.text or "Richiesta di chat" in form_page.text
+
+    guest.post(
+        "/chatta",
+        data={
+            "name": "Sara Verdi",
+            "email": "sara@gmail.com",
+            "body": "Nuova chat dopo la chiusura",
+        },
+        follow_redirects=False,
+    )
+    threads2 = app.state.access_db.list_user_support_threads(email="sara@gmail.com")
+    assert len(threads2) == 2
+    history = guest.get(f"/chatta?thread={tid}")
+    assert "Conversazione terminata" in history.text or "chiusa" in history.text.lower()
+    assert "Primo messaggio" in history.text

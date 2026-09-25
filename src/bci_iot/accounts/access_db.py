@@ -289,6 +289,7 @@ class AccessDatabase:
             "access_code_shown": "INTEGER NOT NULL DEFAULT 0",
             "user_lang": "TEXT NOT NULL DEFAULT 'it'",
             "user_last_read_at": "TEXT NOT NULL DEFAULT ''",
+            "closed_at": "TEXT NOT NULL DEFAULT ''",
         }.items():
             if name not in thread_cols:
                 conn.execute(f"ALTER TABLE support_threads ADD COLUMN {name} {decl}")
@@ -947,7 +948,7 @@ class AccessDatabase:
             row = conn.execute(
                 """
                 SELECT * FROM support_threads
-                WHERE username = ?
+                WHERE username = ? AND IFNULL(closed_at, '') = ''
                 ORDER BY id DESC
                 LIMIT 1
                 """,
@@ -959,13 +960,64 @@ class AccessDatabase:
             return conn.execute(
                 """
                 SELECT * FROM support_threads
-                WHERE lower(guest_email) = ?
+                WHERE lower(guest_email) = ? AND IFNULL(closed_at, '') = ''
                 ORDER BY id DESC
                 LIMIT 1
                 """,
                 (email.lower(),),
             ).fetchone()
         return None
+
+    def get_open_support_thread(
+        self, *, username: str = "", email: str = ""
+    ) -> dict[str, Any] | None:
+        username = (username or "").strip()
+        email = (email or "").strip().lower()
+        with self._connect() as conn:
+            row = self._latest_open_thread(conn, username=username, email=email)
+        return dict(row) if row else None
+
+    def user_owns_support_thread(
+        self,
+        thread: dict[str, Any],
+        *,
+        username: str = "",
+        email: str = "",
+    ) -> bool:
+        username = (username or "").strip()
+        email = (email or "").strip().lower()
+        tu = str(thread.get("username") or "").strip()
+        te = str(thread.get("guest_email") or "").strip().lower()
+        if username and tu and username.casefold() == tu.casefold():
+            return True
+        if email and te and email == te:
+            return True
+        return False
+
+    def close_support_thread(self, thread_id: int) -> dict[str, Any] | None:
+        """User ends the conversation; further messages start a new thread."""
+        now = _utc_now()
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE support_threads
+                SET closed_at = CASE WHEN IFNULL(closed_at, '') = '' THEN ? ELSE closed_at END,
+                    updated_at = ?
+                WHERE id = ?
+                """,
+                (now, now, int(thread_id)),
+            )
+            conn.commit()
+            row = conn.execute(
+                "SELECT * FROM support_threads WHERE id = ?",
+                (int(thread_id),),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def is_support_thread_open(self, thread: dict[str, Any] | None) -> bool:
+        if not thread:
+            return False
+        return not str(thread.get("closed_at") or "").strip()
 
     def add_user_support_message(
         self,
@@ -1042,8 +1094,8 @@ class AccessDatabase:
                         username, guest_name, guest_email, guest_phone, channel,
                         subject, status, viewed_at, replied_at, inbox_hidden,
                         access_code, access_code_shown, user_lang, user_last_read_at,
-                        created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, 'unread', '', '', 0, ?, 0, ?, '', ?, ?)
+                        closed_at, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, 'unread', '', '', 0, ?, 0, ?, '', '', ?, ?)
                     """,
                     (
                         username,

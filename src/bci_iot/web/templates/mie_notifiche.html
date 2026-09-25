@@ -1,33 +1,34 @@
 {% extends "base.html" %}
-{% block title %}{{ t('Le mie notifiche') }} · Iris{% endblock %}
+{% block title %}{{ t('Le mie chat') }} · Iris{% endblock %}
 {% block body_class %}page-private{% endblock %}
 {% block main_class %}shell{% endblock %}
 {% block content %}
 <section class="dash">
-  <h1>{{ t('Le mie notifiche') }}</h1>
-  <p class="lede">{{ t('Chat aperte con il team e avvisi di sistema (patch, manutenzione, aggiornamenti).') }}</p>
+  <h1>{{ t('Le mie chat') }}</h1>
+  <p class="lede">{{ t('Storico delle conversazioni con il team: aperte e chiuse. Più sotto, gli avvisi di sistema.') }}</p>
 
   <div class="panel">
     <h2>{{ t('Chat con Iris') }}</h2>
     {% if threads %}
-    <ul class="user-notice-list">
+    <ul class="user-notice-list chat-history-list">
       {% for trow in threads %}
       <li>
-        <a href="/chatta">
+        <a href="/chatta?thread={{ trow.id }}">
           <strong>{{ trow.subject or t('Chatta con noi') }}</strong>
-          <div class="muted">{{ trow.updated_at | it_time }} ·
-            {% if trow.status == 'replied' %}{{ t('Risposta del team') }}
-            {% elif trow.status == 'viewed' %}{{ t('In lettura') }}
-            {% else %}{{ t('In attesa') }}{% endif %}
+          <div class="muted">{{ trow.updated_at | it_time(lang) }} ·
+            {% if trow.closed_at %}{{ t('Chiusa') }}
+            {% elif trow.status == 'replied' %}{{ t('Aperta · risposta del team') }}
+            {% elif trow.status == 'viewed' %}{{ t('Aperta · in lettura') }}
+            {% else %}{{ t('Aperta · in attesa') }}{% endif %}
           </div>
         </a>
       </li>
       {% endfor %}
     </ul>
     {% else %}
-    <p class="muted">{{ t('Nessuna chat aperta. Vai su Chatta con noi per scriverci.') }}</p>
+    <p class="muted">{{ t('Nessuna chat ancora. Vai su Chatta con noi per scriverci.') }}</p>
     {% endif %}
-    <p style="margin-top:1rem"><a class="btn" href="/chatta">{{ t('Apri la chat') }}</a></p>
+    <p style="margin-top:1rem"><a class="btn primary" href="/chatta">{{ t('Chatta con noi') }}</a></p>
   </div>
 
   <div class="panel">
@@ -39,7 +40,7 @@
         <div style="padding:0.9rem 1rem;border:1px solid var(--line);border-radius:12px;background:var(--bg-elev)">
           <strong>{{ n.title }}</strong>
           <p style="margin:0.35rem 0;white-space:pre-wrap">{{ n.body }}</p>
-          <time class="muted">{{ n.created_at | it_time }}</time>
+          <time class="muted">{{ n.created_at | it_time(lang) }}</time>
         </div>
       </li>
       {% endfor %}

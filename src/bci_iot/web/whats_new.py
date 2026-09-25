@@ -13,6 +13,21 @@ WHATS_NEW_INTRO = (
 # Newest release first. Each block is one version; the first matches __version__.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.3",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Chatta con noi come una chat vera",
+                "Dopo il primo messaggio resti nella conversazione con barra e Invio. "
+                "Quando hai finito, Termina conversazione; poi puoi aprirne una nuova dal form.",
+            ),
+            (
+                "Storico chat nel profilo",
+                "In Le mie chat trovi conversazioni aperte e chiuse, e le rileggi quando vuoi.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.2",
         "intro": WHATS_NEW_INTRO,
         "entries": (
