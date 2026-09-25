@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;600;700&family=Noto+Sans+SC:wght@400;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/styles.css?v=irisPages15" />
+  <link rel="stylesheet" href="/static/styles.css?v=irisPages16" />
   <script>
     (function () {
       function scheme() {
@@ -136,7 +136,12 @@
         {% for item in whats_new.entries %}
         <li>
           <strong>{{ t(item.title) }}</strong>
+          {% if item.problem %}
+          <p class="whats-new-problem"><span class="whats-new-tag">{{ t('Problema') }}</span> {{ t(item.problem) }}</p>
+          <p class="whats-new-fix"><span class="whats-new-tag">{{ t('Miglioria') }}</span> {{ t(item.fix) }}</p>
+          {% else %}
           <span>{{ t(item.body) }}</span>
+          {% endif %}
         </li>
         {% endfor %}
       </ul>
@@ -151,7 +156,12 @@
               {% for item in rel.entries %}
               <li>
                 <strong>{{ t(item.title) }}</strong>
+                {% if item.problem %}
+                <p class="whats-new-problem"><span class="whats-new-tag">{{ t('Problema') }}</span> {{ t(item.problem) }}</p>
+                <p class="whats-new-fix"><span class="whats-new-tag">{{ t('Miglioria') }}</span> {{ t(item.fix) }}</p>
+                {% else %}
                 <span>{{ t(item.body) }}</span>
+                {% endif %}
               </li>
               {% endfor %}
             </ul>

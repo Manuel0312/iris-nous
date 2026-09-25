@@ -16,7 +16,8 @@ def test_whats_new_payload_has_version_and_items() -> None:
     assert payload["version"] == __version__
     assert payload["intro"]
     assert len(payload["entries"]) >= 1
-    assert all(item["title"] and item["body"] for item in payload["entries"])
+    assert all(item["title"] and (item.get("fix") or item.get("body")) for item in payload["entries"])
+    assert all(item.get("problem") for item in payload["entries"])
 
 
 def test_home_shows_novita_button(tmp_path: Path) -> None:
@@ -26,5 +27,6 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
     assert "whats-new-open" in page.text
     assert "Novità" in page.text
     assert f"Versione {__version__}" in page.text or __version__ in page.text
-    assert "Chatta con noi come una chat vera" in page.text or "Telefono con prefisso" in page.text
+    assert "Novità più chiare" in page.text or "Problema" in page.text
+    assert "whats-new-problem" in page.text or "Miglioria" in page.text
     assert "Versioni precedenti" in page.text or "whats-new-history" in page.text

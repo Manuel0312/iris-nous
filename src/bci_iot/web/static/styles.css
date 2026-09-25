@@ -561,7 +561,7 @@ body:has(.site-mode-banner) .shell {
 }
 .whats-new-list li {
   display: grid;
-  gap: 0.28rem;
+  gap: 0.35rem;
 }
 .whats-new-list strong {
   font-size: 1.02rem;
@@ -572,6 +572,25 @@ body:has(.site-mode-banner) .shell {
   font-size: 0.92rem;
   line-height: 1.45;
   color: var(--muted);
+}
+.whats-new-problem,
+.whats-new-fix {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.whats-new-tag {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin-right: 0.35rem;
+}
+.whats-new-fix .whats-new-tag {
+  color: var(--accent, #0071e3);
 }
 .whats-new-history {
   margin-top: 1.25rem;
