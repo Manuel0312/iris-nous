@@ -1571,32 +1571,44 @@ def create_app(
         ident_email: str,
         prefer_thread_id: int | None = None,
     ) -> dict | None:
-        """Active open chat, or a specific owned thread (for history)."""
-        if prefer_thread_id:
+        """Resume chat only with a real session link — never by email alone for guests.
+
+        Guests need sticky + access code on this device (or reopen with the code).
+        Logged-in users resume their open thread by account. Same email on a new
+        device does not auto-open the chat until they send again or enter the code.
+        """
+        # Logged-in: history links (?thread=) are allowed for owned threads.
+        # Guests: ignore ?thread= alone — they must have sticky + code on this device.
+        if prefer_thread_id and profile is not None:
             thread = access.get_support_thread(prefer_thread_id)
             if thread and access.user_owns_support_thread(
                 thread, username=ident_user, email=ident_email
             ):
                 return thread
             return None
+
         code = str(request.session.get("support_access_code") or "").strip().upper()
         sticky = bool(request.session.get("support_chat_sticky"))
-        if code and (profile is not None or sticky):
+
+        if profile is None:
+            if not (sticky and code):
+                request.session.pop("support_access_code", None)
+                request.session.pop("support_chat_sticky", None)
+                return None
+            by_code = access.get_support_thread_by_code(code)
+            if by_code is None:
+                return None
+            return by_code
+
+        if code and sticky:
             by_code = access.get_support_thread_by_code(code)
             if by_code and access.is_support_thread_open(by_code):
-                if profile is None or access.user_owns_support_thread(
+                if access.user_owns_support_thread(
                     by_code, username=ident_user, email=ident_email
                 ):
                     return by_code
-        open_thread = access.get_open_support_thread(
-            username=ident_user, email=ident_email
-        )
-        if open_thread is not None:
-            return open_thread
-        if profile is None and not sticky:
-            request.session.pop("support_access_code", None)
-            request.session.pop("support_chat_sticky", None)
-        return None
+
+        return access.get_open_support_thread(username=ident_user, email=ident_email)
 
     @app.get("/le-mie-notifiche", response_class=HTMLResponse)
     def mie_notifiche_page(
@@ -1900,13 +1912,10 @@ def create_app(
             _flash(request, "Scrivi un messaggio prima di inviare.", kind="error")
             return _continue(request, next_url="/chatta", message="Completa il messaggio...")
         ident_user, ident_email, ident_name = _support_identity(request, profile)
-        open_thread = access.get_open_support_thread(
-            username=ident_user, email=ident_email
-        )
-        continuing = open_thread is not None
         guest_email = (email or "").strip() or str(request.session.get("support_email") or "")
         guest_name = (name or "").strip() or str(request.session.get("support_name") or "")
         guest_phone = (phone or "").strip()
+        open_thread = None
         if profile is not None:
             guest_email = guest_email or profile.email
             guest_name = (
@@ -1916,8 +1925,26 @@ def create_app(
             )
             guest_phone = guest_phone or profile.phone_e164 or profile.phone_label
             username = profile.username
+            open_thread = access.get_open_support_thread(
+                username=ident_user, email=ident_email or guest_email
+            )
         else:
             username = ""
+            # Guest bar reply (sticky session): may omit name/email.
+            sticky = bool(request.session.get("support_chat_sticky"))
+            code = str(request.session.get("support_access_code") or "").strip().upper()
+            if sticky and code:
+                open_thread = access.get_support_thread_by_code(code)
+                if open_thread is not None and not access.is_support_thread_open(open_thread):
+                    open_thread = None
+            if open_thread is None and guest_email:
+                try:
+                    lookup_email = normalize_email(guest_email)
+                except ValueError:
+                    lookup_email = ""
+                if lookup_email:
+                    open_thread = access.get_open_support_thread(email=lookup_email)
+            continuing = open_thread is not None
             if continuing:
                 guest_email = guest_email or ident_email or str(open_thread.get("guest_email") or "")
                 guest_name = guest_name or ident_name or str(open_thread.get("guest_name") or "")

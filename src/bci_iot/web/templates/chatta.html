@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ t('Chatta con noi') }} · Iris{% endblock %}
-{% block body_class %}page-private page-chat{% endblock %}
+{% block body_class %}page-private page-chat{% if messages and chat_open %} page-chat-live{% endif %}{% endblock %}
 {% block main_class %}shell wide{% endblock %}
 {% block chat_fab %}{% endblock %}
 {% block content %}
@@ -11,7 +11,7 @@
     <p class="eyebrow">{{ t('Spazio privato') }}</p>
     <h1 id="team-chat-title">{{ t('Chatta con noi') }}</h1>
     <p class="lede">
-      {% if live %}{{ t('Continua pure: scrivi sotto come in una chat normale.') }}
+      {% if live %}{{ t('Scrivi sotto, come su WhatsApp.') }}
       {% elif closed_view %}{{ t('Questa conversazione è chiusa. Puoi leggerla qui; per un nuovo problema apri una nuova chat.') }}
       {% else %}{{ t('Spiegaci il problema.') }}{% endif %}
     </p>
@@ -21,7 +21,7 @@
   <div class="chat-code-banner" role="status">
     <strong>{{ t('Salva questo codice') }}</strong>
     <span class="code">{{ access_code }}</span>
-    <p class="muted chat-code-note">{{ t('Serve per riaprire la chat se non hai un account. Lo mostriamo solo ora.') }}</p>
+    <p class="muted chat-code-note">{{ t('Serve per riaprire la chat su un altro telefono o computer. Lo mostriamo solo ora.') }}</p>
   </div>
   {% endif %}
 
@@ -42,7 +42,7 @@
         {% endfor %}
       </ol>
       {% if waiting %}
-      <p class="muted" id="chat-wait">{{ t('Abbiamo ricevuto il messaggio. Ti risponderemo il prima possibile.') }}</p>
+      <p class="muted chat-wait-line" id="chat-wait">{{ t('Abbiamo ricevuto il messaggio. Ti risponderemo il prima possibile.') }}</p>
       {% endif %}
       {% if closed_view %}
       <p class="chat-closed-banner" role="status">{{ t('Conversazione terminata') }}</p>
@@ -51,25 +51,27 @@
     </div>
 
     {% if live %}
-    <form class="chat-bar" method="post" action="/chatta" id="chat-bar-form">
-      <label class="sr-only" for="chat-bar-input">{{ t('Messaggio') }}</label>
-      <textarea
-        id="chat-bar-input"
-        name="body"
-        rows="1"
-        required
-        minlength="2"
-        maxlength="8000"
-        placeholder="{{ t('Scrivi un messaggio…') }}"
-        autocomplete="off"
-      ></textarea>
-      <input type="hidden" name="ui_lang" value="{{ lang }}" />
-      <button class="btn primary chat-bar-send" type="submit">{{ t('Invia') }}</button>
-    </form>
-    <form class="chat-end-form" method="post" action="/chatta/termina" onsubmit="return confirm('{{ t('Terminare questa conversazione? Potrai aprirne una nuova dopo.') }}');">
-      <input type="hidden" name="thread_id" value="{{ thread.id }}" />
-      <button class="btn chat-end-btn" type="submit">{{ t('Termina conversazione') }}</button>
-    </form>
+    <div class="chat-composer-dock">
+      <form class="chat-bar" method="post" action="/chatta" id="chat-bar-form">
+        <label class="sr-only" for="chat-bar-input">{{ t('Messaggio') }}</label>
+        <textarea
+          id="chat-bar-input"
+          name="body"
+          rows="1"
+          required
+          minlength="2"
+          maxlength="8000"
+          placeholder="{{ t('Messaggio') }}"
+          autocomplete="off"
+        ></textarea>
+        <input type="hidden" name="ui_lang" value="{{ lang }}" />
+        <button class="btn primary chat-bar-send" type="submit" aria-label="{{ t('Invia') }}">{{ t('Invia') }}</button>
+      </form>
+      <form class="chat-end-form" method="post" action="/chatta/termina" onsubmit="return confirm('{{ t('Terminare questa conversazione? Potrai aprirne una nuova dopo.') }}');">
+        <input type="hidden" name="thread_id" value="{{ thread.id }}" />
+        <button class="btn chat-end-btn" type="submit">{{ t('Termina conversazione') }}</button>
+      </form>
+    </div>
     {% endif %}
   </div>
 
@@ -104,32 +106,29 @@
 
     <aside class="chat-side chat-side-right" aria-label="{{ t('Recupero chat') }}">
       {% if not profile %}
-      <details class="chat-more panel chat-side-card" open>
-        <summary class="chat-more-summary">{{ t('Hai già una chat?') }}</summary>
-        <div class="chat-more-body">
-          <form class="contact-mail-form chat-side-block" method="post" action="/chatta/apri">
-            <h2>{{ t('Riapri la chat') }}</h2>
-            <p class="form-hint">{{ t('Hai già una chat? Inserisci il codice che ti abbiamo mostrato all’inizio.') }}</p>
-            <label>{{ t('Codice chat') }}
-              <input name="access_code" required maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="es. FEMXXK" class="chat-code-input" />
-            </label>
-            <div class="private-actions chat-side-actions">
-              <button class="btn primary" type="submit">{{ t('Riapri la chat') }}</button>
-            </div>
-          </form>
-          <hr class="chat-side-divider" />
-          <form class="contact-mail-form chat-side-block" method="post" action="/chatta/recupera-codice">
-            <h2>{{ t('Recupera codice') }}</h2>
-            <p class="form-hint">{{ t('Non ricordi il codice? Te lo reinviamo all’email usata per aprire la chat.') }}</p>
-            <label>{{ t('Email') }}
-              <input name="email" type="email" required maxlength="254" autocomplete="email" />
-            </label>
-            <div class="private-actions chat-side-actions">
-              <button class="btn primary" type="submit">{{ t('Recupera codice') }}</button>
-            </div>
-          </form>
-        </div>
-      </details>
+      <div class="panel contact-mail-form chat-side-card chat-recover-panel">
+        <h2>{{ t('Hai già una chat?') }}</h2>
+        <p class="form-hint">{{ t('Su un altro telefono o computer la chat non si apre da sola: usa il codice, oppure scrivi di nuovo con la stessa email.') }}</p>
+        <form class="contact-mail-form chat-side-block" method="post" action="/chatta/apri">
+          <label>{{ t('Codice chat') }}
+            <input name="access_code" required maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="es. FEMXXK" class="chat-code-input" />
+          </label>
+          <div class="private-actions chat-side-actions">
+            <button class="btn primary" type="submit">{{ t('Riapri la chat') }}</button>
+          </div>
+        </form>
+        <hr class="chat-side-divider" />
+        <form class="contact-mail-form chat-side-block" method="post" action="/chatta/recupera-codice">
+          <h2>{{ t('Recupera codice') }}</h2>
+          <p class="form-hint">{{ t('Non ricordi il codice? Te lo reinviamo all’email usata per aprire la chat.') }}</p>
+          <label>{{ t('Email') }}
+            <input name="email" type="email" required maxlength="254" autocomplete="email" />
+          </label>
+          <div class="private-actions chat-side-actions">
+            <button class="btn primary" type="submit">{{ t('Recupera codice') }}</button>
+          </div>
+        </form>
+      </div>
       {% else %}
       <div class="panel contact-mail-form chat-side-card chat-side-hints">
         <h2>{{ t('Suggerimenti') }}</h2>
@@ -139,6 +138,32 @@
       {% endif %}
     </aside>
   </div>
+  {% endif %}
+
+  {% if not profile and (live or closed_view) %}
+  <details class="panel chat-recover-panel chat-recover-below">
+    <summary>{{ t('Hai già una chat su un altro dispositivo?') }}</summary>
+    <div class="chat-more-body">
+      <p class="form-hint">{{ t('Inserisci il codice per aprirla qui, oppure recuperalo via email.') }}</p>
+      <form class="contact-mail-form chat-side-block" method="post" action="/chatta/apri">
+        <label>{{ t('Codice chat') }}
+          <input name="access_code" required maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="es. FEMXXK" class="chat-code-input" />
+        </label>
+        <div class="private-actions chat-side-actions">
+          <button class="btn primary" type="submit">{{ t('Riapri la chat') }}</button>
+        </div>
+      </form>
+      <hr class="chat-side-divider" />
+      <form class="contact-mail-form chat-side-block" method="post" action="/chatta/recupera-codice">
+        <label>{{ t('Email') }}
+          <input name="email" type="email" required maxlength="254" autocomplete="email" />
+        </label>
+        <div class="private-actions chat-side-actions">
+          <button class="btn primary" type="submit">{{ t('Recupera codice') }}</button>
+        </div>
+      </form>
+    </div>
+  </details>
   {% endif %}
 
   {% if profile and chat_history %}
@@ -177,19 +202,11 @@
       el.value = el.value.replace(/[^\d+ ]+/g, "");
     });
   });
-  const more = document.querySelector(".chat-more");
-  if (more) {
-    const mq = window.matchMedia("(min-width: 860px)");
-    const sync = () => { more.open = mq.matches; };
-    sync();
-    if (mq.addEventListener) mq.addEventListener("change", sync);
-    else if (mq.addListener) mq.addListener(sync);
-  }
   const bar = document.getElementById("chat-bar-input");
   if (bar) {
     const grow = () => {
       bar.style.height = "auto";
-      bar.style.height = Math.min(bar.scrollHeight, 140) + "px";
+      bar.style.height = Math.min(bar.scrollHeight, 120) + "px";
     };
     bar.addEventListener("input", grow);
     bar.addEventListener("keydown", (e) => {

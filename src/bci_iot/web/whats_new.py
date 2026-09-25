@@ -10,6 +10,22 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.8",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Chat ospite solo sul tuo dispositivo",
+                "A volte la stessa chat senza account appariva anche su un altro telefono o computer, solo perché c’era la stessa email in memoria.",
+                "Ora si apre solo qui (con il codice o riscrivendo con la stessa email). Su un altro dispositivo usi codice o recupero email.",
+            ),
+            (
+                "Scrivere sotto, come su WhatsApp",
+                "Il tasto per mandare altri messaggi non stava sotto i messaggi, e sembrava poco una chat vera.",
+                "Adesso messaggio e Invia stanno sotto la conversazione; Termina conversazione resta dove serve. Il recupero chat con codice resta sempre a disposizione.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.7",
         "intro": WHATS_NEW_INTRO,
         "entries": (

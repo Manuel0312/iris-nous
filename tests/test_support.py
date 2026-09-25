@@ -164,14 +164,13 @@ def test_chatta_and_admin_inbox_flow(tmp_path: Path, monkeypatch) -> None:
     done = admin.get("/notifiche")
     assert "Risposto" in done.text
     assert "status-replied" in done.text
-    answered = guest.get("/chatta")
-    assert "Ciao Luca, apri Associa telefono" in answered.text
-    assert "chat-bar-form" in answered.text or "chat-live" in answered.text
     code = str(app.state.access_db.list_support_threads()[0].get("access_code") or "")
     assert len(code) == 6
+    # Leaving Chatta (e.g. /notifiche) drops guest sticky — reopen with the code.
     guest.post("/chatta/apri", data={"access_code": code})
     answered = guest.get("/chatta")
     assert "Ciao Luca, apri Associa telefono" in answered.text
+    assert "chat-bar-form" in answered.text or "chat-live" in answered.text
     other_device = TestClient(app)
     other_device.post("/chatta/apri", data={"access_code": code})
     recovered = other_device.get("/chatta")
@@ -352,6 +351,56 @@ def test_github_relay_posts_dispatch(monkeypatch) -> None:
     assert "Bearer ghs_test" in str(headers.get("Authorization") or "")
 
 
+def test_guest_chat_not_shared_by_email_alone(tmp_path: Path) -> None:
+    """Phone and PC without the same sticky session must not see each other's chat."""
+    app = create_app(
+        data_dir=tmp_path,
+        session_secret="guest-iso",
+        admin_username="admin",
+        admin_password="admin123",
+    )
+    phone = TestClient(app)
+    phone.post(
+        "/chatta",
+        data={
+            "name": "Sara Verdi",
+            "email": "sara@gmail.com",
+            "body": "Messaggio solo sul telefono",
+        },
+        follow_redirects=False,
+    )
+    assert "Messaggio solo sul telefono" in phone.get("/chatta").text
+    # Simulate leaving Chatta (sticky cleared) but email left in session.
+    phone.get("/")
+    after_leave = phone.get("/chatta")
+    assert "Messaggio solo sul telefono" not in after_leave.text
+    assert "Richiesta di chat" in after_leave.text or "chat-compose-form" in after_leave.text
+    assert "Hai già una chat?" in after_leave.text
+    assert "Riapri la chat" in after_leave.text
+
+    pc = TestClient(app)
+    blank = pc.get("/chatta")
+    assert "Messaggio solo sul telefono" not in blank.text
+    assert "Hai già una chat?" in blank.text
+
+    # Same email on a new message continues the open thread (new sticky on this device).
+    pc.post(
+        "/chatta",
+        data={
+            "name": "Sara Verdi",
+            "email": "sara@gmail.com",
+            "body": "Secondo messaggio dal PC con stessi dati",
+        },
+        follow_redirects=False,
+    )
+    again = pc.get("/chatta")
+    assert "Messaggio solo sul telefono" in again.text
+    assert "Secondo messaggio dal PC" in again.text
+    assert 'id="chat-bar-form"' in again.text
+    threads = app.state.access_db.list_user_support_threads(email="sara@gmail.com")
+    assert len(threads) == 1
+
+
 def test_chat_live_bar_end_and_new_thread(tmp_path: Path) -> None:
     app = create_app(
         data_dir=tmp_path,
@@ -407,6 +456,36 @@ def test_chat_live_bar_end_and_new_thread(tmp_path: Path) -> None:
     )
     threads2 = app.state.access_db.list_user_support_threads(email="sara@gmail.com")
     assert len(threads2) == 2
-    history = guest.get(f"/chatta?thread={tid}")
+    # Guests cannot open a closed chat by URL alone — reopen with the code.
+    code = str(closed.get("access_code") or "")
+    assert len(code) == 6
+    guest.post("/chatta/apri", data={"access_code": code})
+    history = guest.get("/chatta")
     assert "Conversazione terminata" in history.text or "chiusa" in history.text.lower()
     assert "Primo messaggio" in history.text
+
+
+def test_chat_live_has_whatsapp_dock(tmp_path: Path) -> None:
+    app = create_app(
+        data_dir=tmp_path,
+        session_secret="dock",
+        admin_username="admin",
+        admin_password="admin123",
+    )
+    guest = TestClient(app)
+    guest.post(
+        "/chatta",
+        data={
+            "name": "Sara Verdi",
+            "email": "sara@gmail.com",
+            "body": "Messaggio per vedere la barra sotto",
+        },
+        follow_redirects=False,
+    )
+    live = guest.get("/chatta")
+    assert "chat-composer-dock" in live.text
+    assert "chat-bar-form" in live.text
+    assert "Termina conversazione" in live.text
+    assert "Hai già una chat su un altro dispositivo?" in live.text
+    assert "Recupera codice" in live.text
+    assert "Scrivi sotto, come su WhatsApp." in live.text
