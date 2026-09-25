@@ -11,26 +11,17 @@ WHATS_NEW_INTRO = (
 )
 
 # Each item: short friendly headline + one supporting sentence (iPhone-style).
+# Replace this list on every version bump — it describes only the current release.
 WHATS_NEW_ITEMS: tuple[tuple[str, str], ...] = (
     (
-        "La chat ti parla nella tua lingua",
-        "Ora i messaggi di Chatta con noi (e le email di risposta) si adattano "
-        "alla lingua con cui stai guardando Iris. Tu leggi comodo; il testo originale resta sempre disponibile.",
+        "Chatta con noi, pensata per il telefono",
+        "Sul telefono vedi subito il form per scrivere al team. "
+        "Riaprire una chat o recuperare il codice resta a un tocco, senza scorrere una pagina lunga.",
     ),
     (
-        "Apri Iris e trovi subito la lingua giusta",
-        "Se sei in Italia, il sito preferisce l’italiano anche quando il telefono "
-        "o il computer sono impostati in inglese. Altri Paesi seguono la mappa delle lingue supportate.",
-    ),
-    (
-        "Le notifiche admin si aprono al primo tocco",
-        "Prima a volte la lista si ricaricava e la chat non si apriva. "
-        "Ora, quando tocchi un messaggio, entri davvero nella conversazione.",
-    ),
-    (
-        "Moderazione più semplice per l’admin",
-        "Dal pannello puoi sospendere un account per un periodo oppure eliminarlo in modo definitivo, "
-        "con passaggi chiari e pensati per la tutela.",
+        "Novità che non copre più il menu",
+        "Il tasto Novità non si accavalla al nome Iris, e quando apri le novità "
+        "puoi chiuderle senza che il menu le nasconda.",
     ),
 )
 

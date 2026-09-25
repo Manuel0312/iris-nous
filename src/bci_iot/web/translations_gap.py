@@ -784,6 +784,42 @@ EXTRA_RAW: dict[str, dict[str, str]] = {
         "ja": "パネルからアカウントを一定期間停止したり、完全に削除したりできます。手順は明確で、tutelaに配慮しています。",
         "es": "Desde el panel puedes suspender una cuenta un tiempo o eliminarla de forma definitiva, con pasos claros pensados para la tutela.",
     },
+    "Chatta con noi, pensata per il telefono": {
+        "en": "Chat with us, redesigned for phone",
+        "fr": "Discutez avec nous, pensé pour le téléphone",
+        "de": "Chatte mit uns – fürs Telefon gemacht",
+        "pt": "Fale connosco, pensado para o telemóvel",
+        "zh": "「与我们聊天」专为手机优化",
+        "ja": "スマホ向けに整えた「チャットで問い合わせ」",
+        "es": "Chatea con nosotros, pensado para el teléfono",
+    },
+    "Sul telefono vedi subito il form per scrivere al team. Riaprire una chat o recuperare il codice resta a un tocco, senza scorrere una pagina lunga.": {
+        "en": "On your phone you see the form to write to the team right away. Reopening a chat or recovering the code stays one tap away—no long page to scroll.",
+        "fr": "Sur téléphone, vous voyez tout de suite le formulaire pour écrire à l’équipe. Rouvrir un chat ou récupérer le code reste à un toucher, sans faire défiler une longue page.",
+        "de": "Am Telefon siehst du sofort das Formular, um dem Team zu schreiben. Chat erneut öffnen oder Code holen bleibt ein Tipp – ohne lange Seite zu scrollen.",
+        "pt": "No telemóvel vê logo o formulário para escrever à equipa. Reabrir um chat ou recuperar o código fica a um toque, sem percorrer uma página longa.",
+        "zh": "在手机上会立刻看到写给团队的表单。重新打开聊天或找回代码只需一点，不用长页下翻。",
+        "ja": "スマホではすぐチームへの入力フォームが表示されます。チャットの再開やコードの再取得もワンタップで、長いページをスクロールする必要はありません。",
+        "es": "En el teléfono ves al momento el formulario para escribir al equipo. Reabrir un chat o recuperar el código queda a un toque, sin recorrer una página larga.",
+    },
+    "Novità che non copre più il menu": {
+        "en": "What’s New no longer covers the menu",
+        "fr": "Les nouveautés ne couvrent plus le menu",
+        "de": "Neuigkeiten verdecken das Menü nicht mehr",
+        "pt": "As novidades já não tapam o menu",
+        "zh": "「新内容」不再挡住菜单",
+        "ja": "新着情報がメニューを隠さなくなりました",
+        "es": "Novedades ya no tapa el menú",
+    },
+    "Il tasto Novità non si accavalla al nome Iris, e quando apri le novità puoi chiuderle senza che il menu le nasconda.": {
+        "en": "The What’s New button no longer overlaps the Iris name, and when you open the notes you can close them without the menu covering the button.",
+        "fr": "Le bouton Nouveautés ne chevauche plus le nom Iris, et quand vous ouvrez les notes vous pouvez les fermer sans que le menu cache le bouton.",
+        "de": "Der Neuigkeiten-Button überlappt den Namen Iris nicht mehr, und wenn du die Notizen öffnest, kannst du sie schließen, ohne dass das Menü den Button verdeckt.",
+        "pt": "O botão Novidades já não se sobrepõe ao nome Iris, e ao abrir as notas consegue fechá-las sem o menu as tapar.",
+        "zh": "「新内容」按钮不再与 Iris 名称叠在一起；打开后也能正常关闭，不会被菜单挡住。",
+        "ja": "「新着情報」ボタンがIrisの名前と重ならなくなり、開いたあともメニューに隠れず閉じられます。",
+        "es": "El botón Novedades ya no se solapa con el nombre Iris, y al abrirlas puedes cerrarlas sin que el menú las tape.",
+    },
 }
 
 ES_EXTRA: dict[str, str] = {

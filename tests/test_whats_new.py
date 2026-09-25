@@ -26,4 +26,4 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
     assert "whats-new-open" in page.text
     assert "Novità" in page.text
     assert f"Versione {__version__}" in page.text or __version__ in page.text
-    assert "La chat ti parla nella tua lingua" in page.text
+    assert "Chatta con noi, pensata per il telefono" in page.text
