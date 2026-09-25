@@ -5,31 +5,49 @@ from __future__ import annotations
 from bci_iot import __version__
 
 # Italian source strings (also used as i18n keys via t()).
-WHATS_NEW_INTRO = (
-    "Ecco cosa c’è di nuovo. "
-    "Ogni voce racconta cosa non andava e come l’abbiamo sistemato."
-)
+WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 
-# Newest first. Each entry: (title, problem, fix) — always problem → improvement.
+# Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
+    {
+        "version": "0.4.6",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Novità più facili da leggere",
+                "Prima le spiegazioni erano un po’ rigide e poco chiare.",
+                "Ora sono scritte in modo più semplice, come si parla.",
+            ),
+            (
+                "Chatta con noi, come una chat normale",
+                "Dopo il primo messaggio dovevi di nuovo riempire tutto il modulo per scrivere altro.",
+                "Adesso, se la chat è aperta, scrivi sotto e premi Invia. Quando hai finito, puoi chiudere la conversazione e aprirne una nuova.",
+            ),
+            (
+                "Le tue chat nel profilo",
+                "Era difficile ritrovare le chat vecchie.",
+                "In Le mie chat trovi quelle aperte e quelle chiuse, e le puoi rileggere quando vuoi.",
+            ),
+        ),
+    },
     {
         "version": "0.4.5",
         "intro": WHATS_NEW_INTRO,
         "entries": (
             (
                 "Novità più chiare",
-                "Nelle Novità si leggeva solo il risultato, senza capire quale problema risolveva l’aggiornamento.",
-                "Ora ogni voce racconta cosa non andava e come l’abbiamo sistemato, in un unico testo senza etichette separate.",
+                "Si capiva poco a quale problema si riferiva ogni aggiornamento.",
+                "Ora ogni voce dice cosa non andava e come l’abbiamo sistemato.",
             ),
             (
                 "Chatta con noi come una chat vera",
-                "Dopo aver inviato un messaggio bisognava di nuovo compilare tutto il form per scrivere altro.",
-                "Con la chat aperta hai barra e Invio come una chat normale; con Termina conversazione la chiudi e poi ne apri una nuova dal form.",
+                "Per continuare a scrivere bisognava di nuovo compilare tutto il form.",
+                "Con la chat aperta hai barra e Invia; con Termina conversazione la chiudi e poi ne apri una nuova.",
             ),
             (
                 "Storico chat nel profilo",
-                "Non c’era un posto chiaro per rivedere le conversazioni aperte e quelle già chiuse.",
-                "In Le mie chat trovi lo storico completo e puoi rileggere ogni conversazione.",
+                "Non c’era un posto chiaro per rivedere le chat.",
+                "In Le mie chat trovi aperte e chiuse.",
             ),
         ),
     },
@@ -39,18 +57,18 @@ WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
         "entries": (
             (
                 "Novità più chiare",
-                "Nelle Novità si leggeva solo il risultato, senza capire quale problema risolveva l’aggiornamento.",
-                "Ora ogni voce racconta cosa non andava e come l’abbiamo sistemato, in un unico testo.",
+                "Si leggeva solo il risultato, senza capire il problema.",
+                "Ogni voce racconta cosa non andava e come l’abbiamo sistemato.",
             ),
             (
                 "Chatta con noi come una chat vera",
-                "Dopo aver inviato un messaggio bisognava di nuovo compilare tutto il form per scrivere altro.",
-                "Con la chat aperta hai barra e Invio come una chat normale; con Termina conversazione la chiudi e poi ne apri una nuova dal form.",
+                "Dopo un messaggio bisognava di nuovo compilare tutto il form.",
+                "Con la chat aperta scrivi e invii come in una chat normale; poi puoi chiuderla e aprirne una nuova.",
             ),
             (
                 "Storico chat nel profilo",
-                "Non c’era un posto chiaro per rivedere le conversazioni aperte e quelle già chiuse.",
-                "In Le mie chat trovi lo storico completo e puoi rileggere ogni conversazione.",
+                "Le chat aperte e chiuse non erano facili da trovare.",
+                "Le trovi in Le mie chat e le rileggi quando vuoi.",
             ),
         ),
     },
@@ -61,12 +79,12 @@ WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
             (
                 "Chatta con noi come una chat vera",
                 "Dopo il primo messaggio non si poteva continuare a scrivere in modo naturale.",
-                "Barra messaggio e Invio nella conversazione aperta; Termina conversazione per chiuderla e aprirne una nuova dal form.",
+                "Ora c’è la barra messaggio e Invia; puoi anche terminare la conversazione e aprirne una nuova.",
             ),
             (
                 "Storico chat nel profilo",
-                "Le chat passate non erano facili da ritrovare.",
-                "In Le mie chat vedi conversazioni aperte e chiuse e le rileggi quando vuoi.",
+                "Le chat passate erano difficili da ritrovare.",
+                "In Le mie chat vedi aperte e chiuse.",
             ),
         ),
     },
@@ -75,24 +93,24 @@ WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
         "intro": WHATS_NEW_INTRO,
         "entries": (
             (
-                "Telefono con prefisso, al posto giusto",
-                "In iscrizione mancava il prefisso e il numero finiva nel posto sbagliato (etichetta o cuffie).",
-                "Prefisso e numero (opzionali) in iscrizione e profilo, salvati nei campi telefono corretti.",
+                "Telefono con prefisso",
+                "In iscrizione non c’era il prefisso e il numero finiva nel posto sbagliato.",
+                "Ora scegli prefisso e numero (se vuoi) già in iscrizione e nel profilo, nei campi giusti.",
             ),
             (
                 "Una sola foto profilo",
-                "Nell’anagrafica sembravano due foto da caricare.",
-                "Resta una sola anteprima: scegli o cambia la foto senza doppie immagini.",
+                "Sembrava di dover caricare due foto.",
+                "Ora c’è una sola anteprima.",
             ),
             (
-                "Gli account restano dopo il deploy",
-                "A ogni aggiornamento del sito online sparivano tutti gli account.",
-                "I profili restano salvati; si eliminano solo con Elimina account (admin o utente).",
+                "Gli account restano dopo l’aggiornamento",
+                "A ogni aggiornamento del sito sparivano tutti gli account.",
+                "Ora restano; si cancellano solo con Elimina account.",
             ),
             (
-                "Novità: anche le versioni precedenti",
-                "Si vedeva solo l’ultima versione, senza lo storico degli aggiornamenti.",
-                "In Novità compare l’ultima release; con Versioni precedenti scorri quelle passate.",
+                "Anche le versioni precedenti",
+                "Si vedeva solo l’ultima novità.",
+                "Con Versioni precedenti puoi leggere anche gli aggiornamenti passati.",
             ),
         ),
     },
@@ -101,14 +119,14 @@ WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
         "intro": WHATS_NEW_INTRO,
         "entries": (
             (
-                "Chatta con noi, pensata per il telefono",
-                "Su telefono la pagina Chatta era lunga e confusa: bisognava scorrere molto.",
-                "Sul telefono vedi subito il form; riaprire o recuperare il codice resta a un tocco.",
+                "Chatta più comoda sul telefono",
+                "Su telefono la pagina era lunga e confusa.",
+                "Ora vedi subito dove scrivere; il resto resta a un tocco.",
             ),
             (
-                "Novità che non copre più il menu",
-                "Il tasto Novità si accavallava al nome Iris e Chiudi restava sotto il menu.",
-                "Novità non si sovrappone più al brand; il popup sta sopra e si chiude senza problemi.",
+                "Novità e menu non si pestano i piedi",
+                "Il tasto Novità si sovrapponeva a Iris e Chiudi restava sotto il menu.",
+                "Ora non si accavalla più e il popup si chiude senza problemi.",
             ),
         ),
     },
@@ -117,24 +135,24 @@ WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
         "intro": WHATS_NEW_INTRO,
         "entries": (
             (
-                "La chat ti parla nella tua lingua",
-                "I messaggi di supporto e le email di risposta non seguivano sempre la lingua dello schermo.",
-                "Chatta con noi e le email di risposta si adattano alla lingua con cui guardi Iris; l’originale resta disponibile.",
+                "La chat nella tua lingua",
+                "Messaggi e email di risposta non seguivano sempre la lingua dello schermo.",
+                "Ora si adattano alla lingua con cui guardi Iris; puoi sempre vedere l’originale.",
             ),
             (
-                "Apri Iris e trovi subito la lingua giusta",
-                "In Italia il sito poteva aprirsi in inglese se telefono o computer erano in inglese.",
-                "In Italia Iris preferisce l’italiano; altri Paesi seguono la mappa delle lingue supportate.",
+                "Lingua giusta all’apertura",
+                "In Italia a volte il sito si apriva in inglese.",
+                "In Italia Iris parte in italiano; altrove segue le lingue supportate.",
             ),
             (
-                "Le notifiche admin si aprono al primo tocco",
-                "A volte la lista admin si ricaricava e la chat non si apriva al primo tap.",
-                "Quando tocchi un messaggio, entri davvero nella conversazione.",
+                "Notifiche admin al primo tocco",
+                "A volte toccavi un messaggio e la chat non si apriva.",
+                "Ora al primo tocco entri nella conversazione.",
             ),
             (
-                "Moderazione più semplice per l’admin",
-                "Sospendere o eliminare un account non era chiaro e pratico.",
-                "Dal pannello puoi sospendere per un periodo o eliminare in modo definitivo, con passaggi pensati per la tutela.",
+                "Moderazione più semplice",
+                "Sospendere o eliminare un account era poco chiaro.",
+                "Dal pannello admin puoi farlo in pochi passaggi.",
             ),
         ),
     },
