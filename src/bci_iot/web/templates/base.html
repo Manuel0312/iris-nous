@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;600;700&family=Noto+Sans+SC:wght@400;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/styles.css?v=irisPages19" />
+  <link rel="stylesheet" href="/static/styles.css?v=irisPages20" />
   <script>
     (function () {
       function scheme() {
@@ -130,6 +130,7 @@
         <h2 id="whats-new-title">{{ t('Novità') }}</h2>
         <button type="button" class="whats-new-close" id="whats-new-close" aria-label="{{ t('Chiudi') }}">{{ t('Chiudi') }}</button>
       </div>
+      <div class="whats-new-body">
       {% if whats_new is defined %}
       <p class="whats-new-intro">{{ t(whats_new.intro) }}</p>
       <ul class="whats-new-list">
@@ -169,6 +170,7 @@
       </details>
       {% endif %}
       {% endif %}
+      </div>
     </div>
   </div>
 
