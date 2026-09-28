@@ -93,6 +93,31 @@ def _secret() -> str:
     )
 
 
+def _secret_candidates() -> list[str]:
+    """Try every known key so older/seeded bundles still restore."""
+    out: list[str] = []
+    for value in (
+        os.getenv("BCI_IOT_DATA_BACKUP_KEY", "").strip(),
+        _token(),
+        os.getenv("BCI_IOT_SESSION_SECRET", "").strip(),
+    ):
+        if value and value not in out:
+            out.append(value)
+    return out
+
+
+def _decrypt_any(enc: bytes) -> bytes:
+    last: Exception | None = None
+    for secret in _secret_candidates():
+        try:
+            return _decrypt(enc, secret)
+        except Exception as exc:  # noqa: BLE001
+            last = exc
+    if last is not None:
+        raise last
+    raise ValueError("no backup secret configured")
+
+
 def _branch() -> str:
     return (os.getenv("BCI_IOT_DATA_BACKUP_BRANCH", "").strip() or "iris-data")
 
@@ -313,7 +338,7 @@ def _count_users(data_root: Path | None, *, exclude_admin: bool = False) -> int:
 
 def _count_users_in_encrypted(enc: bytes) -> int:
     try:
-        raw = _decrypt(enc, _secret())
+        raw = _decrypt_any(enc)
     except Exception:
         return -1
     td = tempfile.mkdtemp()
@@ -344,7 +369,7 @@ def restore_data_dir(data_root: Path | str) -> bool:
         return False
     try:
         enc = base64.b64decode(meta["content"])
-        raw = _decrypt(enc, _secret())
+        raw = _decrypt_any(enc)
     except Exception as exc:  # noqa: BLE001
         logger.warning("data backup: decrypt failed: %s", exc)
         record_boot_restore(False, f"decrypt failed: {exc}")
