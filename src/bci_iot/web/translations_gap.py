@@ -1882,6 +1882,42 @@ EXTRA_RAW: dict[str, dict[str, str]] = {
         "ja": "サーバーはほぼ空のDBで、より充実したリモートバックアップを上書きしません。",
         "es": "el servidor no sobrescribe una copia remota más rica con una base casi vacía.",
     },
+    "Conferma email solo con il codice": {
+        "en": "Email confirmation with the code only",
+        "fr": "Confirmation e-mail uniquement avec le code",
+        "de": "E-Mail-Bestätigung nur mit dem Code",
+        "pt": "Confirmação de email só com o código",
+        "zh": "仅用代码确认邮箱",
+        "ja": "メール確認はコードのみ",
+        "es": "Confirmación de email solo con el código",
+    },
+    "Nella mail di iscrizione c’era anche un pulsante Conferma, oltre al codice: funzionavano entrambi e creava confusione.": {
+        "en": "The signup email also had a Confirm button besides the code: both worked and it was confusing.",
+        "fr": "L’e-mail d’inscription avait aussi un bouton Confirmer en plus du code : les deux fonctionnaient et cela créait de la confusion.",
+        "de": "In der Anmelde-Mail gab es neben dem Code auch einen Bestätigen-Button: beides funktionierte und verwirrte.",
+        "pt": "No email de registo havia também um botão Confirmar além do código: ambos funcionavam e gerava confusão.",
+        "zh": "注册邮件除了代码还有确认按钮：两者都有效，容易混淆。",
+        "ja": "登録メールにコード以外に確認ボタンもあり、両方動いて混乱していました。",
+        "es": "En el email de registro había también un botón Confirmar además del código: funcionaban ambos y creaba confusión.",
+    },
+    "Ora conta solo il codice a 6 caratteri da inserire sul sito. Il vecchio link non conferma più l’account.": {
+        "en": "Now only the 6-character code entered on the site counts. The old link no longer confirms the account.",
+        "fr": "Désormais seul le code à 6 caractères saisi sur le site compte. L’ancien lien ne confirme plus le compte.",
+        "de": "Jetzt zählt nur der 6-stellige Code auf der Website. Der alte Link bestätigt das Konto nicht mehr.",
+        "pt": "Agora só conta o código de 6 caracteres no site. O link antigo já não confirma a conta.",
+        "zh": "现在只认网站上输入的 6 位代码。旧链接不再确认账户。",
+        "ja": "サイトで入れる6桁コードだけが有効。古いリンクでは確認できません。",
+        "es": "Ahora solo cuenta el código de 6 caracteres en el sitio. El enlace antiguo ya no confirma la cuenta.",
+    },
+    "Iris manda le email come fanno i siti professionali: mittente Iris Nous, oggetto chiaro, codice di conferma iscrizione e codici di recupero password. Serve solo collegare un account Gmail (o Resend) che spedisca le mail.": {
+        "en": "Iris sends emails like professional sites: Iris Nous as sender, a clear subject, a signup confirmation code, and password recovery codes. You only need to connect a Gmail (or Resend) account that can send mail.",
+        "fr": "Iris envoie les e-mails comme les sites professionnels : expéditeur Iris Nous, objet clair, code de confirmation d’inscription et codes de récupération. Il suffit de connecter un compte Gmail (ou Resend) qui envoie les mails.",
+        "de": "Iris sendet E-Mails wie professionelle Sites: Absender Iris Nous, klarer Betreff, Bestätigungscode und Passwort-Codes. Es reicht, ein Gmail- (oder Resend-)Konto zum Versand zu verbinden.",
+        "pt": "A Iris envia emails como sites profissionais: remetente Iris Nous, assunto claro, código de confirmação e códigos de recuperação. Basta ligar uma conta Gmail (ou Resend) que envie mails.",
+        "zh": "Iris 像专业网站一样发信：发件人 Iris Nous、清晰主题、注册确认码和找回密码码。只需连接能发信的 Gmail（或 Resend）。",
+        "ja": "Irisはプロのサイト同様にメール送信。送信者Iris Nous、明確な件名、確認コードと復旧コード。送信用のGmail（またはResend）を接続するだけです。",
+        "es": "Iris envía emails como sitios profesionales: remitente Iris Nous, asunto claro, código de confirmación y códigos de recuperación. Solo hay que conectar una cuenta Gmail (o Resend) que envíe correo.",
+    },
 }
 
 ES_EXTRA: dict[str, str] = {

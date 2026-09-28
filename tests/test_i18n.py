@@ -241,6 +241,68 @@ def test_signup_hides_code_when_mail_cannot_send(tmp_path: Path, monkeypatch) ->
     assert "bg3d.js" in chat.text
 
 
+def test_signup_link_does_not_confirm_email(tmp_path: Path, monkeypatch) -> None:
+    """Only the 6-char code verifies signup; legacy /conferma-iscrizione links must not."""
+    import importlib
+
+    from bci_iot.accounts.messaging import DeliveryResult, build_signup_confirm_email
+
+    subject, text, html = build_signup_confirm_email(username="sara", code="AB12CD")
+    assert "AB12CD" in text and "AB12CD" in html
+    assert "conferma-iscrizione" not in html.lower()
+    assert "href=" not in html.lower() or "Conferma iscrizione" not in html
+
+    captured: dict[str, str] = {}
+
+    def fake_send(**kwargs):
+        captured["code"] = str(kwargs.get("code") or "")
+        return DeliveryResult(
+            ok=True,
+            channel="email",
+            destination=str(kwargs.get("destination") or ""),
+            mode="demo",
+            detail="ok",
+            demo_code=str(kwargs.get("code") or ""),
+        )
+
+    webapp = importlib.import_module("bci_iot.web.app")
+    monkeypatch.setattr(webapp, "send_signup_confirmation", fake_send, raising=False)
+    monkeypatch.setenv("BCI_IOT_OTP_DEMO", "1")
+    app = create_app(data_dir=tmp_path, session_secret="code-only")
+    client = TestClient(app)
+    client.post(
+        "/register",
+        data={
+            "username": "sara",
+            "email": "sara@gmail.com",
+            "password": "Segreta123",
+        },
+        follow_redirects=False,
+    )
+    profile = app.state.store.get("sara")
+    assert profile is not None
+    assert profile.email_verified is False
+    assert not profile.email_confirm_hash
+    # Old-style link must not verify.
+    hit = client.get("/conferma-iscrizione/fake-legacy-token", follow_redirects=False)
+    assert hit.status_code in {302, 303}
+    again = app.state.store.get("sara")
+    assert again is not None and again.email_verified is False
+    # Code on the wait page still works.
+    code = captured.get("code") or ""
+    if not code:
+        # Demo path may store preview; fall back to issuing again.
+        _, code = app.state.store.issue_signup_confirmation("sara")
+    done = client.post(
+        "/attendi-conferma-email",
+        data={"code": code},
+        follow_redirects=False,
+    )
+    assert done.status_code in {302, 303, 200}
+    verified = app.state.store.get("sara")
+    assert verified is not None and verified.email_verified is True
+
+
 def test_home_storytelling(tmp_path: Path) -> None:
     app = create_app(data_dir=tmp_path, session_secret="home-story")
     client = TestClient(app)

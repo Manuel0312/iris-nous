@@ -367,17 +367,16 @@ def build_code_email(*, code: str, purpose: str) -> tuple[str, str, str]:
     return subject, text, html
 
 
-def build_signup_confirm_email(
-    *, confirm_url: str, username: str, code: str
-) -> tuple[str, str, str]:
+def build_signup_confirm_email(*, username: str, code: str) -> tuple[str, str, str]:
     subject = f"Conferma la tua iscrizione a {BRAND_NAME}"
     text = (
         f"{BRAND_NAME}\n\n"
         f"Ciao {username},\n\n"
         f"per completare l'iscrizione a {BRAND_NAME} inserisci questo codice "
-        f"nella pagina di conferma:\n\n"
+        f"nella pagina di conferma sul sito:\n\n"
         f"  {code}\n\n"
         f"Il codice scade tra 24 ore.\n"
+        f"Non usare link: la conferma vale solo con il codice.\n"
         f"Se non trovi l'email, controlla anche Spam.\n\n"
         f"Se non hai creato tu questo account, ignora questa email.\n\n"
         f"— Team {BRAND_NAME}\n"
@@ -385,27 +384,19 @@ def build_signup_confirm_email(
     middle = f"""
       <p style="margin:0 0 8px;font-size:13px;color:#86868b;">Codice di conferma</p>
       <p style="margin:0 0 18px;font-size:32px;letter-spacing:.35em;font-weight:700;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;">{code}</p>
-      <p style="margin:0 0 22px;font-size:14px;line-height:1.5;color:#424245;">
+      <p style="margin:0 0 12px;font-size:14px;line-height:1.5;color:#424245;">
         Copialo nella pagina <strong>Conferma la tua email</strong> sul sito Iris Nous.
       </p>
-      <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 20px;">
-        <tr><td style="border-radius:980px;background:#1d1d1f;">
-          <a href="{confirm_url}"
-             style="display:inline-block;padding:14px 28px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;">
-            Conferma iscrizione
-          </a>
-        </td></tr>
-      </table>
       <p style="margin:0;font-size:12px;line-height:1.5;color:#86868b;">
-        Se il pulsante non apre la pagina giusta, usa solo il codice. Controlla anche Spam.
+        La conferma funziona solo con questo codice (non con un pulsante o un link). Controlla anche Spam.
       </p>
     """
     html = _shell_html(
         title="Conferma la tua iscrizione",
         intro=f"Ciao <strong>{username}</strong>, benvenuta/o in {BRAND_NAME}. "
-        f"Per attivare l'account conferma il tuo indirizzo email.",
+        f"Per attivare l'account conferma il tuo indirizzo email con il codice.",
         middle_html=middle,
-        footer_extra=" Codice e link scadono tra 24 ore.",
+        footer_extra=" Il codice scade tra 24 ore.",
     )
     return subject, text, html
 
@@ -696,11 +687,11 @@ def send_code(
 
 
 def send_signup_confirmation(
-    *, destination: str, username: str, confirm_url: str, code: str
+    *, destination: str, username: str, code: str, confirm_url: str = ""
 ) -> DeliveryResult:
-    subject, text, html = build_signup_confirm_email(
-        confirm_url=confirm_url, username=username, code=code
-    )
+    # confirm_url kept optional for older callers; ignored — code-only verification.
+    _ = confirm_url
+    subject, text, html = build_signup_confirm_email(username=username, code=code)
     return send_branded_email(
         destination=destination,
         subject=subject,
@@ -708,7 +699,6 @@ def send_signup_confirmation(
         html=html,
         demo_payload=code,
         demo_is_link=False,
-        demo_link=confirm_url,
     )
 
 

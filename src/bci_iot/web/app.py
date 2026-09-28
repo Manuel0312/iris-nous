@@ -446,12 +446,10 @@ def create_app(
         return "/dashboard"
 
     def _send_signup_mail(request: Request, profile: UserProfile):
-        profile, raw, code = store.issue_signup_confirmation(profile.username)
-        confirm_url = f"{_public_base_url(request)}/conferma-iscrizione/{raw}"
+        profile, code = store.issue_signup_confirmation(profile.username)
         delivery = send_signup_confirmation(
             destination=profile.email,
             username=profile.username,
-            confirm_url=confirm_url,
             code=code,
         )
         request.session.pop("email_preview_code", None)
@@ -799,22 +797,30 @@ def create_app(
         return RedirectResponse("/anagrafica", status_code=303)
 
     @app.get("/conferma-iscrizione/{token}", response_class=HTMLResponse)
-    def confirm_signup(
+    def confirm_signup_link_disabled(
         request: Request,
         token: str,
         profiles: ProfileStore = Depends(_store),
-        access: AccessDatabase = Depends(_access),
     ) -> RedirectResponse:
-        try:
-            profile = profiles.confirm_email_with_token(token)
-        except ValueError as exc:
-            _flash(request, str(exc), kind="error")
-            return RedirectResponse("/attendi-conferma-email", status_code=303)
-        request.session["username"] = profile.username
-        request.session.pop("email_preview_code", None)
-        _log_access(request, username=profile.username, event="email_confirmed", access=access)
-        _flash(request, "Email confermata. Benvenuta/o in Iris Nous: completa i tuoi dati.", kind="ok")
-        return RedirectResponse("/anagrafica", status_code=303)
+        # Legacy mailbox links must not verify the email — only the 6-char code does.
+        _ = token
+        username = _session_username(request)
+        if username:
+            profile = profiles.get(username)
+            if profile is not None and not profile.email_verified:
+                _flash(
+                    request,
+                    "Per confermare l’email usa solo il codice a 6 caratteri ricevuto nella mail, "
+                    "non il vecchio pulsante o link.",
+                    kind="error",
+                )
+                return RedirectResponse("/attendi-conferma-email", status_code=303)
+        _flash(
+            request,
+            "La conferma email funziona solo con il codice sul sito. Accedi e inserisci il codice ricevuto via mail.",
+            kind="error",
+        )
+        return RedirectResponse("/login", status_code=303)
 
     @app.get("/login", response_class=HTMLResponse)
     def login_page(

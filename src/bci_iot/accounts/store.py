@@ -690,16 +690,17 @@ class ProfileStore:
         self.save(profile)
         return profile, raw
 
-    def issue_signup_confirmation(self, username: str) -> tuple[UserProfile, str, str]:
-        """Return (profile, link_token, 6-char code) for signup email confirmation."""
+    def issue_signup_confirmation(self, username: str) -> tuple[UserProfile, str]:
+        """Return (profile, 6-char code) for signup email confirmation (code only)."""
         profile, code = self.issue_otp(
             username, channel="email", purpose="confirm_signup"
         )
-        # Align code lifetime with the confirmation link (24h).
         profile.otp_expires_at = otp_expiry(minutes=60 * 24)
+        # Clear any legacy link token — confirmation is code-only.
+        profile.email_confirm_hash = ""
+        profile.email_confirm_expires_at = ""
         self.save(profile)
-        profile, raw = self.issue_email_confirm_token(profile.username)
-        return profile, raw, code
+        return profile, code
 
     def confirm_email_with_token(self, raw_token: str) -> UserProfile:
         token = (raw_token or "").strip()
