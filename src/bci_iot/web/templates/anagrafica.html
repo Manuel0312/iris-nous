@@ -25,6 +25,7 @@
 
   <div class="panel photo-block reveal" data-reveal>
     <h2>{{ t('Foto profilo') }} <span class="muted">{{ t('(opzionale)') }}</span></h2>
+    <p class="form-hint">{{ t('Scegli una foto del tuo volto: puoi ingrandire e spostare l’area da usare come avatar.') }}</p>
     <div class="photo-preview" id="photo-preview">
       {% if profile.photo_filename %}
       <img class="avatar lg" id="photo-preview-img" src="/media/photos/{{ profile.photo_filename }}" alt="{{ t('Foto profilo') }}" width="120" height="120" />
@@ -38,11 +39,36 @@
       <img class="avatar lg" id="photo-preview-img" hidden alt="{{ t('Anteprima foto') }}" width="120" height="120" />
       {% endif %}
     </div>
+
+    <div class="photo-crop-editor" id="photo-crop-editor" hidden>
+      <p
+        class="photo-face-status"
+        id="photo-face-status"
+        hidden
+        data-msg-guide="{{ t('Inquadra il volto nel cerchio. Puoi ingrandire e spostare la foto.') }}"
+        data-msg-no-face="{{ t('Non vediamo un volto chiaro. Inquadra meglio il viso nell’area tonda.') }}"
+        data-msg-face-ok="{{ t('Volto trovato. Puoi ancora ingrandire o spostare prima di salvare.') }}"
+        data-msg-need-face="{{ t('Serve un volto visibile nell’area tonda per dare un’identità all’account. Sposta o ingrandisci la foto.') }}"
+        data-msg-load-fail="{{ t('Impossibile leggere questa immagine.') }}"
+        data-msg-save-fail="{{ t('Salvataggio non riuscito. Riprova.') }}"
+      ></p>
+      <div class="photo-crop-stage">
+        <canvas id="photo-crop-canvas" width="280" height="280" aria-label="{{ t('Area foto: trascina per spostare') }}"></canvas>
+      </div>
+      <label class="photo-zoom-label">{{ t('Ingrandimento') }}
+        <input type="range" id="photo-zoom" min="1" max="3" step="0.01" value="1" />
+      </label>
+      <p class="muted photo-crop-hint">{{ t('Trascina la foto per scegliere quale parte usare. Il cerchio interno guida il volto.') }}</p>
+      <div class="private-actions photo-crop-actions">
+        <button class="btn" type="button" id="photo-crop-cancel">{{ t('Annulla') }}</button>
+      </div>
+    </div>
+
     <form method="post" action="/anagrafica/foto" enctype="multipart/form-data" class="stack" id="photo-form">
       <label>{{ t('Scegli una foto (JPG / PNG / WebP, max 2.5 MB)') }}
         <input type="file" name="photo" id="photo-input" accept="image/jpeg,image/png,image/webp" />
       </label>
-      <button class="btn" type="submit">{{ t('Salva foto') }}</button>
+      <button class="btn primary" type="submit">{{ t('Salva foto') }}</button>
     </form>
   </div>
 
@@ -147,27 +173,7 @@
   </form>
   {% endif %}
 </section>
-<script>
-(function () {
-  const file = document.getElementById("photo-input");
-  const img = document.getElementById("photo-preview-img");
-  const fallback = document.getElementById("photo-preview-fallback");
-  if (file && img) {
-    file.addEventListener("change", () => {
-      const f = file.files && file.files[0];
-      if (!f) return;
-      const url = URL.createObjectURL(f);
-      img.src = url;
-      img.removeAttribute("hidden");
-      img.hidden = false;
-      if (fallback) {
-        fallback.setAttribute("hidden", "");
-        fallback.hidden = true;
-      }
-    });
-  }
-})();
-</script>
+<script src="/static/photo_crop.js?v=irisPhoto1" defer></script>
 {% include "_phone_row_js.html" %}
 <script>
 (function () {

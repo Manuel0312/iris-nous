@@ -179,6 +179,30 @@ def test_backup_refuses_overwrite_richer_remote(tmp_path: Path, monkeypatch) -> 
     ).get("upload_blocked")
 
 
+def test_anagrafica_photo_crop_ui(tmp_path: Path) -> None:
+    app = create_app(
+        data_dir=tmp_path,
+        session_secret="photo-crop",
+        admin_username="admin",
+        admin_password="admin123",
+    )
+    client = TestClient(app)
+    store = app.state.store
+    store.create_account("ve", "Segreta123", email="ve@gmail.com")
+    profile = store.get("ve")
+    assert profile is not None
+    profile.email_verified = True
+    store.save(profile)
+    client.post("/login", data={"username": "ve", "password": "Segreta123"})
+    page = client.get("/anagrafica")
+    assert page.status_code == 200
+    assert "photo-crop-editor" in page.text
+    assert "photo-crop-canvas" in page.text
+    assert "photo-zoom" in page.text
+    assert "photo_crop.js" in page.text
+    assert "Ingrandimento" in page.text
+
+
 def test_admin_database_people_page(tmp_path: Path) -> None:
     app = create_app(
         data_dir=tmp_path,

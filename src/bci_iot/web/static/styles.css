@@ -2840,6 +2840,84 @@ html[data-theme-resolved="dark"] .password-toggle:hover {
   margin: 0.5rem 0 1rem;
 }
 
+.photo-crop-editor {
+  margin: 0.75rem 0 1.1rem;
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bg) 70%, var(--bg-elev));
+}
+
+.photo-crop-editor[hidden] {
+  display: none !important;
+}
+
+.photo-crop-stage {
+  display: flex;
+  justify-content: center;
+  margin: 0.35rem 0 0.85rem;
+  touch-action: none;
+}
+
+#photo-crop-canvas {
+  width: min(280px, 100%);
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  cursor: grab;
+  background: #1a1a1c;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  touch-action: none;
+}
+
+#photo-crop-canvas:active {
+  cursor: grabbing;
+}
+
+.photo-zoom-label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.photo-zoom-label input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.photo-crop-hint {
+  margin: 0.55rem 0 0.35rem;
+  font-size: 0.88rem;
+}
+
+.photo-crop-actions {
+  margin-top: 0.35rem;
+}
+
+.photo-face-status {
+  margin: 0 0 0.65rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+.photo-face-status[data-kind="ok"] {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--ink);
+}
+
+.photo-face-status[data-kind="warn"] {
+  background: color-mix(in srgb, var(--danger, #c62828) 14%, transparent);
+}
+
+.photo-face-status[data-kind="hint"] {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  color: var(--muted);
+}
+
 .phone-row {
   display: grid;
   grid-template-columns: auto 1fr;
