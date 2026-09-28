@@ -86,6 +86,7 @@
           {% if username %}
             {% if is_admin %}
             <a href="/accessi">{{ t('Pannello admin') }}</a>
+            <a href="/accessi/database">{{ t('Database persone') }}</a>
             <a href="/notifiche">{{ t('Notifiche') }}{% if support_unread %}<span class="nav-badge">{{ support_unread }}</span>{% endif %}</a>
             <a href="/cambia-password">{{ t('Cambia password') }}</a>
             {% else %}

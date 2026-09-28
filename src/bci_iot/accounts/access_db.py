@@ -580,6 +580,43 @@ class AccessDatabase:
             n = conn.execute(f"SELECT COUNT(*) AS n FROM users WHERE {where}").fetchone()["n"]
         return int(n)
 
+    def list_all_accounts(self) -> list[dict[str, Any]]:
+        """Every row in ``users`` for the admin database panel (no filters)."""
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT
+                    username, first_name, last_name, email, phone_label, phone_e164,
+                    email_verified, phone_verified, anagrafica_complete,
+                    is_admin, deleted_at, last_seen_at, updated_at
+                FROM users
+                ORDER BY
+                    CASE WHEN IFNULL(is_admin, 0) = 1 THEN 0 ELSE 1 END,
+                    CASE WHEN IFNULL(deleted_at, '') = '' THEN 0 ELSE 1 END,
+                    lower(last_name), lower(first_name), lower(username)
+                """
+            ).fetchall()
+        out: list[dict[str, Any]] = []
+        for row in rows:
+            out.append(
+                {
+                    "username": str(row["username"] or ""),
+                    "first_name": str(row["first_name"] or ""),
+                    "last_name": str(row["last_name"] or ""),
+                    "email": str(row["email"] or ""),
+                    "phone_label": str(row["phone_label"] or ""),
+                    "phone_e164": str(row["phone_e164"] or ""),
+                    "email_verified": bool(row["email_verified"]),
+                    "phone_verified": bool(row["phone_verified"]),
+                    "anagrafica_complete": bool(row["anagrafica_complete"]),
+                    "is_admin": bool(row["is_admin"]),
+                    "deleted_at": str(row["deleted_at"] or ""),
+                    "last_seen_at": str(row["last_seen_at"] or ""),
+                    "updated_at": str(row["updated_at"] or ""),
+                }
+            )
+        return out
+
     def upsert_anagrafica(
         self,
         *,
@@ -792,6 +829,32 @@ class AccessDatabase:
                 """,
                 (_utc_now(),),
             )
+            # Also mirror every account in users (registration without anagrafica yet).
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO user_anagrafica (
+                    username, user_id, first_name, last_name, gender,
+                    phone_label, headset_id, status, photo_path, email, phone_e164, updated_at
+                )
+                SELECT
+                    username,
+                    COALESCE(user_id, ''),
+                    COALESCE(first_name, ''),
+                    COALESCE(last_name, ''),
+                    COALESCE(gender, ''),
+                    COALESCE(phone_label, ''),
+                    COALESCE(headset_id, ''),
+                    CASE WHEN IFNULL(deleted_at, '') = '' THEN 'active' ELSE 'deleted' END,
+                    COALESCE(photo_filename, ''),
+                    COALESCE(email, ''),
+                    COALESCE(phone_e164, ''),
+                    ?
+                FROM users
+                WHERE username NOT IN (SELECT username FROM user_anagrafica)
+                """,
+                (_utc_now(),),
+            )
+            conn.commit()
             return conn.execute(
                 """
                 SELECT

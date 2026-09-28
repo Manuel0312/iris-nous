@@ -2,8 +2,12 @@
 
 Free Render instances wipe ``/data`` on every deploy. When a GitHub token is
 configured (same as mail: ``BCI_IOT_GITHUB_MAIL_TOKEN``), we keep an
-**encrypted** bundle of ``accessi.db`` + ``photos/`` in the repo so accounts
-survive. Admin delete remains the only intentional account removal.
+**encrypted** bundle of ``accessi.db`` + ``photos/`` on a dedicated branch
+(``iris-data``) so accounts survive without triggering another deploy of
+``main``. Admin delete remains the only intentional account removal.
+
+Critical safety: never upload an admin-only / empty DB over a richer remote
+bundle (that was wiping real user accounts after failed restores).
 """
 
 from __future__ import annotations
@@ -15,7 +19,9 @@ import io
 import json
 import logging
 import os
+import sqlite3
 import tarfile
+import tempfile
 import threading
 import time
 from pathlib import Path
@@ -28,6 +34,15 @@ _MAGIC = b"IRIS1"
 _backup_lock = threading.Lock()
 _backup_timer: threading.Timer | None = None
 _last_backup_at = 0.0
+_state: dict[str, object] = {
+    "enabled": False,
+    "boot_restored": False,
+    "boot_detail": "",
+    "last_backup_ok": None,
+    "last_backup_at": "",
+    "last_error": "",
+    "upload_blocked": False,
+}
 
 
 def _repo() -> str:
@@ -53,17 +68,58 @@ def _secret() -> str:
     )
 
 
+def _branch() -> str:
+    return (os.getenv("BCI_IOT_DATA_BACKUP_BRANCH", "").strip() or "iris-data")
+
+
 def _enabled() -> bool:
     flag = os.getenv("BCI_IOT_DATA_BACKUP", "").strip().lower()
     if flag in {"0", "false", "no", "off"}:
         return False
     if flag in {"1", "true", "yes", "on"}:
         return bool(_token() and _secret())
-    # Default: only production (Render), so local tests never upload.
     env = (os.getenv("BCI_IOT_ENV") or "").lower()
     if env in {"prod", "production"}:
         return bool(_token() and _secret())
     return False
+
+
+def backup_status(*, data_root: Path | str | None = None) -> dict[str, object]:
+    """Admin-facing snapshot of persistence health."""
+    root = Path(data_root) if data_root else None
+    users = _count_users(root) if root else 0
+    return {
+        "enabled": _enabled(),
+        "configured_token": bool(_token()),
+        "configured_key": bool(_secret()),
+        "branch": _branch(),
+        "bundle_path": BUNDLE_PATH,
+        "boot_restored": bool(_state.get("boot_restored")),
+        "boot_detail": str(_state.get("boot_detail") or ""),
+        "upload_blocked": bool(_state.get("upload_blocked")),
+        "last_backup_ok": _state.get("last_backup_ok"),
+        "last_backup_at": str(_state.get("last_backup_at") or ""),
+        "last_error": str(_state.get("last_error") or ""),
+        "local_users": users,
+        "local_users_non_admin": _count_users(root, exclude_admin=True) if root else 0,
+    }
+
+
+def record_boot_restore(ok: bool, detail: str = "") -> None:
+    _state["boot_restored"] = bool(ok)
+    _state["boot_detail"] = (detail or ("restored" if ok else "not restored"))[:300]
+    _state["enabled"] = _enabled()
+    # Until real users exist locally, never push over a possibly richer remote.
+    if not ok:
+        _state["upload_blocked"] = True
+    else:
+        _state["upload_blocked"] = False
+
+
+def clear_upload_block_if_safe(data_root: Path | str) -> None:
+    """Allow uploads again once local DB has real (non-admin) accounts."""
+    if _count_users(Path(data_root), exclude_admin=True) > 0:
+        _state["upload_blocked"] = False
 
 
 def _keystream(key: bytes, length: int) -> bytes:
@@ -119,10 +175,45 @@ def _api(method: str, url_path: str, payload: dict | None = None) -> dict | None
             return None
         detail = exc.read().decode("utf-8", errors="replace")[:400]
         logger.warning("data backup API %s %s failed: %s %s", method, url_path, exc.code, detail)
+        _state["last_error"] = f"API {exc.code}: {detail[:120]}"
         return None
     except Exception as exc:  # noqa: BLE001
         logger.warning("data backup API error: %s", exc)
+        _state["last_error"] = str(exc)[:200]
         return None
+
+
+def _ensure_branch(repo: str, branch: str) -> bool:
+    ref = _api("GET", f"/repos/{repo}/git/ref/heads/{branch}")
+    if ref and isinstance(ref.get("object"), dict):
+        return True
+    for base_name in ("main", "master"):
+        base = _api("GET", f"/repos/{repo}/git/ref/heads/{base_name}")
+        if not base or not isinstance(base.get("object"), dict):
+            continue
+        sha = str(base["object"].get("sha") or "")
+        if not sha:
+            continue
+        created = _api(
+            "POST",
+            f"/repos/{repo}/git/refs",
+            {"ref": f"refs/heads/{branch}", "sha": sha},
+        )
+        if created is not None:
+            logger.info("data backup: created branch %s from %s", branch, base_name)
+            return True
+    return False
+
+
+def _get_remote_meta(repo: str, *, branch: str | None = None) -> dict | None:
+    br = branch or _branch()
+    meta = _api("GET", f"/repos/{repo}/contents/{BUNDLE_PATH}?ref={br}")
+    if meta and meta.get("content"):
+        return meta
+    # Legacy location on main (older builds uploaded here and triggered redeploys).
+    if br != "main":
+        return _api("GET", f"/repos/{repo}/contents/{BUNDLE_PATH}?ref=main")
+    return None
 
 
 def _pack_bundle(data_root: Path) -> bytes | None:
@@ -151,48 +242,93 @@ def _unpack_bundle(data_root: Path, payload: bytes) -> None:
             tar.extractall(data_root)
 
 
-def _local_user_signal(data_root: Path) -> int:
+def _count_users(data_root: Path | None, *, exclude_admin: bool = False) -> int:
+    if data_root is None:
+        return 0
     db = Path(data_root) / "accessi.db"
     if not db.is_file():
         return 0
     try:
-        return max(1, db.stat().st_size)
-    except OSError:
+        with sqlite3.connect(str(db)) as conn:
+            conn.row_factory = sqlite3.Row
+            tables = {
+                str(r[0])
+                for r in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                ).fetchall()
+            }
+            if "users" not in tables:
+                return 0
+            where = "IFNULL(deleted_at, '') = ''"
+            if exclude_admin:
+                where += " AND IFNULL(is_admin, 0) = 0"
+            row = conn.execute(f"SELECT COUNT(*) AS n FROM users WHERE {where}").fetchone()
+            return int(row["n"] if row else 0)
+    except sqlite3.Error:
         return 0
+
+
+def _count_users_in_encrypted(enc: bytes) -> int:
+    try:
+        raw = _decrypt(enc, _secret())
+    except Exception:
+        return -1
+    td = tempfile.mkdtemp()
+    try:
+        _unpack_bundle(Path(td), raw)
+        return _count_users(Path(td))
+    except Exception:
+        return -1
+    finally:
+        # Windows may keep SQLite handles briefly; never fail the count on cleanup.
+        import shutil
+
+        shutil.rmtree(td, ignore_errors=True)
 
 
 def restore_data_dir(data_root: Path | str) -> bool:
     """Download encrypted runtime bundle from GitHub if local data is empty/missing."""
     if not _enabled():
+        record_boot_restore(False, "backup disabled or token/key missing")
         return False
     root = Path(data_root)
     root.mkdir(parents=True, exist_ok=True)
     repo = _repo()
-    meta = _api("GET", f"/repos/{repo}/contents/{BUNDLE_PATH}")
+    meta = _get_remote_meta(repo)
     if not meta or not meta.get("content"):
         logger.info("data backup: no remote bundle yet")
+        record_boot_restore(False, "no remote bundle yet")
         return False
     try:
         enc = base64.b64decode(meta["content"])
         raw = _decrypt(enc, _secret())
     except Exception as exc:  # noqa: BLE001
         logger.warning("data backup: decrypt failed: %s", exc)
+        record_boot_restore(False, f"decrypt failed: {exc}")
         return False
-    local_signal = _local_user_signal(root)
-    if local_signal > 8_000 and local_signal >= len(raw) * 0.9:
-        logger.info("data backup: keep local DB (size=%s)", local_signal)
-        return False
+    local_users = _count_users(root)
+    remote_users = _count_users_in_encrypted(enc)
+    if local_users > 1 and remote_users >= 0 and local_users >= remote_users:
+        logger.info("data backup: keep local DB (users=%s)", local_users)
+        record_boot_restore(True, f"kept local ({local_users} users)")
+        return True
+    if local_users > 1 and remote_users >= 0 and local_users > remote_users:
+        logger.info("data backup: keep richer local DB")
+        record_boot_restore(True, f"kept local richer ({local_users}>{remote_users})")
+        return True
     try:
         _unpack_bundle(root, raw)
         logger.info("data backup: restored bundle from GitHub (%s bytes)", len(raw))
+        record_boot_restore(True, f"restored ({_count_users(root)} users)")
         return True
     except Exception as exc:  # noqa: BLE001
         logger.warning("data backup: restore failed: %s", exc)
+        record_boot_restore(False, f"restore failed: {exc}")
         return False
 
 
 def backup_data_dir(data_root: Path | str, *, force: bool = False) -> bool:
-    """Upload encrypted current data bundle to GitHub."""
+    """Upload encrypted current data bundle to GitHub (iris-data branch)."""
     if not _enabled():
         return False
     global _last_backup_at
@@ -201,29 +337,71 @@ def backup_data_dir(data_root: Path | str, *, force: bool = False) -> bool:
         return False
     with _backup_lock:
         root = Path(data_root)
+        clear_upload_block_if_safe(root)
+        local_users = _count_users(root)
+        local_non_admin = _count_users(root, exclude_admin=True)
         packed = _pack_bundle(root)
         if not packed:
             return False
-        enc = _encrypt(packed, _secret())
         repo = _repo()
-        meta = _api("GET", f"/repos/{repo}/contents/{BUNDLE_PATH}")
-        sha = meta.get("sha") if meta else None
-        payload = {
+        branch = _branch()
+        _ensure_branch(repo, branch)
+        meta = _api("GET", f"/repos/{repo}/contents/{BUNDLE_PATH}?ref={branch}")
+        if meta is None:
+            # Fall back to checking main only for refuse-overwrite, not for sha.
+            legacy = _api("GET", f"/repos/{repo}/contents/{BUNDLE_PATH}?ref=main")
+        else:
+            legacy = None
+        remote_meta = meta or legacy
+        if remote_meta and remote_meta.get("content"):
+            try:
+                enc_remote = base64.b64decode(remote_meta["content"])
+                remote_users = _count_users_in_encrypted(enc_remote)
+            except Exception:
+                remote_users = -1
+            # Never replace a richer remote with admin-only / empty local.
+            if remote_users > local_users and local_non_admin == 0:
+                msg = (
+                    f"refuse overwrite: local users={local_users} "
+                    f"(non-admin={local_non_admin}) remote={remote_users}"
+                )
+                logger.warning("data backup: %s", msg)
+                _state["last_error"] = msg
+                _state["last_backup_ok"] = False
+                _state["upload_blocked"] = True
+                return False
+            if bool(_state.get("upload_blocked")) and local_non_admin == 0:
+                msg = "upload blocked until real accounts exist locally"
+                logger.warning("data backup: %s", msg)
+                _state["last_error"] = msg
+                return False
+        enc = _encrypt(packed, _secret())
+        payload: dict[str, object] = {
             "message": "chore: persist Iris accounts (encrypted runtime data)",
             "content": base64.b64encode(enc).decode("ascii"),
-            "branch": "main",
+            "branch": branch,
         }
-        if sha:
-            payload["sha"] = sha
+        if meta and meta.get("sha"):
+            payload["sha"] = meta["sha"]
         result = _api("PUT", f"/repos/{repo}/contents/{BUNDLE_PATH}", payload)
         if result is None:
+            _state["last_backup_ok"] = False
             return False
         _last_backup_at = time.time()
-        logger.info("data backup: uploaded encrypted bundle (%s bytes)", len(enc))
+        _state["last_backup_ok"] = True
+        _state["last_backup_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        _state["last_error"] = ""
+        _state["upload_blocked"] = False
+        logger.info(
+            "data backup: uploaded encrypted bundle (%s bytes, users=%s) → %s",
+            len(enc),
+            local_users,
+            branch,
+        )
         return True
 
 
-def schedule_backup(data_root: Path | str, *, delay_s: float = 2.0) -> None:
+def schedule_backup(data_root: Path | str, *, delay_s: float = 1.0, force: bool = False) -> None:
     """Debounced background backup after account writes."""
     if not _enabled():
         return
@@ -232,9 +410,11 @@ def schedule_backup(data_root: Path | str, *, delay_s: float = 2.0) -> None:
 
     def _run() -> None:
         try:
-            backup_data_dir(root)
+            backup_data_dir(root, force=force)
         except Exception as exc:  # noqa: BLE001
             logger.warning("data backup scheduled failed: %s", exc)
+            _state["last_error"] = str(exc)[:200]
+            _state["last_backup_ok"] = False
 
     with _backup_lock:
         if _backup_timer is not None:

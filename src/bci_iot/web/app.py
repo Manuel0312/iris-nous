@@ -236,11 +236,25 @@ def create_app(
     # Skip when tests pass an explicit data_dir.
     if data_dir is None and env_data:
         try:
-            from bci_iot.accounts.data_backup import restore_data_dir
+            from bci_iot.accounts import data_backup as data_backup_mod
 
-            restore_data_dir(data_root)
-        except Exception:
-            pass
+            restored = data_backup_mod.restore_data_dir(data_root)
+            if not restored:
+                logger = __import__("logging").getLogger("bci_iot.web")
+                logger.warning(
+                    "account restore did not apply: %s",
+                    data_backup_mod.backup_status(data_root=data_root).get("boot_detail"),
+                )
+        except Exception as exc:  # noqa: BLE001
+            try:
+                from bci_iot.accounts import data_backup as data_backup_mod
+
+                data_backup_mod.record_boot_restore(False, str(exc))
+            except Exception:
+                pass
+            __import__("logging").getLogger("bci_iot.web").warning(
+                "account restore error: %s", exc
+            )
     # Back-compat: tests pass a profiles folder; put DB beside it.
     if data_dir is not None and Path(data_dir).name == "profiles":
         profiles_dir = Path(data_dir)
@@ -348,6 +362,7 @@ def create_app(
     app.state.access_db = access_db
     app.state.admin_username = admin_user
     app.state.photos_dir = photos_dir
+    app.state.data_root = store.data_root
     app.state.phone_queues: dict[str, list] = {}
     app.state.calib_sessions = {}
     def _store() -> ProfileStore:
@@ -1128,6 +1143,57 @@ def create_app(
             ),
         )
 
+    @app.get("/accessi/database", response_class=HTMLResponse)
+    def accessi_database_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> HTMLResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return admin
+        accounts = access.list_all_accounts()
+        from bci_iot.accounts.data_backup import backup_status
+
+        status = backup_status(data_root=profiles.data_root)
+        return TEMPLATES.TemplateResponse(
+            request,
+            "accessi_database.html",
+            _template_ctx(
+                request,
+                profiles,
+                accounts=accounts,
+                backup=status,
+                db_path=str(access.db_path),
+                account_total=len(accounts),
+                account_active=sum(
+                    1 for a in accounts if not a.get("deleted_at") and not a.get("is_admin")
+                ),
+            ),
+        )
+
+    @app.post("/accessi/database/backup")
+    def accessi_database_backup_now(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> RedirectResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return admin
+        from bci_iot.accounts.data_backup import backup_data_dir
+
+        ok = backup_data_dir(profiles.data_root, force=True)
+        if ok:
+            _flash(request, "Database salvato sul backup cifrato (GitHub).", kind="ok")
+        else:
+            _flash(
+                request,
+                "Backup non riuscito. Controlla token GitHub e chiave BCI_IOT_DATA_BACKUP_KEY, "
+                "oppure se il backup remoto ha più account di quelli locali.",
+                kind="error",
+            )
+        return RedirectResponse("/accessi/database", status_code=303)
+
     @app.get("/invio-codici", response_class=HTMLResponse)
     def messaging_settings_page(
         request: Request,
@@ -1283,6 +1349,12 @@ def create_app(
             return admin
         try:
             profiles.hard_delete(target, photos_dir=Path(app.state.photos_dir))
+            try:
+                from bci_iot.accounts.data_backup import schedule_backup
+
+                schedule_backup(profiles.data_root, delay_s=0.5, force=True)
+            except Exception:
+                pass
             _flash(request, "Account eliminato definitivamente.", kind="ok")
             return RedirectResponse("/accessi", status_code=303)
         except KeyError:

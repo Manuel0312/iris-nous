@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.11",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Account che non spariscono più al deploy",
+                "Dopo iscrizione e verifica, a volte gli account sparivano e in admin non si vedevano più: sul piano free il disco si svuota e un backup sbagliato poteva sovrascrivere quello buono.",
+                "Ora il salvataggio va su un branch dedicato, non sovrascrive mai un database pieno con uno quasi vuoto, e in admin c’è Database persone con tutti gli account e Salva database ora.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.10",
         "intro": WHATS_NEW_INTRO,
         "entries": (
