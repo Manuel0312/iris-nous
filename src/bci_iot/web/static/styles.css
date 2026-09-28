@@ -170,7 +170,8 @@ body {
 }
 
 
-img:not(.flag-img), svg:not(.flag-img) { max-width: 100%; height: auto; display: block; }
+img:not(.flag-img):not(.avatar):not(.admin-photo),
+svg:not(.flag-img) { max-width: 100%; height: auto; display: block; }
 
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -2343,12 +2344,18 @@ html[data-theme-resolved="dark"] .discover-cta {
 
 .admin-photo,
 .avatar {
+  width: 88px;
+  height: 88px;
+  max-width: 88px;
+  aspect-ratio: 1 / 1;
   border-radius: 50%;
   object-fit: cover;
+  object-position: center;
   margin-top: 0.75rem;
+  flex-shrink: 0;
 }
 
-.avatar.lg { width: 120px; height: 120px; }
+.avatar.lg { width: 120px; height: 120px; max-width: 120px; }
 
 .avatar-fallback {
   width: 88px;
@@ -3783,10 +3790,14 @@ html[data-theme-resolved="light"] .chat-bubble.chat-admin time {
 .admin-photo {
   width: 120px;
   height: 120px;
+  max-width: 120px;
+  aspect-ratio: 1 / 1;
   border-radius: 50%;
   object-fit: cover;
+  object-position: center;
   display: block;
   background: #e8eaed;
+  flex-shrink: 0;
 }
 
 .photo-preview {

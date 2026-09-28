@@ -56,7 +56,7 @@
         <li><span>{{ t('Aggiornato') }}</span><strong>{{ anagrafica.updated_at | it_time }}</strong></li>
       </ul>
       {% if anagrafica.photo_path %}
-      <img class="admin-photo" src="/media/photos/{{ anagrafica.photo_path }}" alt="{{ t('Foto profilo') }}" width="160" height="160" />
+      <img class="admin-photo" src="/media/photos/{{ anagrafica.photo_path }}" alt="{{ t('Foto profilo') }}" width="120" height="120" />
       {% endif %}
       {% else %}
       <p class="muted">{{ t('Nessuna anagrafica in database per questo username.') }}</p>

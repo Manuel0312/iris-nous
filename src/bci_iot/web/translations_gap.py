@@ -2080,6 +2080,33 @@ EXTRA_RAW: dict[str, dict[str, str]] = {
         "ja": "写真エリア：ドラッグで移動",
         "es": "Área de foto: arrastra para mover",
     },
+    "Foto utente tonda in admin": {
+        "en": "Round user photo in admin",
+        "fr": "Photo utilisateur ronde dans l’admin",
+        "de": "Rundes Nutzerfoto im Admin",
+        "pt": "Foto de utilizador redonda no admin",
+        "zh": "管理端圆形用户照片",
+        "ja": "管理画面の丸いユーザー写真",
+        "es": "Foto de usuario redonda en admin",
+    },
+    "Nella scheda utente admin la foto diventava un ovale allungato e si leggeva male.": {
+        "en": "On the admin user card the photo became a tall oval and was hard to read.",
+        "fr": "Sur la fiche admin la photo devenait un ovale allongé et se lisait mal.",
+        "de": "Auf der Admin-Nutzerkarte wurde das Foto zu einem hohen Oval und war schlecht lesbar.",
+        "pt": "Na ficha de utilizador do admin a foto ficava um oval alongado e lia-se mal.",
+        "zh": "管理端用户卡片上照片变成细长椭圆，难以辨认。",
+        "ja": "管理のユーザー画面で写真が縦長の楕円になり見づらかった。",
+        "es": "En la ficha de usuario admin la foto se volvía un óvalo alargado y se veía mal.",
+    },
+    "Ora è un cerchio fisso, ritagliato al centro come l’avatar del profilo.": {
+        "en": "Now it is a fixed circle, cropped in the center like the profile avatar.",
+        "fr": "Désormais c’est un cercle fixe, recadré au centre comme l’avatar du profil.",
+        "de": "Jetzt ist es ein fester Kreis, mittig zugeschnitten wie der Profil-Avatar.",
+        "pt": "Agora é um círculo fixo, recortado ao centro como o avatar do perfil.",
+        "zh": "现在是固定圆形，居中裁剪，与头像一致。",
+        "ja": "プロフィールのアバターと同じく、中央で切った固定の円です。",
+        "es": "Ahora es un círculo fijo, recortado al centro como el avatar del perfil.",
+    },
 }
 
 ES_EXTRA: dict[str, str] = {
