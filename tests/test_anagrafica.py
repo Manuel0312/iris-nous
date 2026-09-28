@@ -199,7 +199,10 @@ def test_admin_database_people_page(tmp_path: Path) -> None:
     assert "Database persone" in page.text
     assert "luca" in page.text
     assert "luca@gmail.com" in page.text
-    assert "Salva database ora" in page.text
+    assert 'action="/accessi/database/backup"' not in page.text
+    assert "Backup attivo" not in page.text
+    assert "Token GitHub" not in page.text
+    assert "Tutti gli account registrati" in page.text
     accessi = client.get("/accessi")
     assert 'href="/accessi/database"' in accessi.text
     accounts = app.state.access_db.list_all_accounts()

@@ -27,8 +27,8 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
     assert "whats-new-open" in page.text
     assert "Novità" in page.text
     assert f"Versione {__version__}" in page.text or __version__ in page.text
-    assert "Account che non spariscono più al deploy" in page.text or "Conferma email solo con il codice" in page.text
-    assert "Conferma email solo con il codice" in page.text
+    assert "Conferma email solo con il codice" in page.text or "Database persone senza pannello backup" in page.text
+    assert "Database persone senza pannello backup" in page.text
     assert "whats-new-body" in page.text
     assert "whats-new-problem" not in page.text
     assert "Versioni precedenti" in page.text or "whats-new-history" in page.text

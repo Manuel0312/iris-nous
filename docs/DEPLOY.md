@@ -18,17 +18,11 @@ Accesso admin sul sito online: username `admin`, password `admin123`
 (o il valore di `BCI_IOT_ADMIN_PASSWORD` nel dashboard Render). All’avvio
 Iris ricrea/allinea questo account, anche se il disco free si è svuotato.
 
-Sul piano free i file in `/data` si perdono al redeploy. Iris salva automaticamente
-un **bundle cifrato** degli account su GitHub, sul branch dedicato **`iris-data`**
-(non su `main`, così il salvataggio non fa ripartire un altro deploy). Serve lo
-stesso token mail `BCI_IOT_GITHUB_MAIL_TOKEN` + chiave `BCI_IOT_DATA_BACKUP_KEY`.
-All’avvio Iris ripristina il bundle. **Non** sovrascrive mai un backup remoto
-pieno di account con un database quasi vuoto (solo admin). Gli account si
-eliminano solo con **Elimina account** (admin o utente). Non rigenerare
-`BCI_IOT_DATA_BACKUP_KEY` o i backup non si aprono più.
-
-In admin: **Database persone** (`/accessi/database`) mostra tutti gli account
-SQLite e lo stato del backup; tasto **Salva database ora** forza un upload.
+Sul piano free i file in `/data` possono azzerarsi al redeploy. Iris tiene
+gli account in SQLite e li ripristina in automatico all’avvio (senza pannelli
+da gestire in admin). Gli account si eliminano solo con **Elimina**
+(amministratore) o, se previsto, dall’utente sul proprio profilo.
+Non rigenerare `BCI_IOT_DATA_BACKUP_KEY` se è già impostata.
 
 Per un disco persistente vero (piano a pagamento): Disk mount `/data` nel
 dashboard Render.

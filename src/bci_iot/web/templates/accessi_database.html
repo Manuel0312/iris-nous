@@ -7,8 +7,7 @@
   <p><a href="/accessi">{{ t('← Pannello admin') }}</a></p>
   <h1>{{ t('Database persone') }}</h1>
   <p class="lede">
-    {{ t('Elenco completo degli account salvati sul server (tabella users).') }}
-    {{ t('Se dopo un deploy la lista è vuota, gli account non sono stati ripristinati dal backup.') }}
+    {{ t('Tutti gli account registrati. Si cancellano solo da qui, con Elimina (admin).') }}
   </p>
 
   <div class="card-grid stats-grid reveal" data-reveal>
@@ -20,34 +19,6 @@
       <div class="device-label">{{ t('Persone (non admin)') }}</div>
       <p class="stat-num">{{ account_active }}</p>
     </div>
-    <div class="panel stat-card">
-      <div class="device-label">{{ t('Backup attivo') }}</div>
-      <p class="stat-num">{% if backup.enabled %}{{ t('Sì') }}{% else %}{{ t('No') }}{% endif %}</p>
-    </div>
-  </div>
-
-  <div class="panel reveal" data-reveal>
-    <h2>{{ t('Stato salvataggio account') }}</h2>
-    <ul class="muted" style="margin:0.5rem 0 1rem;padding-left:1.1rem;line-height:1.55">
-      <li>{{ t('Token GitHub:') }} {% if backup.configured_token %}{{ t('ok') }}{% else %}{{ t('mancante') }}{% endif %}</li>
-      <li>{{ t('Chiave backup:') }} {% if backup.configured_key %}{{ t('ok') }}{% else %}{{ t('mancante') }}{% endif %}</li>
-      <li>{{ t('Branch backup:') }} <code>{{ backup.branch }}</code></li>
-      <li>{{ t('Ripristino all’avvio:') }} {{ backup.boot_detail or '—' }}</li>
-      <li>{{ t('Ultimo backup:') }}
-        {% if backup.last_backup_ok is sameas true %}{{ t('riuscito') }}{% elif backup.last_backup_ok is sameas false %}{{ t('fallito') }}{% else %}—{% endif %}
-        {% if backup.last_backup_at %} · {{ backup.last_backup_at }}{% endif %}
-      </li>
-      {% if backup.last_error %}
-      <li>{{ t('Ultimo errore:') }} {{ backup.last_error }}</li>
-      {% endif %}
-      {% if backup.upload_blocked %}
-      <li><strong>{{ t('Upload bloccato:') }}</strong> {{ t('il server non sovrascrive un backup remoto più ricco con un database quasi vuoto.') }}</li>
-      {% endif %}
-    </ul>
-    <form method="post" action="/accessi/database/backup" class="private-actions">
-      <button class="btn primary" type="submit">{{ t('Salva database ora') }}</button>
-    </form>
-    <p class="muted" style="margin-top:0.75rem">{{ t('File database:') }} <code>{{ db_path }}</code></p>
   </div>
 
   <div class="panel table-wrap reveal" data-reveal>
@@ -87,7 +58,7 @@
       </tbody>
     </table>
     {% else %}
-    <p class="muted">{{ t('Nessun account nel database locale. Se qualcuno si è registrato online, il ripristino dal backup non è andato a buon fine.') }}</p>
+    <p class="muted">{{ t('Nessun account registrato.') }}</p>
     {% endif %}
   </div>
 </section>

@@ -1159,9 +1159,6 @@ def create_app(
         if isinstance(admin, RedirectResponse):
             return admin
         accounts = access.list_all_accounts()
-        from bci_iot.accounts.data_backup import backup_status
-
-        status = backup_status(data_root=profiles.data_root)
         return TEMPLATES.TemplateResponse(
             request,
             "accessi_database.html",
@@ -1169,36 +1166,12 @@ def create_app(
                 request,
                 profiles,
                 accounts=accounts,
-                backup=status,
-                db_path=str(access.db_path),
                 account_total=len(accounts),
                 account_active=sum(
                     1 for a in accounts if not a.get("deleted_at") and not a.get("is_admin")
                 ),
             ),
         )
-
-    @app.post("/accessi/database/backup")
-    def accessi_database_backup_now(
-        request: Request,
-        profiles: ProfileStore = Depends(_store),
-    ) -> RedirectResponse:
-        admin = _admin_or_redirect(request, profiles)
-        if isinstance(admin, RedirectResponse):
-            return admin
-        from bci_iot.accounts.data_backup import backup_data_dir
-
-        ok = backup_data_dir(profiles.data_root, force=True)
-        if ok:
-            _flash(request, "Database salvato sul backup cifrato (GitHub).", kind="ok")
-        else:
-            _flash(
-                request,
-                "Backup non riuscito. Controlla token GitHub e chiave BCI_IOT_DATA_BACKUP_KEY, "
-                "oppure se il backup remoto ha più account di quelli locali.",
-                kind="error",
-            )
-        return RedirectResponse("/accessi/database", status_code=303)
 
     @app.get("/invio-codici", response_class=HTMLResponse)
     def messaging_settings_page(

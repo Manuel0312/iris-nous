@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.13",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Database persone senza pannello backup",
+                "In admin si vedevano stato backup, token e Salva database ora: non serviva e confondeva.",
+                "Ora Database persone mostra solo gli account. Restano finché un admin non li elimina dal tasto Elimina.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.12",
         "intro": WHATS_NEW_INTRO,
         "entries": (
