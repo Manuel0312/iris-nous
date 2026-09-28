@@ -53,10 +53,33 @@ def _repo() -> str:
     )
 
 
+def _token_from_messaging_file() -> str:
+    """Same GitHub token the mail relay may keep in /data/messaging.json."""
+    roots: list[Path] = []
+    env_data = os.getenv("BCI_IOT_DATA_DIR", "").strip()
+    if env_data:
+        roots.append(Path(env_data))
+    roots.append(Path(__file__).resolve().parents[3] / "data")
+    for root in roots:
+        path = root / "messaging.json"
+        if not path.is_file():
+            continue
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if isinstance(data, dict):
+            token = str(data.get("github_mail_token") or "").strip()
+            if token:
+                return token
+    return ""
+
+
 def _token() -> str:
     return (
         os.getenv("BCI_IOT_DATA_BACKUP_TOKEN", "").strip()
         or os.getenv("BCI_IOT_GITHUB_MAIL_TOKEN", "").strip()
+        or _token_from_messaging_file()
     )
 
 
@@ -72,16 +95,32 @@ def _branch() -> str:
     return (os.getenv("BCI_IOT_DATA_BACKUP_BRANCH", "").strip() or "iris-data")
 
 
+def _looks_like_hosted() -> bool:
+    """Render/Free online: env may omit BCI_IOT_ENV=production even when live."""
+    env = (os.getenv("BCI_IOT_ENV") or "").lower()
+    if env in {"prod", "production"}:
+        return True
+    if os.getenv("RENDER") or os.getenv("RENDER_SERVICE_ID"):
+        return True
+    public = (os.getenv("BCI_IOT_PUBLIC_URL") or "").lower()
+    if "onrender.com" in public:
+        return True
+    return False
+
+
 def _enabled() -> bool:
     flag = os.getenv("BCI_IOT_DATA_BACKUP", "").strip().lower()
     if flag in {"0", "false", "no", "off"}:
         return False
+    if not (_token() and _secret()):
+        return False
+    # Explicit on, hosted Render, or any non-dev environment with a token.
     if flag in {"1", "true", "yes", "on"}:
-        return bool(_token() and _secret())
+        return True
+    if _looks_like_hosted():
+        return True
     env = (os.getenv("BCI_IOT_ENV") or "").lower()
-    if env in {"prod", "production"}:
-        return bool(_token() and _secret())
-    return False
+    return env not in {"", "dev", "development", "test", "local"}
 
 
 def backup_status(*, data_root: Path | str | None = None) -> dict[str, object]:
@@ -109,11 +148,13 @@ def record_boot_restore(ok: bool, detail: str = "") -> None:
     _state["boot_restored"] = bool(ok)
     _state["boot_detail"] = (detail or ("restored" if ok else "not restored"))[:300]
     _state["enabled"] = _enabled()
-    # Until real users exist locally, never push over a possibly richer remote.
-    if not ok:
-        _state["upload_blocked"] = True
-    else:
+    detail_l = (detail or "").lower()
+    # No remote yet → allow the first upload. Only block when restore failed
+    # against an existing/richer remote (decrypt/unpack errors, etc.).
+    if ok or "no remote" in detail_l or "disabled" in detail_l:
         _state["upload_blocked"] = False
+    else:
+        _state["upload_blocked"] = True
 
 
 def clear_upload_block_if_safe(data_root: Path | str) -> None:

@@ -123,6 +123,19 @@ def test_data_backup_roundtrip(tmp_path: Path, monkeypatch) -> None:
     assert (out / "accessi.db").read_bytes() == b"sqlite-fake-content-for-backup-test"
 
 
+def test_backup_enabled_on_render_when_mail_token_present(monkeypatch) -> None:
+    from bci_iot.accounts import data_backup as dbk
+
+    monkeypatch.delenv("BCI_IOT_DATA_BACKUP", raising=False)
+    monkeypatch.delenv("BCI_IOT_ENV", raising=False)
+    monkeypatch.setenv("RENDER", "true")
+    monkeypatch.setenv("BCI_IOT_GITHUB_MAIL_TOKEN", "ghp_test_token")
+    monkeypatch.setenv("BCI_IOT_SESSION_SECRET", "session-secret")
+    assert dbk._enabled() is True
+    monkeypatch.setenv("BCI_IOT_DATA_BACKUP", "0")
+    assert dbk._enabled() is False
+
+
 def test_backup_refuses_overwrite_richer_remote(tmp_path: Path, monkeypatch) -> None:
     """Admin-only local DB must not replace a remote bundle that has real users."""
     from bci_iot.accounts import data_backup as dbk

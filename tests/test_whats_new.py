@@ -28,7 +28,7 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
     assert "Novità" in page.text
     assert f"Versione {__version__}" in page.text or __version__ in page.text
     assert "Foto profilo con volto e ritaglio" in page.text or "Foto utente tonda in admin" in page.text
-    assert "Foto utente tonda in admin" in page.text
+    assert "Backup account sempre attivo online" in page.text
     assert "whats-new-body" in page.text
     assert "whats-new-problem" not in page.text
     assert "Versioni precedenti" in page.text or "whats-new-history" in page.text

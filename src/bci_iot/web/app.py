@@ -245,6 +245,16 @@ def create_app(
                     "account restore did not apply: %s",
                     data_backup_mod.backup_status(data_root=data_root).get("boot_detail"),
                 )
+                # Seed iris-data ASAP so the next redeploy has something to restore.
+                try:
+                    data_backup_mod.schedule_backup(data_root, delay_s=2.0, force=True)
+                except Exception:
+                    pass
+            else:
+                try:
+                    data_backup_mod.schedule_backup(data_root, delay_s=5.0, force=True)
+                except Exception:
+                    pass
         except Exception as exc:  # noqa: BLE001
             try:
                 from bci_iot.accounts import data_backup as data_backup_mod

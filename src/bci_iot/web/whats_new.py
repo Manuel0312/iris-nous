@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.16",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Backup account sempre attivo online",
+                "Anche con la mail Iris già collegata, a volte gli account sparivano al deploy perché il salvataggio automatico non partiva.",
+                "Ora, sul sito online, il backup su GitHub si attiva da solo quando c’è il token della mail: gli account restano dopo Manual Deploy e si cancellano solo con Elimina.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.15",
         "intro": WHATS_NEW_INTRO,
         "entries": (
