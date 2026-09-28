@@ -84,10 +84,12 @@ def _token() -> str:
 
 
 def _secret() -> str:
+    # Prefer explicit backup key, then the GitHub mail token (stable across
+    # Render redeploys). SESSION_SECRET alone can rotate and break restores.
     return (
         os.getenv("BCI_IOT_DATA_BACKUP_KEY", "").strip()
-        or os.getenv("BCI_IOT_SESSION_SECRET", "").strip()
         or _token()
+        or os.getenv("BCI_IOT_SESSION_SECRET", "").strip()
     )
 
 
