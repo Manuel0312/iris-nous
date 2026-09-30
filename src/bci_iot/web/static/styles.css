@@ -2940,13 +2940,23 @@ html[data-theme-resolved="dark"] .password-toggle:hover {
 }
 
 /* Anagrafica — match approved mockup v3 */
+.page-anagrafica .shell.private-shell {
+  width: min(720px, calc(100% - 2rem));
+  align-items: stretch;
+}
+
 .page-anagrafica .anag-area {
   gap: 1rem;
-  max-width: 52rem;
+  width: 100%;
+  max-width: 40rem;
+  margin: 0 auto;
+  align-self: center;
 }
 
 .page-anagrafica .anag-welcome {
   margin-bottom: 0.15rem;
+  text-align: left;
+  width: 100%;
 }
 
 .page-anagrafica .anag-welcome .eyebrow {
@@ -2970,6 +2980,8 @@ html[data-theme-resolved="dark"] .password-toggle:hover {
   grid-template-columns: auto minmax(0, 1fr);
   gap: 1.1rem 1.5rem;
   align-items: center;
+  justify-content: start;
+  width: 100%;
   padding: 0.15rem 0 0.35rem;
   background: transparent;
   border: 0;
