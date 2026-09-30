@@ -27,8 +27,8 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
     assert "whats-new-open" in page.text
     assert "Novità" in page.text
     assert f"Versione {__version__}" in page.text or __version__ in page.text
-    assert "Agente cuffia simulata con memoria" in page.text or "Prossima canzone via impulso cuffia" in page.text or "Foto profilo più accogliente" in page.text
-    assert "Foto profilo più accogliente" in page.text
+    assert "Foto profilo più accogliente" in page.text or "Pagina dati più quieta" in page.text
+    assert "Pagina dati più quieta" in page.text
     assert "whats-new-body" in page.text
     assert "whats-new-problem" not in page.text
     assert "Versioni precedenti" in page.text or "whats-new-history" in page.text
