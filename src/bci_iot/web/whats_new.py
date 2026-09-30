@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.28",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Le mie chat più chiare",
+                "Accanto alla richiesta di chat c’era un riquadro «Suggerimenti» sulle bolle, poco utile senza conversazioni, e Le mie chat era spoglia.",
+                "Ora a destra vedi le tue chat (o un invito calmo se non ce ne sono), e la pagina Le mie chat elenca aperte/chiuse e gli avvisi in modo più ordinato.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.27",
         "intro": WHATS_NEW_INTRO,
         "entries": (

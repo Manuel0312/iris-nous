@@ -5084,4 +5084,125 @@ body.page-chat .shell.wide,
   }
 }
 
+/* Chat side: recent chats instead of empty “Suggerimenti” */
+.page-chat .chat-side-history .chat-side-list {
+  margin: 0.35rem 0 0.65rem;
+  max-height: min(42vh, 18rem);
+  overflow: auto;
+}
+
+.page-chat .chat-side-more {
+  margin: 0.35rem 0 0;
+  font-size: 0.92rem;
+}
+
+.page-chat .chat-side-more a {
+  font-weight: 650;
+}
+
+/* Le mie chat */
+.page-mie-chat .shell.private-shell {
+  width: min(720px, calc(100% - 1.5rem));
+}
+
+.page-mie-chat .mie-chat-area {
+  gap: 1rem;
+  width: 100%;
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+.page-mie-chat .mie-chat-welcome h1 {
+  font-size: clamp(1.45rem, 4vw, 2rem);
+  margin: 0.1rem 0 0.35rem;
+}
+
+.page-mie-chat .mie-chat-welcome .lede {
+  margin: 0;
+  color: color-mix(in srgb, var(--ink) 62%, transparent);
+}
+
+.page-mie-chat .mie-chat-panel {
+  padding: 1.05rem 1.1rem 1.15rem;
+}
+
+.page-mie-chat .mie-chat-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.page-mie-chat .mie-chat-panel-head h2 {
+  margin: 0;
+  font-size: 1.08rem;
+}
+
+.page-mie-chat .mie-chat-new {
+  min-height: 42px;
+  border-radius: 999px;
+  padding-inline: 1.1rem;
+}
+
+.page-mie-chat .mie-chat-list {
+  margin: 0;
+}
+
+.page-mie-chat .mie-chat-empty {
+  display: grid;
+  gap: 0.85rem;
+  justify-items: start;
+  padding: 0.35rem 0 0.15rem;
+}
+
+.page-mie-chat .mie-chat-empty .btn {
+  min-height: 46px;
+  border-radius: 999px;
+}
+
+.page-mie-chat .mie-notice-card {
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+}
+
+.page-mie-chat .mie-notice-card p {
+  margin: 0.35rem 0;
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+
+.page-mie-chat .mie-notice-card time {
+  display: block;
+  font-size: 0.86rem;
+}
+
+@media (max-width: 720px) {
+  .page-mie-chat .shell.private-shell {
+    width: min(100%, calc(100% - 1rem));
+  }
+  .page-mie-chat .mie-chat-area {
+    max-width: none;
+  }
+  .page-mie-chat .mie-chat-welcome {
+    text-align: center;
+  }
+  .page-mie-chat .mie-chat-panel-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .page-mie-chat .mie-chat-new,
+  .page-mie-chat .mie-chat-empty .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .page-mie-chat .mie-chat-empty {
+    justify-items: center;
+    text-align: center;
+  }
+}
+
 

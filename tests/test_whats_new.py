@@ -27,8 +27,8 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
     assert "whats-new-open" in page.text
     assert "Novità" in page.text
     assert f"Versione {__version__}" in page.text or __version__ in page.text
-    assert "Dati personali su telefono, iPad e PC" in page.text or "Senza verifica telefono, password più in vista" in page.text
-    assert "Senza verifica telefono, password più in vista" in page.text
+    assert "Senza verifica telefono, password più in vista" in page.text or "Le mie chat più chiare" in page.text
+    assert "Le mie chat più chiare" in page.text
     assert "whats-new-body" in page.text
     assert "whats-new-problem" not in page.text
     assert "Versioni precedenti" in page.text or "whats-new-history" in page.text

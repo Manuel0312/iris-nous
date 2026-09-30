@@ -130,10 +130,32 @@
         </form>
       </div>
       {% else %}
-      <div class="panel contact-mail-form chat-side-card chat-side-hints">
-        <h2>{{ t('Suggerimenti') }}</h2>
-        <p class="form-hint">{{ t('Le tue bolle sono verdi a destra. Le risposte del team Iris sono grigie a sinistra.') }}</p>
-        <p><a href="/le-mie-notifiche">{{ t('Le mie chat') }}</a></p>
+      <div class="panel contact-mail-form chat-side-card chat-side-history">
+        <h2>{{ t('Le tue chat') }}</h2>
+        {% if chat_history %}
+        <p class="form-hint">{{ t('Tocca una conversazione per riaprirla qui.') }}</p>
+        <ul class="user-notice-list chat-history-list chat-side-list">
+          {% for trow in chat_history[:5] %}
+          <li>
+            <a href="/chatta?thread={{ trow.id }}">
+              <strong>{{ trow.subject or t('Chatta con noi') }}</strong>
+              <div class="muted">{{ trow.updated_at | it_time(lang) }} ·
+                {% if trow.closed_at %}{{ t('Chiusa') }}
+                {% elif trow.status == 'replied' %}{{ t('Aperta · risposta del team') }}
+                {% elif trow.status == 'viewed' %}{{ t('Aperta · in lettura') }}
+                {% else %}{{ t('Aperta · in attesa') }}{% endif %}
+              </div>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        <p class="chat-side-more"><a href="/le-mie-notifiche">{{ t('Vedi tutte in Le mie chat') }}</a></p>
+        {% else %}
+        <p class="form-hint">{{ t('Quando scrivi al team, le conversazioni restano qui e in Le mie chat.') }}</p>
+        <p class="private-actions chat-side-actions">
+          <a class="btn" href="/le-mie-notifiche">{{ t('Le mie chat') }}</a>
+        </p>
+        {% endif %}
       </div>
       {% endif %}
     </aside>
@@ -166,7 +188,7 @@
   </details>
   {% endif %}
 
-  {% if profile and chat_history %}
+  {% if profile and chat_history and (live or closed_view) %}
   <div class="panel chat-history-panel">
     <h2>{{ t('Le tue chat') }}</h2>
     <p class="form-hint">{{ t('Aperte e chiuse: tocca per leggere. Solo una chat alla volta può restare aperta.') }}</p>
@@ -185,9 +207,8 @@
       </li>
       {% endfor %}
     </ul>
+    <p class="chat-side-more"><a href="/le-mie-notifiche">{{ t('Vedi tutte in Le mie chat') }}</a></p>
   </div>
-  {% elif profile %}
-  <p class="muted chat-history-empty"><a href="/le-mie-notifiche">{{ t('Le mie chat') }}</a></p>
   {% endif %}
 
   <p class="chat-disclaimer chat-disclaimer-full">{{ t(chat_disclaimer) }}</p>

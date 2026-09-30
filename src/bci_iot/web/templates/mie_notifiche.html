@@ -1,16 +1,21 @@
 {% extends "base.html" %}
 {% block title %}{{ t('Le mie chat') }} · Iris{% endblock %}
-{% block body_class %}page-private{% endblock %}
-{% block main_class %}shell{% endblock %}
+{% block body_class %}page-private page-mie-chat{% endblock %}
+{% block main_class %}shell private-shell{% endblock %}
 {% block content %}
-<section class="dash">
-  <h1>{{ t('Le mie chat') }}</h1>
-  <p class="lede">{{ t('Storico delle conversazioni con il team: aperte e chiuse. Più sotto, gli avvisi di sistema.') }}</p>
+<section class="private-area mie-chat-area">
+  <header class="private-welcome mie-chat-welcome">
+    <h1>{{ t('Le mie chat') }}</h1>
+    <p class="lede">{{ t('Qui trovi le conversazioni con il team: aperte e chiuse.') }}</p>
+  </header>
 
-  <div class="panel">
-    <h2>{{ t('Chat con Iris') }}</h2>
+  <div class="panel mie-chat-panel">
+    <div class="mie-chat-panel-head">
+      <h2>{{ t('Chat con Iris') }}</h2>
+      <a class="btn primary mie-chat-new" href="/chatta">{{ t('Chatta con noi') }}</a>
+    </div>
     {% if threads %}
-    <ul class="user-notice-list chat-history-list">
+    <ul class="user-notice-list chat-history-list mie-chat-list">
       {% for trow in threads %}
       <li>
         <a href="/chatta?thread={{ trow.id }}">
@@ -26,22 +31,24 @@
       {% endfor %}
     </ul>
     {% else %}
-    <p class="muted">{{ t('Nessuna chat ancora. Vai su Chatta con noi per scriverci.') }}</p>
+    <div class="mie-chat-empty">
+      <p class="form-hint">{{ t('Ancora nessuna conversazione. Quando ti serve, scrivici da Chatta con noi.') }}</p>
+      <a class="btn primary" href="/chatta">{{ t('Chatta con noi') }}</a>
+    </div>
     {% endif %}
-    <p style="margin-top:1rem"><a class="btn primary" href="/chatta">{{ t('Chatta con noi') }}</a></p>
   </div>
 
-  <div class="panel">
+  <div class="panel mie-chat-panel mie-chat-notices">
     <h2>{{ t('Avvisi di sistema') }}</h2>
     {% if notices %}
     <ul class="user-notice-list">
       {% for n in notices %}
       <li>
-        <div style="padding:0.9rem 1rem;border:1px solid var(--line);border-radius:12px;background:var(--bg-elev)">
+        <article class="mie-notice-card">
           <strong>{{ n.title }}</strong>
-          <p style="margin:0.35rem 0;white-space:pre-wrap">{{ n.body }}</p>
+          <p>{{ n.body }}</p>
           <time class="muted">{{ n.created_at | it_time(lang) }}</time>
-        </div>
+        </article>
       </li>
       {% endfor %}
     </ul>
