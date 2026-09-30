@@ -5,9 +5,7 @@
 {% block content %}
 <section class="private-area anag-area">
   <header class="private-welcome anag-welcome">
-    <p class="eyebrow">{% if profile.anagrafica_complete %}{{ t('Profilo') }}{% else %}{{ t('Un attimo') }}{% endif %}</p>
-    <h1>{% if profile.anagrafica_complete %}{{ t('I tuoi dati') }}{% else %}{{ t('Chi sei, per Iris.') }}{% endif %}</h1>
-    <p class="lede">{{ t('Qui restano solo le cose tue.') }}</p>
+    <h1>{{ t('I tuoi dati personali') }}</h1>
   </header>
 
   {% if profile.verification_pending and profile.anagrafica_complete %}
@@ -99,7 +97,7 @@
           <input name="email" type="email" value="{{ profile.email }}" required maxlength="254" autocomplete="email" inputmode="email" placeholder="nome@gmail.com" pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}" title="{{ t('Serve un dominio con estensione, es. nome@gmail.com') }}" />
         </label>
         {% if profile.email_verified %}
-        <p class="verify-ok anag-ok">{{ t('Tutto ok') }}</p>
+        <p class="verify-ok anag-ok">{{ t('Email verificata') }}</p>
         {% elif profile.email %}
         <div class="email-verify-box">
           <form method="post" action="/verifica/invia" class="email-verify-send">

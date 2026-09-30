@@ -220,6 +220,8 @@ def test_anagrafica_photo_crop_ui(tmp_path: Path) -> None:
     assert "Come ti chiami" in page.text
     assert "Come ti senti" in page.text
     assert "anag-card" in page.text
+    assert "I tuoi dati personali" in page.text
+    assert "Email verificata" in page.text or "photo-face-dialog" in page.text
     assert "avatar hero" in page.text or 'class="avatar hero"' in page.text
 
 
