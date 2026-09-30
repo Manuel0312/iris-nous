@@ -3136,6 +3136,20 @@ html[data-theme-resolved="dark"] .password-toggle:hover {
   color: color-mix(in srgb, var(--ink) 55%, transparent);
 }
 
+.page-anagrafica .anag-btn-password {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1rem;
+  width: 100%;
+  min-height: 50px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.98rem;
+  text-align: center;
+  box-sizing: border-box;
+}
+
 .page-anagrafica .anag-footer-actions {
   display: flex;
   flex-wrap: wrap;
