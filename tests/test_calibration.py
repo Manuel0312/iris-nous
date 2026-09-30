@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from bci_iot.pipeline.calibration_wizard import CALIBRATION_COLORS, CalibrationSession
@@ -16,6 +17,8 @@ def test_calibration_session_capture_and_finish(tmp_path: Path) -> None:
         headset_id="cuffia-test",
         pairing_code="123456",
         samples_per_word=2,
+        prefer_brainflow=False,
+        data_root=tmp_path,
     )
     for colour in CALIBRATION_COLORS:
         for _ in range(2):
@@ -24,15 +27,57 @@ def test_calibration_session_capture_and_finish(tmp_path: Path) -> None:
             assert result.command == colour
             assert result.folder
             assert result.color_name
+            assert result.signal_source == "prior_fallback"
     # Folder alias → colour
     assert sess.capture("video").command == "ROSSO"
     assert sess.complete_enough()
-    path, acc = sess.finish(models_dir=tmp_path)
+    path, acc = sess.finish(models_dir=tmp_path / "models")
     assert path.exists()
     assert 0.0 <= acc <= 1.0
+    latest = tmp_path / "calibration" / "maria" / "latest.json"
+    assert latest.is_file()
 
 
-def test_web_calibration_flow(tmp_path: Path) -> None:
+def test_calibration_rejects_disconnected_mode() -> None:
+    sess = CalibrationSession(
+        username="maria",
+        headset_id="cuffia-test",
+        pairing_code="123456",
+        headset_mode="disconnected",
+        prefer_brainflow=False,
+    )
+    with pytest.raises(ValueError, match="non collegata"):
+        sess.capture("ROSSO")
+
+
+@pytest.mark.skipif(
+    __import__("bci_iot.acquisition", fromlist=["brainflow_available"]).brainflow_available()
+    is False,
+    reason="brainflow not installed",
+)
+def test_calibration_capture_brainflow_path() -> None:
+    sess = CalibrationSession(
+        username="maria",
+        headset_id="cuffia-bf",
+        pairing_code="123456",
+        samples_per_word=1,
+        prefer_brainflow=True,
+        headset_mode="simulated",
+    )
+    result = sess.capture("ROSSO")
+    assert result.signal_source == "brainflow_synthetic"
+    assert result.intensity > 0
+
+
+def test_web_calibration_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "bci_iot.pipeline.calibration_wizard.brainflow_available",
+        lambda: False,
+    )
+    monkeypatch.setattr(
+        "bci_iot.pipeline.headset_agent.brainflow_available",
+        lambda: False,
+    )
     app = create_app(data_dir=tmp_path, session_secret="calib-secret")
     client = TestClient(app)
 
@@ -65,11 +110,24 @@ def test_web_calibration_flow(tmp_path: Path) -> None:
 
     page = client.get("/calibrazione")
     assert page.status_code == 200
-    assert "associazione" in page.text.lower() or "codice" in page.text.lower()
+    assert "cuffia" in page.text.lower() or "Simulata" in page.text
+    cfg = client.get("/calibrazione?passo=1")
+    assert cfg.status_code == 200
+    assert "Agente cuffia" in cfg.text
+    assert "agent-power-on" in cfg.text
+    assert "agent-impulse" in cfg.text
+    assert "Simulata (BrainFlow)" in cfg.text
+    saved = client.post(
+        "/api/headset/configure",
+        json={"mode": "simulated", "headset_id": "cuffia-maria"},
+    )
+    assert saved.status_code == 200
+    assert saved.json()["headset"]["mode"] == "simulated"
+
     intro = client.get("/inizia")
     assert intro.status_code == 200
     assert "Iniziamo" in intro.text
-    colors = client.get("/calibrazione?passo=3")
+    colors = client.get("/calibrazione?passo=4")
     assert colors.status_code == 200
     assert "Video" in colors.text
     assert "rosso" in colors.text.lower()
@@ -82,10 +140,12 @@ def test_web_calibration_flow(tmp_path: Path) -> None:
             assert body["command"] == colour
             assert body["folder"]
             assert body["color_name"]
+            assert body["signal_source"] == "prior_fallback"
 
     fin = client.post("/api/calibrate/finish")
     assert fin.status_code == 200
     assert fin.json()["status"] == "ok"
+    assert fin.json()["accuracy_kind"] == "holdout"
 
     done = client.get("/calibrazione?done=1&acc=1")
     assert "Calibrazione avvenuta" in done.text

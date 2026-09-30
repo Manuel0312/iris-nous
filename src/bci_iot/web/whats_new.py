@@ -10,6 +10,50 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.21",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Foto profilo più accogliente",
+                "I testi della foto sembravano istruzioni da scanner e, se la foto non aveva un volto, non usciva un avviso chiaro; c’era anche troppo spazio vuoto.",
+                "Ora il tono è più naturale, l’avatar è più grande, il layout è più compatto e, se manca un volto, compare un popup che chiede un’altra foto per sicurezza.",
+            ),
+        ),
+    },
+    {
+        "version": "0.4.20",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Prossima canzone via impulso cuffia",
+                "Il tasto Prossima canzone mandava il comando a Spotify come un click normale, senza passare dalla cuffia.",
+                "Ora il click invia un impulso mentale all’agente cuffia: se è pronta lo elabora e lo memorizza, e solo allora parte l’azione Spotify, con feedback di intensità.",
+            ),
+        ),
+    },
+    {
+        "version": "0.4.19",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Agente cuffia simulata con memoria",
+                "La cuffia sul sito era solo un’etichetta di configurazione: non “viveva” come dispositivo (accensione, indosso, contatto, impulsi) e non ricordava nulla per i passi dopo.",
+                "Ora c’è un agente cuffia: la accendi, la indossi, controlli il contatto, invii impulsi EEG simulati e salva tutto in memoria per la calibrazione e i passi successivi.",
+            ),
+        ),
+    },
+    {
+        "version": "0.4.17",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Config cuffia e calibrazione più realistica",
+                "La calibrazione sul sito inventava i segnali con prior letterari e mostrava un’accuratezza quasi sempre al 100% sugli stessi dati di addestramento.",
+                "Ora c’è il passo Configura cuffia (simulata BrainFlow, non collegata, reale in arrivo): la cattura usa lo stream simulato quando possibile, con conto alla rovescia e stima holdout onesta; i colori restano una metafora dichiarata.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.16",
         "intro": WHATS_NEW_INTRO,
         "entries": (

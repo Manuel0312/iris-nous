@@ -77,10 +77,20 @@ def test_phone_pairing_and_heartbeat(tmp_path: Path) -> None:
     assert body["status"] == "ok"
 
     music = client.post("/api/music/next")
-    assert music.status_code == 200
-    payload = music.json()
+    assert music.status_code == 400
+    assert "cuffia" in music.json()["detail"].lower()
+
+    # Prepare simulated headset, then impulse → Spotify path (Spotify still unlinked).
+    assert client.post("/api/headset/power", json={"on": True}).status_code == 200
+    assert client.post("/api/headset/wear", json={"on_head": True}).status_code == 200
+    music_ready = client.post("/api/music/next")
+    assert music_ready.status_code == 200
+    payload = music_ready.json()
     assert payload["status"] == "error"
     assert "Spotify" in payload["detail"]
+    assert payload["via"] == "headset_impulse"
+    assert payload["impulse"]["kind"] == "NEXT_TRACK"
+    assert payload["agent"]["impulses_count"] >= 1
 
 
 def test_pairing_code_is_emailed_and_can_be_resent(tmp_path: Path) -> None:
@@ -88,7 +98,7 @@ def test_pairing_code_is_emailed_and_can_be_resent(tmp_path: Path) -> None:
     client = TestClient(app)
     _register(client)
 
-    page = client.get("/calibrazione")
+    page = client.get("/calibrazione?passo=2")
     assert page.status_code == 200
     assert "Invia il codice via email" in page.text
     profile = app.state.store.get("maria")

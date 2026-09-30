@@ -129,3 +129,52 @@ class BrainFlowSyntheticSource(EEGSource):
         raise TimeoutError(
             f"BrainFlow SyntheticBoard did not provide {n_samples} samples in time"
         )
+
+
+def capture_one_brainflow_window(
+    *,
+    window_seconds: float = 1.0,
+    n_channels: int = 8,
+) -> EEGWindow:
+    """Open SyntheticBoard, grab one window, close — same API path as a real board.
+
+    Blocking I/O: call from a worker thread when used under FastAPI.
+    """
+
+    source = BrainFlowSyntheticSource(
+        window_seconds=window_seconds,
+        n_channels=n_channels,
+        max_windows=1,
+    )
+    with source:
+        windows = list(source.iter_windows())
+    if not windows:
+        raise RuntimeError("BrainFlow SyntheticBoard returned no EEG window")
+    return windows[0]
+
+
+def probe_brainflow_connection() -> dict[str, object]:
+    """Quick health check for the Config cuffia UI (simulated board)."""
+
+    if not brainflow_available():
+        return {
+            "ok": False,
+            "mode": "unavailable",
+            "detail": "brainflow non installato (pip install -e \".[acquisition]\")",
+        }
+    try:
+        window = capture_one_brainflow_window(window_seconds=0.5, n_channels=4)
+        return {
+            "ok": True,
+            "mode": "simulated",
+            "detail": "SyntheticBoard ok",
+            "channels": int(window.data.shape[0]),
+            "samples": int(window.data.shape[1]),
+            "sample_rate_hz": float(window.sample_rate_hz),
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "ok": False,
+            "mode": "simulated",
+            "detail": str(exc)[:240],
+        }

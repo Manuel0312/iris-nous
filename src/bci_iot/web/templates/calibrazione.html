@@ -7,14 +7,14 @@
   {% if done %}
   <header class="setup-hero">
     <p class="eyebrow">{{ t('Configurazione') }}</p>
-    <h1>{{ t('Sei pronto.') }}</h1>
-    <p class="lede">{{ t('Iris ha imparato i tuoi quattro colori. Da qui in poi pensi, e il resto accade.') }}</p>
+    <h1>{{ t('Protocollo di calibrazione completato.') }}</h1>
+    <p class="lede">{{ t('Hai registrato i quattro colori con il percorso dati della cuffia (simulata o prior). Non è ancora una lettura cerebrale fisica: è il protocollo che userai con l’hardware.') }}</p>
   </header>
   <div class="setup-done">
-    <p class="setup-accuracy">{{ t('Precisione stimata') }}
+    <p class="setup-accuracy">{{ t('Stima holdout (calibrazione)') }}
       <strong>{{ '%.0f'|format(accuracy * 100) if accuracy is not none else '—' }}%</strong>
     </p>
-    <p class="lede muted">{{ t('Calibrazione avvenuta') }}</p>
+    <p class="lede muted">{{ t('Calibrazione avvenuta') }} · {{ t('segnale simulato finché non colleghi una cuffia reale') }}</p>
     <div class="private-actions">
       <a class="btn primary" href="/dashboard">{{ t('Apri l’ecosistema') }}</a>
       <a class="btn" href="/inizia">{{ t('Cosa puoi fare') }}</a>
@@ -22,10 +22,11 @@
   </div>
   {% else %}
   <header class="setup-hero">
-    <p class="eyebrow">{{ t('Configurazione') }} · {{ passo }} / 3</p>
+    <p class="eyebrow">{{ t('Configurazione') }} · {{ passo }} / 4</p>
     <h1>
-      {% if passo == 1 %}{{ t('Il codice, quando lo chiedi.') }}
-      {% elif passo == 2 %}{{ t('Il telefono, se ti serve.') }}
+      {% if passo == 1 %}{{ t('La cuffia.') }}
+      {% elif passo == 2 %}{{ t('Il codice, quando lo chiedi.') }}
+      {% elif passo == 3 %}{{ t('Il telefono, se ti serve.') }}
       {% else %}{{ t('I quattro colori.') }}{% endif %}
     </h1>
   </header>
@@ -34,9 +35,64 @@
     <a href="/calibrazione?passo=1" class="{% if passo == 1 %}is-on{% endif %}">1</a>
     <a href="/calibrazione?passo=2" class="{% if passo == 2 %}is-on{% endif %}">2</a>
     <a href="/calibrazione?passo=3" class="{% if passo == 3 %}is-on{% endif %}">3</a>
+    <a href="/calibrazione?passo=4" class="{% if passo == 4 %}is-on{% endif %}">4</a>
   </nav>
 
   {% if passo == 1 %}
+  <article class="setup-step wizard-pane" id="headset-config">
+    <p>{{ t('Questa è la cuffia simulata: trattala come se fosse in mano e poi in testa. Si accende, controlla il contatto, riceve impulsi e salva tutto in memoria per i passi dopo.') }}</p>
+    {% if headset.hosted_hint %}
+    <p class="flash warn">{{ headset.hosted_hint }}</p>
+    {% endif %}
+    <div class="headset-device panel" id="agent-panel"
+         data-ready="{{ '1' if agent and agent.ready_for_impulses else '0' }}">
+      <p class="device-label">{{ t('Agente cuffia') }}</p>
+      <p><strong id="agent-label">{% if agent %}{{ agent.label }}{% else %}{{ t('Spenta') }}{% endif %}</strong></p>
+      <p class="muted" id="agent-detail">{% if agent %}{{ agent.detail }}{% else %}{{ t('Accendi la cuffia simulata come se l’avessi in mano.') }}{% endif %}</p>
+      <ul class="detail-list" id="agent-stats">
+        <li><span>{{ t('Alimentazione') }}</span><strong id="agent-power">{% if agent %}{{ agent.power }}{% else %}off{% endif %}</strong></li>
+        <li><span>{{ t('In testa') }}</span><strong id="agent-wear">{% if agent and agent.wear == 'on_head' %}{{ t('sì') }}{% else %}{{ t('no') }}{% endif %}</strong></li>
+        <li><span>{{ t('Contatto') }}</span><strong id="agent-contact-val">{% if agent and agent.contact_ok %}{{ t('ok') }} · {{ '%.0f'|format(agent.contact_mean * 100) }}%{% elif agent %}{{ t('da verificare') }}{% else %}—{% endif %}</strong></li>
+        <li><span>{{ t('Impulsi in memoria') }}</span><strong id="agent-impulses">{% if agent %}{{ agent.impulses_count }}{% else %}0{% endif %}</strong></li>
+        <li><span>{{ t('Sorgente segnale') }}</span><strong id="agent-signal">{% if agent %}{{ agent.signal_path }}{% else %}pending{% endif %}</strong></li>
+      </ul>
+      <div class="contact-bars" id="contact-bars" aria-hidden="true"></div>
+      <div class="private-actions headset-actions">
+        <button class="btn primary" type="button" id="agent-power-on">{{ t('Accendi') }}</button>
+        <button class="btn" type="button" id="agent-wear-on">{{ t('Indossa (in testa)') }}</button>
+        <button class="btn" type="button" id="agent-contact-btn">{{ t('Controlla contatto') }}</button>
+        <button class="btn" type="button" id="agent-impulse">{{ t('Prova impulso') }}</button>
+        <button class="btn ghost" type="button" id="agent-power-off">{{ t('Spegni') }}</button>
+      </div>
+      <div class="calib-meter panel" id="impulse-meter" hidden>
+        <p class="device-label">{{ t('Ultimo impulso ricevuto') }}</p>
+        <p id="impulse-last" class="calib-last"></p>
+        <div class="meter-track"><div class="meter-fill" id="impulse-fill"></div></div>
+      </div>
+    </div>
+    <form class="stack" id="headset-form">
+      <label>{{ t('Modalità') }}
+        <select name="mode" id="headset-mode">
+          <option value="simulated" {% if headset.mode == 'simulated' %}selected{% endif %}>{{ t('Simulata (BrainFlow)') }}</option>
+          <option value="disconnected" {% if headset.mode == 'disconnected' %}selected{% endif %}>{{ t('Non collegata') }}</option>
+          <option value="real" {% if headset.mode == 'real' %}selected{% endif %}>{{ t('Reale (prossimamente)') }}</option>
+        </select>
+      </label>
+      <label>{{ t('ID cuffia') }}
+        <input name="headset_id" id="headset-id-input" value="{{ profile.headset_id }}" maxlength="128" autocomplete="off" />
+      </label>
+      <div class="private-actions">
+        <button class="btn" type="submit" id="headset-save">{{ t('Salva configurazione cuffia') }}</button>
+      </div>
+      <p class="flash error" id="headset-error" hidden></p>
+      <p class="flash ok" id="headset-ok" hidden></p>
+    </form>
+    <div class="wizard-nav">
+      <a class="btn ghost" href="/inizia">{{ t('Indietro') }}</a>
+      <a class="btn primary" href="/calibrazione?passo=2" id="headset-next">{{ t('Avanti') }}</a>
+    </div>
+  </article>
+  {% elif passo == 2 %}
   <article class="setup-step wizard-pane">
     <p>{{ t('Quando premi il pulsante, generiamo un codice a 6 cifre e lo mandiamo alla tua email. Serve per la cuffia e, se vuoi, per lo smartphone.') }}</p>
     {% if pairing_mail_sent and pairing_email_masked %}
@@ -46,11 +102,11 @@
       <button class="btn primary" type="submit">{{ t('Invia il codice via email') }}</button>
     </form>
     <div class="wizard-nav">
-      <a class="btn ghost" href="/inizia">{{ t('Indietro') }}</a>
-      <a class="btn primary" href="/calibrazione?passo=2">{{ t('Avanti') }}</a>
+      <a class="btn ghost" href="/calibrazione?passo=1">{{ t('Indietro') }}</a>
+      <a class="btn primary" href="/calibrazione?passo=3">{{ t('Avanti') }}</a>
     </div>
   </article>
-  {% elif passo == 2 %}
+  {% elif passo == 3 %}
   <article class="setup-step wizard-pane">
     <p>{{ t('Per chiamate e notifiche native il telefono diventa un ponte. Non è obbligatorio. Apri la mail, inquadra il QR o scrivi il codice.') }}</p>
     <p class="muted">{{ t('Cuffia') }}: <strong>{{ profile.headset_id or t('Cuffia non nominata') }}</strong>
@@ -59,13 +115,19 @@
     </p>
     <p><a class="btn" href="/associa-telefono">{{ t('Apri l’associazione') }}</a></p>
     <div class="wizard-nav">
-      <a class="btn ghost" href="/calibrazione?passo=1">{{ t('Indietro') }}</a>
-      <a class="btn primary" href="/calibrazione?passo=3">{{ t('Avanti') }}</a>
+      <a class="btn ghost" href="/calibrazione?passo=2">{{ t('Indietro') }}</a>
+      <a class="btn primary" href="/calibrazione?passo=4">{{ t('Avanti') }}</a>
     </div>
   </article>
   {% else %}
   <article class="setup-step wizard-pane">
-    <p class="form-hint" id="calib-cue">{{ t('Tocca un riquadro e immagina quel colore. Ripeti ogni colore') }} {{ samples_needed }} {{ t('volte. È il tuo Face ID: una volta sola, poi Iris ti riconosce.') }}</p>
+    <p class="form-hint" id="calib-cue">{{ t('Tocca un riquadro, resta fermo durante il conto alla rovescia, poi registriamo una finestra EEG (simulata). Ripeti ogni colore') }} {{ samples_needed }} {{ t('volte. I colori sono una metafora: non esiste un EEG del rosso.') }}</p>
+    <p class="muted" id="calib-source-badge">{{ t('Sorgente') }}: <strong>{{ headset.signal_source }}</strong>
+      · {{ t('Modalità') }}: <strong>{{ headset.label }}</strong></p>
+    <div class="calib-countdown panel" id="calib-countdown" hidden>
+      <p class="device-label" id="calib-countdown-label">{{ t('Preparati') }}</p>
+      <p class="calib-countdown-num" id="calib-countdown-num">3</p>
+    </div>
     <div class="calib-colors" id="calib-colors">
       {% for c in colours %}
       <button type="button" class="calib-color-tile" data-word="{{ c.key }}"
@@ -80,6 +142,7 @@
       <p class="device-label">{{ t('Ultima cattura') }}</p>
       <p id="calib-last" class="calib-last"></p>
       <div class="meter-track"><div class="meter-fill" id="meter-fill"></div></div>
+      <p class="muted" id="calib-qc"></p>
     </div>
     <ul class="calib-progress muted" id="calib-progress">
       {% for c in colours %}
@@ -88,7 +151,7 @@
     </ul>
     <p class="flash error" id="calib-error" hidden></p>
     <div class="wizard-nav">
-      <a class="btn ghost" href="/calibrazione?passo=2">{{ t('Indietro') }}</a>
+      <a class="btn ghost" href="/calibrazione?passo=3">{{ t('Indietro') }}</a>
       <button type="button" class="btn primary" id="calib-finish" disabled>{{ t('Termina calibrazione') }}</button>
     </div>
   </article>
@@ -96,7 +159,157 @@
   {% endif %}
 </section>
 
-{% if not done and passo == 3 %}
+{% if not done and passo == 1 %}
+<script>
+(function () {
+  const form = document.getElementById("headset-form");
+  const err = document.getElementById("headset-error");
+  const ok = document.getElementById("headset-ok");
+  const meter = document.getElementById("impulse-meter");
+  const impulseLast = document.getElementById("impulse-last");
+  const impulseFill = document.getElementById("impulse-fill");
+  const bars = document.getElementById("contact-bars");
+  const L = {
+    salvato: {{ t('Configurazione cuffia salvata.')|tojson }},
+    errore: {{ t('Errore configurazione cuffia')|tojson }},
+    si: {{ t('sì')|tojson }},
+    no: {{ t('no')|tojson }},
+    ok: {{ t('ok')|tojson }},
+    daVerificare: {{ t('da verificare')|tojson }},
+    impulsoOk: {{ t('Impulso ricevuto e salvato in memoria.')|tojson }},
+  };
+
+  function renderBars(channels) {
+    if (!bars) return;
+    bars.innerHTML = "";
+    (channels || []).forEach((v) => {
+      const d = document.createElement("div");
+      d.className = "contact-bar";
+      d.style.setProperty("--h", Math.round(Math.max(0, Math.min(1, v)) * 100) + "%");
+      bars.appendChild(d);
+    });
+  }
+
+  function applyAgent(a) {
+    if (!a) return;
+    document.getElementById("agent-label").textContent = a.label || "";
+    document.getElementById("agent-detail").textContent = a.detail || "";
+    document.getElementById("agent-power").textContent = a.power || "off";
+    document.getElementById("agent-wear").textContent = a.wear === "on_head" ? L.si : L.no;
+    const contactEl = document.getElementById("agent-contact-val");
+    if (a.contact_ok) {
+      contactEl.textContent = L.ok + " · " + Math.round((a.contact_mean || 0) * 100) + "%";
+    } else {
+      contactEl.textContent = L.daVerificare;
+    }
+    document.getElementById("agent-impulses").textContent = String(a.impulses_count || 0);
+    document.getElementById("agent-signal").textContent = a.signal_path || "pending";
+    renderBars(a.contact_channels || []);
+    document.getElementById("agent-panel").dataset.ready = a.ready_for_impulses ? "1" : "0";
+  }
+
+  async function postJson(url, body) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body || {}),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || L.errore);
+    return data;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    err.hidden = true; ok.hidden = true;
+    try {
+      const data = await postJson("/api/headset/configure", {
+        mode: document.getElementById("headset-mode").value,
+        headset_id: document.getElementById("headset-id-input").value,
+      });
+      if (data.agent) applyAgent(data.agent);
+      ok.hidden = false;
+      ok.textContent = L.salvato;
+    } catch (ex) {
+      err.hidden = false;
+      err.textContent = String(ex.message || ex);
+    }
+  });
+
+  document.getElementById("agent-power-on").addEventListener("click", async () => {
+    err.hidden = true; ok.hidden = true;
+    try {
+      const data = await postJson("/api/headset/power", { on: true });
+      applyAgent(data.agent);
+      ok.hidden = false;
+      ok.textContent = data.agent.detail || L.salvato;
+    } catch (ex) {
+      err.hidden = false;
+      err.textContent = String(ex.message || ex);
+    }
+  });
+  document.getElementById("agent-power-off").addEventListener("click", async () => {
+    err.hidden = true; ok.hidden = true;
+    try {
+      const data = await postJson("/api/headset/power", { on: false });
+      applyAgent(data.agent);
+    } catch (ex) {
+      err.hidden = false;
+      err.textContent = String(ex.message || ex);
+    }
+  });
+  document.getElementById("agent-wear-on").addEventListener("click", async () => {
+    err.hidden = true; ok.hidden = true;
+    try {
+      const data = await postJson("/api/headset/wear", { on_head: true });
+      applyAgent(data.agent);
+      ok.hidden = false;
+      ok.textContent = data.agent.detail || L.salvato;
+    } catch (ex) {
+      err.hidden = false;
+      err.textContent = String(ex.message || ex);
+    }
+  });
+  document.getElementById("agent-contact-btn").addEventListener("click", async () => {
+    err.hidden = true; ok.hidden = true;
+    try {
+      const data = await postJson("/api/headset/contact", {});
+      applyAgent(data.agent);
+      ok.hidden = false;
+      ok.textContent = data.agent.contact_ok
+        ? (L.ok + " · " + Math.round((data.agent.contact_mean || 0) * 100) + "%")
+        : L.daVerificare;
+    } catch (ex) {
+      err.hidden = false;
+      err.textContent = String(ex.message || ex);
+    }
+  });
+  document.getElementById("agent-impulse").addEventListener("click", async () => {
+    err.hidden = true; ok.hidden = true;
+    try {
+      const data = await postJson("/api/headset/impulse", { kind: "ACCENDI" });
+      applyAgent(data.status);
+      meter.hidden = false;
+      const imp = data.impulse || {};
+      impulseLast.textContent = (imp.kind || "ACCENDI") + " · " + (imp.intensity || 0) + "% · " + (imp.signal_source || "");
+      impulseFill.style.width = (imp.intensity || 0) + "%";
+      ok.hidden = false;
+      ok.textContent = L.impulsoOk;
+    } catch (ex) {
+      err.hidden = false;
+      err.textContent = String(ex.message || ex);
+    }
+  });
+
+  // Initial bars if server already has contact.
+  {% if agent and agent.contact_channels %}
+  renderBars({{ agent.contact_channels|tojson }});
+  {% endif %}
+})();
+</script>
+{% endif %}
+
+{% if not done and passo == 4 %}
 <script>
 (function () {
   const progressEl = document.getElementById("calib-progress");
@@ -106,15 +319,26 @@
   const finishBtn = document.getElementById("calib-finish");
   const err = document.getElementById("calib-error");
   const cue = document.getElementById("calib-cue");
+  const qc = document.getElementById("calib-qc");
+  const countdown = document.getElementById("calib-countdown");
+  const countdownNum = document.getElementById("calib-countdown-num");
+  const countdownLabel = document.getElementById("calib-countdown-label");
   const needed = {{ samples_needed }};
   const L = {
     erroreCattura: {{ t('Errore cattura')|tojson }},
     intensita: {{ t('→ intensità')|tojson }},
-    erroreSalvataggio: {{ t('Errore salvataggio')|tojson }}
+    erroreSalvataggio: {{ t('Errore salvataggio')|tojson }},
+    preparati: {{ t('Preparati')|tojson }},
+    restaFermo: {{ t('Resta fermo')|tojson }},
+    registra: {{ t('Registra')|tojson }},
+    sorgente: {{ t('Sorgente')|tojson }},
+    pulito: {{ t('finestra pulita')|tojson }},
+    artefatti: {{ t('possibili artefatti')|tojson }},
   };
   const labels = {
     {% for c in colours %}"{{ c.key }}": "{{ c.color_name }} ({{ c.label }})",{% endfor %}
   };
+  let busy = false;
 
   function renderProgress(progress) {
     progressEl.querySelectorAll("li").forEach((li) => {
@@ -122,18 +346,41 @@
       const n = (progress && progress[w]) || 0;
       li.textContent = (labels[w] || w) + ": " + n + " / " + needed;
     });
-    const ready = Object.values(progress || {}).length >= 4 &&
-      Object.values(progress || {}).every((n) => n >= needed);
+    const vals = Object.values(progress || {});
+    const ready = vals.length >= 4 && vals.every((n) => n >= needed);
     finishBtn.disabled = !ready;
+  }
+
+  function sleep(ms) {
+    return new Promise((r) => setTimeout(r, ms));
+  }
+
+  async function runCountdown() {
+    countdown.hidden = false;
+    const steps = [
+      [L.preparati, "3"],
+      [L.restaFermo, "2"],
+      [L.registra, "1"],
+    ];
+    for (const [label, num] of steps) {
+      countdownLabel.textContent = label;
+      countdownNum.textContent = num;
+      await sleep(900);
+    }
+    countdown.hidden = true;
   }
 
   document.querySelectorAll(".calib-color-tile").forEach((btn) => {
     btn.addEventListener("click", async () => {
+      if (busy) return;
+      busy = true;
       err.hidden = true;
       const word = btn.getAttribute("data-word");
       const tip = btn.getAttribute("title");
       if (tip) cue.textContent = tip;
+      btn.disabled = true;
       try {
+        await runCountdown();
         const res = await fetch("/api/calibrate/capture", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -146,10 +393,22 @@
           " " + L.intensita + " " + data.intensity + " · " + data.intent;
         fill.style.width = data.intensity + "%";
         fill.style.background = btn.style.getPropertyValue("--folder-color") || "";
+        const src = data.signal_source || "";
+        const clean = data.is_clean ? L.pulito : L.artefatti;
+        const flags = (data.qc_flags || []).join(", ");
+        qc.textContent = L.sorgente + ": " + src + " · " + clean + (flags ? " (" + flags + ")" : "");
+        const badge = document.getElementById("calib-source-badge");
+        if (badge) {
+          badge.innerHTML = L.sorgente + ": <strong>" + src + "</strong>";
+        }
         renderProgress(data.progress);
       } catch (e) {
         err.hidden = false;
         err.textContent = String(e.message || e);
+      } finally {
+        btn.disabled = false;
+        busy = false;
+        countdown.hidden = true;
       }
     });
   });

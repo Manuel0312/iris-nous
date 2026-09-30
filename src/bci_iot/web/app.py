@@ -159,6 +159,24 @@ class EventRequest(BaseModel):
 class CaptureRequest(BaseModel):
     command: str = Field(min_length=1, max_length=32)
 
+
+class HeadsetConfigRequest(BaseModel):
+    mode: str = Field(default="simulated", max_length=32)
+    headset_id: str = Field(default="", max_length=128)
+
+
+class HeadsetPowerRequest(BaseModel):
+    on: bool = True
+
+
+class HeadsetWearRequest(BaseModel):
+    on_head: bool = True
+
+
+class HeadsetImpulseRequest(BaseModel):
+    kind: str = Field(min_length=1, max_length=32)
+    colour_key: str = Field(default="", max_length=32)
+
 def _session_username(request: Request) -> str | None:
 
     value = request.session.get("username")
@@ -2272,20 +2290,39 @@ def create_app(
             ],
         }
 
-    # --- Calibrazione cuffia (parola ↔ segnale) + associazione telefono ---
+    # --- Calibrazione cuffia (config → codice → telefono → colori) ---
+    def _is_hosted() -> bool:
+        import os
+
+        if os.getenv("RENDER") or os.getenv("RENDER_SERVICE_ID"):
+            return True
+        public = (os.getenv("BCI_IOT_PUBLIC_URL") or "").lower()
+        return "onrender.com" in public
+
     def _calib_session_for(username: str, profiles: ProfileStore):
         from bci_iot.pipeline.calibration_wizard import CalibrationSession
 
         profile = profiles.ensure_headset_pairing(username)
+        mode = profiles.get_headset_mode(username)
         sessions = app.state.calib_sessions
         sess = sessions.get(username)
-        if sess is None or sess.headset_id != profile.headset_id:
+        data_root = Path(profiles.data_root)
+        if (
+            sess is None
+            or sess.headset_id != profile.headset_id
+            or getattr(sess, "headset_mode", None) != mode
+        ):
             sess = CalibrationSession(
                 username=username,
                 headset_id=profile.headset_id,
                 pairing_code=profile.pairing_code,
+                headset_mode=mode,  # type: ignore[arg-type]
+                data_root=data_root,
             )
             sessions[username] = sess
+        else:
+            sess.headset_mode = mode  # type: ignore[assignment]
+            sess.data_root = data_root
         return sess, profile
 
     @app.get("/inizia", response_class=HTMLResponse)
@@ -2331,7 +2368,7 @@ def create_app(
                 passo = int(passo_raw)
             except ValueError:
                 passo = 1
-            passo = min(3, max(1, passo))
+            passo = min(4, max(1, passo))
         elif profile.calibration_complete:
             done = True
             passo = 0
@@ -2348,8 +2385,24 @@ def create_app(
         from bci_iot.pipeline.calibration_wizard import (
             SAMPLES_PER_COLOUR,
             colour_targets_public,
+            headset_status_payload,
         )
 
+        mode = profiles.get_headset_mode(profile.username)
+        headset = headset_status_payload(
+            mode=mode,  # type: ignore[arg-type]
+            headset_id=profile.headset_id,
+            hosted=_is_hosted(),
+        )
+        agent_status = None
+        if mode == "simulated":
+            from bci_iot.pipeline.headset_agent import get_headset_agent
+
+            agent_status = get_headset_agent(
+                username=profile.username,
+                headset_id=profile.headset_id,
+                data_root=profiles.data_root,
+            ).status()
         return TEMPLATES.TemplateResponse(
             request,
             "calibrazione.html",
@@ -2362,12 +2415,188 @@ def create_app(
                 done=done,
                 passo=passo,
                 accuracy=accuracy,
+                headset=headset,
+                agent=agent_status,
                 pairing_mail_sent=_pairing_mail_already_sent(profile),
                 pairing_email_masked=mask_destination(profile.email or "", channel="email")
                 if profile.email
                 else "",
             ),
         )
+
+    @app.get("/api/headset/status")
+    def api_headset_status(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        from bci_iot.pipeline.calibration_wizard import headset_status_payload
+
+        profile = profiles.ensure_headset_pairing(username)
+        mode = profiles.get_headset_mode(username)
+        return headset_status_payload(
+            mode=mode,  # type: ignore[arg-type]
+            headset_id=profile.headset_id,
+            hosted=_is_hosted(),
+        )
+
+    @app.post("/api/headset/configure")
+    def api_headset_configure(
+        request: Request,
+        body: HeadsetConfigRequest,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        from bci_iot.pipeline.calibration_wizard import headset_status_payload
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
+        profiles.ensure_headset_pairing(
+            username,
+            headset_id=body.headset_id or None,
+        )
+        profiles.set_headset_mode(username, body.mode)
+        # Reset calib session so next capture uses the new mode.
+        app.state.calib_sessions.pop(username, None)
+        profile = profiles.get(username)
+        assert profile is not None
+        mode = profiles.get_headset_mode(username)
+        agent_status = None
+        if mode == "simulated":
+            agent = get_headset_agent(
+                username=username,
+                headset_id=profile.headset_id,
+                data_root=profiles.data_root,
+            )
+            agent_status = agent.status()
+        return {
+            "status": "ok",
+            "headset": headset_status_payload(
+                mode=mode,  # type: ignore[arg-type]
+                headset_id=profile.headset_id,
+                hosted=_is_hosted(),
+            ),
+            "agent": agent_status,
+        }
+
+    @app.get("/api/headset/agent")
+    def api_headset_agent(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
+        profile = profiles.ensure_headset_pairing(username)
+        agent = get_headset_agent(
+            username=username,
+            headset_id=profile.headset_id,
+            data_root=profiles.data_root,
+        )
+        return {"status": "ok", "agent": agent.status()}
+
+    @app.post("/api/headset/power")
+    def api_headset_power(
+        request: Request,
+        body: HeadsetPowerRequest,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
+        profile = profiles.ensure_headset_pairing(username)
+        profiles.set_headset_mode(username, "simulated")
+        agent = get_headset_agent(
+            username=username,
+            headset_id=profile.headset_id,
+            data_root=profiles.data_root,
+        )
+        try:
+            status = agent.power_on() if body.on else agent.power_off()
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"status": "ok", "agent": status}
+
+    @app.post("/api/headset/wear")
+    def api_headset_wear(
+        request: Request,
+        body: HeadsetWearRequest,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
+        profile = profiles.ensure_headset_pairing(username)
+        agent = get_headset_agent(
+            username=username,
+            headset_id=profile.headset_id,
+            data_root=profiles.data_root,
+        )
+        try:
+            status = agent.wear(on_head=body.on_head)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"status": "ok", "agent": status}
+
+    @app.post("/api/headset/contact")
+    def api_headset_contact(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
+        profile = profiles.ensure_headset_pairing(username)
+        agent = get_headset_agent(
+            username=username,
+            headset_id=profile.headset_id,
+            data_root=profiles.data_root,
+        )
+        try:
+            status = agent.check_contact()
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"status": "ok", "agent": status}
+
+    @app.post("/api/headset/impulse")
+    async def api_headset_impulse(
+        request: Request,
+        body: HeadsetImpulseRequest,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
+        profile = profiles.ensure_headset_pairing(username)
+        agent = get_headset_agent(
+            username=username,
+            headset_id=profile.headset_id,
+            data_root=profiles.data_root,
+        )
+
+        def _recv() -> dict:
+            return agent.receive_impulse(
+                body.kind, colour_key=body.colour_key or None
+            )
+
+        try:
+            payload = await run_in_threadpool(_recv)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"status": "ok", **payload}
 
     @app.post("/api/calibrate/capture")
     async def api_calibrate_capture(
@@ -2380,9 +2609,10 @@ def create_app(
             raise HTTPException(status_code=401, detail="Login required")
         sess, _profile = _calib_session_for(username, profiles)
         try:
-            # EEG / prior synthesis may block (BrainFlow poll + sleep); keep event loop free.
             result = await run_in_threadpool(sess.capture, payload.command)
         except KeyError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return {
             "command": result.command,
@@ -2397,6 +2627,9 @@ def create_app(
             "folder": result.folder,
             "color_name": result.color_name,
             "cue": result.cue,
+            "signal_source": result.signal_source,
+            "is_clean": result.is_clean,
+            "qc_flags": list(result.qc_flags),
         }
 
     @app.post("/api/calibrate/finish")
@@ -2413,13 +2646,22 @@ def create_app(
         root = Path(__file__).resolve().parents[3]
         try:
             path, accuracy = await run_in_threadpool(
-                sess.finish, models_dir=root / "models" / "users"
+                lambda: sess.finish(
+                    models_dir=root / "models" / "users",
+                    samples_dir=Path(profiles.data_root),
+                )
             )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         profiles.mark_calibration_complete(username)
         app.state.calib_sessions.pop(username, None)
-        return {"status": "ok", "model_path": str(path), "accuracy": accuracy}
+        return {
+            "status": "ok",
+            "model_path": str(path),
+            "accuracy": accuracy,
+            "accuracy_kind": "holdout",
+            "signal_note": "stima su dati di calibrazione (simulati o prior)",
+        }
 
     @app.get("/associa-telefono", response_class=HTMLResponse)
     def associa_telefono_page(
@@ -2467,7 +2709,7 @@ def create_app(
             _flash(request, str(exc), kind="error")
             return RedirectResponse("/associa-telefono", status_code=303)
         _flash(request, "Telefono associato. Apri Telefono live e collega Spotify.", kind="ok")
-        dest = "/telefono" if not profile.needs_calibration else "/calibrazione?passo=2"
+        dest = "/telefono" if not profile.needs_calibration else "/calibrazione?passo=4"
         return _continue(
             request,
             next_url=dest,
@@ -2498,7 +2740,7 @@ def create_app(
         _send_pairing_mail(request, profiles, loaded, force=True, flash=True)
         back = request.headers.get("referer") or ""
         if "/calibrazione" in back:
-            return RedirectResponse("/calibrazione?passo=1", status_code=303)
+            return RedirectResponse("/calibrazione?passo=2", status_code=303)
         return RedirectResponse("/associa-telefono", status_code=303)
 
     @app.get("/telefono", response_class=HTMLResponse)
@@ -2618,20 +2860,42 @@ def create_app(
         return RedirectResponse("/associa-telefono", status_code=303)
 
     @app.post("/api/music/next")
-    def api_music_next(
+    async def api_music_next(
         request: Request,
         profiles: ProfileStore = Depends(_store),
     ) -> dict:
+        """Mental impulse → headset elaborates → then Spotify next_track."""
         from bci_iot.integrations.music_control import run_spotify_action
+        from bci_iot.pipeline.headset_agent import get_headset_agent
 
         username = _session_username(request)
         if not username:
             raise HTTPException(status_code=401, detail="Login required")
-        profile = profiles.get(username)
-        if profile is None:
-            raise HTTPException(status_code=404, detail="Profile not found")
+        profile = profiles.ensure_headset_pairing(username)
+        agent = get_headset_agent(
+            username=username,
+            headset_id=profile.headset_id,
+            data_root=profiles.data_root,
+        )
+
+        def _recv() -> dict:
+            return agent.receive_impulse("NEXT_TRACK")
+
+        try:
+            impulse_payload = await run_in_threadpool(_recv)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
         queue = app.state.phone_queues.setdefault(username, [])
-        return run_spotify_action(profiles, profile, "next_track", queue=queue)
+        # Re-load profile in case tokens / pairing changed while impulse ran.
+        fresh = profiles.get(username) or profile
+        music = run_spotify_action(profiles, fresh, "next_track", queue=queue)
+        return {
+            **music,
+            "via": "headset_impulse",
+            "impulse": impulse_payload.get("impulse"),
+            "agent": impulse_payload.get("status"),
+        }
 
     @app.post("/api/music/pause")
     def api_music_pause(

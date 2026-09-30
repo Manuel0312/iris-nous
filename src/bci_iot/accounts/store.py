@@ -937,6 +937,26 @@ class ProfileStore:
         self.save(profile)
         return profile
 
+    def get_headset_mode(self, username: str) -> str:
+        profile = self.get(username)
+        if profile is None:
+            raise KeyError(f"unknown user: {username}")
+        from bci_iot.pipeline.calibration_wizard import normalize_headset_mode
+
+        return normalize_headset_mode(str((profile.usage_stats or {}).get("headset_mode") or "simulated"))
+
+    def set_headset_mode(self, username: str, mode: str) -> UserProfile:
+        from bci_iot.pipeline.calibration_wizard import normalize_headset_mode
+
+        profile = self.get(username)
+        if profile is None:
+            raise KeyError(f"unknown user: {username}")
+        stats = dict(profile.usage_stats or {})
+        stats["headset_mode"] = normalize_headset_mode(mode)
+        profile.usage_stats = stats
+        self.save(profile)
+        return profile
+
     def confirm_phone_pairing(self, username: str, code: str) -> UserProfile:
         profile = self.get(username)
         if profile is None:

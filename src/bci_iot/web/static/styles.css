@@ -635,12 +635,15 @@ body:has(.site-mode-banner) .shell {
 .photo-preview {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
+  margin: 0.35rem 0 0.65rem;
 }
-.photo-preview > .avatar.lg + .avatar.lg {
+.photo-preview > .avatar.lg + .avatar.lg,
+.photo-preview > .avatar.xl + .avatar.xl {
   display: none;
 }
-.photo-preview > .avatar.lg:not([hidden]) ~ .avatar.lg:not([hidden]) {
+.photo-preview > .avatar.lg:not([hidden]) ~ .avatar.lg:not([hidden]),
+.photo-preview > .avatar.xl:not([hidden]) ~ .avatar.xl:not([hidden]) {
   display: none;
 }
 body.whats-new-open {
@@ -1633,6 +1636,48 @@ input:focus, textarea:focus, select:focus {
   background: #fff;
 }
 
+.headset-device {
+  margin: 1rem 0 1.25rem;
+}
+.headset-actions {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+.contact-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.28rem;
+  height: 48px;
+  margin-top: 0.75rem;
+}
+.contact-bar {
+  flex: 1;
+  height: var(--h, 40%);
+  min-height: 8%;
+  border-radius: 4px 4px 0 0;
+  background: color-mix(in srgb, var(--accent, #2a6df4) 70%, #111);
+  opacity: 0.85;
+}
+
+.calib-countdown {
+  text-align: center;
+  margin: 1rem 0;
+}
+.calib-countdown-num {
+  font-size: 2.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 0.25rem 0 0;
+}
+.headset-status {
+  margin: 1rem 0 1.25rem;
+}
+.flash.warn {
+  border-color: color-mix(in srgb, #c48a00 45%, transparent);
+  background: color-mix(in srgb, #c48a00 12%, transparent);
+}
+
 .calib-colors {
   display: grid;
   gap: 0.65rem;
@@ -1699,6 +1744,24 @@ input:focus, textarea:focus, select:focus {
   width: 0%;
   background: var(--accent);
   transition: width 0.35s ease;
+}
+
+.music-impulse-meter {
+  margin: 0.85rem 0 0.5rem;
+}
+.music-impulse-meter.is-flash {
+  animation: music-impulse-flash 0.75s ease;
+}
+@keyframes music-impulse-flash {
+  0%,
+  100% {
+    box-shadow: none;
+    border-color: var(--line, rgba(29, 29, 31, 0.12));
+  }
+  35% {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent, #2a6df4) 55%, transparent);
+    border-color: color-mix(in srgb, var(--accent, #2a6df4) 45%, transparent);
+  }
 }
 
 .calib-progress {
@@ -2356,6 +2419,7 @@ html[data-theme-resolved="dark"] .discover-cta {
 }
 
 .avatar.lg { width: 120px; height: 120px; max-width: 120px; }
+.avatar.xl { width: 176px; height: 176px; max-width: 176px; margin-top: 0.35rem; }
 
 .avatar-fallback {
   width: 88px;
@@ -2843,15 +2907,36 @@ html[data-theme-resolved="dark"] .password-toggle:hover {
   height: 120px;
 }
 
+.avatar.xl.avatar-placeholder {
+  width: 176px;
+  height: 176px;
+}
+
+.photo-block {
+  padding: 1rem 1.1rem 1.05rem;
+}
+
+.photo-block > h2 {
+  margin: 0 0 0.25rem;
+}
+
+.photo-block > .form-hint {
+  margin: 0 0 0.55rem;
+}
+
 .photo-preview {
-  margin: 0.5rem 0 1rem;
+  margin: 0.25rem 0 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
 }
 
 .photo-crop-editor {
-  margin: 0.75rem 0 1.1rem;
-  padding: 0.85rem;
+  margin: 0.4rem 0 0.75rem;
+  padding: 0.7rem 0.75rem 0.65rem;
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 14px;
   background: color-mix(in srgb, var(--bg) 70%, var(--bg-elev));
 }
 
@@ -2862,12 +2947,12 @@ html[data-theme-resolved="dark"] .password-toggle:hover {
 .photo-crop-stage {
   display: flex;
   justify-content: center;
-  margin: 0.35rem 0 0.85rem;
+  margin: 0.2rem 0 0.55rem;
   touch-action: none;
 }
 
 #photo-crop-canvas {
-  width: min(280px, 100%);
+  width: min(320px, 100%);
   height: auto;
   aspect-ratio: 1;
   border-radius: 50%;
@@ -2883,9 +2968,9 @@ html[data-theme-resolved="dark"] .password-toggle:hover {
 
 .photo-zoom-label {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.25rem;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .photo-zoom-label input[type="range"] {
@@ -2894,19 +2979,41 @@ html[data-theme-resolved="dark"] .password-toggle:hover {
 }
 
 .photo-crop-hint {
-  margin: 0.55rem 0 0.35rem;
-  font-size: 0.88rem;
+  margin: 0.35rem 0 0.2rem;
+  font-size: 0.86rem;
 }
 
 .photo-crop-actions {
-  margin-top: 0.35rem;
+  margin-top: 0.2rem;
+}
+
+.photo-form {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.15rem;
+}
+
+.photo-file-label {
+  display: grid;
+  gap: 0.3rem;
+  font-weight: 600;
+}
+
+.photo-file-meta {
+  font-weight: 500;
+  font-size: 0.82rem;
+}
+
+.photo-form .btn.primary {
+  width: fit-content;
+  min-width: 9.5rem;
 }
 
 .photo-face-status {
-  margin: 0 0 0.65rem;
-  padding: 0.55rem 0.75rem;
+  margin: 0 0 0.45rem;
+  padding: 0.5rem 0.7rem;
   border-radius: 10px;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   line-height: 1.4;
   background: color-mix(in srgb, var(--ink) 6%, transparent);
 }
@@ -2923,6 +3030,46 @@ html[data-theme-resolved="dark"] .password-toggle:hover {
 .photo-face-status[data-kind="hint"] {
   background: color-mix(in srgb, var(--ink) 6%, transparent);
   color: var(--muted);
+}
+
+.photo-face-dialog {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 0;
+  max-width: min(24rem, calc(100vw - 2rem));
+  background: var(--bg-elev, var(--bg));
+  color: var(--ink);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+}
+
+.photo-face-dialog::backdrop {
+  background: rgba(10, 12, 16, 0.55);
+}
+
+.photo-face-dialog-inner {
+  display: grid;
+  gap: 0.65rem;
+  padding: 1.15rem 1.2rem 1.1rem;
+}
+
+.photo-face-dialog-inner h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.photo-face-dialog-inner p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+  font-size: 0.95rem;
+}
+
+.photo-face-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.35rem;
 }
 
 .phone-row {
@@ -3800,14 +3947,29 @@ html[data-theme-resolved="light"] .chat-bubble.chat-admin time {
   flex-shrink: 0;
 }
 
-.photo-preview {
-  margin: 0.5rem 0 1rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+.avatar.xl {
+  width: 176px;
+  height: 176px;
+  max-width: 176px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  background: #e8eaed;
+  flex-shrink: 0;
 }
 
-.photo-preview .avatar.lg {
+.photo-preview {
+  margin: 0.25rem 0 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.photo-preview .avatar.lg,
+.photo-preview .avatar.xl {
   flex: 0 0 auto;
 }
 

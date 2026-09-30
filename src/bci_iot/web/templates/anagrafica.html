@@ -25,18 +25,18 @@
 
   <div class="panel photo-block reveal" data-reveal>
     <h2>{{ t('Foto profilo') }} <span class="muted">{{ t('(opzionale)') }}</span></h2>
-    <p class="form-hint">{{ t('Scegli una foto del tuo volto: puoi ingrandire e spostare l’area da usare come avatar.') }}</p>
+    <p class="form-hint">{{ t('Se vuoi, aggiungi una tua foto. La ritagli come preferisci, senza fretta.') }}</p>
     <div class="photo-preview" id="photo-preview">
       {% if profile.photo_filename %}
-      <img class="avatar lg" id="photo-preview-img" src="/media/photos/{{ profile.photo_filename }}" alt="{{ t('Foto profilo') }}" width="120" height="120" />
+      <img class="avatar xl" id="photo-preview-img" src="/media/photos/{{ profile.photo_filename }}" alt="{{ t('Foto profilo') }}" width="176" height="176" />
       {% else %}
-      <div class="avatar lg avatar-placeholder" id="photo-preview-fallback" aria-hidden="true">
-        <svg viewBox="0 0 64 64" width="64" height="64" fill="none" aria-hidden="true">
+      <div class="avatar xl avatar-placeholder" id="photo-preview-fallback" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="72" height="72" fill="none" aria-hidden="true">
           <circle cx="32" cy="24" r="12" fill="#9aa0a6"/>
           <path d="M8 56c0-13.255 10.745-24 24-24s24 10.745 24 24" fill="#9aa0a6"/>
         </svg>
       </div>
-      <img class="avatar lg" id="photo-preview-img" hidden alt="{{ t('Anteprima foto') }}" width="120" height="120" />
+      <img class="avatar xl" id="photo-preview-img" hidden alt="{{ t('Anteprima foto') }}" width="176" height="176" />
       {% endif %}
     </div>
 
@@ -45,32 +45,45 @@
         class="photo-face-status"
         id="photo-face-status"
         hidden
-        data-msg-guide="{{ t('Inquadra il volto nel cerchio. Puoi ingrandire e spostare la foto.') }}"
-        data-msg-no-face="{{ t('Non vediamo un volto chiaro. Inquadra meglio il viso nell’area tonda.') }}"
-        data-msg-face-ok="{{ t('Volto trovato. Puoi ancora ingrandire o spostare prima di salvare.') }}"
-        data-msg-need-face="{{ t('Serve un volto visibile nell’area tonda per dare un’identità all’account. Sposta o ingrandisci la foto.') }}"
+        data-msg-guide="{{ t('Muovi e ingrandisci finché ti riconosci bene.') }}"
+        data-msg-no-face="{{ t('In questa foto non si vede un volto chiaro.') }}"
+        data-msg-face-ok="{{ t('Perfetto. Se vuoi, puoi ancora spostare o ingrandire prima di salvare.') }}"
+        data-msg-need-face="{{ t('Per la sicurezza del tuo account scegli una foto in cui si vede bene il volto. Poi potrai ritagliarla tranquillamente.') }}"
         data-msg-load-fail="{{ t('Impossibile leggere questa immagine.') }}"
         data-msg-save-fail="{{ t('Salvataggio non riuscito. Riprova.') }}"
+        data-msg-pick-first="{{ t('Scegli prima una foto dal tuo dispositivo, poi salvala qui.') }}"
       ></p>
       <div class="photo-crop-stage">
-        <canvas id="photo-crop-canvas" width="280" height="280" aria-label="{{ t('Area foto: trascina per spostare') }}"></canvas>
+        <canvas id="photo-crop-canvas" width="320" height="320" aria-label="{{ t('Area foto: trascina per spostare') }}"></canvas>
       </div>
       <label class="photo-zoom-label">{{ t('Ingrandimento') }}
         <input type="range" id="photo-zoom" min="1" max="3" step="0.01" value="1" />
       </label>
-      <p class="muted photo-crop-hint">{{ t('Trascina la foto per scegliere quale parte usare. Il cerchio interno guida il volto.') }}</p>
+      <p class="muted photo-crop-hint">{{ t('Trascina la foto: il cerchio è quello che vedrai nel profilo.') }}</p>
       <div class="private-actions photo-crop-actions">
         <button class="btn" type="button" id="photo-crop-cancel">{{ t('Annulla') }}</button>
       </div>
     </div>
 
-    <form method="post" action="/anagrafica/foto" enctype="multipart/form-data" class="stack" id="photo-form">
-      <label>{{ t('Scegli una foto (JPG / PNG / WebP, max 2.5 MB)') }}
+    <form method="post" action="/anagrafica/foto" enctype="multipart/form-data" class="photo-form" id="photo-form">
+      <label class="photo-file-label">{{ t('Scegli una foto') }}
+        <span class="muted photo-file-meta">{{ t('JPG, PNG o WebP · max 2.5 MB') }}</span>
         <input type="file" name="photo" id="photo-input" accept="image/jpeg,image/png,image/webp" />
       </label>
       <button class="btn primary" type="submit">{{ t('Salva foto') }}</button>
     </form>
   </div>
+
+  <dialog class="photo-face-dialog" id="photo-face-dialog">
+    <form method="dialog" class="photo-face-dialog-inner">
+      <h3>{{ t('Una foto con il volto') }}</h3>
+      <p id="photo-face-dialog-text">{{ t('Per la sicurezza del tuo account scegli una foto in cui si vede bene il volto. Poi potrai ritagliarla tranquillamente.') }}</p>
+      <div class="photo-face-dialog-actions">
+        <button class="btn" type="submit" value="cancel">{{ t('Chiudi') }}</button>
+        <button class="btn primary" type="button" id="photo-face-dialog-ok">{{ t('Scegli un’altra foto') }}</button>
+      </div>
+    </form>
+  </dialog>
 
   <form method="post" action="/anagrafica" class="private-form private-form-fit" id="anagrafica-form">
     <div class="cfg-grid">
@@ -173,7 +186,7 @@
   </form>
   {% endif %}
 </section>
-<script src="/static/photo_crop.js?v=irisPhoto1" defer></script>
+<script src="/static/photo_crop.js?v=irisPhoto2" defer></script>
 {% include "_phone_row_js.html" %}
 <script>
 (function () {

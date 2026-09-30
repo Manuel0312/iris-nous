@@ -51,3 +51,29 @@ def test_factory_brainflow_synthetic() -> None:
     with source:
         windows = list(source.iter_windows())
     assert len(windows) == 1
+
+
+@pytest.mark.skipif(not brainflow_available(), reason="brainflow not installed")
+def test_pipeline_end_to_end_brainflow_synthetic(tmp_path) -> None:
+    """Same API path a real BrainFlow board would use: stream → features → intent → action."""
+    from bci_iot.config import AppConfig, AcquisitionSettings, IntegrationsSettings, MLSettings
+    from bci_iot.pipeline.factory import build_pipeline
+    from bci_iot.types import ActionContext
+
+    config = AppConfig(
+        acquisition=AcquisitionSettings(
+            source="brainflow_synthetic",
+            n_channels=4,
+            window_seconds=0.5,
+        ),
+        ml=MLSettings(model_path="models/baseline.joblib", confidence_threshold=0.55),
+        integrations=IntegrationsSettings(dry_run=True),
+    )
+    runner = build_pipeline(config, max_windows_cap=5, model_path="models/baseline.joblib")
+    runner.router.set_context(ActionContext.MUSIC_MODE)
+    results = runner.run(max_windows=5)
+    assert len(results) == 5
+    assert all(r.is_clean for r in results)
+    assert all(r.intent.confidence >= 0.0 for r in results)
+    # With debounce, at least one routed action is expected on a stable stream.
+    assert sum(1 for r in results if r.action is not None) >= 1

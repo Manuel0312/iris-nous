@@ -1,12 +1,17 @@
 /**
  * Profile photo picker: face-aware framing + zoom/pan crop.
  * Exports a square JPEG of the circular avatar area.
+ * Shows a modal when no face is found (security).
  */
 (function () {
-  const STAGE = 280;
+  const STAGE = 320;
   const OUT = 512;
   const MIN_Z = 1;
   const MAX_Z = 3;
+  const FACE_API_JS =
+    "https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js";
+  const FACE_API_MODELS =
+    "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights";
 
   const file = document.getElementById("photo-input");
   const form = document.getElementById("photo-form");
@@ -17,9 +22,12 @@
   const btnCancel = document.getElementById("photo-crop-cancel");
   const previewImg = document.getElementById("photo-preview-img");
   const fallback = document.getElementById("photo-preview-fallback");
+  const faceDialog = document.getElementById("photo-face-dialog");
+  const faceDialogText = document.getElementById("photo-face-dialog-text");
+  const faceDialogOk = document.getElementById("photo-face-dialog-ok");
   if (!file || !form || !editor || !canvas) return;
 
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
   canvas.width = STAGE;
   canvas.height = STAGE;
 
@@ -33,12 +41,59 @@
   let lastY = 0;
   let faceBox = null;
   let objectUrl = null;
+  let faceApiReady = null;
+
+  function msg(key, fallbackText) {
+    // data-msg-need-face → dataset.msgNeedFace
+    const dataKey =
+      "msg" +
+      String(key)
+        .split("-")
+        .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+        .join("");
+    return (faceStatus && faceStatus.dataset[dataKey]) || fallbackText;
+  }
 
   function setStatus(kind, text) {
     if (!faceStatus) return;
     faceStatus.textContent = text || "";
     faceStatus.dataset.kind = kind || "";
     faceStatus.hidden = !text;
+  }
+
+  function showFacePopup(text) {
+    const body =
+      text ||
+      msg(
+        "need-face",
+        "Per la sicurezza del tuo account scegli una foto in cui si vede bene il volto. Poi potrai ritagliarla tranquillamente."
+      );
+    if (faceDialog && typeof faceDialog.showModal === "function") {
+      if (faceDialogText) faceDialogText.textContent = body;
+      try {
+        faceDialog.showModal();
+        return;
+      } catch (_e) {}
+    }
+    window.alert(body);
+  }
+
+  function closeFacePopup() {
+    if (faceDialog && faceDialog.open) faceDialog.close();
+  }
+
+  if (faceDialogOk) {
+    faceDialogOk.addEventListener("click", (e) => {
+      e.preventDefault();
+      closeFacePopup();
+      file.value = "";
+      file.click();
+    });
+  }
+  if (faceDialog) {
+    faceDialog.addEventListener("cancel", () => {
+      /* allow Esc to close */
+    });
   }
 
   function coverScale(bw, bh) {
@@ -51,7 +106,6 @@
     const dh = bitmap.height * scale;
     const minOx = STAGE - dw;
     const minOy = STAGE - dh;
-    // Allow centering when image is smaller than stage after scale (shouldn't with cover).
     if (dw <= STAGE) ox = (STAGE - dw) / 2;
     else ox = Math.min(0, Math.max(minOx, ox));
     if (dh <= STAGE) oy = (STAGE - dh) / 2;
@@ -70,7 +124,6 @@
     ctx.drawImage(bitmap, ox, oy, bitmap.width * scale, bitmap.height * scale);
     ctx.restore();
 
-    // Face guide ring
     ctx.beginPath();
     ctx.arc(STAGE / 2, STAGE / 2, STAGE * 0.36, 0, Math.PI * 2);
     ctx.strokeStyle = faceBox ? "rgba(61, 214, 165, 0.85)" : "rgba(255, 255, 255, 0.55)";
@@ -79,7 +132,6 @@
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Outer rim
     ctx.beginPath();
     ctx.arc(STAGE / 2, STAGE / 2, STAGE / 2 - 1.5, 0, Math.PI * 2);
     ctx.strokeStyle = "rgba(0,0,0,0.35)";
@@ -87,37 +139,103 @@
     ctx.stroke();
   }
 
-  async function detectFace() {
-    faceBox = null;
-    if (!bitmap) return;
-    if (typeof FaceDetector === "undefined") {
-      setStatus(
-        "hint",
-        faceStatus?.dataset.msgGuide ||
-          "Inquadra il volto nel cerchio. Puoi ingrandire e spostare la foto."
-      );
-      return;
-    }
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector('script[data-face-api="1"]')) {
+        resolve();
+        return;
+      }
+      const s = document.createElement("script");
+      s.src = src;
+      s.async = true;
+      s.dataset.faceApi = "1";
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error("face-api load failed"));
+      document.head.appendChild(s);
+    });
+  }
+
+  async function ensureFaceApi() {
+    if (faceApiReady) return faceApiReady;
+    faceApiReady = (async () => {
+      if (!window.faceapi) await loadScript(FACE_API_JS);
+      if (!window.faceapi) throw new Error("face-api missing");
+      if (!window.faceapi.nets.tinyFaceDetector.isLoaded) {
+        await window.faceapi.nets.tinyFaceDetector.loadFromUri(FACE_API_MODELS);
+      }
+      return true;
+    })().catch((err) => {
+      faceApiReady = null;
+      throw err;
+    });
+    return faceApiReady;
+  }
+
+  async function detectWithFaceApi(source) {
+    await ensureFaceApi();
+    const opts = new window.faceapi.TinyFaceDetectorOptions({
+      inputSize: 320,
+      scoreThreshold: 0.4,
+    });
+    const result = await window.faceapi.detectSingleFace(source, opts);
+    if (!result) return null;
+    const box = result.box;
+    return { x: box.x, y: box.y, width: box.width, height: box.height };
+  }
+
+  async function detectWithNative(source) {
+    if (typeof FaceDetector === "undefined") return null;
     try {
       const detector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
-      // Some browsers need an HTMLImageElement, not ImageBitmap.
+      const faces = await detector.detect(source);
+      if (!faces || !faces.length) return null;
+      const box = faces[0].boundingBox;
+      return { x: box.x, y: box.y, width: box.width, height: box.height };
+    } catch (_err) {
+      return null;
+    }
+  }
+
+  async function detectFace({ popupIfMissing } = { popupIfMissing: false }) {
+    faceBox = null;
+    if (!bitmap) return false;
+
+    let box = null;
+    let fromFullImage = false;
+
+    if (objectUrl) {
       const probe = document.createElement("img");
-      probe.src = objectUrl || "";
+      probe.decoding = "async";
+      probe.src = objectUrl;
       await new Promise((resolve, reject) => {
         probe.onload = resolve;
         probe.onerror = reject;
       });
-      const faces = await detector.detect(probe);
-      if (!faces || !faces.length) {
-        setStatus(
-          "warn",
-          faceStatus?.dataset.msgNoFace ||
-            "Non vediamo un volto chiaro. Inquadra meglio il viso nell’area tonda."
-        );
-        return;
-      }
-      const box = faces[0].boundingBox;
-      faceBox = box;
+      box = await detectWithNative(probe);
+      if (!box) box = await detectWithFaceApi(probe).catch(() => null);
+      if (box) fromFullImage = true;
+    }
+
+    if (!box) {
+      const stageImg = document.createElement("canvas");
+      stageImg.width = STAGE;
+      stageImg.height = STAGE;
+      const sctx = stageImg.getContext("2d");
+      sctx.drawImage(bitmap, ox, oy, bitmap.width * scale, bitmap.height * scale);
+      box = await detectWithNative(stageImg);
+      if (!box) box = await detectWithFaceApi(stageImg).catch(() => null);
+      fromFullImage = false;
+    }
+
+    if (!box) {
+      const warn = msg("no-face", "In questa foto non si vede un volto chiaro.");
+      setStatus("warn", warn);
+      if (popupIfMissing) showFacePopup(msg("need-face", warn));
+      return false;
+    }
+
+    faceBox = box;
+    if (fromFullImage) {
       const faceCx = box.x + box.width / 2;
       const faceCy = box.y + box.height / 2;
       const faceSize = Math.max(box.width, box.height) * 1.55;
@@ -130,19 +248,13 @@
         zoom.step = "0.01";
         zoom.value = String(Math.min(MAX_Z, Math.max(MIN_Z, scale / minScale)));
       }
-      setStatus(
-        "ok",
-        faceStatus?.dataset.msgFaceOk ||
-          "Volto trovato. Puoi ancora ingrandire o spostare prima di salvare."
-      );
-      draw();
-    } catch (_err) {
-      setStatus(
-        "hint",
-        faceStatus?.dataset.msgGuide ||
-          "Inquadra il volto nel cerchio. Puoi ingrandire e spostare la foto."
-      );
     }
+    setStatus(
+      "ok",
+      msg("face-ok", "Perfetto. Se vuoi, puoi ancora spostare o ingrandire prima di salvare.")
+    );
+    draw();
+    return true;
   }
 
   function openEditor() {
@@ -165,6 +277,7 @@
       objectUrl = null;
     }
     file.value = "";
+    setStatus("", "");
   }
 
   async function loadFile(f) {
@@ -188,8 +301,11 @@
     }
     openEditor();
     draw();
-    await detectFace();
+    const ok = await detectFace({ popupIfMissing: true });
     draw();
+    if (!ok) {
+      // Keep editor open so they can try another file from the popup.
+    }
   }
 
   function exportBlob() {
@@ -231,7 +347,8 @@
     const f = file.files && file.files[0];
     if (!f) return;
     loadFile(f).catch(() => {
-      setStatus("warn", faceStatus?.dataset.msgLoadFail || "Impossibile leggere questa immagine.");
+      setStatus("warn", msg("load-fail", "Impossibile leggere questa immagine."));
+      showFacePopup(msg("load-fail", "Impossibile leggere questa immagine."));
     });
   });
 
@@ -243,7 +360,6 @@
       const next = minScale * Math.min(MAX_Z, Math.max(MIN_Z, z));
       const cx = STAGE / 2;
       const cy = STAGE / 2;
-      // Zoom around center of stage
       const imgX = (cx - ox) / prev;
       const imgY = (cy - oy) / prev;
       scale = next;
@@ -294,22 +410,21 @@
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!bitmap) {
-      // No new crop open: if file selected without editor, fall back
       if (file.files && file.files[0]) {
         HTMLFormElement.prototype.submit.call(form);
+      } else {
+        showFacePopup(
+          msg(
+            "pick-first",
+            "Scegli prima una foto dal tuo dispositivo, poi salvala qui."
+          )
+        );
       }
       return;
     }
-    if (typeof FaceDetector !== "undefined" && !faceBox) {
-      const msg =
-        faceStatus?.dataset.msgNeedFace ||
-        "Serve un volto visibile nell’area tonda per dare un’identità all’account. Sposta o ingrandisci la foto.";
-      setStatus("warn", msg);
-      // Re-run detection in case user framed it
-      await detectFace();
-      if (!faceBox) {
-        return;
-      }
+    const ok = faceBox ? true : await detectFace({ popupIfMissing: true });
+    if (!ok) {
+      return;
     }
     const btn = form.querySelector('button[type="submit"]');
     if (btn) btn.disabled = true;
@@ -333,10 +448,9 @@
         fallback.hidden = true;
         fallback.setAttribute("hidden", "");
       }
-      // Reload to pick up flash + saved path
       window.location.href = res.url || "/anagrafica";
     } catch (_err) {
-      setStatus("warn", faceStatus?.dataset.msgSaveFail || "Salvataggio non riuscito. Riprova.");
+      setStatus("warn", msg("save-fail", "Salvataggio non riuscito. Riprova."));
       if (btn) btn.disabled = false;
     }
   });
