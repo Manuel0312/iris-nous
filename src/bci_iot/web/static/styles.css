@@ -639,11 +639,13 @@ body:has(.site-mode-banner) .shell {
   margin: 0.35rem 0 0.65rem;
 }
 .photo-preview > .avatar.lg + .avatar.lg,
-.photo-preview > .avatar.xl + .avatar.xl {
+.photo-preview > .avatar.xl + .avatar.xl,
+.photo-preview > .avatar.hero + .avatar.hero {
   display: none;
 }
 .photo-preview > .avatar.lg:not([hidden]) ~ .avatar.lg:not([hidden]),
-.photo-preview > .avatar.xl:not([hidden]) ~ .avatar.xl:not([hidden]) {
+.photo-preview > .avatar.xl:not([hidden]) ~ .avatar.xl:not([hidden]),
+.photo-preview > .avatar.hero:not([hidden]) ~ .avatar.hero:not([hidden]) {
   display: none;
 }
 body.whats-new-open {
