@@ -2915,26 +2915,266 @@ html[data-theme-resolved="dark"] .password-toggle:hover {
 }
 
 .avatar.hero {
-  width: 220px;
-  height: 220px;
-  max-width: 220px;
+  width: 240px;
+  height: 240px;
+  max-width: 240px;
   margin-top: 0;
   border-radius: 50%;
   object-fit: cover;
   object-position: center;
   display: block;
-  background: #e8eaed;
+  background: #2a2a2e;
   flex-shrink: 0;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent),
-              0 14px 36px rgba(0, 0, 0, 0.22);
+  box-shadow:
+    0 0 0 3px rgba(212, 168, 90, 0.45),
+    0 0 28px rgba(212, 168, 90, 0.35),
+    0 16px 40px rgba(0, 0, 0, 0.35);
 }
 
 .avatar.hero.avatar-placeholder {
-  width: 220px;
-  height: 220px;
-  max-width: 220px;
+  width: 240px;
+  height: 240px;
+  max-width: 240px;
   place-items: center;
   display: grid;
+}
+
+/* Anagrafica — match approved mockup v3 */
+.page-anagrafica .anag-area {
+  gap: 1rem;
+  max-width: 52rem;
+}
+
+.page-anagrafica .anag-welcome {
+  margin-bottom: 0.15rem;
+}
+
+.page-anagrafica .anag-welcome .eyebrow {
+  opacity: 0.7;
+  letter-spacing: 0.06em;
+}
+
+.page-anagrafica .anag-welcome h1 {
+  font-size: clamp(1.7rem, 4vw, 2.15rem);
+  margin: 0.15rem 0 0.35rem;
+  font-weight: 750;
+}
+
+.page-anagrafica .anag-welcome .lede {
+  color: color-mix(in srgb, var(--ink) 62%, transparent);
+  font-size: 0.98rem;
+}
+
+.page-anagrafica .anag-photo {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1.1rem 1.5rem;
+  align-items: center;
+  padding: 0.15rem 0 0.35rem;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.page-anagrafica .anag-photo .photo-preview {
+  margin: 0;
+}
+
+.page-anagrafica .photo-side {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: start;
+  min-width: 0;
+}
+
+.page-anagrafica .photo-side > h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.page-anagrafica .photo-side > .form-hint {
+  margin: 0 0 0.25rem;
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+
+.page-anagrafica .photo-form {
+  display: grid;
+  gap: 0.45rem;
+  justify-items: start;
+  margin: 0;
+}
+
+.page-anagrafica .photo-form input[type="file"] {
+  max-width: 100%;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.page-anagrafica .photo-file-meta {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.page-anagrafica .anag-btn-soft {
+  min-width: 6.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  box-shadow: none;
+}
+
+.page-anagrafica .anag-btn-soft:hover {
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
+}
+
+.page-anagrafica .anag-card {
+  margin: 0.15rem 0 0;
+  padding: 1.15rem 1.2rem 1.2rem;
+  border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--line) 90%, transparent);
+  background: color-mix(in srgb, var(--bg-elev, #16161a) 88%, #000);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
+  display: grid;
+  gap: 0;
+}
+
+.page-anagrafica .anag-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.95fr);
+  gap: 1.25rem 1.75rem;
+  align-items: start;
+}
+
+.page-anagrafica .anag-card h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.12rem;
+  font-weight: 700;
+}
+
+.page-anagrafica .anag-field {
+  display: block;
+  margin: 0 0 0.6rem;
+}
+
+.page-anagrafica .anag-field input,
+.page-anagrafica .anag-identity input[type="email"],
+.page-anagrafica .anag-identity input[type="text"],
+.page-anagrafica .anag-identity input[name="first_name"],
+.page-anagrafica .anag-identity input[name="last_name"],
+.page-anagrafica .anag-identity input[name="email"],
+.page-anagrafica .anag-identity #phone-national {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+  padding: 0.7rem 0.95rem;
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+.page-anagrafica .anag-ok {
+  margin: -0.15rem 0 0.75rem;
+  font-weight: 650;
+}
+
+.page-anagrafica .anag-phone > label[for="phone-cc-btn"],
+.page-anagrafica .anag-phone #phone-hint {
+  display: none;
+}
+
+.page-anagrafica .anag-phone .phone-row {
+  grid-template-columns: minmax(6.5rem, 0.4fr) minmax(0, 1fr);
+  gap: 0.55rem;
+  margin-top: 0.15rem;
+}
+
+.page-anagrafica .anag-phone .phone-cc-btn {
+  min-height: 48px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+
+.page-anagrafica .anag-feel .gender-soft {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: 1fr;
+}
+
+.page-anagrafica .anag-feel .gender-option {
+  border-radius: 999px;
+  min-height: 48px;
+  padding: 0.75rem 1rem;
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line) 90%, transparent);
+  box-shadow: none;
+}
+
+.page-anagrafica .anag-feel .gender-option:has(input:checked) {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: none;
+}
+
+.page-anagrafica .anag-feel-hint {
+  margin: 0.75rem 0 0;
+  font-size: 0.86rem;
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+
+.page-anagrafica .anag-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  padding-top: 0.15rem;
+}
+
+.page-anagrafica .anag-btn-continue {
+  min-width: 8.5rem;
+  min-height: 46px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  font-weight: 650;
+  box-shadow: none;
+}
+
+.page-anagrafica .anag-btn-continue:hover {
+  background: color-mix(in srgb, var(--ink) 14%, transparent);
+}
+
+.page-anagrafica .photo-crop-editor {
+  margin: 0.15rem 0 0.35rem;
+  padding: 0.65rem 0.7rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg) 70%, var(--bg-elev));
+  width: 100%;
+}
+
+@media (max-width: 720px) {
+  .page-anagrafica .anag-photo {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+  .page-anagrafica .photo-side {
+    width: 100%;
+    justify-items: center;
+  }
+  .page-anagrafica .photo-form {
+    justify-items: center;
+  }
+  .page-anagrafica .anag-grid {
+    grid-template-columns: 1fr;
+  }
+  .page-anagrafica .anag-footer-actions {
+    justify-content: center;
+  }
 }
 
 .anag-area {

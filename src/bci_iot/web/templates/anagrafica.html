@@ -4,16 +4,10 @@
 {% block main_class %}shell private-shell{% endblock %}
 {% block content %}
 <section class="private-area anag-area">
-  <header class="private-welcome">
+  <header class="private-welcome anag-welcome">
     <p class="eyebrow">{% if profile.anagrafica_complete %}{{ t('Profilo') }}{% else %}{{ t('Un attimo') }}{% endif %}</p>
     <h1>{% if profile.anagrafica_complete %}{{ t('I tuoi dati') }}{% else %}{{ t('Chi sei, per Iris.') }}{% endif %}</h1>
-    <p class="lede">
-      {% if profile.anagrafica_complete %}
-      {{ t('Qui restano solo le cose tue.') }}
-      {% else %}
-      {{ t('Qui restano solo le cose tue.') }}
-      {% endif %}
-    </p>
+    <p class="lede">{{ t('Qui restano solo le cose tue.') }}</p>
   </header>
 
   {% if profile.verification_pending and profile.anagrafica_complete %}
@@ -23,59 +17,57 @@
   </div>
   {% endif %}
 
-  <div class="panel photo-block reveal" data-reveal>
-    <div class="photo-row">
-      <div class="photo-preview" id="photo-preview">
-        {% if profile.photo_filename %}
-        <img class="avatar hero" id="photo-preview-img" src="/media/photos/{{ profile.photo_filename }}" alt="{{ t('Foto profilo') }}" width="220" height="220" />
-        {% else %}
-        <div class="avatar hero avatar-placeholder" id="photo-preview-fallback" aria-hidden="true">
-          <svg viewBox="0 0 64 64" width="88" height="88" fill="none" aria-hidden="true">
-            <circle cx="32" cy="24" r="12" fill="#9aa0a6"/>
-            <path d="M8 56c0-13.255 10.745-24 24-24s24 10.745 24 24" fill="#9aa0a6"/>
-          </svg>
+  {# Photo band: freestanding like the mockup (no heavy card). #}
+  <div class="anag-photo reveal" data-reveal>
+    <div class="photo-preview" id="photo-preview">
+      {% if profile.photo_filename %}
+      <img class="avatar hero" id="photo-preview-img" src="/media/photos/{{ profile.photo_filename }}" alt="{{ t('Foto profilo') }}" width="240" height="240" />
+      {% else %}
+      <div class="avatar hero avatar-placeholder" id="photo-preview-fallback" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="96" height="96" fill="none" aria-hidden="true">
+          <circle cx="32" cy="24" r="12" fill="#9aa0a6"/>
+          <path d="M8 56c0-13.255 10.745-24 24-24s24 10.745 24 24" fill="#9aa0a6"/>
+        </svg>
+      </div>
+      <img class="avatar hero" id="photo-preview-img" hidden alt="{{ t('Anteprima foto') }}" width="240" height="240" />
+      {% endif %}
+    </div>
+
+    <div class="photo-side">
+      <h2>{{ t('Foto') }} <span class="muted">{{ t('(opzionale)') }}</span></h2>
+      <p class="form-hint">{{ t('Va bene anche dopo, se preferisci.') }}</p>
+
+      <div class="photo-crop-editor" id="photo-crop-editor" hidden>
+        <p
+          class="photo-face-status"
+          id="photo-face-status"
+          hidden
+          data-msg-guide="{{ t('Muovi e ingrandisci finché ti riconosci bene.') }}"
+          data-msg-no-face="{{ t('In questa foto non si vede un volto chiaro.') }}"
+          data-msg-face-ok="{{ t('Così va bene. Se vuoi, sposta ancora un po’ prima di salvare.') }}"
+          data-msg-need-face="{{ t('Per tenerti al sicuro, scegli una foto dove si vede il volto. Poi la ritagli tu.') }}"
+          data-msg-load-fail="{{ t('Non riesco a leggere questa immagine.') }}"
+          data-msg-save-fail="{{ t('Non è andata a buon fine. Riprova pure.') }}"
+          data-msg-pick-first="{{ t('Prima scegli una foto, poi puoi salvarla.') }}"
+        ></p>
+        <div class="photo-crop-stage">
+          <canvas id="photo-crop-canvas" width="320" height="320" aria-label="{{ t('Area foto: trascina per spostare') }}"></canvas>
         </div>
-        <img class="avatar hero" id="photo-preview-img" hidden alt="{{ t('Anteprima foto') }}" width="220" height="220" />
-        {% endif %}
+        <label class="photo-zoom-label">{{ t('Ingrandimento') }}
+          <input type="range" id="photo-zoom" min="1" max="3" step="0.01" value="1" />
+        </label>
+        <p class="muted photo-crop-hint">{{ t('Trascina: il cerchio è quello del profilo.') }}</p>
+        <div class="private-actions photo-crop-actions">
+          <button class="btn" type="button" id="photo-crop-cancel">{{ t('Annulla') }}</button>
+        </div>
       </div>
 
-      <div class="photo-side">
-        <h2>{{ t('Foto') }} <span class="muted">{{ t('(opzionale)') }}</span></h2>
-        <p class="form-hint">{{ t('Va bene anche dopo, se preferisci.') }}</p>
-
-        <div class="photo-crop-editor" id="photo-crop-editor" hidden>
-          <p
-            class="photo-face-status"
-            id="photo-face-status"
-            hidden
-            data-msg-guide="{{ t('Muovi e ingrandisci finché ti riconosci bene.') }}"
-            data-msg-no-face="{{ t('In questa foto non si vede un volto chiaro.') }}"
-            data-msg-face-ok="{{ t('Così va bene. Se vuoi, sposta ancora un po’ prima di salvare.') }}"
-            data-msg-need-face="{{ t('Per tenerti al sicuro, scegli una foto dove si vede il volto. Poi la ritagli tu.') }}"
-            data-msg-load-fail="{{ t('Non riesco a leggere questa immagine.') }}"
-            data-msg-save-fail="{{ t('Non è andata a buon fine. Riprova pure.') }}"
-            data-msg-pick-first="{{ t('Prima scegli una foto, poi puoi salvarla.') }}"
-          ></p>
-          <div class="photo-crop-stage">
-            <canvas id="photo-crop-canvas" width="320" height="320" aria-label="{{ t('Area foto: trascina per spostare') }}"></canvas>
-          </div>
-          <label class="photo-zoom-label">{{ t('Ingrandimento') }}
-            <input type="range" id="photo-zoom" min="1" max="3" step="0.01" value="1" />
-          </label>
-          <p class="muted photo-crop-hint">{{ t('Trascina: il cerchio è quello del profilo.') }}</p>
-          <div class="private-actions photo-crop-actions">
-            <button class="btn" type="button" id="photo-crop-cancel">{{ t('Annulla') }}</button>
-          </div>
-        </div>
-
-        <form method="post" action="/anagrafica/foto" enctype="multipart/form-data" class="photo-form" id="photo-form">
-          <label class="photo-file-label">{{ t('Scegli una foto') }}
-            <span class="muted photo-file-meta">{{ t('JPG · PNG · WebP · max 2.5 MB') }}</span>
-            <input type="file" name="photo" id="photo-input" accept="image/jpeg,image/png,image/webp" />
-          </label>
-          <button class="btn primary" type="submit">{{ t('Salva') }}</button>
-        </form>
-      </div>
+      <form method="post" action="/anagrafica/foto" enctype="multipart/form-data" class="photo-form" id="photo-form">
+        <label class="photo-file-label sr-only" for="photo-input">{{ t('Scegli una foto') }}</label>
+        <input type="file" name="photo" id="photo-input" accept="image/jpeg,image/png,image/webp" />
+        <p class="muted photo-file-meta">{{ t('JPG · PNG · WebP') }}</p>
+        <button class="btn anag-btn-soft" type="submit">{{ t('Salva') }}</button>
+      </form>
     </div>
   </div>
 
@@ -90,22 +82,24 @@
     </form>
   </dialog>
 
-  <form method="post" action="/anagrafica" class="private-form private-form-fit anag-form" id="anagrafica-form">
+  <form method="post" action="/anagrafica" class="anag-card" id="anagrafica-form">
     <div class="anag-grid">
-      <div class="form-block">
+      <div class="form-block anag-identity">
         <h2>{{ t('Come ti chiami') }}</h2>
-        <p class="form-hint">{{ t('Nome e cognome, senza numeri. Email e telefono, se li metti, devono essere tuoi.') }}</p>
-        <label>{{ t('Nome') }}
-          <input name="first_name" value="{{ profile.first_name }}" required maxlength="64" autocomplete="given-name" pattern="[^0-9]+" title="{{ t('Niente numeri') }}" />
+        <label class="anag-field">
+          <span class="sr-only">{{ t('Nome') }}</span>
+          <input name="first_name" value="{{ profile.first_name }}" required maxlength="64" autocomplete="given-name" pattern="[^0-9]+" title="{{ t('Niente numeri') }}" placeholder="{{ t('Nome') }}" />
         </label>
-        <label>{{ t('Cognome') }}
-          <input name="last_name" value="{{ profile.last_name }}" maxlength="64" autocomplete="family-name" pattern="[^0-9]*" title="{{ t('Niente numeri') }}" />
+        <label class="anag-field">
+          <span class="sr-only">{{ t('Cognome') }}</span>
+          <input name="last_name" value="{{ profile.last_name }}" maxlength="64" autocomplete="family-name" pattern="[^0-9]*" title="{{ t('Niente numeri') }}" placeholder="{{ t('Cognome') }}" />
         </label>
-        <label>{{ t('Email') }}
+        <label class="anag-field">
+          <span class="sr-only">{{ t('Email') }}</span>
           <input name="email" type="email" value="{{ profile.email }}" required maxlength="254" autocomplete="email" inputmode="email" placeholder="nome@gmail.com" pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}" title="{{ t('Serve un dominio con estensione, es. nome@gmail.com') }}" />
         </label>
         {% if profile.email_verified %}
-        <p class="verify-ok">{{ t('Tutto ok') }}</p>
+        <p class="verify-ok anag-ok">{{ t('Tutto ok') }}</p>
         {% elif profile.email %}
         <div class="email-verify-box">
           <form method="post" action="/verifica/invia" class="email-verify-send">
@@ -123,11 +117,13 @@
         </div>
         {% endif %}
 
-        {% set phone_country = profile.phone_country %}
-        {% set phone_dial = profile.phone_dial %}
-        {% set phone_national = profile.phone_national %}
-        {% set phone_required = false %}
-        {% include "_phone_row.html" %}
+        <div class="anag-phone">
+          {% set phone_country = profile.phone_country %}
+          {% set phone_dial = profile.phone_dial %}
+          {% set phone_national = profile.phone_national %}
+          {% set phone_required = false %}
+          {% include "_phone_row.html" %}
+        </div>
         {% if profile.phone_verified %}
         <p class="verify-ok">{{ t('Telefono verificato') }}</p>
         {% elif profile.phone_e164 %}
@@ -137,7 +133,6 @@
 
       <div class="form-block anag-feel">
         <h2>{{ t('Come ti senti') }}</h2>
-        <p class="form-hint">{{ t('Scegli come preferisci essere chiamata/o qui.') }}</p>
         <div class="gender-choices gender-soft">
           <label class="gender-option">
             <input type="radio" name="gender" value="female" required {% if profile.gender == 'female' %}checked{% endif %} />
@@ -152,16 +147,17 @@
             <span>{{ t('Non binario') }}</span>
           </label>
         </div>
+        <p class="form-hint anag-feel-hint">{{ t('Scegli come preferisci essere chiamata/o qui.') }}</p>
       </div>
     </div>
-
-    <div class="private-actions">
-      <button class="btn primary" type="submit">{% if profile.anagrafica_complete %}{{ t('Salva') }}{% else %}{{ t('Continua') }}{% endif %}</button>
-      {% if profile.anagrafica_complete %}
-      <a class="btn" href="/cambia-password">{{ t('Cambia password') }}</a>
-      {% endif %}
-    </div>
   </form>
+
+  <div class="anag-footer-actions">
+    <button class="btn anag-btn-continue" type="submit" form="anagrafica-form">{% if profile.anagrafica_complete %}{{ t('Salva') }}{% else %}{{ t('Continua') }}{% endif %}</button>
+    {% if profile.anagrafica_complete %}
+    <a class="btn anag-btn-soft" href="/cambia-password">{{ t('Cambia password') }}</a>
+    {% endif %}
+  </div>
 
   {% if profile.anagrafica_complete and profile.phone_e164 and not profile.phone_verified %}
   <div class="panel reveal" data-reveal>
@@ -191,7 +187,7 @@
   </form>
   {% endif %}
 </section>
-<script src="/static/photo_crop.js?v=irisPhoto3" defer></script>
+<script src="/static/photo_crop.js?v=irisPhoto4" defer></script>
 {% include "_phone_row_js.html" %}
 <script>
 (function () {

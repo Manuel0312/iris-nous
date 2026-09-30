@@ -215,10 +215,11 @@ def test_anagrafica_photo_crop_ui(tmp_path: Path) -> None:
     assert "photo_crop.js" in page.text
     assert "Ingrandimento" in page.text
     assert "photo-face-dialog" in page.text
-    assert "photo-row" in page.text
+    assert "anag-photo" in page.text
     assert "Va bene anche dopo" in page.text
     assert "Come ti chiami" in page.text
     assert "Come ti senti" in page.text
+    assert "anag-card" in page.text
     assert "avatar hero" in page.text or 'class="avatar hero"' in page.text
 
 
