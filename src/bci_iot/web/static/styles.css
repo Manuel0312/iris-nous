@@ -2066,6 +2066,90 @@ html[data-theme-resolved="dark"] .setup-step {
   display: grid !important;
 }
 
+.calib-pane {
+  display: block;
+  max-width: 36rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.calib-pane-simple {
+  max-width: 28rem;
+}
+
+.calib-area {
+  max-width: 42rem;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0.5rem 0 2rem;
+}
+
+.calib-hero {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.calib-hero .lede {
+  margin: 0.55rem auto 0;
+  max-width: 28rem;
+}
+
+.calib-card {
+  margin-top: 0.75rem;
+  padding: 1.35rem 1.3rem 1.4rem;
+  border-radius: 18px;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.42));
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 12px 30px rgba(26, 42, 58, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(18px);
+}
+
+.calib-card h2 {
+  margin: 0 0 0.45rem;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+}
+
+.calib-card .form-hint {
+  margin: 0 0 1rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.calib-inline-form {
+  margin: 0.25rem 0 0;
+}
+
+.calib-phone-meta {
+  margin: 0 0 1rem;
+}
+
+.calib-form {
+  margin-top: 1rem;
+}
+
+.calib-done {
+  text-align: center;
+  max-width: 28rem;
+  margin: 0.75rem auto 0;
+}
+
+.page-calibrazione .shell.private-shell {
+  max-width: 48rem;
+}
+
+@media (max-width: 640px) {
+  .calib-card {
+    padding: 1.1rem 1rem 1.2rem;
+    border-radius: 14px;
+  }
+
+  .calib-area {
+    padding-inline: 0.15rem;
+  }
+}
+
 .wizard-nav {
   display: flex;
   flex-wrap: wrap;

@@ -1,46 +1,51 @@
 ﻿{% extends "base.html" %}
 {% block title %}{{ t('Configurazione') }} · Iris{% endblock %}
-{% block body_class %}page-private{% endblock %}
+{% block body_class %}page-private page-calibrazione{% endblock %}
 {% block main_class %}shell private-shell{% endblock %}
 {% block content %}
-<section class="private-area setup-guide wizard" id="calib-root" data-done="{{ '1' if done else '0' }}">
+<section class="private-area setup-guide wizard calib-area" id="calib-root" data-done="{{ '1' if done else '0' }}">
   {% if done %}
-  <header class="setup-hero">
+  <header class="setup-hero calib-hero">
     <p class="eyebrow">{{ t('Configurazione') }}</p>
-    <h1>{{ t('Protocollo di calibrazione completato.') }}</h1>
-    <p class="lede">{{ t('Hai registrato i quattro colori con il percorso dati della cuffia (simulata o prior). Non è ancora una lettura cerebrale fisica: è il protocollo che userai con l’hardware.') }}</p>
+    <h1>{{ t('Configurazione completata.') }}</h1>
+    <p class="lede">{{ t('La cuffia è pronta e gli impulsi EEG sono salvati in memoria. Non è ancora una lettura cerebrale fisica: è il percorso dati che userai con l’hardware.') }}</p>
   </header>
-  <div class="setup-done">
+  <div class="setup-done calib-done">
+    {% if accuracy is not none %}
     <p class="setup-accuracy">{{ t('Stima holdout (calibrazione)') }}
-      <strong>{{ '%.0f'|format(accuracy * 100) if accuracy is not none else '—' }}%</strong>
+      <strong>{{ '%.0f'|format(accuracy * 100) }}%</strong>
     </p>
-    <p class="lede muted">{{ t('Calibrazione avvenuta') }} · {{ t('segnale simulato finché non colleghi una cuffia reale') }}</p>
+    {% endif %}
+    <p class="lede muted">{{ t('Calibrazione avvenuta') }} · {{ t('segnale da corpus EEG pubblico o prior documentati finché non colleghi una cuffia reale') }}</p>
     <div class="private-actions">
       <a class="btn primary" href="/dashboard">{{ t('Apri l’ecosistema') }}</a>
       <a class="btn" href="/inizia">{{ t('Cosa puoi fare') }}</a>
     </div>
   </div>
   {% else %}
-  <header class="setup-hero">
-    <p class="eyebrow">{{ t('Configurazione') }} · {{ passo }} / 4</p>
+  <header class="setup-hero calib-hero">
+    <p class="eyebrow">{{ t('Configurazione') }} · {{ passo }} / 3</p>
     <h1>
       {% if passo == 1 %}{{ t('La cuffia.') }}
-      {% elif passo == 2 %}{{ t('Il codice, quando lo chiedi.') }}
-      {% elif passo == 3 %}{{ t('Il telefono, se ti serve.') }}
-      {% else %}{{ t('I quattro colori.') }}{% endif %}
+      {% elif passo == 2 %}{{ t('Il codice.') }}
+      {% else %}{{ t('Il telefono.') }}{% endif %}
     </h1>
+    <p class="lede">
+      {% if passo == 1 %}{{ t('Trattala come un dispositivo vero: accendi, indossa, controlla il contatto, poi prova gli impulsi EEG.') }}
+      {% elif passo == 2 %}{{ t('Un codice a sei cifre per associare cuffia e, se vuoi, lo smartphone. Solo quando lo chiedi.') }}
+      {% else %}{{ t('Opzionale. Serve solo se vuoi chiamate e notifiche native sul telefono.') }}{% endif %}
+    </p>
   </header>
 
   <nav class="wizard-dots" aria-label="{{ t('Passi del tutorial') }}">
     <a href="/calibrazione?passo=1" class="{% if passo == 1 %}is-on{% endif %}">1</a>
     <a href="/calibrazione?passo=2" class="{% if passo == 2 %}is-on{% endif %}">2</a>
     <a href="/calibrazione?passo=3" class="{% if passo == 3 %}is-on{% endif %}">3</a>
-    <a href="/calibrazione?passo=4" class="{% if passo == 4 %}is-on{% endif %}">4</a>
   </nav>
 
   {% if passo == 1 %}
-  <article class="setup-step wizard-pane" id="headset-config">
-    <p>{{ t('Questa è la cuffia simulata: trattala come se fosse in mano e poi in testa. Si accende, controlla il contatto, riceve impulsi e salva tutto in memoria per i passi dopo.') }}</p>
+  <article class="calib-pane" id="headset-config">
+    <p class="form-hint">{{ t('Questa è la cuffia simulata: trattala come se fosse in mano e poi in testa. Si accende, controlla il contatto, riceve impulsi EEG reali (corpus pubblico) e salva tutto in memoria per i passi dopo.') }}</p>
     {% if headset.hosted_hint %}
     <p class="flash warn">{{ headset.hosted_hint }}</p>
     {% endif %}
@@ -53,7 +58,7 @@
         <li><span>{{ t('Alimentazione') }}</span><strong id="agent-power">{% if agent %}{{ agent.power }}{% else %}off{% endif %}</strong></li>
         <li><span>{{ t('In testa') }}</span><strong id="agent-wear">{% if agent and agent.wear == 'on_head' %}{{ t('sì') }}{% else %}{{ t('no') }}{% endif %}</strong></li>
         <li><span>{{ t('Contatto') }}</span><strong id="agent-contact-val">{% if agent and agent.contact_ok %}{{ t('ok') }} · {{ '%.0f'|format(agent.contact_mean * 100) }}%{% elif agent %}{{ t('da verificare') }}{% else %}—{% endif %}</strong></li>
-        <li><span>{{ t('Impulsi in memoria') }}</span><strong id="agent-impulses">{% if agent %}{{ agent.impulses_count }}{% else %}0{% endif %}</strong></li>
+        <li><span>{{ t('Impulsi in memoria') }}</span><strong id="agent-impulses">{% if agent %}{{ agent.impulses_count }}{% else %}0{% endif %}{% if agent %} / {{ agent.impulses_needed }}{% endif %}</strong></li>
         <li><span>{{ t('Sorgente segnale') }}</span><strong id="agent-signal">{% if agent %}{{ agent.signal_path }}{% else %}pending{% endif %}</strong></li>
       </ul>
       <div class="contact-bars" id="contact-bars" aria-hidden="true"></div>
@@ -70,7 +75,7 @@
         <div class="meter-track"><div class="meter-fill" id="impulse-fill"></div></div>
       </div>
     </div>
-    <form class="stack" id="headset-form">
+    <form class="stack calib-form" id="headset-form">
       <label>{{ t('Modalità') }}
         <select name="mode" id="headset-mode">
           <option value="simulated" {% if headset.mode == 'simulated' %}selected{% endif %}>{{ t('Simulata (BrainFlow)') }}</option>
@@ -93,66 +98,46 @@
     </div>
   </article>
   {% elif passo == 2 %}
-  <article class="setup-step wizard-pane">
-    <p>{{ t('Quando premi il pulsante, generiamo un codice a 6 cifre e lo mandiamo alla tua email. Serve per la cuffia e, se vuoi, per lo smartphone.') }}</p>
-    {% if pairing_mail_sent and pairing_email_masked %}
-    <p class="setup-mail-ok">{{ t('Codice di associazione inviato a') }} <strong>{{ pairing_email_masked }}</strong>.</p>
-    {% endif %}
-    <form method="post" action="/associa-telefono/invia-codice">
-      <button class="btn primary" type="submit">{{ t('Invia il codice via email') }}</button>
-    </form>
+  <article class="calib-pane calib-pane-simple">
+    <div class="calib-card">
+      <h2>{{ t('Invia il codice') }}</h2>
+      <p class="form-hint">{{ t('Quando premi il pulsante, generiamo un codice a 6 cifre e lo mandiamo alla tua email.') }}</p>
+      {% if pairing_mail_sent and pairing_email_masked %}
+      <p class="setup-mail-ok">{{ t('Codice di associazione inviato a') }} <strong>{{ pairing_email_masked }}</strong>.</p>
+      {% endif %}
+      <form method="post" action="/associa-telefono/invia-codice" class="calib-inline-form">
+        <button class="btn primary" type="submit">{{ t('Invia il codice via email') }}</button>
+      </form>
+    </div>
     <div class="wizard-nav">
       <a class="btn ghost" href="/calibrazione?passo=1">{{ t('Indietro') }}</a>
       <a class="btn primary" href="/calibrazione?passo=3">{{ t('Avanti') }}</a>
     </div>
   </article>
-  {% elif passo == 3 %}
-  <article class="setup-step wizard-pane">
-    <p>{{ t('Per chiamate e notifiche native il telefono diventa un ponte. Non è obbligatorio. Apri la mail, inquadra il QR o scrivi il codice.') }}</p>
-    <p class="muted">{{ t('Cuffia') }}: <strong>{{ profile.headset_id or t('Cuffia non nominata') }}</strong>
-      · {{ profile.phone_label or t('telefono non indicato') }}
-      · {% if profile.phone_paired %}<strong>{{ t('associato') }}</strong>{% else %}{{ t('da confermare') }}{% endif %}
-    </p>
-    <p><a class="btn" href="/associa-telefono">{{ t('Apri l’associazione') }}</a></p>
+  {% else %}
+  <article class="calib-pane calib-pane-simple">
+    <div class="calib-card">
+      <h2>{{ t('Associa il telefono') }}</h2>
+      <p class="form-hint">{{ t('Per chiamate e notifiche native il telefono diventa un ponte. Non è obbligatorio.') }}</p>
+      <ul class="detail-list calib-phone-meta">
+        <li><span>{{ t('Cuffia') }}</span><strong>{{ profile.headset_id or t('Cuffia non nominata') }}</strong></li>
+        <li><span>{{ t('Telefono') }}</span><strong>{{ profile.phone_label or t('telefono non indicato') }}</strong></li>
+        <li><span>{{ t('Stato') }}</span><strong>{% if profile.phone_paired %}{{ t('associato') }}{% else %}{{ t('da confermare') }}{% endif %}</strong></li>
+      </ul>
+      <p class="private-actions">
+        <a class="btn" href="/associa-telefono">{{ t('Apri l’associazione') }}</a>
+      </p>
+      <p class="flash error" id="setup-error" hidden></p>
+      <p class="flash ok" id="setup-ok" hidden></p>
+      <p class="form-hint muted" id="setup-hint">
+        {{ t('Per chiudere il setup servono cuffia pronta e almeno') }}
+        {% if agent %}{{ agent.impulses_needed }}{% else %}3{% endif %}
+        {{ t('impulsi EEG in memoria (passo 1).') }}
+      </p>
+    </div>
     <div class="wizard-nav">
       <a class="btn ghost" href="/calibrazione?passo=2">{{ t('Indietro') }}</a>
-      <a class="btn primary" href="/calibrazione?passo=4">{{ t('Avanti') }}</a>
-    </div>
-  </article>
-  {% else %}
-  <article class="setup-step wizard-pane">
-    <p class="form-hint" id="calib-cue">{{ t('Tocca un riquadro, resta fermo durante il conto alla rovescia, poi registriamo una finestra EEG (simulata). Ripeti ogni colore') }} {{ samples_needed }} {{ t('volte. I colori sono una metafora: non esiste un EEG del rosso.') }}</p>
-    <p class="muted" id="calib-source-badge">{{ t('Sorgente') }}: <strong>{{ headset.signal_source }}</strong>
-      · {{ t('Modalità') }}: <strong>{{ headset.label }}</strong></p>
-    <div class="calib-countdown panel" id="calib-countdown" hidden>
-      <p class="device-label" id="calib-countdown-label">{{ t('Preparati') }}</p>
-      <p class="calib-countdown-num" id="calib-countdown-num">3</p>
-    </div>
-    <div class="calib-colors" id="calib-colors">
-      {% for c in colours %}
-      <button type="button" class="calib-color-tile" data-word="{{ c.key }}"
-        style="--folder-color: {{ c.color }}" title="{{ c.cue }}">
-        <strong>{{ c.label }}</strong>
-        <span>{{ c.color_name }}</span>
-        <small>{{ c.cue }}</small>
-      </button>
-      {% endfor %}
-    </div>
-    <div class="calib-meter panel" id="calib-meter" hidden>
-      <p class="device-label">{{ t('Ultima cattura') }}</p>
-      <p id="calib-last" class="calib-last"></p>
-      <div class="meter-track"><div class="meter-fill" id="meter-fill"></div></div>
-      <p class="muted" id="calib-qc"></p>
-    </div>
-    <ul class="calib-progress muted" id="calib-progress">
-      {% for c in colours %}
-      <li data-word="{{ c.key }}">{{ c.color_name }} ({{ c.label }}): 0 / {{ samples_needed }}</li>
-      {% endfor %}
-    </ul>
-    <p class="flash error" id="calib-error" hidden></p>
-    <div class="wizard-nav">
-      <a class="btn ghost" href="/calibrazione?passo=3">{{ t('Indietro') }}</a>
-      <button type="button" class="btn primary" id="calib-finish" disabled>{{ t('Termina calibrazione') }}</button>
+      <button type="button" class="btn primary" id="setup-finish">{{ t('Completa configurazione') }}</button>
     </div>
   </article>
   {% endif %}
@@ -202,7 +187,8 @@
     } else {
       contactEl.textContent = L.daVerificare;
     }
-    document.getElementById("agent-impulses").textContent = String(a.impulses_count || 0);
+    const needed = a.impulses_needed || 3;
+    document.getElementById("agent-impulses").textContent = String(a.impulses_count || 0) + " / " + needed;
     document.getElementById("agent-signal").textContent = a.signal_path || "pending";
     renderBars(a.contact_channels || []);
     document.getElementById("agent-panel").dataset.ready = a.ready_for_impulses ? "1" : "0";
@@ -301,7 +287,6 @@
     }
   });
 
-  // Initial bars if server already has contact.
   {% if agent and agent.contact_channels %}
   renderBars({{ agent.contact_channels|tojson }});
   {% endif %}
@@ -309,122 +294,31 @@
 </script>
 {% endif %}
 
-{% if not done and passo == 4 %}
+{% if not done and passo == 3 %}
 <script>
 (function () {
-  const progressEl = document.getElementById("calib-progress");
-  const meter = document.getElementById("calib-meter");
-  const last = document.getElementById("calib-last");
-  const fill = document.getElementById("meter-fill");
-  const finishBtn = document.getElementById("calib-finish");
-  const err = document.getElementById("calib-error");
-  const cue = document.getElementById("calib-cue");
-  const qc = document.getElementById("calib-qc");
-  const countdown = document.getElementById("calib-countdown");
-  const countdownNum = document.getElementById("calib-countdown-num");
-  const countdownLabel = document.getElementById("calib-countdown-label");
-  const needed = {{ samples_needed }};
+  const btn = document.getElementById("setup-finish");
+  const err = document.getElementById("setup-error");
+  const ok = document.getElementById("setup-ok");
   const L = {
-    erroreCattura: {{ t('Errore cattura')|tojson }},
-    intensita: {{ t('→ intensità')|tojson }},
-    erroreSalvataggio: {{ t('Errore salvataggio')|tojson }},
-    preparati: {{ t('Preparati')|tojson }},
-    restaFermo: {{ t('Resta fermo')|tojson }},
-    registra: {{ t('Registra')|tojson }},
-    sorgente: {{ t('Sorgente')|tojson }},
-    pulito: {{ t('finestra pulita')|tojson }},
-    artefatti: {{ t('possibili artefatti')|tojson }},
+    errore: {{ t('Completa prima la cuffia e gli impulsi al passo 1.')|tojson }},
+    ok: {{ t('Configurazione completata.')|tojson }},
   };
-  const labels = {
-    {% for c in colours %}"{{ c.key }}": "{{ c.color_name }} ({{ c.label }})",{% endfor %}
-  };
-  let busy = false;
-
-  function renderProgress(progress) {
-    progressEl.querySelectorAll("li").forEach((li) => {
-      const w = li.getAttribute("data-word");
-      const n = (progress && progress[w]) || 0;
-      li.textContent = (labels[w] || w) + ": " + n + " / " + needed;
-    });
-    const vals = Object.values(progress || {});
-    const ready = vals.length >= 4 && vals.every((n) => n >= needed);
-    finishBtn.disabled = !ready;
-  }
-
-  function sleep(ms) {
-    return new Promise((r) => setTimeout(r, ms));
-  }
-
-  async function runCountdown() {
-    countdown.hidden = false;
-    const steps = [
-      [L.preparati, "3"],
-      [L.restaFermo, "2"],
-      [L.registra, "1"],
-    ];
-    for (const [label, num] of steps) {
-      countdownLabel.textContent = label;
-      countdownNum.textContent = num;
-      await sleep(900);
-    }
-    countdown.hidden = true;
-  }
-
-  document.querySelectorAll(".calib-color-tile").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      if (busy) return;
-      busy = true;
-      err.hidden = true;
-      const word = btn.getAttribute("data-word");
-      const tip = btn.getAttribute("title");
-      if (tip) cue.textContent = tip;
-      btn.disabled = true;
-      try {
-        await runCountdown();
-        const res = await fetch("/api/calibrate/capture", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ command: word }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || L.erroreCattura);
-        meter.hidden = false;
-        last.textContent = (data.color_name || data.command) +
-          " " + L.intensita + " " + data.intensity + " · " + data.intent;
-        fill.style.width = data.intensity + "%";
-        fill.style.background = btn.style.getPropertyValue("--folder-color") || "";
-        const src = data.signal_source || "";
-        const clean = data.is_clean ? L.pulito : L.artefatti;
-        const flags = (data.qc_flags || []).join(", ");
-        qc.textContent = L.sorgente + ": " + src + " · " + clean + (flags ? " (" + flags + ")" : "");
-        const badge = document.getElementById("calib-source-badge");
-        if (badge) {
-          badge.innerHTML = L.sorgente + ": <strong>" + src + "</strong>";
-        }
-        renderProgress(data.progress);
-      } catch (e) {
-        err.hidden = false;
-        err.textContent = String(e.message || e);
-      } finally {
-        btn.disabled = false;
-        busy = false;
-        countdown.hidden = true;
-      }
-    });
-  });
-
-  finishBtn.addEventListener("click", async () => {
+  btn.addEventListener("click", async () => {
     err.hidden = true;
-    finishBtn.disabled = true;
+    ok.hidden = true;
+    btn.disabled = true;
     try {
-      const res = await fetch("/api/calibrate/finish", { method: "POST" });
+      const res = await fetch("/api/calibrate/complete-setup", { method: "POST" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || L.erroreSalvataggio);
-      location.href = "/calibrazione?done=1&acc=" + encodeURIComponent(data.accuracy);
+      if (!res.ok) throw new Error(data.detail || L.errore);
+      ok.hidden = false;
+      ok.textContent = L.ok;
+      location.href = "/calibrazione?done=1";
     } catch (e) {
       err.hidden = false;
       err.textContent = String(e.message || e);
-      finishBtn.disabled = false;
+      btn.disabled = false;
     }
   });
 })();

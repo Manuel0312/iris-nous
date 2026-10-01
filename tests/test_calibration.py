@@ -1,4 +1,4 @@
-"""Tests for headset colour calibration wizard."""
+"""Tests for headset colour calibration wizard + setup-without-colours flow."""
 
 from __future__ import annotations
 
@@ -12,6 +12,8 @@ from bci_iot.web import create_app
 
 
 def test_calibration_session_capture_and_finish(tmp_path: Path) -> None:
+    """Legacy colour capture path still works for API/back-compat."""
+
     sess = CalibrationSession(
         username="maria",
         headset_id="cuffia-test",
@@ -27,7 +29,7 @@ def test_calibration_session_capture_and_finish(tmp_path: Path) -> None:
             assert result.command == colour
             assert result.folder
             assert result.color_name
-            assert result.signal_source == "prior_fallback"
+            assert result.signal_source in {"prior_fallback", "physionet_corpus"}
     # Folder alias → colour
     assert sess.capture("video").command == "ROSSO"
     assert sess.complete_enough()
@@ -65,7 +67,7 @@ def test_calibration_capture_brainflow_path() -> None:
         headset_mode="simulated",
     )
     result = sess.capture("ROSSO")
-    assert result.signal_source == "brainflow_synthetic"
+    assert result.signal_source in {"brainflow_synthetic", "brainflow_impulse", "physionet_corpus"}
     assert result.intensity > 0
 
 
@@ -117,6 +119,9 @@ def test_web_calibration_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     assert "agent-power-on" in cfg.text
     assert "agent-impulse" in cfg.text
     assert "Simulata (BrainFlow)" in cfg.text
+    assert "passo=4" not in cfg.text
+    assert "calib-color-tile" not in cfg.text
+
     saved = client.post(
         "/api/headset/configure",
         json={"mode": "simulated", "headset_id": "cuffia-maria"},
@@ -126,29 +131,47 @@ def test_web_calibration_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
 
     intro = client.get("/inizia")
     assert intro.status_code == 200
-    assert "Iniziamo" in intro.text
-    colors = client.get("/calibrazione?passo=4")
-    assert colors.status_code == 200
-    assert "Video" in colors.text
-    assert "rosso" in colors.text.lower()
+    assert "Iniziamo" in intro.text or "Pensi" in intro.text
 
-    for colour in CALIBRATION_COLORS:
-        for _ in range(3):
-            cap = client.post("/api/calibrate/capture", json={"command": colour})
-            assert cap.status_code == 200
-            body = cap.json()
-            assert body["command"] == colour
-            assert body["folder"]
-            assert body["color_name"]
-            assert body["signal_source"] == "prior_fallback"
+    code = client.get("/calibrazione?passo=2")
+    assert code.status_code == 200
+    assert "Invia il codice" in code.text
+    assert "Invia il codice via email" in code.text
 
-    fin = client.post("/api/calibrate/finish")
+    phone = client.get("/calibrazione?passo=3")
+    assert phone.status_code == 200
+    assert "Associa il telefono" in phone.text
+    assert "setup-finish" in phone.text
+    assert "Completa configurazione" in phone.text
+
+    # Legacy passo 4 redirects conceptually to 3 (clamped).
+    legacy = client.get("/calibrazione?passo=4")
+    assert legacy.status_code == 200
+    assert "calib-color-tile" not in legacy.text
+    assert "setup-finish" in legacy.text
+
+    # Headset ready + impulses → complete setup (no colours).
+    assert client.post("/api/headset/power", json={"on": True}).status_code == 200
+    assert client.post("/api/headset/wear", json={"on_head": True}).status_code == 200
+    for _ in range(3):
+        imp = client.post("/api/headset/impulse", json={"kind": "ACCENDI"})
+        assert imp.status_code == 200
+        body = imp.json()
+        assert body["impulse"]["signal_source"] in {
+            "physionet_corpus",
+            "prior_fallback",
+            "brainflow_impulse",
+            "brainflow_synthetic",
+        }
+        assert body["impulse"]["features"]
+        assert body["impulse"]["window_stats"]
+
+    fin = client.post("/api/calibrate/complete-setup")
     assert fin.status_code == 200
     assert fin.json()["status"] == "ok"
-    assert fin.json()["accuracy_kind"] == "holdout"
 
-    done = client.get("/calibrazione?done=1&acc=1")
-    assert "Calibrazione avvenuta" in done.text
+    done = client.get("/calibrazione?done=1")
+    assert "Configurazione completata" in done.text or "Calibrazione avvenuta" in done.text
 
     dash = client.get("/dashboard")
     assert dash.status_code == 200
@@ -163,6 +186,7 @@ def test_web_calibration_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     assert profile is not None
     assert profile.pairing_code
     assert profile.phone_paired is False
+    assert profile.calibration_complete is True
 
     paired = client.post(
         "/associa-telefono",

@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.29",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Impulsi EEG reali, senza colori",
+                "Gli impulsi della cuffia restavano su prior letterari e la calibrazione chiedeva ancora i quattro colori, con passi codice/telefono poco chiari.",
+                "Ora gli impulsi usano finestre EEG pubbliche (PhysioNet), restano in memoria per musica e altre azioni; i colori sono tolti e i passi codice/telefono sono più semplici.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.28",
         "intro": WHATS_NEW_INTRO,
         "entries": (

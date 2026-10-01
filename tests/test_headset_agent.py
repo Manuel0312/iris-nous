@@ -38,7 +38,11 @@ def test_agent_power_wear_contact_impulse_and_memory(tmp_path: Path) -> None:
     payload = agent.receive_impulse("ACCENDI")
     assert payload["impulse"]["kind"] == "ACCENDI"
     assert payload["impulse"]["intensity"] > 0
+    assert payload["impulse"]["signal_source"] == "physionet_corpus"
+    assert payload["impulse"]["features"]
+    assert payload["impulse"]["window_stats"]["n_channels"] == 8
     assert payload["status"]["impulses_count"] == 1
+    assert payload["status"]["corpus_available"] is True
     assert payload["window_shape"][0] == 8
 
     # Reload from disk — memory must persist for later steps.
@@ -144,6 +148,7 @@ def test_web_headset_agent_apis(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     assert impulse.status_code == 200
     data = impulse.json()
     assert data["impulse"]["kind"] == "ACCENDI"
+    assert data["impulse"]["signal_source"] == "physionet_corpus"
     assert data["status"]["impulses_count"] >= 1
 
     mem = tmp_path / "headsets" / "maria" / "agent_memory.json"
@@ -152,3 +157,4 @@ def test_web_headset_agent_apis(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     agent_get = client.get("/api/headset/agent")
     assert agent_get.status_code == 200
     assert agent_get.json()["agent"]["impulses_count"] >= 1
+    assert agent_get.json()["agent"]["corpus_available"] is True

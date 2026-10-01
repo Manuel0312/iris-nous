@@ -2290,7 +2290,7 @@ def create_app(
             ],
         }
 
-    # --- Calibrazione cuffia (config → codice → telefono → colori) ---
+    # --- Calibrazione cuffia (config → codice → telefono; colori rimossi) ---
     def _is_hosted() -> bool:
         import os
 
@@ -2368,7 +2368,8 @@ def create_app(
                 passo = int(passo_raw)
             except ValueError:
                 passo = 1
-            passo = min(4, max(1, passo))
+            # Colour passo (4) removed — clamp legacy links to step 3.
+            passo = min(3, max(1, passo))
         elif profile.calibration_complete:
             done = True
             passo = 0
@@ -2382,11 +2383,7 @@ def create_app(
                 accuracy = float(acc_raw)
             except ValueError:
                 accuracy = None
-        from bci_iot.pipeline.calibration_wizard import (
-            SAMPLES_PER_COLOUR,
-            colour_targets_public,
-            headset_status_payload,
-        )
+        from bci_iot.pipeline.calibration_wizard import headset_status_payload
 
         mode = profiles.get_headset_mode(profile.username)
         headset = headset_status_payload(
@@ -2410,8 +2407,6 @@ def create_app(
                 request,
                 profiles,
                 profile=profile,
-                colours=colour_targets_public(),
-                samples_needed=SAMPLES_PER_COLOUR,
                 done=done,
                 passo=passo,
                 accuracy=accuracy,
@@ -2663,6 +2658,41 @@ def create_app(
             "signal_note": "stima su dati di calibrazione (simulati o prior)",
         }
 
+    @app.post("/api/calibrate/complete-setup")
+    async def api_calibrate_complete_setup(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        """Finish setup without colour tiles: headset ready + enough EEG impulses."""
+
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
+        profile = profiles.ensure_headset_pairing(username)
+        profiles.set_headset_mode(username, "simulated")
+        agent = get_headset_agent(
+            username=username,
+            headset_id=profile.headset_id,
+            data_root=profiles.data_root,
+        )
+
+        def _finish() -> dict:
+            return agent.complete_setup_if_ready()
+
+        try:
+            status = await run_in_threadpool(_finish)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        profiles.mark_calibration_complete(username)
+        app.state.calib_sessions.pop(username, None)
+        return {
+            "status": "ok",
+            "agent": status,
+            "signal_note": "impulsi EEG (PhysioNet / BrainFlow / prior) salvati in memoria",
+        }
+
     @app.get("/associa-telefono", response_class=HTMLResponse)
     def associa_telefono_page(
         request: Request,
@@ -2709,7 +2739,7 @@ def create_app(
             _flash(request, str(exc), kind="error")
             return RedirectResponse("/associa-telefono", status_code=303)
         _flash(request, "Telefono associato. Apri Telefono live e collega Spotify.", kind="ok")
-        dest = "/telefono" if not profile.needs_calibration else "/calibrazione?passo=4"
+        dest = "/telefono" if not profile.needs_calibration else "/calibrazione?passo=3"
         return _continue(
             request,
             next_url=dest,
