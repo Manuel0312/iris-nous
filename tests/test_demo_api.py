@@ -20,7 +20,8 @@ def test_home_page_is_responsive_shell(tmp_path: Path) -> None:
     assert "pensa," in page.text
     assert "agisci," in page.text
     assert "crea." in page.text
-    assert "pensando" in page.text or "Siri" in page.text
+    assert "site-disclaimer" in page.text or "Privacy" in page.text
+    assert "prototipo di tesi UNITO" in page.text.lower() or "Prototipo di tesi UNITO" in page.text
     assert 'name="viewport"' in page.text
     assert "manifest.webmanifest" in page.text
 

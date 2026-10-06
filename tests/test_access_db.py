@@ -33,14 +33,16 @@ def test_product_home_and_dropdown(tmp_path: Path) -> None:
     assert page.status_code == 200
     assert "Iris" in page.text
     assert "Iris Nous" in page.text
-    assert "pensando" in page.text or "Siri" in page.text
+    assert "Controlla casa e media pensando" not in page.text
+    assert "site-disclaimer" in page.text or 'href="/privacy"' in page.text
     assert "Login" in page.text
     assert "Iscrizione" in page.text
     assert "/static/brand/unito-di.png" in page.text
     assert "password-toggle" in client.get("/login").text
     assert "data-reveal" in page.text
     assert 'name="viewport"' in page.text
-    assert 'data-theme-set="auto"' in page.text
+    assert "prefers-color-scheme" in page.text
+    assert "data-theme-set" not in page.text
 
 
 def test_register_login_logged_and_admin_sees_accessi(tmp_path: Path) -> None:
@@ -63,7 +65,12 @@ def test_register_login_logged_and_admin_sees_accessi(tmp_path: Path) -> None:
         follow_redirects=False,
     )
     assert register.status_code == 200
-    assert "/anagrafica" in register.text
+    assert "/attendi-conferma-email" in register.text
+    # Bypass mailbox: mark email verified so the rest of the flow can run.
+    profile = app.state.store.get("maria")
+    assert profile is not None
+    profile.email_verified = True
+    app.state.store.save(profile)
 
     client.post(
         "/anagrafica",
@@ -94,7 +101,7 @@ def test_register_login_logged_and_admin_sees_accessi(tmp_path: Path) -> None:
         follow_redirects=False,
     )
     assert login.status_code == 200
-    assert "/calibrazione" in login.text
+    assert "/inizia" in login.text
 
     denied = client.get("/accessi", follow_redirects=False)
     assert denied.status_code == 303
