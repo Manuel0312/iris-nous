@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ t('Privacy') }} · Iris{% endblock %}
+{% block body_class %}page-private page-privacy{% endblock %}
+{% block main_class %}shell private-shell{% endblock %}
+{% block content %}
+<section class="private-area privacy-doc">
+  <header class="setup-hero">
+    <p class="eyebrow">{{ t('Privacy') }}</p>
+    <h1>{{ t('Come trattiamo i dati') }}</h1>
+    <p class="lede">{{ t('Iris Nous è un prototipo di tesi UNITO (demo pubblica). Non è un dispositivo medico e non vende dati cerebrali.') }}</p>
+  </header>
+
+  <article class="privacy-sections">
+    <section>
+      <h2>{{ t('Account e profilo') }}</h2>
+      <p>{{ t('Se crei un account, memorizziamo i dati che inserisci (username, email, anagrafica, eventuale telefono e foto profilo) per farti accedere al sito, recuperare la password e usare le funzioni di chat e configurazione. Puoi eliminare l’account dalle tue pagine personali.') }}</p>
+    </section>
+    <section>
+      <h2>{{ t('Cookie di sessione e lingua') }}</h2>
+      <p>{{ t('Usiamo cookie tecnici di sessione per tenerti collegato e un cookie di preferenza lingua. Non usiamo cookie pubblicitari di tracciamento di terzi.') }}</p>
+    </section>
+    <section>
+      <h2>{{ t('Impulsi e memoria agente (demo)') }}</h2>
+      <p>{{ t('Gli «impulsi» salvati in memoria agente durante la configurazione sono finestre EEG pubbliche o sintetiche per la demo (ad esempio corpus pubblico / PhysioNet), oppure segnali simulati. Non sono EEG clinici personali del tuo cervello e non vanno usati per diagnosi o cure.') }}</p>
+    </section>
+    <section>
+      <h2>{{ t('Cuffia simulata') }}</h2>
+      <p>{{ t('Finché non c’è hardware reale, la cuffia resta in modalità simulata o di manutenzione: è uno stato previsto del prototipo, non un guasto da «sistemare» con un falso collegamento fisico.') }}</p>
+    </section>
+    <section>
+      <h2>{{ t('Non vendiamo dati cerebrali') }}</h2>
+      <p>{{ t('Non vendiamo, non cediamo a fini commerciali e non profiliamo «il tuo cervello». I dati di account servono al funzionamento della demo di tesi; gli impulsi demo non sono letture cliniche.') }}</p>
+    </section>
+    <section>
+      <h2>{{ t('Natura non medica') }}</h2>
+      <p>{{ t('Iris Nous non è un dispositivo medico, non fornisce diagnosi né terapie e non sostituisce parere sanitario. È un prototipo universitario per mostrare un percorso dati da segnale a azione (casa, musica, telefono) in contesto di tesi.') }}</p>
+    </section>
+  </article>
+
+  <p class="muted privacy-back"><a href="/">{{ t('Torna alla home') }}</a></p>
+</section>
+{% endblock %}

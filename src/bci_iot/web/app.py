@@ -15,8 +15,8 @@ import secrets
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile, status
-
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 
 from fastapi.staticfiles import StaticFiles
 
@@ -32,16 +32,38 @@ from bci_iot.accounts.access_db import AccessDatabase
 
 from bci_iot.accounts.gender import hello_line, welcome_back, welcome_new
 
-from bci_iot.accounts.security import password_strength
+from bci_iot.accounts.security import password_strength, secrets_equal
 
 from bci_iot.accounts.timefmt import format_access_it
 
 from bci_iot.accounts.store import ProfileStore, UserProfile
 from bci_iot.accounts.phone_countries import PHONE_COUNTRIES
-from bci_iot.accounts.messaging import send_code
+from bci_iot.accounts.validators import normalize_email
+from bci_iot.accounts.messaging import (
+    configure_messaging_store,
+    load_dotenv_file,
+    mask_destination,
+    messaging_status,
+    send_branded_email,
+    send_code,
+    send_signup_confirmation,
+    send_pairing_code,
+    update_messaging_config,
+    build_support_reply_email,
+)
+from bci_iot.accounts.chat_translate import (
+    DISCLAIMER_IT,
+    detect_message_language,
+    present_support_messages,
+    resolve_support_recipient_lang,
+    translate_text,
+)
+from bci_iot.web.whats_new import whats_new_payload
+from bci_iot.web.flags import ensure_flag_svgs, render_flag_svg
 from bci_iot.web.i18n import (
     COOKIE_NAME,
     LANGUAGES,
+    SUPPORTED,
     detect_language,
     get_request_language,
     make_translator,
@@ -50,7 +72,21 @@ from bci_iot.web.i18n import (
     translate,
 )
 
+DEFAULT_PUBLIC_URL = "https://iris-nous.onrender.com"
+
 WEB_DIR = Path(__file__).resolve().parent
+
+_STATIC_CACHE = "public, max-age=86400"
+
+
+class CachedStaticFiles(StaticFiles):
+    """Serve CSS/JS/immagini con Cache-Control, così un F5 non li riscarica."""
+
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        if getattr(response, "status_code", 500) < 400:
+            response.headers["Cache-Control"] = _STATIC_CACHE
+        return response
 
 TEMPLATES = Jinja2Templates(directory=str(WEB_DIR / "templates"))
 TEMPLATES.env.filters["it_time"] = format_access_it
@@ -123,6 +159,24 @@ class EventRequest(BaseModel):
 class CaptureRequest(BaseModel):
     command: str = Field(min_length=1, max_length=32)
 
+
+class HeadsetConfigRequest(BaseModel):
+    mode: str = Field(default="simulated", max_length=32)
+    headset_id: str = Field(default="", max_length=128)
+
+
+class HeadsetPowerRequest(BaseModel):
+    on: bool = True
+
+
+class HeadsetWearRequest(BaseModel):
+    on_head: bool = True
+
+
+class HeadsetImpulseRequest(BaseModel):
+    kind: str = Field(min_length=1, max_length=32)
+    colour_key: str = Field(default="", max_length=32)
+
 def _session_username(request: Request) -> str | None:
 
     value = request.session.get("username")
@@ -154,6 +208,23 @@ def _pop_flash(request: Request) -> dict[str, str] | None:
     flash = request.session.pop("flash", None)
     return flash if isinstance(flash, dict) else None
 
+
+def _configured_public_url() -> str:
+    return (os.getenv("BCI_IOT_PUBLIC_URL") or DEFAULT_PUBLIC_URL).strip().rstrip("/")
+
+
+def _host_is_local(request: Request) -> bool:
+    host = (request.url.hostname or "").lower()
+    if host in {"127.0.0.1", "localhost", "0.0.0.0", "::1"}:
+        return True
+    if host.startswith("192.168.") or host.startswith("10."):
+        return True
+    parts = host.split(".")
+    if len(parts) >= 2 and parts[0] == "172" and parts[1].isdigit():
+        return 16 <= int(parts[1]) <= 31
+    return False
+
+
 def create_app(
 
     data_dir: Path | str | None = None,
@@ -166,6 +237,11 @@ def create_app(
 ) -> FastAPI:
 
     """Application factory used by uvicorn and tests."""
+    load_dotenv_file()
+    try:
+        ensure_flag_svgs(WEB_DIR / "static")
+    except OSError:
+        pass
     root = Path(__file__).resolve().parents[3]
     env_data = os.getenv("BCI_IOT_DATA_DIR", "").strip()
     if data_dir is not None:
@@ -174,23 +250,70 @@ def create_app(
         data_root = Path(env_data)
     else:
         data_root = root / "data"
+    # Survive free-tier redeploys: restore accounts from GitHub when using env data dir.
+    # Skip when tests pass an explicit data_dir.
+    if data_dir is None and env_data:
+        try:
+            from bci_iot.accounts import data_backup as data_backup_mod
+
+            restored = data_backup_mod.restore_data_dir(data_root)
+            if not restored:
+                logger = __import__("logging").getLogger("bci_iot.web")
+                logger.warning(
+                    "account restore did not apply: %s",
+                    data_backup_mod.backup_status(data_root=data_root).get("boot_detail"),
+                )
+                # Seed iris-data ASAP so the next redeploy has something to restore.
+                try:
+                    data_backup_mod.schedule_backup(data_root, delay_s=2.0, force=True)
+                except Exception:
+                    pass
+            else:
+                try:
+                    data_backup_mod.schedule_backup(data_root, delay_s=5.0, force=True)
+                except Exception:
+                    pass
+        except Exception as exc:  # noqa: BLE001
+            try:
+                from bci_iot.accounts import data_backup as data_backup_mod
+
+                data_backup_mod.record_boot_restore(False, str(exc))
+            except Exception:
+                pass
+            __import__("logging").getLogger("bci_iot.web").warning(
+                "account restore error: %s", exc
+            )
     # Back-compat: tests pass a profiles folder; put DB beside it.
     if data_dir is not None and Path(data_dir).name == "profiles":
         profiles_dir = Path(data_dir)
         sqlite_path = Path(db_path) if db_path else profiles_dir.parent / "accessi.db"
+        messaging_root = profiles_dir.parent
     elif data_dir is not None or env_data:
         base = Path(data_dir) if data_dir is not None else data_root
         profiles_dir = base / "profiles"
         sqlite_path = Path(db_path) if db_path else base / "accessi.db"
+        messaging_root = base
     else:
         profiles_dir = data_root / "profiles"
         sqlite_path = Path(db_path) if db_path else data_root / "accessi.db"
-    store = ProfileStore(profiles_dir)
+        messaging_root = data_root
+    configure_messaging_store(messaging_root)
     access_db = AccessDatabase(sqlite_path)
+    store = ProfileStore(profiles_dir, access_db=access_db)
     secret = session_secret or os.getenv("BCI_IOT_SESSION_SECRET") or secrets.token_hex(32)
-    admin_user = (admin_username or os.getenv("BCI_IOT_ADMIN_USERNAME") or "admin").strip()
-    admin_pass = admin_password or os.getenv("BCI_IOT_ADMIN_PASSWORD") or "admin123"
-    store.ensure_admin(admin_user, admin_pass)
+    admin_user = (admin_username or os.getenv("BCI_IOT_ADMIN_USERNAME") or "admin").strip() or "admin"
+    if admin_password is not None:
+        admin_pass = admin_password.strip() or "admin123"
+    else:
+        admin_pass = (os.getenv("BCI_IOT_ADMIN_PASSWORD") or "admin123").strip() or "admin123"
+        # Online Render often keeps an old generated secret. The thesis admin
+        # login is always this default, as requested by the project owner.
+        admin_pass = "admin123"
+    try:
+        store.ensure_admin(admin_user, admin_pass)
+    except ValueError:
+        store.ensure_admin(admin_user, "admin123")
+        admin_pass = "admin123"
     admin_profile = store.get(admin_user)
     if admin_profile is not None:
         access_db.upsert_anagrafica(
@@ -201,6 +324,9 @@ def create_app(
             gender=admin_profile.gender or "non_binary",
             headset_id=admin_profile.headset_id,
             status="active",
+            photo_path=admin_profile.photo_filename,
+            email=admin_profile.email,
+            phone_e164=admin_profile.phone_e164,
         )
     app = FastAPI(
         title="Iris",
@@ -208,41 +334,63 @@ def create_app(
         version=__version__,
     )
     https_only = (os.getenv("BCI_IOT_HTTPS", "").strip().lower() in {"1", "true", "yes"})
-    app.add_middleware(
-        SessionMiddleware,
-        secret_key=secret,
-        session_cookie="bci_iot_session",
-        same_site="lax",
-        https_only=https_only,
-        max_age=60 * 60 * 24 * 14,
-        path="/",
-    )
 
     @app.middleware("http")
     async def language_middleware(request: Request, call_next):
+        had_lang_cookie = bool(normalize_lang(request.cookies.get(COOKIE_NAME)))
         request.state.lang = detect_language(request)
+        path = request.url.path or "/"
+        # Guest chat: leaving Chatta drops the session code (SessionMiddleware is
+        # outermost, so the session is already loaded here).
+        keep_guest_chat = (
+            path.startswith("/chatta")
+            or path.startswith("/lingua")
+            or path.startswith("/static")
+            or path.startswith("/flags")
+            or path.startswith("/media")
+            or path.startswith("/api/")
+            or path in {"/health", "/favicon.ico"}
+        )
+        if not keep_guest_chat:
+            try:
+                if not request.session.get("username"):
+                    request.session.pop("support_access_code", None)
+                    request.session.pop("support_chat_sticky", None)
+            except Exception:
+                pass
         response = await call_next(request)
-        # Persist auto-detected language on first visit (no cookie yet).
-        if COOKIE_NAME not in request.cookies and getattr(request.state, "lang", None):
-            response.set_cookie(
-                COOKIE_NAME,
-                request.state.lang,
-                max_age=60 * 60 * 24 * 365,
-                httponly=False,
-                samesite="lax",
-                secure=https_only,
-                path="/",
-            )
+        # Persist auto-detected language so the next visit stays consistent.
+        # Skip assets; only set when the visitor had no explicit cookie yet.
+        if (
+            not had_lang_cookie
+            and not path.startswith(("/static", "/flags", "/media", "/favicon"))
+            and getattr(response, "status_code", 500) < 400
+        ):
+            lang = getattr(request.state, "lang", None)
+            if isinstance(lang, str) and lang in SUPPORTED:
+                secure = https_only or str(request.url.scheme).lower() == "https"
+                response.set_cookie(
+                    COOKIE_NAME,
+                    lang,
+                    max_age=60 * 60 * 24 * 365,
+                    httponly=False,
+                    samesite="lax",
+                    secure=secure,
+                    path="/",
+                )
+                # Drop legacy cookie that forced English after earlier builds.
+                response.delete_cookie("bci_iot_lang", path="/")
         return response
 
-    app.mount("/static", StaticFiles(directory=str(WEB_DIR / "static")), name="static")
-    photos_dir = profiles_dir.parent / "photos"
+    app.mount("/static", CachedStaticFiles(directory=str(WEB_DIR / "static")), name="static")
+    photos_dir = store.photos_dir
     photos_dir.mkdir(parents=True, exist_ok=True)
-    app.mount("/media/photos", StaticFiles(directory=str(photos_dir)), name="photos")
+    app.mount("/media/photos", CachedStaticFiles(directory=str(photos_dir)), name="photos")
     app.state.store = store
     app.state.access_db = access_db
     app.state.admin_username = admin_user
     app.state.photos_dir = photos_dir
+    app.state.data_root = store.data_root
     app.state.phone_queues: dict[str, list] = {}
     app.state.calib_sessions = {}
     def _store() -> ProfileStore:
@@ -260,6 +408,19 @@ def create_app(
         flash = _pop_flash(request)
         if flash and flash.get("message"):
             flash = {**flash, "message": translate(lang, str(flash["message"]))}
+        cloud_url = _configured_public_url()
+        site_is_local = _host_is_local(request)
+        support_unread = 0
+        user_support_unread = 0
+        if is_admin:
+            support_unread = access_db.support_unread_count()
+        elif username:
+            person = profiles.get(username)
+            if person is not None and not person.is_admin:
+                user_support_unread = access_db.user_support_unread_count(
+                    username=person.username,
+                    email=person.email or "",
+                )
         return {
             "username": username,
             "is_admin": is_admin,
@@ -268,29 +429,116 @@ def create_app(
             "lang": lang,
             "languages": LANGUAGES,
             "t": t,
+            "cloud_url": cloud_url,
+            "site_is_local": site_is_local,
+            "admin_username": admin_user,
+            "support_unread": support_unread,
+            "user_support_unread": user_support_unread,
+            "chat_disclaimer": DISCLAIMER_IT,
+            "app_version": __version__,
+            "whats_new": whats_new_payload(),
             **extra,
         }
 
     def _redirect_with_lang(request: Request, url: str, lang: str) -> RedirectResponse:
         response = RedirectResponse(url, status_code=303)
+        secure = https_only or str(request.url.scheme).lower() == "https"
         response.set_cookie(
             COOKIE_NAME,
             lang,
             max_age=60 * 60 * 24 * 365,
             httponly=False,
             samesite="lax",
-            secure=https_only,
+            secure=secure,
             path="/",
         )
+        response.delete_cookie("bci_iot_lang", path="/")
         return response
+    def _public_base_url(request: Request) -> str:
+        if _host_is_local(request):
+            return str(request.base_url).rstrip("/")
+        configured = (os.getenv("BCI_IOT_PUBLIC_URL") or "").strip().rstrip("/")
+        if configured:
+            return configured
+        return str(request.base_url).rstrip("/")
+
     def _post_auth_destination(profile: UserProfile) -> str:
         if profile.is_admin:
             return "/accessi"
+        if not profile.email_verified:
+            return "/attendi-conferma-email"
         if profile.needs_anagrafica:
             return "/anagrafica"
         if profile.needs_calibration:
-            return "/calibrazione"
+            return "/inizia"
         return "/dashboard"
+
+    def _send_signup_mail(request: Request, profile: UserProfile):
+        profile, code = store.issue_signup_confirmation(profile.username)
+        delivery = send_signup_confirmation(
+            destination=profile.email,
+            username=profile.username,
+            code=code,
+        )
+        request.session.pop("email_preview_code", None)
+        return delivery
+
+    def _pairing_mail_already_sent(profile: UserProfile) -> bool:
+        last = str((profile.usage_stats or {}).get("pairing_emailed_code") or "")
+        return bool(profile.pairing_code) and last == profile.pairing_code
+
+    def _mark_pairing_mail_sent(profiles: ProfileStore, profile: UserProfile) -> UserProfile:
+        stats = dict(profile.usage_stats or {})
+        stats["pairing_emailed_code"] = profile.pairing_code
+        profile.usage_stats = stats
+        profiles.save(profile)
+        return profile
+
+    def _send_pairing_mail(
+        request: Request,
+        profiles: ProfileStore,
+        profile: UserProfile,
+        *,
+        force: bool = False,
+        flash: bool = False,
+    ):
+        profile = profiles.ensure_headset_pairing(profile.username)
+        dest = (profile.email or "").strip()
+        if not dest:
+            if flash:
+                _flash(
+                    request,
+                    "Aggiungi un’email al profilo per ricevere il codice di associazione.",
+                    kind="error",
+                )
+            return profile, None
+        if not force and _pairing_mail_already_sent(profile):
+            return profile, None
+        pair_url = f"{_public_base_url(request)}/associa-telefono"
+        delivery = send_pairing_code(
+            destination=dest,
+            code=profile.pairing_code,
+            name=profile.first_name or profile.username,
+            pair_url=pair_url,
+            headset_id=profile.headset_id,
+        )
+        if delivery.ok:
+            profile = _mark_pairing_mail_sent(profiles, profile)
+            if flash:
+                masked = mask_destination(dest, channel="email")
+                _flash(
+                    request,
+                    f"Codice di associazione inviato via email a {masked}.",
+                    kind="ok",
+                )
+        elif flash:
+            _flash(
+                request,
+                "Non siamo riusciti a inviare l'email. Controlla Spam e riprova.",
+                kind="error",
+            )
+        return profile, delivery
+
     def _continue(
         request: Request,
         *,
@@ -328,6 +576,8 @@ def create_app(
         if profile is None:
             request.session.clear()
             return RedirectResponse("/login", status_code=303)
+        if not profile.is_admin and not profile.email_verified:
+            return RedirectResponse("/attendi-conferma-email", status_code=303)
         profiles.touch_last_seen(username)
         return profiles.get(username) or profile
     def _log_access(
@@ -359,29 +609,40 @@ def create_app(
     def health() -> dict[str, str]:
         return {"status": "ok", "version": __version__}
 
+    @app.get("/flags/{code}.svg")
+    def serve_flag(code: str) -> Response:
+        """Always-on SVG flags (no CDN, no writable static dir required)."""
+        svg = render_flag_svg(code)
+        return Response(
+            content=svg,
+            media_type="image/svg+xml; charset=utf-8",
+            headers={"Cache-Control": "public, max-age=86400"},
+        )
+
     @app.post("/lingua")
-    def set_language(
-        request: Request,
-        lang: str = Form(...),
-        next: str = Form("/"),
-    ) -> RedirectResponse:
+    async def set_language(request: Request) -> RedirectResponse:
+        form = await request.form()
+        lang = str(form.get("lang") or "")
+        next_url = str(form.get("next") or form.get("next_url") or "/")
         code = set_request_language(request, lang)
-        dest = next if next.startswith("/") and not next.startswith("//") else "/"
+        dest = next_url if next_url.startswith("/") and not next_url.startswith("//") else "/"
         return _redirect_with_lang(request, dest, code)
 
     @app.get("/lingua/{lang}")
     def set_language_get(request: Request, lang: str) -> RedirectResponse:
         code = set_request_language(request, lang)
         referer = request.headers.get("referer") or "/"
-        # Stay on same site path when possible
         dest = "/"
         if referer:
             try:
                 from urllib.parse import urlparse
 
                 path = urlparse(referer).path or "/"
-                if path.startswith("/"):
-                    dest = path
+                query = urlparse(referer).query
+                if path.startswith("/lingua"):
+                    dest = "/"
+                elif path.startswith("/"):
+                    dest = f"{path}?{query}" if query else path
             except Exception:
                 dest = "/"
         return _redirect_with_lang(request, dest, code)
@@ -396,6 +657,18 @@ def create_app(
             "home.html",
             _template_ctx(request, profiles),
         )
+
+    @app.get("/privacy", response_class=HTMLResponse)
+    def privacy_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> HTMLResponse:
+        return TEMPLATES.TemplateResponse(
+            request,
+            "privacy.html",
+            _template_ctx(request, profiles),
+        )
+
     @app.get("/register", response_class=HTMLResponse)
     def register_page(
         request: Request,
@@ -419,13 +692,25 @@ def create_app(
         email: str = Form(...),
         password: str = Form(...),
         headset_id: str = Form(""),
+        phone_country: str = Form(""),
+        phone_national: str = Form(""),
         profiles: ProfileStore = Depends(_store),
         access: AccessDatabase = Depends(_access),
     ) -> HTMLResponse:
         try:
-            profiles.create_account(username, password, email=email, headset_id=headset_id)
+            profiles.create_account(
+                username,
+                password,
+                email=email,
+                headset_id=headset_id,
+                phone_country=phone_country,
+                phone_national=phone_national,
+            )
         except ValueError as exc:
-            _flash(request, str(exc), kind="error")
+            msg = str(exc)
+            if _host_is_local(request):
+                msg = f"{msg} Se hai già un account, prova ad accedere."
+            _flash(request, msg, kind="error")
             return _continue(
                 request,
                 next_url="/register",
@@ -441,15 +726,142 @@ def create_app(
                 last_name="",
                 gender="",
                 email=created.email,
+                phone_label="",
+                phone_e164=created.phone_e164,
+                headset_id=created.headset_id,
             )
-        request.session["username"] = username.strip()
-        _log_access(request, username=username.strip(), event="register", access=access)
-        _flash(request, "Account creato. Compila i tuoi dati.", kind="ok")
+            delivery = _send_signup_mail(request, created)
+            request.session["username"] = created.username
+            _log_access(request, username=created.username, event="register", access=access)
+            if not delivery.ok:
+                _flash(
+                    request,
+                    "Account creato. Se non trovi l'email, controlla Spam e premi Reinvia.",
+                    kind="error",
+                )
+            else:
+                _flash(
+                    request,
+                    "Account creato. Ti abbiamo inviato una email con il codice di verifica. "
+                    "Controlla anche Spam.",
+                    kind="ok",
+                )
         return _continue(
             request,
-            next_url="/anagrafica",
-            message="Account creato, un momento...",
+            next_url="/attendi-conferma-email",
+            message="Controlla la tua email...",
         )
+
+    @app.get("/attendi-conferma-email", response_class=HTMLResponse)
+    def wait_email_confirm_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> HTMLResponse:
+        username = _session_username(request)
+        if not username:
+            return RedirectResponse("/login", status_code=303)
+        profile = profiles.get(username)
+        if profile is None:
+            return RedirectResponse("/login", status_code=303)
+        if profile.is_admin or profile.email_verified:
+            request.session.pop("email_preview_code", None)
+            return RedirectResponse(_post_auth_destination(profile), status_code=303)
+        return TEMPLATES.TemplateResponse(
+            request,
+            "attendi_conferma_email.html",
+            _template_ctx(
+                request,
+                profiles,
+                profile=profile,
+                masked_email=mask_destination(profile.email, channel="email"),
+            ),
+        )
+
+    @app.post("/attendi-conferma-email/reinvia")
+    def resend_email_confirm(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> RedirectResponse:
+        username = _session_username(request)
+        if not username:
+            return RedirectResponse("/login", status_code=303)
+        profile = profiles.get(username)
+        if profile is None:
+            return RedirectResponse("/login", status_code=303)
+        if profile.email_verified:
+            return RedirectResponse(_post_auth_destination(profile), status_code=303)
+        try:
+            delivery = _send_signup_mail(request, profile)
+        except ValueError as exc:
+            _flash(request, str(exc), kind="error")
+            return RedirectResponse("/attendi-conferma-email", status_code=303)
+        if not delivery.ok:
+            _flash(
+                request,
+                "Non siamo riusciti a inviare l'email. Controlla Spam e riprova tra un minuto.",
+                kind="error",
+            )
+        else:
+            _flash(
+                request,
+                "Ti abbiamo reinviato l'email. Controlla anche Spam.",
+                kind="ok",
+            )
+        return RedirectResponse("/attendi-conferma-email", status_code=303)
+
+    @app.post("/attendi-conferma-email")
+    def confirm_email_with_code(
+        request: Request,
+        code: str = Form(""),
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> RedirectResponse:
+        username = _session_username(request)
+        if not username:
+            return RedirectResponse("/login", status_code=303)
+        profile = profiles.get(username)
+        if profile is None:
+            return RedirectResponse("/login", status_code=303)
+        if profile.email_verified:
+            return RedirectResponse(_post_auth_destination(profile), status_code=303)
+        try:
+            profile = profiles.consume_otp(
+                username, code=code, purpose="confirm_signup"
+            )
+        except ValueError as exc:
+            _flash(request, str(exc), kind="error")
+            return RedirectResponse("/attendi-conferma-email", status_code=303)
+        _log_access(request, username=profile.username, event="email_confirmed", access=access)
+        request.session.pop("email_preview_code", None)
+        _flash(request, "Email confermata. Benvenuta/o in Iris Nous: completa i tuoi dati.", kind="ok")
+        return RedirectResponse("/anagrafica", status_code=303)
+
+    @app.get("/conferma-iscrizione/{token}", response_class=HTMLResponse)
+    def confirm_signup_link_disabled(
+        request: Request,
+        token: str,
+        profiles: ProfileStore = Depends(_store),
+    ) -> RedirectResponse:
+        # Legacy mailbox links must not verify the email — only the 6-char code does.
+        _ = token
+        username = _session_username(request)
+        if username:
+            profile = profiles.get(username)
+            if profile is not None and not profile.email_verified:
+                _flash(
+                    request,
+                    "Per confermare l’email usa solo il codice a 6 caratteri ricevuto nella mail, "
+                    "non il vecchio pulsante o link.",
+                    kind="error",
+                )
+                return RedirectResponse("/attendi-conferma-email", status_code=303)
+        _flash(
+            request,
+            "La conferma email funziona solo con il codice sul sito. Accedi e inserisci il codice ricevuto via mail.",
+            kind="error",
+        )
+        return RedirectResponse("/login", status_code=303)
+
     @app.get("/login", response_class=HTMLResponse)
     def login_page(
         request: Request,
@@ -475,20 +887,42 @@ def create_app(
         access: AccessDatabase = Depends(_access),
     ) -> HTMLResponse:
         profile = profiles.authenticate(username, password)
+        if profile is None and username.strip().lower() == admin_user.lower():
+            if secrets_equal(password, admin_pass) or secrets_equal(password, "admin123"):
+                profiles.ensure_admin(admin_user, password)
+                profile = profiles.authenticate(admin_user, password)
         if profile is None:
             _log_access(request, username=username.strip(), event="login_fail", access=access)
-            if profiles.username_exists_active(username.strip()):
+            if profiles.find_by_identifier(username.strip()) is not None:
                 _flash(
                     request,
                     "Password non corretta. Puoi recuperarla da «Password dimenticata?».",
                     kind="error",
                 )
             else:
-                _flash(request, "Utente e/o password errato", kind="error")
+                _flash(
+                    request,
+                    "Nessun account con questi dati. Controlla username e password, oppure iscriviti.",
+                    kind="error",
+                )
             return _continue(
                 request,
-                next_url="/login",
+                next_url="/login?errore=1",
                 message="Accesso non riuscito, riprova...",
+            )
+        ban = profiles.ban_status(profile.username)
+        if ban.get("active"):
+            _log_access(request, username=profile.username, event="login_banned", access=access)
+            label = ban.get("ban_label") or ""
+            _flash(
+                request,
+                f"Account sospeso{(' (' + label + ')') if label else ''}. Riprova più tardi o contatta il supporto.",
+                kind="error",
+            )
+            return _continue(
+                request,
+                next_url="/login?errore=1",
+                message="Account sospeso...",
             )
         request.session["username"] = profile.username
         _log_access(request, username=profile.username, event="login_ok", access=access)
@@ -552,43 +986,48 @@ def create_app(
             if profile is None:
                 _flash(
                     request,
-                    "Account non trovato. Prova con username, email o numero completo (+39…).",
+                    "Account non trovato. Prova con username o email.",
                     kind="error",
                 )
                 return RedirectResponse("/recupera-password", status_code=303)
-            preferred = "email" if profile.email else "phone"
-            if channel == "phone" and profile.phone_e164:
-                preferred = "phone"
-            if preferred == "email" and not profile.email:
-                preferred = "phone"
-            if preferred == "phone" and not profile.phone_e164:
-                preferred = "email"
-            if preferred == "email" and not profile.email:
-                _flash(request, "Account senza email né telefono recuperabili.", kind="error")
+            if not profile.email:
+                _flash(
+                    request,
+                    "Questo account non ha un'email: non possiamo mandare il codice.",
+                    kind="error",
+                )
                 return RedirectResponse("/recupera-password", status_code=303)
             try:
                 profile, otp = profiles.issue_otp(
-                    profile.username, channel=preferred, purpose="recover"  # type: ignore[arg-type]
+                    profile.username, channel="email", purpose="recover"
                 )
             except ValueError as exc:
                 _flash(request, str(exc), kind="error")
                 return RedirectResponse("/recupera-password", status_code=303)
-            dest = profile.email if preferred == "email" else profile.phone_e164
+            dest = profile.email
             delivery = send_code(
-                channel=preferred,  # type: ignore[arg-type]
+                channel="email",
                 destination=dest,
                 code=otp,
                 purpose="recover",
             )
             if not delivery.ok:
-                _flash(request, delivery.detail, kind="error")
+                _flash(
+                    request,
+                    "Non siamo riusciti a inviare l'email. Controlla Spam e riprova.",
+                    kind="error",
+                )
                 return RedirectResponse("/recupera-password", status_code=303)
             request.session["recover_step"] = "code"
             request.session["recover_user"] = profile.username
-            request.session["recover_channel"] = preferred
-            msg = delivery.detail
-            if delivery.demo_code:
-                msg = f"{msg} Codice: {delivery.demo_code}"
+            request.session["recover_channel"] = "email"
+            masked = mask_destination(dest, channel="email")
+            msg = (
+                f"Ti abbiamo inviato un'email da Iris Nous a {masked}. "
+                "Controlla la posta (anche Spam) e inserisci il codice."
+            )
+            if delivery.mode == "demo" and delivery.demo_code:
+                msg = f"{msg} Codice (solo locale/demo): {delivery.demo_code}"
             _flash(request, msg, kind="ok")
             return RedirectResponse("/recupera-password", status_code=303)
 
@@ -661,6 +1100,7 @@ def create_app(
             return RedirectResponse("/anagrafica", status_code=303)
         _sync_anagrafica_db(profile, access)
         profiles.ensure_headset_pairing(profile.username)
+        profile = profiles.get(profile.username) or profile
         _flash(
             request,
             welcome_new(
@@ -670,7 +1110,7 @@ def create_app(
             ),
             kind="ok",
         )
-        next_url = "/dashboard" if profile.calibration_complete else "/calibrazione"
+        next_url = "/dashboard" if profile.calibration_complete else "/inizia"
         return _continue(
             request,
             next_url=next_url,
@@ -749,6 +1189,91 @@ def create_app(
             ),
         )
 
+    @app.get("/accessi/database", response_class=HTMLResponse)
+    def accessi_database_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> HTMLResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return admin
+        accounts = access.list_all_accounts()
+        return TEMPLATES.TemplateResponse(
+            request,
+            "accessi_database.html",
+            _template_ctx(
+                request,
+                profiles,
+                accounts=accounts,
+                account_total=len(accounts),
+                account_active=sum(
+                    1 for a in accounts if not a.get("deleted_at") and not a.get("is_admin")
+                ),
+            ),
+        )
+
+    @app.get("/invio-codici", response_class=HTMLResponse)
+    def messaging_settings_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> HTMLResponse:
+        username = _session_username(request)
+        if not username:
+            return RedirectResponse("/login", status_code=303)
+        profile = profiles.get(username)
+        if profile is None or not profile.is_admin:
+            _flash(request, "Solo l'amministratore può configurare l'invio codici.", kind="error")
+            return RedirectResponse("/", status_code=303)
+        return TEMPLATES.TemplateResponse(
+            request,
+            "invio_codici.html",
+            _template_ctx(request, profiles, messaging=messaging_status()),
+        )
+
+    @app.post("/invio-codici")
+    def messaging_settings_save(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        brand_from_email: str = Form(""),
+        resend_api_key: str = Form(""),
+        smtp_host: str = Form(""),
+        smtp_port: str = Form("587"),
+        smtp_user: str = Form(""),
+        smtp_password: str = Form(""),
+        smtp_from: str = Form(""),
+    ) -> RedirectResponse:
+        username = _session_username(request)
+        if not username:
+            return RedirectResponse("/login", status_code=303)
+        profile = profiles.get(username)
+        if profile is None or not profile.is_admin:
+            _flash(request, "Solo l'amministratore può configurare la mail Iris Nous.", kind="error")
+            return RedirectResponse("/", status_code=303)
+        update_messaging_config(
+            brand_from_email=brand_from_email or None,
+            resend_api_key=resend_api_key or None,
+            smtp_host=smtp_host or None,
+            smtp_port=smtp_port or "587",
+            smtp_user=smtp_user or None,
+            smtp_password=smtp_password or None,
+            smtp_from=smtp_from or brand_from_email or None,
+        )
+        status = messaging_status()
+        if status["email_ready"]:
+            _flash(
+                request,
+                "Invio email attivo: i codici di recupero partiranno via email reale.",
+                kind="ok",
+            )
+        else:
+            _flash(
+                request,
+                "Salvato, ma manca ancora Resend API key oppure Gmail SMTP.",
+                kind="error",
+            )
+        return RedirectResponse("/invio-codici", status_code=303)
+
     @app.get("/accessi/utente/{target}", response_class=HTMLResponse)
     def accessi_user_page(
         request: Request,
@@ -766,6 +1291,7 @@ def create_app(
         ana = access.get_anagrafica(target)
         user_profile = profiles.get(target)
         events = access.list_user_events(target)
+        ban = profiles.ban_status(target)
         return TEMPLATES.TemplateResponse(
             request,
             "accessi_user.html",
@@ -776,8 +1302,782 @@ def create_app(
                 anagrafica=ana,
                 user_profile=user_profile.public_dict() if user_profile else None,
                 events=events,
+                ban=ban,
+                support_threads=[
+                    {
+                        **thread,
+                        "messages": present_support_messages(
+                            access.list_support_messages(int(thread["id"])),
+                            viewer_is_admin=True,
+                            viewer_lang=get_request_language(request),
+                            fallback_user_lang=str(thread.get("user_lang") or "it"),
+                        ),
+                    }
+                    for thread in access.list_user_support_threads(
+                        username=target,
+                        email=(ana or {}).get("email")
+                        or (user_profile.email if user_profile else ""),
+                    )
+                ],
             ),
         )
+
+    @app.post("/accessi/utente/{target}/ban")
+    def accessi_user_ban(
+        request: Request,
+        target: str,
+        duration: str = Form(""),
+        profiles: ProfileStore = Depends(_store),
+    ) -> RedirectResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return admin
+        try:
+            until = profiles.ban_user(target, (duration or "").strip())
+            _flash(request, f"Utente sospeso fino al {until[:16].replace('T', ' ')} UTC.", kind="ok")
+        except KeyError:
+            _flash(request, "Utente non trovato.", kind="error")
+        except ValueError as exc:
+            _flash(request, str(exc), kind="error")
+        return RedirectResponse(f"/accessi/utente/{target}", status_code=303)
+
+    @app.post("/accessi/utente/{target}/sblocca")
+    def accessi_user_unban(
+        request: Request,
+        target: str,
+        profiles: ProfileStore = Depends(_store),
+    ) -> RedirectResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return admin
+        try:
+            profiles.unban_user(target)
+            _flash(request, "Sospensione rimossa.", kind="ok")
+        except KeyError:
+            _flash(request, "Utente non trovato.", kind="error")
+        return RedirectResponse(f"/accessi/utente/{target}", status_code=303)
+
+    @app.post("/accessi/utente/{target}/elimina")
+    def accessi_user_hard_delete(
+        request: Request,
+        target: str,
+        profiles: ProfileStore = Depends(_store),
+    ) -> RedirectResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return admin
+        try:
+            profiles.hard_delete(target, photos_dir=Path(app.state.photos_dir))
+            try:
+                from bci_iot.accounts.data_backup import schedule_backup
+
+                schedule_backup(profiles.data_root, delay_s=0.5, force=True)
+            except Exception:
+                pass
+            _flash(request, "Account eliminato definitivamente.", kind="ok")
+            return RedirectResponse("/accessi", status_code=303)
+        except KeyError:
+            _flash(request, "Utente non trovato.", kind="error")
+        except ValueError as exc:
+            _flash(request, str(exc), kind="error")
+        return RedirectResponse(f"/accessi/utente/{target}", status_code=303)
+
+    def _admin_or_redirect(
+        request: Request, profiles: ProfileStore
+    ) -> UserProfile | RedirectResponse:
+        username = _session_username(request)
+        if not username:
+            return RedirectResponse("/login", status_code=303)
+        admin = profiles.get(username)
+        if admin is None or not admin.is_admin:
+            _flash(request, "Solo l’amministratore può aprire questa pagina.", kind="error")
+            return RedirectResponse("/", status_code=303)
+        return admin
+
+    @app.get("/notifiche", response_class=HTMLResponse)
+    def notifiche_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> HTMLResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return admin
+        archive = request.query_params.get("archivio", "") in {"1", "true", "si"}
+        threads = access.list_support_threads(archive=archive)
+        presence: dict[str, bool] = {}
+        for trow in threads:
+            uname = str(trow.get("username") or "").strip()
+            if not uname or uname in presence:
+                continue
+            person = profiles.get(uname)
+            presence[uname] = bool(person and person.is_online)
+        fingerprint = access.inbox_fingerprint(archive=archive)
+        return TEMPLATES.TemplateResponse(
+            request,
+            "notifiche.html",
+            _template_ctx(
+                request,
+                profiles,
+                threads=threads,
+                archive=archive,
+                presence=presence,
+                fingerprint=fingerprint,
+                filters={"q": request.query_params.get("q", "")},
+            ),
+        )
+
+    @app.get("/notifiche/stato")
+    def notifiche_status(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> JSONResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return JSONResponse({"ok": False}, status_code=403)
+        archive = request.query_params.get("archivio", "") in {"1", "true", "si"}
+        return JSONResponse(
+            access.inbox_fingerprint(archive=archive),
+            headers={"Cache-Control": "no-store"},
+        )
+
+    @app.post("/notifiche/elimina")
+    async def notifiche_delete(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> RedirectResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return admin
+        form = await request.form()
+        archive = str(form.get("archive") or "0")
+        status_f = str(form.get("status") or "")
+        q = str(form.get("q") or "")
+        delete_all = bool(form.get("delete_all_matching"))
+        raw_ids = form.getlist("thread_ids")
+        ids: list[int] = []
+        for raw in raw_ids:
+            try:
+                ids.append(int(str(raw)))
+            except (TypeError, ValueError):
+                continue
+        removed = access.delete_support_threads(
+            thread_ids=ids,
+            status=status_f,
+            q=q,
+            delete_all_matching=delete_all,
+            archive=archive in {"1", "true", "si"},
+        )
+        _flash(
+            request,
+            f"Eliminate {removed} conversazioni." if removed else "Nessuna conversazione eliminata.",
+            kind="ok" if removed else "error",
+        )
+        dest = "/notifiche?archivio=1" if archive in {"1", "true", "si"} else "/notifiche"
+        return RedirectResponse(dest, status_code=303)
+
+    @app.get("/notifiche/{thread_id}", response_class=HTMLResponse)
+    def notifica_thread_page(
+        request: Request,
+        thread_id: int,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> HTMLResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return admin
+        thread = access.get_support_thread(thread_id)
+        if thread is None:
+            _flash(request, "Messaggio non trovato.", kind="error")
+            return RedirectResponse("/notifiche", status_code=303)
+        access.mark_support_viewed(thread_id)
+        thread = access.get_support_thread(thread_id) or thread
+        raw_messages = access.list_support_messages(thread_id)
+        messages = present_support_messages(
+            raw_messages,
+            viewer_is_admin=True,
+            viewer_lang=get_request_language(request),
+            fallback_user_lang=str(thread.get("user_lang") or "it"),
+        )
+        user_profile = profiles.get(str(thread.get("username") or ""))
+        presence_online = bool(user_profile.is_online) if user_profile else None
+        return TEMPLATES.TemplateResponse(
+            request,
+            "notifica.html",
+            _template_ctx(
+                request,
+                profiles,
+                thread=thread,
+                messages=messages,
+                user_profile=user_profile.public_dict() if user_profile else None,
+                email_ready=bool(messaging_status().get("email_ready")),
+                presence_online=presence_online,
+            ),
+        )
+
+    @app.get("/notifiche/{thread_id}/stato")
+    def notifica_thread_status(
+        request: Request,
+        thread_id: int,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> JSONResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return JSONResponse({"count": 0}, status_code=403)
+        messages = access.list_support_messages(thread_id)
+        return JSONResponse(
+            {"count": len(messages)},
+            headers={"Cache-Control": "no-store"},
+        )
+
+    @app.post("/notifiche/{thread_id}/rispondi")
+    def notifica_reply(
+        request: Request,
+        thread_id: int,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+        body: str = Form(""),
+    ) -> HTMLResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return admin
+        thread = access.get_support_thread(thread_id)
+        if thread is None:
+            _flash(request, "Messaggio non trovato.", kind="error")
+            return RedirectResponse("/notifiche", status_code=303)
+        text = (body or "").strip()
+        if len(text) < 2:
+            _flash(request, "Scrivi una risposta prima di inviare.", kind="error")
+            return RedirectResponse(f"/notifiche/{thread_id}", status_code=303)
+        admin_lang = get_request_language(request)
+        prior = access.list_support_messages(thread_id)
+        user_lang = resolve_support_recipient_lang(
+            thread_user_lang=str(thread.get("user_lang") or ""),
+            messages=prior,
+        )
+        # Detect admin reply language from the text itself (UI lang can disagree).
+        reply_src = detect_message_language(text, hint=admin_lang)
+        translated = text
+        if reply_src != user_lang:
+            translated = translate_text(text, source=reply_src, target=user_lang)
+            if translated == text:
+                translated = translate_text(text, source="auto", target=user_lang)
+        updated = access.add_admin_support_reply(
+            thread_id,
+            text,
+            body_translated=translated if translated != text else "",
+            lang_src=reply_src,
+            lang_dst=user_lang if translated != text else "",
+        )
+        destination = ""
+        if updated:
+            destination = str(updated.get("guest_email") or "").strip()
+        if not destination and thread.get("username"):
+            person = profiles.get(str(thread["username"]))
+            if person is not None:
+                destination = (person.email or "").strip()
+        if destination:
+            try:
+                destination = normalize_email(destination)
+            except ValueError:
+                destination = ""
+        if destination:
+            display = str((updated or thread).get("guest_name") or "")
+            if not display and thread.get("username"):
+                person = profiles.get(str(thread["username"]))
+                if person is not None:
+                    display = f"{person.first_name} {person.last_name}".strip() or person.username
+            history = access.list_support_messages(thread_id)
+            # Email shows prior turns in the user's language; latest reply is separate.
+            prior_for_mail = history[:-1] if history else []
+            mail_thread = present_support_messages(
+                prior_for_mail,
+                viewer_is_admin=False,
+                viewer_lang=user_lang,
+                fallback_user_lang=user_lang,
+            )
+            mail_body = translated if translated else text
+            subject, mail_text, mail_html = build_support_reply_email(
+                name=display,
+                body=mail_body,
+                conversation=mail_thread,
+                lang=user_lang,
+            )
+            result = send_branded_email(
+                destination=destination,
+                subject=subject,
+                text=mail_text,
+                html=mail_html,
+                demo_payload=mail_body,
+            )
+            masked = mask_destination(destination, channel="email")
+            if result.ok:
+                _flash(
+                    request,
+                    f"Risposta inviata in Chatta con noi e via email a {masked}.",
+                    kind="ok",
+                )
+            else:
+                _flash(
+                    request,
+                    "Risposta salvata in Chatta con noi. L'email non è partita: la persona la vede comunque in chat.",
+                    kind="error",
+                )
+        else:
+            _flash(
+                request,
+                "Risposta salvata in Chatta con noi. Manca un’email a cui scriverla in posta.",
+                kind="error",
+            )
+        return _continue(
+            request,
+            next_url=f"/notifiche/{thread_id}",
+            message="Risposta inviata...",
+        )
+
+    def _support_identity(
+        request: Request, profile: UserProfile | None
+    ) -> tuple[str, str, str]:
+        if profile is not None:
+            return (
+                profile.username,
+                (profile.email or "").strip(),
+                f"{profile.first_name} {profile.last_name}".strip() or profile.username,
+            )
+        return (
+            "",
+            str(request.session.get("support_email") or "").strip(),
+            str(request.session.get("support_name") or "").strip(),
+        )
+
+    def _resolve_support_thread(
+        request: Request,
+        access: AccessDatabase,
+        *,
+        profile: UserProfile | None,
+        ident_user: str,
+        ident_email: str,
+        prefer_thread_id: int | None = None,
+    ) -> dict | None:
+        """Resume chat only with a real session link — never by email alone for guests.
+
+        Guests need sticky + access code on this device (or reopen with the code).
+        Logged-in users resume their open thread by account. Same email on a new
+        device does not auto-open the chat until they send again or enter the code.
+        """
+        # Logged-in: history links (?thread=) are allowed for owned threads.
+        # Guests: ignore ?thread= alone — they must have sticky + code on this device.
+        if prefer_thread_id and profile is not None:
+            thread = access.get_support_thread(prefer_thread_id)
+            if thread and access.user_owns_support_thread(
+                thread, username=ident_user, email=ident_email
+            ):
+                return thread
+            return None
+
+        code = str(request.session.get("support_access_code") or "").strip().upper()
+        sticky = bool(request.session.get("support_chat_sticky"))
+
+        if profile is None:
+            if not (sticky and code):
+                request.session.pop("support_access_code", None)
+                request.session.pop("support_chat_sticky", None)
+                return None
+            by_code = access.get_support_thread_by_code(code)
+            if by_code is None:
+                return None
+            return by_code
+
+        if code and sticky:
+            by_code = access.get_support_thread_by_code(code)
+            if by_code and access.is_support_thread_open(by_code):
+                if access.user_owns_support_thread(
+                    by_code, username=ident_user, email=ident_email
+                ):
+                    return by_code
+
+        return access.get_open_support_thread(username=ident_user, email=ident_email)
+
+    @app.get("/le-mie-notifiche", response_class=HTMLResponse)
+    def mie_notifiche_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> HTMLResponse:
+        loaded = _require_profile(request, profiles)
+        if isinstance(loaded, RedirectResponse):
+            return loaded
+        if loaded.is_admin:
+            return RedirectResponse("/notifiche", status_code=303)
+        threads = access.list_user_support_threads(
+            username=loaded.username, email=loaded.email or ""
+        )
+        for thread in threads:
+            access.mark_user_support_read(int(thread["id"]))
+        notices = access.list_system_notices()
+        return TEMPLATES.TemplateResponse(
+            request,
+            "mie_notifiche.html",
+            _template_ctx(
+                request,
+                profiles,
+                profile=loaded,
+                threads=threads,
+                notices=notices,
+                user_unread=0,
+            ),
+        )
+
+    @app.get("/le-mie-notifiche/stato")
+    def mie_notifiche_status(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> JSONResponse:
+        username = _session_username(request)
+        profile = profiles.get(username) if username else None
+        if profile is None or profile.is_admin:
+            return JSONResponse({"unread": 0, "threads": 0})
+        threads = access.list_user_support_threads(
+            username=profile.username, email=profile.email or ""
+        )
+        return JSONResponse(
+            {
+                "unread": access.user_support_unread_count(
+                    username=profile.username, email=profile.email or ""
+                ),
+                "threads": len(threads),
+            },
+            headers={"Cache-Control": "no-store"},
+        )
+
+    @app.get("/chatta", response_class=HTMLResponse)
+    def chatta_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> HTMLResponse:
+        username = _session_username(request)
+        profile = profiles.get(username) if username else None
+        if profile is not None and profile.is_admin:
+            return RedirectResponse("/notifiche", status_code=303)
+        ident_user, ident_email, ident_name = _support_identity(request, profile)
+        prefer_id = None
+        raw_tid = (request.query_params.get("thread") or "").strip()
+        if raw_tid.isdigit():
+            prefer_id = int(raw_tid)
+        thread = _resolve_support_thread(
+            request,
+            access,
+            profile=profile,
+            ident_user=ident_user,
+            ident_email=ident_email,
+            prefer_thread_id=prefer_id,
+        )
+        chat_open = access.is_support_thread_open(thread)
+        messages = access.list_support_messages(int(thread["id"])) if thread else []
+        if thread is not None:
+            access.mark_user_support_read(int(thread["id"]))
+        messages = present_support_messages(
+            messages,
+            viewer_is_admin=False,
+            viewer_lang=get_request_language(request),
+            fallback_user_lang=str((thread or {}).get("user_lang") or get_request_language(request)),
+        )
+        waiting = bool(messages) and chat_open and str(messages[-1].get("sender") or "") != "admin"
+        show_code = False
+        access_code = ""
+        if thread is not None and chat_open:
+            access_code = str(thread.get("access_code") or "")
+            if access_code and not int(thread.get("access_code_shown") or 0):
+                show_code = True
+                access.mark_access_code_shown(int(thread["id"]))
+                request.session["support_access_code"] = access_code
+                request.session["support_chat_sticky"] = True
+        history = []
+        if profile is not None:
+            history = access.list_user_support_threads(
+                username=ident_user, email=ident_email
+            )
+        response = TEMPLATES.TemplateResponse(
+            request,
+            "chatta.html",
+            _template_ctx(
+                request,
+                profiles,
+                profile=profile,
+                thread=thread,
+                messages=messages,
+                waiting=waiting,
+                chat_open=chat_open,
+                guest_email=ident_email,
+                guest_name=ident_name,
+                show_access_code=show_code,
+                access_code=access_code,
+                chat_history=history,
+            ),
+        )
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+    @app.get("/chatta/stato")
+    def chatta_status(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> JSONResponse:
+        username = _session_username(request)
+        profile = profiles.get(username) if username else None
+        if profile is not None and profile.is_admin:
+            return JSONResponse({"count": 0, "last": "", "open": False})
+        ident_user, ident_email, _ident_name = _support_identity(request, profile)
+        prefer_id = None
+        raw_tid = (request.query_params.get("thread") or "").strip()
+        if raw_tid.isdigit():
+            prefer_id = int(raw_tid)
+        thread = _resolve_support_thread(
+            request,
+            access,
+            profile=profile,
+            ident_user=ident_user,
+            ident_email=ident_email,
+            prefer_thread_id=prefer_id,
+        )
+        messages = access.list_support_messages(int(thread["id"])) if thread else []
+        last_sender = str(messages[-1].get("sender") or "") if messages else ""
+        return JSONResponse(
+            {
+                "count": len(messages),
+                "last": last_sender,
+                "open": access.is_support_thread_open(thread),
+            },
+            headers={"Cache-Control": "no-store"},
+        )
+
+    @app.post("/chatta/apri")
+    def chatta_open(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+        access_code: str = Form(""),
+    ) -> HTMLResponse:
+        username = _session_username(request)
+        profile = profiles.get(username) if username else None
+        if profile is not None and profile.is_admin:
+            return RedirectResponse("/notifiche", status_code=303)
+        code = (access_code or "").strip().upper()
+        thread = access.get_support_thread_by_code(code)
+        if thread is None:
+            _flash(
+                request,
+                "Codice non valido. Controlla e riprova, oppure recuperalo via email.",
+                kind="error",
+            )
+            return _continue(request, next_url="/chatta", message="Codice non trovato...")
+        request.session["support_access_code"] = code
+        request.session["support_chat_sticky"] = True
+        if thread.get("guest_email"):
+            request.session["support_email"] = str(thread["guest_email"])
+        if thread.get("guest_name"):
+            request.session["support_name"] = str(thread["guest_name"])
+        if access.is_support_thread_open(thread):
+            _flash(request, "Conversazione riaperta con il codice.", kind="ok")
+            return _continue(request, next_url="/chatta", message="Apro la conversazione...")
+        _flash(
+            request,
+            "Questa conversazione è chiusa. Puoi leggerla qui; per un nuovo problema apri una nuova chat.",
+            kind="ok",
+        )
+        return _continue(
+            request,
+            next_url=f"/chatta?thread={int(thread['id'])}",
+            message="Conversazione chiusa...",
+        )
+
+    @app.post("/chatta/termina")
+    def chatta_end(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+        thread_id: str = Form(""),
+    ) -> HTMLResponse:
+        username = _session_username(request)
+        profile = profiles.get(username) if username else None
+        if profile is not None and profile.is_admin:
+            return RedirectResponse("/notifiche", status_code=303)
+        ident_user, ident_email, _ = _support_identity(request, profile)
+        tid = int(thread_id) if str(thread_id).strip().isdigit() else 0
+        thread = access.get_support_thread(tid) if tid else None
+        if thread is None or not access.user_owns_support_thread(
+            thread, username=ident_user, email=ident_email
+        ):
+            # Fall back to current open thread from session/identity
+            thread = _resolve_support_thread(
+                request,
+                access,
+                profile=profile,
+                ident_user=ident_user,
+                ident_email=ident_email,
+            )
+        if thread is None or not access.is_support_thread_open(thread):
+            _flash(request, "Non c’è una conversazione aperta da chiudere.", kind="error")
+            return _continue(request, next_url="/chatta", message="Nessuna chat aperta...")
+        access.close_support_thread(int(thread["id"]))
+        request.session.pop("support_access_code", None)
+        request.session.pop("support_chat_sticky", None)
+        _flash(
+            request,
+            "Conversazione terminata. Puoi aprirne una nuova quando vuoi; lo storico resta nel tuo profilo.",
+            kind="ok",
+        )
+        return _continue(request, next_url="/chatta", message="Conversazione chiusa...")
+
+    @app.post("/chatta/recupera-codice")
+    def chatta_recover_code(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+        email: str = Form(""),
+    ) -> HTMLResponse:
+        username = _session_username(request)
+        profile = profiles.get(username) if username else None
+        if profile is not None and profile.is_admin:
+            return RedirectResponse("/notifiche", status_code=303)
+        try:
+            guest_email = normalize_email(email)
+        except ValueError:
+            _flash(request, "Inserisci l'email con cui hai aperto la chat.", kind="error")
+            return _continue(request, next_url="/chatta", message="Controlla l'email...")
+        open_thread = access.get_open_support_thread(email=guest_email)
+        threads = access.list_user_support_threads(email=guest_email)
+        thread = open_thread or (threads[0] if threads else None)
+        code = str((thread or {}).get("access_code") or "").strip().upper()
+        if thread and code:
+            subject = "Iris Nous: il tuo codice chat"
+            text = (
+                "Iris Nous\n\n"
+                f"Il codice per riaprire la tua chat e':\n\n  {code}\n\n"
+                "Inseriscilo nella pagina Chatta con noi.\n\n— Team Iris Nous\n"
+            )
+            html = (
+                "<p>Il codice per riaprire la tua chat e':</p>"
+                f"<p style='font-size:28px;letter-spacing:.3em;font-weight:700'>{code}</p>"
+                "<p>Inseriscilo nella pagina <strong>Chatta con noi</strong>.</p>"
+            )
+            send_branded_email(
+                destination=guest_email,
+                subject=subject,
+                text=text,
+                html=html,
+                demo_payload=code,
+            )
+        _flash(
+            request,
+            "Se esiste una chat con questa email, ti abbiamo inviato il codice (controlla anche Spam).",
+            kind="ok",
+        )
+        return _continue(request, next_url="/chatta", message="Codice inviato...")
+
+    @app.post("/chatta")
+    def chatta_send(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+        name: str = Form(""),
+        email: str = Form(""),
+        phone: str = Form(""),
+        subject: str = Form(""),
+        body: str = Form(""),
+        ui_lang: str = Form(""),
+    ) -> HTMLResponse:
+        username = _session_username(request) or ""
+        profile = profiles.get(username) if username else None
+        if profile is not None and profile.is_admin:
+            _flash(request, "L'amministratore risponde dalle Notifiche.", kind="error")
+            return _continue(request, next_url="/notifiche", message="Vai alle notifiche...")
+        text = (body or "").strip()
+        if len(text) < 2:
+            _flash(request, "Scrivi un messaggio prima di inviare.", kind="error")
+            return _continue(request, next_url="/chatta", message="Completa il messaggio...")
+        ident_user, ident_email, ident_name = _support_identity(request, profile)
+        guest_email = (email or "").strip() or str(request.session.get("support_email") or "")
+        guest_name = (name or "").strip() or str(request.session.get("support_name") or "")
+        guest_phone = (phone or "").strip()
+        open_thread = None
+        if profile is not None:
+            guest_email = guest_email or profile.email
+            guest_name = (
+                guest_name
+                or f"{profile.first_name} {profile.last_name}".strip()
+                or profile.username
+            )
+            guest_phone = guest_phone or profile.phone_e164 or profile.phone_label
+            username = profile.username
+            open_thread = access.get_open_support_thread(
+                username=ident_user, email=ident_email or guest_email
+            )
+        else:
+            username = ""
+            # Guest bar reply (sticky session): may omit name/email.
+            sticky = bool(request.session.get("support_chat_sticky"))
+            code = str(request.session.get("support_access_code") or "").strip().upper()
+            if sticky and code:
+                open_thread = access.get_support_thread_by_code(code)
+                if open_thread is not None and not access.is_support_thread_open(open_thread):
+                    open_thread = None
+            if open_thread is None and guest_email:
+                try:
+                    lookup_email = normalize_email(guest_email)
+                except ValueError:
+                    lookup_email = ""
+                if lookup_email:
+                    open_thread = access.get_open_support_thread(email=lookup_email)
+            continuing = open_thread is not None
+            if continuing:
+                guest_email = guest_email or ident_email or str(open_thread.get("guest_email") or "")
+                guest_name = guest_name or ident_name or str(open_thread.get("guest_name") or "")
+            elif len(guest_name) < 2:
+                _flash(request, "Scrivi il tuo nome, cosi sappiamo chi ci ha scritto.", kind="error")
+                return _continue(request, next_url="/chatta", message="Scrivi il nome...")
+            try:
+                guest_email = normalize_email(guest_email)
+            except ValueError:
+                _flash(request, "Inserisci un'email a cui possiamo risponderti.", kind="error")
+                return _continue(request, next_url="/chatta", message="Controlla l'email...")
+            request.session["support_email"] = guest_email
+            request.session["support_name"] = guest_name
+        user_lang = (ui_lang or "").strip().lower()[:2] or get_request_language(request)
+        lang_src = detect_message_language(text, hint=user_lang)
+        body_translated = ""
+        lang_dst = ""
+        if lang_src != "it":
+            preview = translate_text(text, source=lang_src, target="it")
+            if preview and preview != text:
+                body_translated = preview
+                lang_dst = "it"
+        thread_id = access.add_user_support_message(
+            username=username,
+            guest_name=guest_name,
+            guest_email=guest_email,
+            guest_phone=guest_phone,
+            channel="chat",
+            subject=subject,
+            body=text,
+            user_lang=user_lang,
+            body_translated=body_translated,
+            lang_src=lang_src,
+            lang_dst=lang_dst,
+        )
+        thread = access.get_support_thread(thread_id)
+        if thread and thread.get("access_code"):
+            request.session["support_access_code"] = str(thread["access_code"])
+            request.session["support_chat_sticky"] = True
+        _flash(request, "Messaggio inviato. Ti rispondiamo qui e, se serve, via email.", kind="ok")
+        return _continue(request, next_url="/chatta", message="Messaggio inviato...")
+
     @app.get("/dashboard", response_class=HTMLResponse)
     def dashboard(
         request: Request,
@@ -791,8 +2091,6 @@ def create_app(
             return RedirectResponse("/accessi", status_code=303)
         if profile.needs_anagrafica:
             return RedirectResponse("/anagrafica", status_code=303)
-        if profile.needs_calibration:
-            return RedirectResponse("/calibrazione", status_code=303)
         stats = dict(profile.usage_stats or {})
         return TEMPLATES.TemplateResponse(
             request,
@@ -830,11 +2128,20 @@ def create_app(
         current_password: str = Form(...),
         new_password: str = Form(...),
         new_password2: str = Form(...),
+        current_password_confirm: str = Form(""),
         profiles: ProfileStore = Depends(_store),
     ) -> RedirectResponse:
         loaded = _require_profile(request, profiles)
         if isinstance(loaded, RedirectResponse):
             return loaded
+        if loaded.is_admin:
+            if current_password_confirm != current_password:
+                _flash(
+                    request,
+                    "Per l'admin serve ripetere la password attuale (doppia conferma).",
+                    kind="error",
+                )
+                return RedirectResponse("/cambia-password", status_code=303)
         if new_password != new_password2:
             _flash(request, "Le nuove password non coincidono.", kind="error")
             return RedirectResponse("/cambia-password", status_code=303)
@@ -904,7 +2211,7 @@ def create_app(
             )
         except ValueError as exc:
             _flash(request, str(exc), kind="error")
-            return RedirectResponse("/anagrafica?edit=1", status_code=303)
+            return RedirectResponse("/anagrafica?edit=1" if loaded.anagrafica_complete else "/anagrafica", status_code=303)
         dest = profile.email if channel == "email" else profile.phone_e164
         delivery = send_code(
             channel=channel,  # type: ignore[arg-type]
@@ -912,14 +2219,22 @@ def create_app(
             code=otp,
             purpose=purpose,
         )
+        back = "/anagrafica?edit=1" if loaded.anagrafica_complete else "/anagrafica"
         if not delivery.ok:
-            _flash(request, delivery.detail, kind="error")
-            return RedirectResponse("/anagrafica?edit=1", status_code=303)
-        msg = delivery.detail
-        if delivery.demo_code:
-            msg = f"{msg} Codice: {delivery.demo_code}"
-        _flash(request, msg, kind="ok")
-        return RedirectResponse("/anagrafica?edit=1", status_code=303)
+            _flash(
+                request,
+                "Non siamo riusciti a inviare l'email. Controlla Spam e riprova.",
+                kind="error",
+            )
+            return RedirectResponse(back, status_code=303)
+        masked = mask_destination(dest, channel=channel)  # type: ignore[arg-type]
+        where = "email" if channel == "email" else "SMS"
+        _flash(
+            request,
+            f"Codice inviato via {where} a {masked}. Scade tra 10 minuti.",
+            kind="ok",
+        )
+        return RedirectResponse(back, status_code=303)
 
     @app.post("/verifica/conferma")
     def verify_confirm(
@@ -960,7 +2275,7 @@ def create_app(
         if isinstance(loaded, RedirectResponse):
             return loaded
         try:
-            profiles.soft_delete(loaded.username)
+            profiles.soft_delete(loaded.username, photos_dir=Path(app.state.photos_dir))
             access.mark_deleted(loaded.username)
         except ValueError as exc:
             _flash(request, str(exc), kind="error")
@@ -972,23 +2287,74 @@ def create_app(
     @app.get("/api/password-strength")
     def api_password_strength(password: str = "") -> dict:
         check = password_strength(password)
-        return {"ok": check.ok, "level": check.level, "message": check.message}
+        return {
+            "ok": check.ok,
+            "level": check.level,
+            "message": check.message,
+            "requirements": [
+                {
+                    "id": r.id,
+                    "label": r.label,
+                    "ok": r.ok,
+                    "optional": r.optional,
+                }
+                for r in check.requirements
+            ],
+        }
 
-    # --- Calibrazione cuffia (parola ↔ segnale) + associazione telefono ---
+    # --- Calibrazione cuffia (config → codice → telefono; colori rimossi) ---
+    def _is_hosted() -> bool:
+        import os
+
+        if os.getenv("RENDER") or os.getenv("RENDER_SERVICE_ID"):
+            return True
+        public = (os.getenv("BCI_IOT_PUBLIC_URL") or "").lower()
+        return "onrender.com" in public
+
     def _calib_session_for(username: str, profiles: ProfileStore):
         from bci_iot.pipeline.calibration_wizard import CalibrationSession
 
         profile = profiles.ensure_headset_pairing(username)
+        mode = profiles.get_headset_mode(username)
         sessions = app.state.calib_sessions
         sess = sessions.get(username)
-        if sess is None or sess.headset_id != profile.headset_id:
+        data_root = Path(profiles.data_root)
+        if (
+            sess is None
+            or sess.headset_id != profile.headset_id
+            or getattr(sess, "headset_mode", None) != mode
+        ):
             sess = CalibrationSession(
                 username=username,
                 headset_id=profile.headset_id,
                 pairing_code=profile.pairing_code,
+                headset_mode=mode,  # type: ignore[arg-type]
+                data_root=data_root,
             )
             sessions[username] = sess
+        else:
+            sess.headset_mode = mode  # type: ignore[assignment]
+            sess.data_root = data_root
         return sess, profile
+
+    @app.get("/inizia", response_class=HTMLResponse)
+    def inizia_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> HTMLResponse:
+        loaded = _require_profile(request, profiles)
+        if isinstance(loaded, RedirectResponse):
+            return loaded
+        profile = loaded
+        if profile.is_admin:
+            return RedirectResponse("/accessi", status_code=303)
+        if profile.needs_anagrafica:
+            return RedirectResponse("/anagrafica", status_code=303)
+        return TEMPLATES.TemplateResponse(
+            request,
+            "inizia.html",
+            _template_ctx(request, profiles, profile=profile),
+        )
 
     @app.get("/calibrazione", response_class=HTMLResponse)
     def calibrazione_page(
@@ -1003,7 +2369,25 @@ def create_app(
             return RedirectResponse("/anagrafica", status_code=303)
         profiles.ensure_headset_pairing(profile.username)
         profile = profiles.get(profile.username) or profile
-        done = request.query_params.get("done") == "1" or profile.calibration_complete
+        done_flag = request.query_params.get("done") == "1"
+        passo_raw = (request.query_params.get("passo") or "").strip()
+        if done_flag:
+            done = True
+            passo = 0
+        elif passo_raw:
+            done = False
+            try:
+                passo = int(passo_raw)
+            except ValueError:
+                passo = 1
+            # Colour passo (4) removed — clamp legacy links to step 3.
+            passo = min(3, max(1, passo))
+        elif profile.calibration_complete:
+            done = True
+            passo = 0
+        else:
+            done = False
+            passo = 1
         acc_raw = request.query_params.get("acc")
         accuracy = None
         if acc_raw is not None:
@@ -1011,11 +2395,23 @@ def create_app(
                 accuracy = float(acc_raw)
             except ValueError:
                 accuracy = None
-        from bci_iot.pipeline.calibration_wizard import (
-            SAMPLES_PER_COLOUR,
-            colour_targets_public,
-        )
+        from bci_iot.pipeline.calibration_wizard import headset_status_payload
 
+        mode = profiles.get_headset_mode(profile.username)
+        headset = headset_status_payload(
+            mode=mode,  # type: ignore[arg-type]
+            headset_id=profile.headset_id,
+            hosted=_is_hosted(),
+        )
+        agent_status = None
+        if mode == "simulated":
+            from bci_iot.pipeline.headset_agent import get_headset_agent
+
+            agent_status = get_headset_agent(
+                username=profile.username,
+                headset_id=profile.headset_id,
+                data_root=profiles.data_root,
+            ).status()
         return TEMPLATES.TemplateResponse(
             request,
             "calibrazione.html",
@@ -1023,15 +2419,194 @@ def create_app(
                 request,
                 profiles,
                 profile=profile,
-                colours=colour_targets_public(),
-                samples_needed=SAMPLES_PER_COLOUR,
                 done=done,
+                passo=passo,
                 accuracy=accuracy,
+                headset=headset,
+                agent=agent_status,
+                pairing_mail_sent=_pairing_mail_already_sent(profile),
+                pairing_email_masked=mask_destination(profile.email or "", channel="email")
+                if profile.email
+                else "",
             ),
         )
 
+    @app.get("/api/headset/status")
+    def api_headset_status(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        from bci_iot.pipeline.calibration_wizard import headset_status_payload
+
+        profile = profiles.ensure_headset_pairing(username)
+        mode = profiles.get_headset_mode(username)
+        return headset_status_payload(
+            mode=mode,  # type: ignore[arg-type]
+            headset_id=profile.headset_id,
+            hosted=_is_hosted(),
+        )
+
+    @app.post("/api/headset/configure")
+    def api_headset_configure(
+        request: Request,
+        body: HeadsetConfigRequest,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        from bci_iot.pipeline.calibration_wizard import headset_status_payload
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
+        profiles.ensure_headset_pairing(
+            username,
+            headset_id=body.headset_id or None,
+        )
+        profiles.set_headset_mode(username, body.mode)
+        # Reset calib session so next capture uses the new mode.
+        app.state.calib_sessions.pop(username, None)
+        profile = profiles.get(username)
+        assert profile is not None
+        mode = profiles.get_headset_mode(username)
+        agent_status = None
+        if mode == "simulated":
+            agent = get_headset_agent(
+                username=username,
+                headset_id=profile.headset_id,
+                data_root=profiles.data_root,
+            )
+            agent_status = agent.status()
+        return {
+            "status": "ok",
+            "headset": headset_status_payload(
+                mode=mode,  # type: ignore[arg-type]
+                headset_id=profile.headset_id,
+                hosted=_is_hosted(),
+            ),
+            "agent": agent_status,
+        }
+
+    @app.get("/api/headset/agent")
+    def api_headset_agent(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
+        profile = profiles.ensure_headset_pairing(username)
+        agent = get_headset_agent(
+            username=username,
+            headset_id=profile.headset_id,
+            data_root=profiles.data_root,
+        )
+        return {"status": "ok", "agent": agent.status()}
+
+    @app.post("/api/headset/power")
+    def api_headset_power(
+        request: Request,
+        body: HeadsetPowerRequest,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
+        profile = profiles.ensure_headset_pairing(username)
+        profiles.set_headset_mode(username, "simulated")
+        agent = get_headset_agent(
+            username=username,
+            headset_id=profile.headset_id,
+            data_root=profiles.data_root,
+        )
+        try:
+            status = agent.power_on() if body.on else agent.power_off()
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"status": "ok", "agent": status}
+
+    @app.post("/api/headset/wear")
+    def api_headset_wear(
+        request: Request,
+        body: HeadsetWearRequest,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
+        profile = profiles.ensure_headset_pairing(username)
+        agent = get_headset_agent(
+            username=username,
+            headset_id=profile.headset_id,
+            data_root=profiles.data_root,
+        )
+        try:
+            status = agent.wear(on_head=body.on_head)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"status": "ok", "agent": status}
+
+    @app.post("/api/headset/contact")
+    def api_headset_contact(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
+        profile = profiles.ensure_headset_pairing(username)
+        agent = get_headset_agent(
+            username=username,
+            headset_id=profile.headset_id,
+            data_root=profiles.data_root,
+        )
+        try:
+            status = agent.check_contact()
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"status": "ok", "agent": status}
+
+    @app.post("/api/headset/impulse")
+    async def api_headset_impulse(
+        request: Request,
+        body: HeadsetImpulseRequest,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
+        profile = profiles.ensure_headset_pairing(username)
+        agent = get_headset_agent(
+            username=username,
+            headset_id=profile.headset_id,
+            data_root=profiles.data_root,
+        )
+
+        def _recv() -> dict:
+            return agent.receive_impulse(
+                body.kind, colour_key=body.colour_key or None
+            )
+
+        try:
+            payload = await run_in_threadpool(_recv)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"status": "ok", **payload}
+
     @app.post("/api/calibrate/capture")
-    def api_calibrate_capture(
+    async def api_calibrate_capture(
         request: Request,
         payload: CaptureRequest,
         profiles: ProfileStore = Depends(_store),
@@ -1041,8 +2616,10 @@ def create_app(
             raise HTTPException(status_code=401, detail="Login required")
         sess, _profile = _calib_session_for(username, profiles)
         try:
-            result = sess.capture(payload.command)
+            result = await run_in_threadpool(sess.capture, payload.command)
         except KeyError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return {
             "command": result.command,
@@ -1057,10 +2634,13 @@ def create_app(
             "folder": result.folder,
             "color_name": result.color_name,
             "cue": result.cue,
+            "signal_source": result.signal_source,
+            "is_clean": result.is_clean,
+            "qc_flags": list(result.qc_flags),
         }
 
     @app.post("/api/calibrate/finish")
-    def api_calibrate_finish(
+    async def api_calibrate_finish(
         request: Request,
         profiles: ProfileStore = Depends(_store),
     ) -> dict:
@@ -1072,12 +2652,58 @@ def create_app(
             raise HTTPException(status_code=400, detail="Nessuna sessione di calibrazione")
         root = Path(__file__).resolve().parents[3]
         try:
-            path, accuracy = sess.finish(models_dir=root / "models" / "users")
+            path, accuracy = await run_in_threadpool(
+                lambda: sess.finish(
+                    models_dir=root / "models" / "users",
+                    samples_dir=Path(profiles.data_root),
+                )
+            )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         profiles.mark_calibration_complete(username)
         app.state.calib_sessions.pop(username, None)
-        return {"status": "ok", "model_path": str(path), "accuracy": accuracy}
+        return {
+            "status": "ok",
+            "model_path": str(path),
+            "accuracy": accuracy,
+            "accuracy_kind": "holdout",
+            "signal_note": "stima su dati di calibrazione (simulati o prior)",
+        }
+
+    @app.post("/api/calibrate/complete-setup")
+    async def api_calibrate_complete_setup(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        """Finish setup without colour tiles: headset ready + enough EEG impulses."""
+
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
+        profile = profiles.ensure_headset_pairing(username)
+        profiles.set_headset_mode(username, "simulated")
+        agent = get_headset_agent(
+            username=username,
+            headset_id=profile.headset_id,
+            data_root=profiles.data_root,
+        )
+
+        def _finish() -> dict:
+            return agent.complete_setup_if_ready()
+
+        try:
+            status = await run_in_threadpool(_finish)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        profiles.mark_calibration_complete(username)
+        app.state.calib_sessions.pop(username, None)
+        return {
+            "status": "ok",
+            "agent": status,
+            "signal_note": "impulsi EEG (PhysioNet / BrainFlow / prior) salvati in memoria",
+        }
 
     @app.get("/associa-telefono", response_class=HTMLResponse)
     def associa_telefono_page(
@@ -1125,7 +2751,7 @@ def create_app(
             _flash(request, str(exc), kind="error")
             return RedirectResponse("/associa-telefono", status_code=303)
         _flash(request, "Telefono associato. Apri Telefono live e collega Spotify.", kind="ok")
-        dest = "/telefono" if not profile.needs_calibration else "/calibrazione"
+        dest = "/telefono" if not profile.needs_calibration else "/calibrazione?passo=3"
         return _continue(
             request,
             next_url=dest,
@@ -1142,7 +2768,21 @@ def create_app(
             return loaded
         profiles.unpair_phone(loaded.username)
         app.state.phone_queues.pop(loaded.username, None)
-        _flash(request, "Telefono scollegato. Nuovo codice generato.", kind="ok")
+        _flash(request, "Telefono scollegato. Nuovo codice pronto: invialo via email quando vuoi.", kind="ok")
+        return RedirectResponse("/associa-telefono", status_code=303)
+
+    @app.post("/associa-telefono/invia-codice")
+    def associa_telefono_send_code(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> RedirectResponse:
+        loaded = _require_profile(request, profiles)
+        if isinstance(loaded, RedirectResponse):
+            return loaded
+        _send_pairing_mail(request, profiles, loaded, force=True, flash=True)
+        back = request.headers.get("referer") or ""
+        if "/calibrazione" in back:
+            return RedirectResponse("/calibrazione?passo=2", status_code=303)
         return RedirectResponse("/associa-telefono", status_code=303)
 
     @app.get("/telefono", response_class=HTMLResponse)
@@ -1200,7 +2840,7 @@ def create_app(
             return RedirectResponse("/associa-telefono", status_code=303)
         state = new_oauth_state()
         request.session["spotify_oauth_state"] = state
-        redir = redirect_uri(str(request.base_url))
+        redir = redirect_uri(_public_base_url(request))
         return RedirectResponse(authorize_url(redirect=redir, state=state), status_code=302)
 
     @app.get("/auth/spotify/callback")
@@ -1228,7 +2868,7 @@ def create_app(
         if not code or not state or state != expected:
             _flash(request, "Sessione Spotify non valida. Riprova.", kind="error")
             return RedirectResponse("/associa-telefono", status_code=303)
-        redir = redirect_uri(str(request.base_url))
+        redir = redirect_uri(_public_base_url(request))
         try:
             tokens = exchange_code(code, redirect=redir)
             access = str(tokens.get("access_token") or "")
@@ -1262,20 +2902,42 @@ def create_app(
         return RedirectResponse("/associa-telefono", status_code=303)
 
     @app.post("/api/music/next")
-    def api_music_next(
+    async def api_music_next(
         request: Request,
         profiles: ProfileStore = Depends(_store),
     ) -> dict:
+        """Mental impulse → headset elaborates → then Spotify next_track."""
         from bci_iot.integrations.music_control import run_spotify_action
+        from bci_iot.pipeline.headset_agent import get_headset_agent
 
         username = _session_username(request)
         if not username:
             raise HTTPException(status_code=401, detail="Login required")
-        profile = profiles.get(username)
-        if profile is None:
-            raise HTTPException(status_code=404, detail="Profile not found")
+        profile = profiles.ensure_headset_pairing(username)
+        agent = get_headset_agent(
+            username=username,
+            headset_id=profile.headset_id,
+            data_root=profiles.data_root,
+        )
+
+        def _recv() -> dict:
+            return agent.receive_impulse("NEXT_TRACK")
+
+        try:
+            impulse_payload = await run_in_threadpool(_recv)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
         queue = app.state.phone_queues.setdefault(username, [])
-        return run_spotify_action(profiles, profile, "next_track", queue=queue)
+        # Re-load profile in case tokens / pairing changed while impulse ran.
+        fresh = profiles.get(username) or profile
+        music = run_spotify_action(profiles, fresh, "next_track", queue=queue)
+        return {
+            **music,
+            "via": "headset_impulse",
+            "impulse": impulse_payload.get("impulse"),
+            "agent": impulse_payload.get("status"),
+        }
 
     @app.post("/api/music/pause")
     def api_music_pause(
@@ -1546,6 +3208,16 @@ def create_app(
                 status_code=400,
                 detail=f"Unknown command: {body.command}",
             ) from exc
+    # Outermost so request.session is available to http middlewares above.
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=secret,
+        session_cookie="bci_iot_session",
+        same_site="lax",
+        https_only=https_only,
+        max_age=60 * 60 * 24 * 14,
+        path="/",
+    )
     return app
 
 app = create_app()

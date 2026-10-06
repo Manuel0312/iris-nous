@@ -5,13 +5,15 @@
 
 {% block unito_top %}
 <div class="unito-top">
-  <img
-    class="unito-logo"
-    src="/static/brand/unito-di.png"
-    alt="di.unito.it — Dipartimento di Informatica"
-    width="80"
-    height="80"
-  />
+  <a class="unito-top-link" href="/" title="{{ t('Home') }}">
+    <img
+      class="unito-logo"
+      src="/static/brand/unito-di.png"
+      alt="{{ t('Home') }} — {{ t('di.unito.it, Dipartimento di Informatica') }}"
+      width="80"
+      height="80"
+    />
+  </a>
   <p class="unito-name">
     <span class="unito-name-main">{{ t('Università degli Studi di Torino') }}</span>
     <span class="unito-name-sub">{{ t('Dipartimento di Informatica') }}</span>
@@ -21,16 +23,15 @@
 
 {% block content %}
 
-<section class="apple-hero" aria-label="Prodotto">
+<section class="apple-hero" aria-label="{{ t('Prodotto') }}">
   <h1 class="apple-name">Iris</h1>
-  <p class="hero-verbs" aria-label="pensa, agisci, crea.">
-    <span class="hero-verb hero-verb-1" data-delay="2500">{{ t('pensa,') }}</span>
-    <span class="hero-verb hero-verb-2" data-delay="5000">{{ t('agisci,') }}</span>
-    <span class="hero-verb hero-verb-3" data-delay="7500">{{ t('crea.') }}</span>
+  <p class="hero-verbs" aria-label="{{ t('pensa, agisci, crea.') }}">
+    <span class="hero-verb hero-verb-1" data-delay="1250">{{ t('pensa,') }}</span>
+    <span class="hero-verb hero-verb-2" data-delay="2500">{{ t('agisci,') }}</span>
+    <span class="hero-verb hero-verb-3" data-delay="3750">{{ t('crea.') }}</span>
   </p>
   <p class="apple-tagline">
-    {{ t('Come parlare a Siri, ma pensando.') }}<br />
-    {{ t('Chiamate, musica, luci: l’azione parte. Senza aprire lo schermo.') }}
+    {{ t("Un ponte invisibile tra intento e ambiente — prototipo di tesi. Iris dimostra come stati di concentrazione e rilassamento possano guidare dispositivi smart in una demo pubblica, con cuffia simulata. Senza voce, senza interfacce fisiche.") }}
   </p>
   <p class="scroll-hint reveal" data-reveal>{{ t('Scorri') }}</p>
 </section>
@@ -38,84 +39,87 @@
 <section class="story-panel">
   <div class="story-copy reveal" data-reveal>
     <p class="kicker">{{ t('La cuffia') }}</p>
-    <h2 class="display-xl">{{ t('Pensi.') }}<br /><span class="soft">{{ t('Succede.') }}</span></h2>
+    <h2 class="display-xl">{{ t('Sintonizzati sul tuo spazio') }}</h2>
     <p class="story-text">
-      {{ t('Una cuffia non invasiva legge l’intento. Niente menu da toccare. Niente “è questo il comando giusto?”.') }}
+      {{ t("Nella demo il sistema usa finestre EEG pubbliche o sintetiche, non una lettura clinica del tuo cervello. Le traduce in segnali digitali per mostrare un’interazione naturale e priva di barriere.") }}
     </p>
   </div>
   <figure class="story-shot reveal" data-reveal>
-    <img src="/static/product/headset.jpg" alt="Cuffia" width="1600" height="1067" loading="lazy" />
+    <img src="/static/product/headset.jpg" alt="{{ t('Cuffia') }}" width="1600" height="1067" loading="lazy" />
   </figure>
 </section>
 
 <section class="story-panel invert">
   <div class="story-copy reveal" data-reveal>
     <p class="kicker">{{ t('Il telefono') }}</p>
-    <h2 class="display-xl">{{ t('Anche') }}<br /><span class="soft">{{ t('in tasca.') }}</span></h2>
+    <h2 class="display-xl">{{ t('In tasca.') }}<br /><span class="soft">{{ t('Non in mano.') }}</span></h2>
     <p class="story-text">
-      {{ t('Squilla? Pensi di chiudere: si chiude. Ascolti musica? Pensi di spegnere: si spegne. Il telefono resta dove sta — Iris agisce in background.') }}
+      {{ t('Il telefono resta dove sta. Iris intercetta chiamate e avvisi essenziali e li traduce in azioni semplici, così non devi interrompere il flusso di ciò che stai facendo.') }}
     </p>
   </div>
   <figure class="story-shot tall reveal" data-reveal>
-    <img src="/static/product/phone.jpg" alt="Telefono" width="1400" height="1800" loading="lazy" />
+    <img src="/static/product/phone.jpg" alt="{{ t('Telefono') }}" width="1400" height="1800" loading="lazy" />
   </figure>
 </section>
 
-<section class="story-band dark">
-  <div class="band-inner reveal" data-reveal>
-    <p class="kicker light">{{ t('Casa') }}</p>
-    <h2 class="display-xxl">{{ t('Luci.') }}<br />{{ t('Spine.') }}<br />{{ t('Ambienti.') }}</h2>
-    <p class="story-text light">
-      {{ t('Pensi alla luce: Alexa (o la casa connessa) la accende. Stesso gesto mentale, altro dispositivo.') }}
+<section class="story-panel">
+  <div class="story-copy reveal" data-reveal>
+    <p class="kicker">{{ t('Casa') }}</p>
+    <h2 class="display-xl">{{ t("L'ambiente che") }}<br /><span class="soft">{{ t('ti risponde') }}</span></h2>
+    <p class="story-text">
+      {{ t("Nella demo, illuminazione e domotica possono seguire un segnale di intento. È un prototipo di tesi: non un controllo fisico del cervello né un dispositivo medico.") }}
     </p>
   </div>
-  <figure class="band-shot reveal" data-reveal>
-    <img src="/static/product/home.jpg" alt="Casa" width="1600" height="1067" loading="lazy" />
+  <figure class="story-shot reveal" data-reveal>
+    <img src="/static/product/home.jpg" alt="{{ t('Casa') }}" width="1600" height="1067" loading="lazy" />
   </figure>
 </section>
 
 <section class="story-panel">
   <div class="story-copy reveal" data-reveal>
     <p class="kicker">{{ t('Musica') }}</p>
-    <h2 class="display-xl">{{ t('Play.') }}<br /><span class="soft">{{ t('Pausa. Next.') }}</span></h2>
+    <h2 class="display-xl">{{ t('Il ritmo, nel pensiero.') }}</h2>
     <p class="story-text">
-      {{ t('Mentre ascolti, i pensieri vanno alla traccia — non allo schermo. Come chiedere a Siri di cambiare canzone.') }}
+      {{ t('Ascolti e pensi al brano successivo: nella demo Iris mostra come uno stato di focus possa diventare un comando per l’ecosistema musicale — con cuffia simulata, senza toccare lo schermo.') }}
     </p>
   </div>
   <figure class="story-shot reveal" data-reveal>
-    <img src="/static/product/music.jpg" alt="Musica" width="1600" height="1067" loading="lazy" />
+    <img src="/static/product/music.jpg" alt="{{ t('Musica') }}" width="1600" height="1067" loading="lazy" />
   </figure>
 </section>
 
 <section class="story-panel invert">
   <div class="story-copy reveal" data-reveal>
     <p class="kicker">{{ t('Chiamate') }}</p>
-    <h2 class="display-xl">{{ t('Rispondi.') }}<br /><span class="soft">{{ t('O chiudi.') }}</span></h2>
+    <h2 class="display-xl">{{ t('Connessione continua') }}</h2>
     <p class="story-text">
-      {{ t('Arriva una chiamata: pensi l’azione, il telefono obbedisce. Nessuna conferma da toccare.') }}
+      {{ t('Gestisci la musica o intercetta le notifiche importanti senza interrompere ciò che stai facendo. Il tuo ecosistema digitale è guidato in silenzio dalla tua volontà.') }}
     </p>
   </div>
   <figure class="story-shot reveal" data-reveal>
-    <img src="/static/product/connect.jpg" alt="Connessione" width="1600" height="1067" loading="lazy" />
+    <img src="/static/product/connect.jpg" alt="{{ t('Connessione') }}" width="1600" height="1067" loading="lazy" />
   </figure>
 </section>
 
 <section class="story-close">
   <div class="reveal" data-reveal>
     <p class="kicker">{{ t('In sintesi') }}</p>
-    <h2 class="display-xxl">{{ t('Intento.') }}<br />{{ t('Azione.') }}<br />{{ t('Silenzio.') }}</h2>
+    <h2 class="display-xxl">{{ t('Il quotidiano,') }}<br />{{ t('invisibile.') }}</h2>
     <p class="story-text center">
-      {{ t('Il sito serve a creare l’account e calibrare la cuffia. Il quotidiano è invisibile: pensi, e basta.') }}
+      {{ t('Qui crei l’account e configuri la cuffia simulata. È una demo pubblica di tesi UNITO: il percorso dati resta pronto per quando ci sarà hardware reale.') }}
     </p>
   </div>
 </section>
 
-<p class="photo-note">{{ t('Foto temporanee (Unsplash) — le sostituiremo con scatti del prodotto reale.') }}</p>
 {% endblock %}
 
 {% block footer %}
 <footer class="footer site-footer">
-  <p>{{ t('Tesi triennale · Informatica · Università degli Studi di Torino') }}</p>
+  <p>{{ t("Iris Nous — Tesi di Laurea in Informatica. Università di Torino (UNITO). Sede: Torino.") }}</p>
+  <p>{{ t('Prototipo di tesi UNITO · demo pubblica · non è un dispositivo medico · cuffia simulata finché non c’è hardware reale.') }}</p>
+  <p>{{ t('Acquisizione EEG | Machine Learning | Integrazioni IoT') }}</p>
+  <p>{{ t('Design & Code:') }} Manuel Bellomo. | <a href="https://github.com" rel="noopener noreferrer">{{ t('GitHub') }}</a> | <a href="/docs">{{ t('Docs') }}</a> | <a href="/privacy">{{ t('Privacy') }}</a></p>
+  <p>{{ t("© 2026 Iris Nous. Prototipo di tesi UNITO.") }}</p>
 </footer>
 <script>
   (function () {
@@ -125,24 +129,47 @@
       window.setTimeout(() => el.classList.add("is-on"), delay);
     });
 
-    const nodes = document.querySelectorAll(".story [data-reveal], .story-close [data-reveal], .story-band [data-reveal]");
+    const nodes = document.querySelectorAll(".story [data-reveal], .story-close [data-reveal], .story-panel [data-reveal]");
     if (!("IntersectionObserver" in window)) {
       nodes.forEach((el) => { el.classList.add("is-in"); el.classList.add("is-visible"); });
-      return;
+    } else {
+      const io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("is-in");
+              entry.target.classList.add("is-visible");
+              io.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.18, rootMargin: "0px 0px -8% 0px" }
+      );
+      nodes.forEach((el) => io.observe(el));
     }
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("is-in");
-            entry.target.classList.add("is-visible");
-            io.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.18, rootMargin: "0px 0px -8% 0px" }
-    );
-    nodes.forEach((el) => io.observe(el));
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const coarse = window.matchMedia("(hover: none), (pointer: coarse), (max-width: 859px)").matches;
+    if (reduceMotion || coarse) return;
+
+    document.querySelectorAll(".story-shot").forEach((card) => {
+      card.addEventListener("pointermove", (event) => {
+        const box = card.getBoundingClientRect();
+        const px = (event.clientX - box.left) / box.width;
+        const py = (event.clientY - box.top) / box.height;
+        const rx = ((0.5 - py) * 11).toFixed(2);
+        const ry = ((px - 0.5) * 14).toFixed(2);
+        card.style.transform =
+          "perspective(920px) rotateX(" + rx + "deg) rotateY(" + ry + "deg)";
+        card.style.setProperty("--mx", (px * 100).toFixed(1) + "%");
+        card.style.setProperty("--my", (py * 100).toFixed(1) + "%");
+        card.style.setProperty("--glare", "1");
+      });
+      card.addEventListener("pointerleave", () => {
+        card.style.transform = "";
+        card.style.setProperty("--glare", "0");
+      });
+    });
   })();
 </script>
 {% endblock %}

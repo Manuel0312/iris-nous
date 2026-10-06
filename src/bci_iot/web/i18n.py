@@ -2,14 +2,26 @@
 
 from __future__ import annotations
 
+import logging
+import time
 from dataclasses import dataclass
+from ipaddress import ip_address
 from typing import Any
+from urllib.parse import quote
 
+import httpx
 from starlette.requests import Request
 
-SUPPORTED = ("it", "en", "fr", "de", "pt", "zh", "ja")
+SUPPORTED = ("it", "en", "es", "fr", "de", "pt", "zh", "ja")
 DEFAULT_LANG = "it"
-COOKIE_NAME = "bci_iot_lang"
+COOKIE_NAME = "iris_nous_lang"  # renamed to invalidate sticky en from older builds
+
+
+log = logging.getLogger(__name__)
+
+# IP → (country_code, expires_monotonic)
+_IP_COUNTRY_CACHE: dict[str, tuple[str, float]] = {}
+_IP_CACHE_TTL_S = 60 * 60 * 24  # 24h
 
 
 @dataclass(frozen=True, slots=True)
@@ -17,16 +29,22 @@ class Language:
     code: str
     name: str
     flag: str
+    flag_iso: str  # ISO country for local SVG flag (emoji often missing on Windows)
+
+    @property
+    def flag_src(self) -> str:
+        return f"/flags/{self.flag_iso}.svg"
 
 
 LANGUAGES: tuple[Language, ...] = (
-    Language("it", "Italiano", "🇮🇹"),
-    Language("en", "English", "🇬🇧"),
-    Language("fr", "Français", "🇫🇷"),
-    Language("de", "Deutsch", "🇩🇪"),
-    Language("pt", "Português", "🇵🇹"),
-    Language("zh", "中文", "🇨🇳"),
-    Language("ja", "日本語", "🇯🇵"),
+    Language("it", "Italiano", "🇮🇹", "it"),
+    Language("en", "English", "🇬🇧", "gb"),
+    Language("es", "Español", "🇪🇸", "es"),
+    Language("fr", "Français", "🇫🇷", "fr"),
+    Language("de", "Deutsch", "🇩🇪", "de"),
+    Language("pt", "Português", "🇵🇹", "pt"),
+    Language("zh", "中文", "🇨🇳", "cn"),
+    Language("ja", "日本語", "🇯🇵", "jp"),
 )
 
 LANGUAGE_BY_CODE = {lang.code: lang for lang in LANGUAGES}
@@ -44,6 +62,26 @@ COUNTRY_TO_LANG: dict[str, str] = {
     "DE": "de",
     "AT": "de",
     "LI": "de",
+    "ES": "es",
+    "MX": "es",
+    "AR": "es",
+    "CO": "es",
+    "CL": "es",
+    "PE": "es",
+    "VE": "es",
+    "EC": "es",
+    "UY": "es",
+    "PY": "es",
+    "BO": "es",
+    "CR": "es",
+    "PA": "es",
+    "GT": "es",
+    "HN": "es",
+    "NI": "es",
+    "SV": "es",
+    "DO": "es",
+    "CU": "es",
+    "PR": "es",
     "PT": "pt",
     "BR": "pt",
     "AO": "pt",
@@ -80,6 +118,12 @@ def normalize_lang(code: str | None) -> str | None:
 
 
 def parse_accept_language(header: str | None) -> str | None:
+    """Pick the best supported UI language from Accept-Language.
+
+    If both English and another supported language are listed (common on
+    Italian Windows installs: ``en-US,en;q=0.9,it;q=0.8``), prefer the
+    non-English one — English is often the OS default, not the visitor locale.
+    """
     if not header:
         return None
     parts: list[tuple[float, str]] = []
@@ -101,10 +145,52 @@ def parse_accept_language(header: str | None) -> str | None:
     if not parts:
         return None
     parts.sort(key=lambda pair: pair[0], reverse=True)
+    non_en = [(q, lang) for q, lang in parts if lang != "en"]
+    if non_en:
+        non_en.sort(key=lambda pair: pair[0], reverse=True)
+        return non_en[0][1]
     return parts[0][1]
 
 
-def country_from_request(request: Request) -> str | None:
+def detect_language(request: Request) -> str:
+    """Preference: explicit cookie/session → country (geo) → Accept-Language → Italian.
+
+    Geo wins over the browser language so an Italian visitor with an English OS
+    still gets Italian. Unknown countries → English. English-only Accept-Language
+    without a known country falls back to Italian (product default), because
+    Windows/Chrome often report ``en-US`` even in Italy when geo headers are missing.
+    """
+    cookie = normalize_lang(request.cookies.get(COOKIE_NAME))
+    if cookie:
+        return cookie
+    # Do not trust session["lang"] alone: older builds stuck English in the
+    # session without the new cookie, which re-forced EN on every visit.
+
+    path = request.url.path if hasattr(request, "url") else ""
+    use_ip_geo = not str(path or "").startswith(
+        ("/static", "/flags", "/media", "/favicon", "/health")
+    )
+    country = country_from_request(request, allow_ip_lookup=use_ip_geo)
+    if country:
+        return COUNTRY_TO_LANG.get(country, "en")
+
+    accept = parse_accept_language(request.headers.get("accept-language"))
+    if accept and accept != "en":
+        return accept
+    # English-only browser language without geo → Italian default (tesi / IT product).
+    # Real English locales still win when country maps to en (US/GB/…).
+    if accept == "en":
+        return DEFAULT_LANG
+    raw_accept = (request.headers.get("accept-language") or "").strip()
+    if raw_accept:
+        # Unsupported only (pl, nl, …) and no country → English
+        return "en"
+    return DEFAULT_LANG
+
+
+def country_from_request(request: Request, *, allow_ip_lookup: bool = True) -> str | None:
+    """Country from CDN/proxy headers, then optional IP geolocation (cached)."""
+
     headers = request.headers
     for key in (
         "cf-ipcountry",
@@ -112,25 +198,110 @@ def country_from_request(request: Request) -> str | None:
         "x-vercel-ip-country",
         "x-country-code",
         "x-appengine-country",
+        "x-render-request-country",
     ):
         value = (headers.get(key) or "").strip().upper()
         if value and value not in {"XX", "T1", "ZZ"}:
             return value
+    if not allow_ip_lookup:
+        return None
+    ip = client_ip_from_request(request)
+    if not ip:
+        return None
+    return country_from_ip(ip)
+
+
+def client_ip_from_request(request: Request) -> str | None:
+    """Best-effort public client IP (Render/Cloudflare use X-Forwarded-For)."""
+
+    for key in ("cf-connecting-ip", "true-client-ip", "x-real-ip"):
+        raw = (request.headers.get(key) or "").strip()
+        if raw and _is_public_ip(raw):
+            return raw
+    xff = (request.headers.get("x-forwarded-for") or "").strip()
+    if xff:
+        for part in xff.split(","):
+            candidate = part.strip()
+            if _is_public_ip(candidate):
+                return candidate
+    host = getattr(request.client, "host", None) if request.client else None
+    if host and _is_public_ip(host):
+        return host
     return None
 
 
-def detect_language(request: Request) -> str:
-    """Preference order: cookie → Accept-Language → country → Italian."""
-    cookie = normalize_lang(request.cookies.get(COOKIE_NAME))
-    if cookie:
-        return cookie
-    accept = parse_accept_language(request.headers.get("accept-language"))
-    if accept:
-        return accept
-    country = country_from_request(request)
-    if country and country in COUNTRY_TO_LANG:
-        return COUNTRY_TO_LANG[country]
-    return DEFAULT_LANG
+def _is_public_ip(value: str) -> bool:
+    try:
+        addr = ip_address(value.strip())
+    except ValueError:
+        return False
+    return not (
+        addr.is_private
+        or addr.is_loopback
+        or addr.is_link_local
+        or addr.is_multicast
+        or addr.is_reserved
+        or addr.is_unspecified
+    )
+
+
+def country_from_ip(ip: str) -> str | None:
+    """Resolve ISO country for ``ip`` via free lookup APIs (in-memory cache)."""
+
+    cached = _IP_COUNTRY_CACHE.get(ip)
+    now = time.monotonic()
+    if cached and cached[1] > now:
+        return cached[0] or None
+    country = _lookup_ip_country(ip) or ""
+    _IP_COUNTRY_CACHE[ip] = (country, now + _IP_CACHE_TTL_S)
+    if len(_IP_COUNTRY_CACHE) > 4000:
+        stale = [k for k, (_, exp) in _IP_COUNTRY_CACHE.items() if exp <= now]
+        for k in stale[:1000]:
+            _IP_COUNTRY_CACHE.pop(k, None)
+    return country or None
+
+
+def _lookup_ip_country(ip: str) -> str | None:
+    endpoints = (
+        (f"https://ipwho.is/{quote(ip)}", "ipwho"),
+        (f"https://get.geojs.io/v1/ip/country/{quote(ip)}.json", "geojs"),
+        (f"https://ipapi.co/{quote(ip)}/country_code/", "ipapi"),
+        (f"http://ip-api.com/json/{quote(ip)}?fields=status,countryCode", "ipapi_http"),
+    )
+    for url, kind in endpoints:
+        try:
+            with httpx.Client(timeout=2.0, follow_redirects=True) as client:
+                resp = client.get(url, headers={"User-Agent": "IrisNous/1.0"})
+            if resp.status_code >= 400:
+                continue
+            if kind == "ipwho":
+                data = resp.json()
+                if not data.get("success", True):
+                    continue
+                code = str(data.get("country_code") or "").upper()
+            elif kind == "geojs":
+                data = resp.json()
+                code = str(data.get("country") or data.get("country_code") or "").upper()
+            elif kind == "ipapi_http":
+                data = resp.json()
+                if str(data.get("status") or "") != "success":
+                    continue
+                code = str(data.get("countryCode") or "").upper()
+            else:
+                code = (resp.text or "").strip().upper()[:2]
+            if len(code) == 2 and code.isalpha() and code not in {"XX", "T1", "ZZ"}:
+                return code
+        except Exception as exc:  # noqa: BLE001
+            log.debug("ip country lookup failed (%s): %s", url, exc)
+    return None
+
+
+def language_for_country(country_code: str | None) -> str:
+    """Public helper: ISO country → site language (unknown → English)."""
+    code = (country_code or "").strip().upper()
+    if not code or code in {"XX", "T1", "ZZ"}:
+        return "en"
+    return COUNTRY_TO_LANG.get(code, "en")
 
 
 def set_request_language(request: Request, lang: str) -> str:

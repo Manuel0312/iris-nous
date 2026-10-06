@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -10,9 +11,27 @@ from bci_iot.web import create_app
 from bci_iot.web.i18n import COOKIE_NAME, parse_accept_language, translate
 
 
+def _login_chrome_html(html: str) -> str:
+    """Login chrome only (banner + main). Novità overlay may use Italian loanwords."""
+    parts: list[str] = []
+    banner = re.search(
+        r'<div\b[^>]*\bclass=["\'][^"\']*\bsite-mode-banner\b[^"\']*["\'][\s\S]*?</div>',
+        html,
+        flags=re.IGNORECASE,
+    )
+    if banner:
+        parts.append(banner.group(0))
+    main = re.search(r"<main\b[\s\S]*?</main>", html, flags=re.IGNORECASE)
+    if main:
+        parts.append(main.group(0))
+    return "\n".join(parts)
+
+
 def test_accept_language_and_translate() -> None:
-    assert parse_accept_language("en-US,en;q=0.9,it;q=0.8") == "en"
+    # Non-English listed alongside en → prefer the locale language (it).
+    assert parse_accept_language("en-US,en;q=0.9,it;q=0.8") == "it"
     assert parse_accept_language("ja,en;q=0.5") == "ja"
+    assert parse_accept_language("en-GB,en;q=0.9") == "en"
     assert translate("en", "Login") == "Log in"
     assert translate("it", "Login") == "Login"
     assert translate("fr", "Iscriviti") == "S'inscrire"
@@ -20,25 +39,314 @@ def test_accept_language_and_translate() -> None:
 
 def test_home_uses_detected_language(tmp_path: Path) -> None:
     app = create_app(data_dir=tmp_path, session_secret="lang-secret")
+    # English browser without country → Italian product default.
+    page_it = TestClient(app).get("/", headers={"Accept-Language": "en-GB,en;q=0.9"})
+    assert page_it.status_code == 200
+    assert "Un ponte invisibile" in page_it.text
+    # Known English country still forces English (fresh client: no sticky cookie).
+    page_en = TestClient(app).get(
+        "/",
+        headers={"Accept-Language": "en-GB,en;q=0.9", "cf-ipcountry": "US"},
+    )
+    assert "invisible bridge" in page_en.text.lower() or "An invisible bridge" in page_en.text
+    assert "Un ponte invisibile" not in page_en.text
+
+
+def test_english_switch_persists(tmp_path: Path) -> None:
+    app = create_app(data_dir=tmp_path, session_secret="lang-en")
     client = TestClient(app)
-    page = client.get("/", headers={"Accept-Language": "en-GB,en;q=0.9"})
-    assert page.status_code == 200
-    assert "Like talking to Siri" in page.text or "think," in page.text
-    assert COOKIE_NAME in page.cookies
-    assert page.cookies[COOKIE_NAME] == "en"
+    # Start from Italian browser, then switch to English via GET.
+    client.get("/", headers={"Accept-Language": "it-IT,it;q=0.9"})
+    switched = client.get("/lingua/en", follow_redirects=False)
+    assert switched.status_code in {302, 303}
+    assert switched.cookies.get(COOKIE_NAME) == "en"
+    home = client.get("/")
+    assert "invisible bridge" in home.text.lower() or "An invisible bridge" in home.text
+    assert "think," in home.text
+    login = client.get("/login")
+    assert "Log in" in login.text or "Sign in" in login.text
 
 
 def test_language_switch_persists(tmp_path: Path) -> None:
     app = create_app(data_dir=tmp_path, session_secret="lang-switch")
     client = TestClient(app)
-    switched = client.post(
-        "/lingua",
-        data={"lang": "de", "next": "/login"},
-        follow_redirects=False,
-    )
+    switched = client.get("/lingua/de", follow_redirects=False)
     assert switched.status_code in {302, 303}
     assert switched.cookies.get(COOKIE_NAME) == "de"
     login = client.get("/login")
     assert "Anmelden" in login.text or "Einloggen" in login.text
     assert "Deutsch" in login.text
-    assert "🇬🇧" in login.text or "🇮🇹" in login.text
+    assert "/flags/de.svg" in login.text
+    assert "flagcdn.com" not in login.text
+
+
+def test_spanish_is_supported(tmp_path: Path) -> None:
+    app = create_app(data_dir=tmp_path, session_secret="lang-es")
+    client = TestClient(app)
+    switched = client.get("/lingua/es", follow_redirects=False)
+    assert switched.status_code in {302, 303}
+    assert switched.cookies.get(COOKIE_NAME) == "es"
+    login = client.get("/login")
+    assert "Español" in login.text
+    assert "/flags/es.svg" in login.text
+    assert "Iniciar sesión" in login.text
+    es_flag = client.get("/flags/es.svg")
+    assert es_flag.status_code == 200
+    assert b"<svg" in es_flag.content
+    home_es = client.get("/")
+    assert "piensa," in home_es.text or "Piensa" in home_es.text or "piensa" in home_es.text.lower()
+    assert "puente invisible" in home_es.text.lower()
+    assert 'href="/lingua/es"' in home_es.text
+    assert 'href="/lingua/ja"' in home_es.text
+    assert 'href="/lingua/zh"' in home_es.text
+
+
+def test_japanese_and_chinese_switch(tmp_path: Path) -> None:
+    app = create_app(data_dir=tmp_path, session_secret="lang-cjk")
+    client = TestClient(app)
+    ja = client.get("/lingua/ja", follow_redirects=False)
+    assert ja.status_code in {302, 303}
+    assert ja.cookies.get(COOKIE_NAME) == "ja"
+    login_ja = client.get("/login")
+    assert "ログイン" in login_ja.text
+    assert "Noto+Sans+JP" in login_ja.text
+    zh = client.get("/lingua/zh", follow_redirects=False)
+    assert zh.cookies.get(COOKIE_NAME) == "zh"
+    login_zh = client.get("/login")
+    assert "登录" in login_zh.text
+    home_ja = client.get("/lingua/ja", follow_redirects=True)
+    assert "考え、" in home_ja.text
+    assert "架け橋" in home_ja.text or "スマート" in home_ja.text
+    home_zh = client.get("/lingua/zh", follow_redirects=True)
+    assert "思考，" in home_zh.text or "无形" in home_zh.text or "桥梁" in home_zh.text
+    posted = client.post("/lingua", data={"lang": "es", "next": "/login"}, follow_redirects=False)
+    assert posted.status_code in {302, 303}
+    assert posted.cookies.get(COOKIE_NAME) == "es"
+
+
+def test_local_flags_are_served(tmp_path: Path) -> None:
+    app = create_app(data_dir=tmp_path, session_secret="flag-assets")
+    client = TestClient(app)
+    home = client.get("/")
+    assert home.status_code == 200
+    assert "/flags/it.svg" in home.text
+    assert "flagcdn.com" not in home.text
+    flag = client.get("/flags/it.svg")
+    assert flag.status_code == 200
+    assert b"<svg" in flag.content
+    gb = client.get("/flags/gb.svg")
+    assert gb.status_code == 200
+    un = client.get("/flags/un.svg")
+    assert un.status_code == 200
+    static_it = client.get("/static/flags/it.svg")
+    assert static_it.status_code == 200
+    assert b"<svg" in static_it.content
+
+
+def test_login_does_not_expose_admin_credentials(tmp_path: Path) -> None:
+    app = create_app(
+        data_dir=tmp_path,
+        session_secret="no-creds-on-login",
+        admin_username="admin",
+        admin_password="admin123",
+    )
+    client = TestClient(app, base_url="https://iris-nous.onrender.com")
+    page = client.get("/login")
+    assert page.status_code == 200
+    assert "admin123" not in page.text
+    assert "Accesso amministratore" not in page.text
+    assert "Thesis admin login" not in page.text
+    assert "default password" not in page.text.lower()
+
+
+def test_stale_env_secret_still_allows_thesis_admin(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("BCI_IOT_ADMIN_PASSWORD", "GeneratedOld99")
+    app = create_app(data_dir=tmp_path, session_secret="stale-env")
+    client = TestClient(app)
+    ok = client.post(
+        "/login",
+        data={"username": "admin", "password": "admin123"},
+        follow_redirects=False,
+    )
+    assert ok.status_code == 200
+    assert "/accessi" in ok.text
+
+
+def test_local_site_banner_and_unknown_login(tmp_path: Path) -> None:
+    app = create_app(
+        data_dir=tmp_path,
+        session_secret="local-hint",
+        admin_username="admin",
+        admin_password="admin123",
+    )
+    client = TestClient(app, base_url="http://127.0.0.1")
+    home = client.get("/")
+    assert "iris-nous.onrender.com" in home.text
+    assert "computer" in home.text.lower() or "pubblico" in home.text.lower()
+
+    fail = client.post(
+        "/login",
+        data={"username": "inesistente", "password": "Segreta123"},
+        follow_redirects=False,
+    )
+    assert fail.status_code == 200
+    assert "errore=1" in fail.text
+    login_page = client.get("/login")
+    # Ban English "database" on login chrome/banner only — not Novità history,
+    # which intentionally mirrors admin Italian labels like "Database persone".
+    login_chrome = _login_chrome_html(login_page.text)
+    assert login_chrome
+    assert "database" not in login_chrome.lower()
+    assert "sito online: qui vivono" not in login_page.text.lower()
+
+    admin_ok = client.post(
+        "/login",
+        data={"username": "Admin", "password": "admin123"},
+        follow_redirects=False,
+    )
+    assert admin_ok.status_code == 200
+    assert "/accessi" in admin_ok.text
+
+
+def test_signup_hides_code_when_mail_cannot_send(tmp_path: Path, monkeypatch) -> None:
+    import importlib
+
+    from bci_iot.accounts.messaging import DeliveryResult
+
+    monkeypatch.setenv("BCI_IOT_OTP_DEMO", "0")
+    monkeypatch.delenv("BCI_IOT_HTTPS", raising=False)
+    monkeypatch.delenv("BCI_IOT_SMTP_HOST", raising=False)
+    monkeypatch.delenv("BCI_IOT_RESEND_API_KEY", raising=False)
+
+    def fake_send(**kwargs):
+        return DeliveryResult(
+            ok=False,
+            channel="email",
+            destination=str(kwargs.get("destination") or ""),
+            mode="demo",
+            detail="smtp missing",
+            demo_code=str(kwargs.get("code") or ""),
+        )
+
+    webapp = importlib.import_module("bci_iot.web.app")
+    monkeypatch.setattr(webapp, "send_signup_confirmation", fake_send, raising=False)
+    app = create_app(data_dir=tmp_path, session_secret="signup-mail")
+    client = TestClient(app)
+    created = client.post(
+        "/register",
+        data={
+            "username": "luca",
+            "email": "luca@gmail.com",
+            "password": "Segreta123",
+        },
+        follow_redirects=False,
+    )
+    assert created.status_code == 200
+    wait = client.get("/attendi-conferma-email", follow_redirects=False)
+    assert wait.status_code == 200
+    assert "Conferma la tua email" in wait.text
+    assert "otp-preview" not in wait.text
+    assert "CTGBAB" not in wait.text
+    assert "statusCode" not in wait.text
+    assert "Se la mail non arriva" not in wait.text
+    assert "usa questo codice" not in wait.text.lower()
+    guest = TestClient(app)
+    rec = guest.get("/recupera-password")
+    assert rec.status_code == 200
+    assert "Gmail, Outlook, Libero" not in rec.text
+    assert "A3K9P2" not in rec.text
+    home = guest.get("/")
+    assert "Unsplash" not in home.text
+    chat = client.get("/chatta")
+    assert "Agente AI" not in chat.text
+    assert "bg3d.js" in chat.text
+
+
+def test_signup_link_does_not_confirm_email(tmp_path: Path, monkeypatch) -> None:
+    """Only the 6-char code verifies signup; legacy /conferma-iscrizione links must not."""
+    import importlib
+
+    from bci_iot.accounts.messaging import DeliveryResult, build_signup_confirm_email
+
+    subject, text, html = build_signup_confirm_email(username="sara", code="AB12CD")
+    assert "AB12CD" in text and "AB12CD" in html
+    assert "conferma-iscrizione" not in html.lower()
+    assert "href=" not in html.lower() or "Conferma iscrizione" not in html
+
+    captured: dict[str, str] = {}
+
+    def fake_send(**kwargs):
+        captured["code"] = str(kwargs.get("code") or "")
+        return DeliveryResult(
+            ok=True,
+            channel="email",
+            destination=str(kwargs.get("destination") or ""),
+            mode="demo",
+            detail="ok",
+            demo_code=str(kwargs.get("code") or ""),
+        )
+
+    webapp = importlib.import_module("bci_iot.web.app")
+    monkeypatch.setattr(webapp, "send_signup_confirmation", fake_send, raising=False)
+    monkeypatch.setenv("BCI_IOT_OTP_DEMO", "1")
+    app = create_app(data_dir=tmp_path, session_secret="code-only")
+    client = TestClient(app)
+    client.post(
+        "/register",
+        data={
+            "username": "sara",
+            "email": "sara@gmail.com",
+            "password": "Segreta123",
+        },
+        follow_redirects=False,
+    )
+    profile = app.state.store.get("sara")
+    assert profile is not None
+    assert profile.email_verified is False
+    assert not profile.email_confirm_hash
+    # Old-style link must not verify.
+    hit = client.get("/conferma-iscrizione/fake-legacy-token", follow_redirects=False)
+    assert hit.status_code in {302, 303}
+    again = app.state.store.get("sara")
+    assert again is not None and again.email_verified is False
+    # Code on the wait page still works.
+    code = captured.get("code") or ""
+    if not code:
+        # Demo path may store preview; fall back to issuing again.
+        _, code = app.state.store.issue_signup_confirmation("sara")
+    done = client.post(
+        "/attendi-conferma-email",
+        data={"code": code},
+        follow_redirects=False,
+    )
+    assert done.status_code in {302, 303, 200}
+    verified = app.state.store.get("sara")
+    assert verified is not None and verified.email_verified is True
+
+
+def test_home_storytelling(tmp_path: Path) -> None:
+    app = create_app(data_dir=tmp_path, session_secret="home-story")
+    client = TestClient(app)
+    home = client.get("/")
+    assert home.status_code == 200
+    assert "headset.jpg" in home.text
+    assert "Un ponte invisibile" in home.text
+    assert "Sintonizzati sul tuo spazio" in home.text
+    assert "Connessione continua" in home.text
+    assert "Il ritmo, nel pensiero." in home.text
+    assert "finestre EEG pubbliche o sintetiche" in home.text or "cuffia simulata" in home.text
+    assert 'href="/privacy"' in home.text
+    assert "chat-fab" in home.text
+    assert "Chatta con noi" in home.text
+    assert "canale=email" not in home.text
+    assert "Manuel Bellomo" in home.text
+    assert "lang-btn" in home.text
+    assert "/flags/it.svg" in home.text
+    assert 'class="theme-switch"' not in home.text
+    assert "data-theme-set" not in home.text
+    assert "unito-home" in home.text
+    assert 'href="/login"' in home.text
+    assert 'href="/register"' in home.text
+    css = client.get("/static/styles.css")
+    assert css.status_code == 200
+    assert "public, max-age=86400" in css.headers.get("cache-control", "")
