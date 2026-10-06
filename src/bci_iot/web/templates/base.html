@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f5f5f7" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="description" content="Iris Nous — tesi UNITO Informatica. Controlla casa e media pensando." />
+  <meta name="description" content="Iris Nous — prototipo di tesi UNITO. Demo pubblica su casa e media con cuffia simulata; non è un dispositivo medico." />
   <title>{% block title %}Iris{% endblock %}</title>
   <link rel="manifest" href="/static/manifest.webmanifest" />
   <link rel="icon" href="/static/icon.svg" type="image/svg+xml" />
@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;600;700&family=Noto+Sans+SC:wght@400;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/styles.css?v=irisPages35" />
+  <link rel="stylesheet" href="/static/styles.css?v=irisPages36" />
   <script>
     (function () {
       function scheme() {
@@ -116,6 +116,10 @@
     <a href="{{ cloud_url }}">{{ t('Apri il sito pubblico') }}</a>
   </div>
   {% endif %}
+  <div class="site-disclaimer" role="note">
+    {{ t('Prototipo di tesi UNITO · demo pubblica · non è un dispositivo medico · cuffia simulata finché non c’è hardware reale.') }}
+    <a href="/privacy">{{ t('Privacy') }}</a>
+  </div>
 
   <div class="whats-new-overlay" id="whats-new-overlay" hidden>
     <div
@@ -187,6 +191,8 @@
   {% block footer %}
   <footer class="footer site-footer">
     <p>{{ t('Tesi triennale · Informatica · Università degli Studi di Torino') if t is defined else 'Tesi triennale · Informatica · Università degli Studi di Torino' }}</p>
+    <p>{{ t('Prototipo di tesi UNITO · demo pubblica · non è un dispositivo medico · cuffia simulata finché non c’è hardware reale.') }}</p>
+    <p><a href="/privacy">{{ t('Privacy') }}</a></p>
   </footer>
   {% endblock %}
 

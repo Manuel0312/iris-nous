@@ -2,12 +2,29 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 from bci_iot.web import create_app
 from bci_iot.web.i18n import COOKIE_NAME, parse_accept_language, translate
+
+
+def _login_chrome_html(html: str) -> str:
+    """Login chrome only (banner + main). Novità overlay may use Italian loanwords."""
+    parts: list[str] = []
+    banner = re.search(
+        r'<div\b[^>]*\bclass=["\'][^"\']*\bsite-mode-banner\b[^"\']*["\'][\s\S]*?</div>',
+        html,
+        flags=re.IGNORECASE,
+    )
+    if banner:
+        parts.append(banner.group(0))
+    main = re.search(r"<main\b[\s\S]*?</main>", html, flags=re.IGNORECASE)
+    if main:
+        parts.append(main.group(0))
+    return "\n".join(parts)
 
 
 def test_accept_language_and_translate() -> None:
@@ -175,7 +192,11 @@ def test_local_site_banner_and_unknown_login(tmp_path: Path) -> None:
     assert fail.status_code == 200
     assert "errore=1" in fail.text
     login_page = client.get("/login")
-    assert "database" not in login_page.text.lower()
+    # Ban English "database" on login chrome/banner only — not Novità history,
+    # which intentionally mirrors admin Italian labels like "Database persone".
+    login_chrome = _login_chrome_html(login_page.text)
+    assert login_chrome
+    assert "database" not in login_chrome.lower()
     assert "sito online: qui vivono" not in login_page.text.lower()
 
     admin_ok = client.post(
@@ -313,6 +334,8 @@ def test_home_storytelling(tmp_path: Path) -> None:
     assert "Sintonizzati sul tuo spazio" in home.text
     assert "Connessione continua" in home.text
     assert "Il ritmo, nel pensiero." in home.text
+    assert "finestre EEG pubbliche o sintetiche" in home.text or "cuffia simulata" in home.text
+    assert 'href="/privacy"' in home.text
     assert "chat-fab" in home.text
     assert "Chatta con noi" in home.text
     assert "canale=email" not in home.text

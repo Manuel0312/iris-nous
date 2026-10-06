@@ -33,7 +33,8 @@ def test_product_home_and_dropdown(tmp_path: Path) -> None:
     assert page.status_code == 200
     assert "Iris" in page.text
     assert "Iris Nous" in page.text
-    assert "pensando" in page.text or "Siri" in page.text
+    assert "Controlla casa e media pensando" not in page.text
+    assert "site-disclaimer" in page.text or 'href="/privacy"' in page.text
     assert "Login" in page.text
     assert "Iscrizione" in page.text
     assert "/static/brand/unito-di.png" in page.text

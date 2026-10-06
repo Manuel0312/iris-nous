@@ -455,6 +455,41 @@ html[data-theme-resolved="dark"] .lang-option.is-active {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
 
+.site-disclaimer {
+  position: relative;
+  z-index: 28;
+  width: min(42rem, calc(100% - 2rem));
+  margin: calc(3.5rem + var(--safe-top)) auto 0.55rem;
+  padding: 0.55rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-elev) 88%, var(--accent) 12%);
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.site-disclaimer a {
+  font-weight: 700;
+  margin-left: 0.35rem;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+body:has(.site-mode-banner) .site-disclaimer {
+  margin-top: 0.35rem;
+}
+
+body:has(.site-disclaimer):not(:has(.site-mode-banner)) .unito-top {
+  padding-top: 0.65rem;
+}
+
+body:has(.site-disclaimer):not(:has(.site-mode-banner)) .shell {
+  padding-top: 1.15rem;
+}
+
 .site-mode-banner a {
   font-weight: 700;
   margin-left: 0.25rem;
@@ -940,6 +975,42 @@ img.unito-logo {
 
 .site-footer p { margin: 0.75rem 0 0; }
 
+.site-footer a {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.privacy-doc .privacy-sections {
+  display: grid;
+  gap: 1.35rem;
+  margin-top: 1.5rem;
+}
+
+.privacy-doc .privacy-sections section {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.privacy-doc .privacy-sections h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+
+.privacy-doc .privacy-sections p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+  font-size: 0.95rem;
+}
+
+.privacy-back {
+  margin-top: 2rem;
+}
+
 .reveal {
   opacity: 0;
   transform: translateY(18px);
@@ -974,6 +1045,7 @@ img.unito-logo {
 }
 
 .site-mode-banner,
+.site-disclaimer,
 .unito-top,
 main,
 .footer {

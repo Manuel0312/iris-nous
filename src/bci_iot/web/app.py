@@ -657,6 +657,18 @@ def create_app(
             "home.html",
             _template_ctx(request, profiles),
         )
+
+    @app.get("/privacy", response_class=HTMLResponse)
+    def privacy_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> HTMLResponse:
+        return TEMPLATES.TemplateResponse(
+            request,
+            "privacy.html",
+            _template_ctx(request, profiles),
+        )
+
     @app.get("/register", response_class=HTMLResponse)
     def register_page(
         request: Request,
