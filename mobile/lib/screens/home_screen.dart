@@ -36,7 +36,9 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     _refresh();
     _beat = Timer.periodic(const Duration(seconds: 20), (_) => _refresh());
-    _calls.start();
+    _calls.start().then((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -186,8 +188,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'I tasti «Simula» sono per test finché non c’è il rilevatore chiamate nativo. '
-            'Rispondi / rifiuta restano sul telefono o su In ascolto (SÌ/NO cuffia) — non su questa app.',
+            _calls.listening
+                ? 'Rilevamento chiamate nativo attivo: lo squillo aggiorna Iris automaticamente. '
+                    'I tasti «Simula» restano per prova. Rispondi/rifiuta restano sul telefono o su In ascolto (SÌ/NO).'
+                : (!_calls.permitted
+                    ? 'Concedi «Stato telefono» in Permessi per il rilevamento automatico. '
+                        'Intanto puoi usare «Simula squillo».'
+                    : 'I tasti «Simula» sono per test. Rispondi/rifiuta restano sul telefono o su In ascolto (SÌ/NO).'),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
           ),
           const SizedBox(height: 24),

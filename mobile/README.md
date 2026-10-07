@@ -15,11 +15,19 @@ Una sola app per **Android e iPhone**: configura l’associazione con Iris, gest
 
 Non c’è uno scaffold Swift-only: la cartella primaria è `mobile/`.
 
+## Prova Android con APK (senza Play Store)
+
+1. Scarica l’APK dagli **Artifacts** della workflow [Android APK](https://github.com/Manuel0312/iris-nous/actions/workflows/android-apk.yml) (dopo un push su `main` o *Run workflow*).
+2. Oppure build locale: vedi [`docs/ANDROID_APK.md`](../docs/ANDROID_APK.md).
+3. Installa sul telefono → Accedi → Permessi «Stato telefono» → prova una chiamata o «Simula squillo».
+
+Stesso codice per iPhone; su iOS serve Apple Developer / TestFlight (vedi `docs/APPLE_DEVELOPER.md`). Finché no: PWA `/app`.
+
 ## Aprire e avviare
 
 ### Prerequisiti
 
-1. [Flutter](https://docs.flutter.dev/get-started/install) stabile (3.22+)
+1. [Flutter](https://docs.flutter.dev/get-started/install) stabile (3.22+) — su questa macchina: `C:\src\flutter`
 2. Android Studio **oppure** Xcode 15+ (Mac) per iPhone
 3. Account Iris sul sito (`https://iris-nous.onrender.com`) e codice a 6 cifre da **Il tuo telefono**
 
