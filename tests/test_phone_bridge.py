@@ -48,20 +48,58 @@ def test_phone_setup_hub_stages(tmp_path: Path) -> None:
     assert stage1.status_code == 200
     assert "Il tuo telefono" in stage1.text
     assert "Codice a 6 cifre" in stage1.text
+    assert "Associa questo dispositivo" in stage1.text
     assert "A cosa serve" in stage1.text
     assert "Funziona dal browser dello smartphone" in stage1.text
+    assert "associa-telefono/questo-dispositivo" in stage1.text
+    assert "telefono-alexa-stub" not in stage1.text
 
     stage2 = client.get("/telefono-setup?stage=2")
     assert stage2.status_code == 200
-    assert "Stato e servizi" in stage2.text or "Stato del ponte" in stage2.text
     assert "Spotify" in stage2.text
-    assert "Alexa" in stage2.text
-    assert "Collegamento dopo" in stage2.text
+    assert "Stato del ponte" in stage2.text or "Passo 2" in stage2.text
+    assert "telefono-alexa-stub" not in stage2.text
+    assert "auth/spotify/start" in stage2.text or "Spotify collegato" in stage2.text or "non è ancora configurato" in stage2.text
 
     # Legacy /associa-telefono → hub
     legacy = client.get("/associa-telefono", follow_redirects=False)
     assert legacy.status_code == 303
     assert legacy.headers["location"].startswith("/telefono-setup")
+
+
+def test_one_tap_pair_and_call_bridge_on_live(tmp_path: Path) -> None:
+    app = create_app(data_dir=tmp_path, session_secret="onetap-secret")
+    client = TestClient(app)
+    _register(client)
+
+    tap = client.post("/associa-telefono/questo-dispositivo", follow_redirects=False)
+    assert tap.status_code in {302, 303}
+    assert "/telefono-setup?stage=2" in tap.headers.get("location", "")
+    profile = app.state.store.get("maria")
+    assert profile is not None
+    assert profile.phone_paired is True
+
+    live = client.get("/telefono")
+    assert live.status_code == 200
+    assert "Arriva una chiamata" in live.text
+    assert "ponte" in live.text.lower()
+
+    ev = client.post("/api/context/event", json={"event": "call", "caller": "Anna"})
+    assert ev.status_code == 200
+    assert ev.json().get("phone_event", {}).get("kind") == "incoming_call"
+
+    beat = client.post("/api/phone/heartbeat")
+    assert beat.status_code == 200
+    body = beat.json()
+    assert body["status"] == "ok"
+    assert body["context"]["incoming_call"] is True
+    assert "Anna" in (body["context"].get("caller_name") or "")
+    assert any(e.get("action") == "context.incoming_call" for e in body["events"])
+
+    done = client.get("/telefono-setup?done=1")
+    assert done.status_code == 200
+    assert "Pronto per chiamate" in done.text or "Telefono associato" in done.text
+    assert "Spotify" in done.text
 
 
 def test_phone_pairing_and_heartbeat(tmp_path: Path) -> None:

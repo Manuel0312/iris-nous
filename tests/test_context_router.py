@@ -215,7 +215,7 @@ def test_context_api_priority_and_decide(tmp_path: Path) -> None:
     assert body["impulse"]["signal_source"] == "template_plus_noise"
     assert body["focus"]["kind"] == "music"
     assert body["execution"]["kind"] == "reject_call"
-    assert body["execution"]["mode"] == "phone_queue_demo"
+    assert body["execution"]["mode"] == "phone_bridge"
 
     queue = app.state.phone_queues.get("ctx_user") or []
     assert any(e.get("action") == "context.reject_call" for e in queue)

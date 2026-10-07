@@ -75,13 +75,13 @@ def run_spotify_action(
     if not profile.phone_paired:
         return {
             "status": "error",
-            "detail": "Telefono non associato. Completa Associa telefono.",
+            "detail": "Telefono non associato. Completa Il tuo telefono (passo 1).",
             "event": event,
         }
     if not profile.spotify_linked:
         return {
             "status": "error",
-            "detail": "Spotify non collegato. Collega Spotify dalla pagina Associa telefono.",
+            "detail": "Spotify non collegato. Collega Spotify da Il tuo telefono (passo 2).",
             "event": event,
         }
     if not spotify_configured():

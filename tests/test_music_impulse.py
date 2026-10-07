@@ -101,4 +101,5 @@ def test_associa_telefono_shows_impulse_ux(tmp_path: Path) -> None:
     assert "music-impulse-meter" in page.text
     assert "Invio impulso alla cuffia" in page.text
     assert "Spotify" in page.text
-    assert "Alexa" in page.text
+    assert "telefono-alexa-stub" not in page.text
+    assert "Test rapido musica" in page.text

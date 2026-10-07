@@ -2869,17 +2869,39 @@ def create_app(
         if isinstance(loaded, RedirectResponse):
             return loaded
         try:
-            profile = profiles.confirm_phone_pairing(loaded.username, code)
+            profiles.confirm_phone_pairing(loaded.username, code)
         except ValueError as exc:
             _flash(request, str(exc), kind="error")
             return RedirectResponse("/telefono-setup?stage=1", status_code=303)
-        _flash(request, "Telefono associato. Apri Telefono live e collega Spotify.", kind="ok")
-        dest = "/cuffia?stage=2" if profile.needs_calibration else "/telefono-setup?stage=2"
+        _flash(request, "Telefono associato. Passo successivo: collega Spotify.", kind="ok")
         return _continue(
             request,
-            next_url=dest,
+            next_url="/telefono-setup?stage=2",
             message="Associazione riuscita...",
         )
+
+    @app.post("/associa-telefono/questo-dispositivo")
+    def associa_telefono_this_device(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> RedirectResponse:
+        """One-tap pair for the logged-in browser (phone or PC) — no retyping the code."""
+
+        loaded = _require_profile(request, profiles)
+        if isinstance(loaded, RedirectResponse):
+            return loaded
+        profile = profiles.ensure_headset_pairing(loaded.username)
+        if profile.phone_paired:
+            _flash(request, "Questo dispositivo è già associato.", kind="ok")
+            return RedirectResponse("/telefono-setup?stage=2", status_code=303)
+        try:
+            profiles.confirm_phone_pairing(profile.username, profile.pairing_code)
+        except ValueError as exc:
+            _flash(request, str(exc), kind="error")
+            return RedirectResponse("/telefono-setup?stage=1", status_code=303)
+        profiles.touch_phone(profile.username)
+        _flash(request, "Dispositivo associato. Collega Spotify se vuoi la musica vera.", kind="ok")
+        return RedirectResponse("/telefono-setup?stage=2", status_code=303)
 
     @app.post("/associa-telefono/unpair")
     def associa_telefono_unpair(
@@ -2931,6 +2953,8 @@ def create_app(
         request: Request,
         profiles: ProfileStore = Depends(_store),
     ) -> dict:
+        from bci_iot.pipeline.context_router import get_context_router
+
         username = _session_username(request)
         if not username:
             raise HTTPException(status_code=401, detail="Login required")
@@ -2941,7 +2965,21 @@ def create_app(
             return {"status": "error", "detail": "Telefono non associato", "events": []}
         profiles.touch_phone(username)
         events = list(app.state.phone_queues.get(username) or [])
-        return {"status": "ok", "events": events, "spotify_linked": profile.spotify_linked}
+        router = get_context_router(username)
+        world = router.world
+        return {
+            "status": "ok",
+            "events": events,
+            "spotify_linked": profile.spotify_linked,
+            "context": {
+                "incoming_call": bool(world.incoming_call),
+                "caller_name": world.caller_name or "",
+                "unread_message": bool(world.unread_message),
+                "message_from": world.message_from or "",
+                "music_playing": bool(world.music_playing),
+                "focus": router.focus_snapshot().to_dict(),
+            },
+        }
 
     @app.get("/auth/spotify/start")
     def spotify_start(
@@ -3119,9 +3157,12 @@ def create_app(
             del queue[:-20]
             execution = {
                 "kind": action,
-                "mode": "phone_queue_demo",
+                "mode": "phone_bridge",
                 "event": event,
-                "note": "Decisione registrata sul ponte telefono (nessuna API chiamate esterna).",
+                "note": (
+                    "Decisione inviata a Telefono live (ponte browser). "
+                    "Non controlla la tipica chiamata cellulare del sistema operativo."
+                ),
             }
         elif action == "next_track":
             profile = profiles.get(username)
@@ -3231,6 +3272,23 @@ def create_app(
         # API kept for compatibility; live cannot be turned off.
         return get_context_router(username).set_live_mode(True)
 
+    def _push_phone_bridge_event(username: str, *, action: str, label: str, **extra: object) -> dict:
+        """Append a Telefono-live queue event (call bridge / demo — not cellular OS)."""
+
+        from datetime import datetime, timezone
+
+        event = {
+            "at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+            "action": action,
+            "label": label,
+            "source": "context_router",
+            **extra,
+        }
+        queue = app.state.phone_queues.setdefault(username, [])
+        queue.append(event)
+        del queue[:-20]
+        return event
+
     @app.post("/api/context/event")
     def api_context_event(
         request: Request,
@@ -3245,15 +3303,60 @@ def create_app(
         router = get_context_router(username)
         ev = body.event.strip().lower()
         if ev == "call":
-            return router.simulate_call(caller=body.caller)
+            payload = router.simulate_call(caller=body.caller)
+            caller = router.world.caller_name or body.caller or "sconosciuto"
+            event = _push_phone_bridge_event(
+                username,
+                action="context.incoming_call",
+                label=f"Chiamata in arrivo: {caller}",
+                kind="incoming_call",
+                caller=caller,
+            )
+            payload["phone_event"] = event
+            return payload
         if ev in {"message", "msg"}:
-            return router.simulate_message(sender=body.sender, app=body.app)
+            payload = router.simulate_message(sender=body.sender, app=body.app)
+            who = router.world.message_from or body.sender or "nuovo messaggio"
+            app_name = router.world.message_app or body.app or "Messaggi"
+            event = _push_phone_bridge_event(
+                username,
+                action="context.incoming_message",
+                label=f"Messaggio da {who} ({app_name})",
+                kind="incoming_message",
+                sender=who,
+            )
+            payload["phone_event"] = event
+            return payload
         if ev in {"music_on", "music"}:
-            return router.set_music(True, track=body.track)
+            payload = router.set_music(True, track=body.track)
+            event = _push_phone_bridge_event(
+                username,
+                action="context.music_on",
+                label="Musica in riproduzione",
+                kind="music_on",
+            )
+            payload["phone_event"] = event
+            return payload
         if ev == "music_off":
-            return router.set_music(False)
+            payload = router.set_music(False)
+            event = _push_phone_bridge_event(
+                username,
+                action="context.music_off",
+                label="Musica ferma",
+                kind="music_off",
+            )
+            payload["phone_event"] = event
+            return payload
         if ev == "clear":
-            return router.clear_events()
+            payload = router.clear_events()
+            event = _push_phone_bridge_event(
+                username,
+                action="context.clear",
+                label="Niente in corso",
+                kind="clear",
+            )
+            payload["phone_event"] = event
+            return payload
         raise HTTPException(status_code=400, detail=f"Unknown event: {body.event}")
 
     @app.post("/api/context/decide")

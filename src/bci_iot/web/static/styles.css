@@ -3570,8 +3570,16 @@ html[data-theme-resolved="dark"] .password-toggle:hover {
   margin-bottom: 0.5rem;
 }
 
-.page-telefono-setup .telefono-alexa-stub {
-  opacity: 0.92;
+.page-telefono-live .telefono-call-panel {
+  border-color: color-mix(in srgb, var(--accent, #2a6) 35%, var(--border, #ccc));
+  background: color-mix(in srgb, var(--accent, #2a6) 8%, var(--panel, #fff));
+}
+.page-telefono-live .telefono-call-panel[hidden] {
+  display: none;
+}
+.page-telefono-live .telefono-call-panel h2 {
+  margin: 0.2rem 0 0.4rem;
+  font-size: 1.25rem;
 }
 
 .page-telefono-setup .wizard-nav {

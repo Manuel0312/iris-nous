@@ -10,6 +10,22 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.38",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Telefono: associa, Spotify, ponte chiamate",
+                "Associazione e Spotify c’erano, ma il percorso non era chiaro e le chiamate non arrivavano bene su Telefono live.",
+                "Ora /telefono-setup ha due passi chiari (associa → Spotify), un tocco «Associa questo dispositivo», e Telefono live mostra le chiamate del ponte; Spotify resta reale quando è collegato.",
+            ),
+            (
+                "Onesti su cosa è reale",
+                "Si rischiava di sembrare che Iris controllasse la tipica chiamata cellulare o Alexa.",
+                "Chiaro in UI: chiamate = ponte browser + SÌ/NO; musica = Spotify Premium vero; niente Alexa inventata.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.37",
         "intro": WHATS_NEW_INTRO,
         "entries": (
