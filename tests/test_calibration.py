@@ -163,25 +163,22 @@ def test_web_calibration_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     assert client.post("/api/headset/power", json={"on": True}).status_code == 200
     assert client.post("/api/headset/wear", json={"on_head": True}).status_code == 200
 
-    seen_yn: set[str] = set()
     for kind in ("SI", "NO", "SI"):
         imp = client.post("/api/headset/impulse", json={"kind": kind})
         assert imp.status_code == 200
         body = imp.json()
+        # Calibration path stores intended label as template (no exact replay).
         assert body["impulse"]["kind"] == kind
         assert body["impulse"]["features"]
-        if kind in seen_yn:
-            # Second+ SI/NO replays the calibrated template.
-            assert body["impulse"]["signal_source"] == "calibration_replay"
-            assert body.get("replayed_from_calibration") is True
-        else:
-            assert body["impulse"]["signal_source"] in {
-                "physionet_corpus",
-                "prior_fallback",
-                "brainflow_impulse",
-                "brainflow_synthetic",
-            }
-            seen_yn.add(kind)
+        assert body.get("replayed_from_calibration") is False
+        assert body["impulse"]["signal_source"] != "calibration_replay"
+        assert body["impulse"]["signal_source"] in {
+            "physionet_corpus",
+            "prior_fallback",
+            "brainflow_impulse",
+            "brainflow_synthetic",
+        }
+        assert body["impulse"].get("is_calibration_template") is True
 
     agent = get_headset_agent(
         username="maria",

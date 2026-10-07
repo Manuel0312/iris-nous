@@ -2640,9 +2640,16 @@ def create_app(
             data_root=profiles.data_root,
         )
 
+        router = get_context_router(username)
+        yn_hint = normalize_yes_no(body.kind)
+        # Live: classify vs templates. Calibration on /cuffia: store as templates.
+        classify = bool(router.live_mode and yn_hint is not None)
+
         def _recv() -> dict:
             return agent.receive_impulse(
-                body.kind, colour_key=body.colour_key or None
+                body.kind,
+                colour_key=body.colour_key or None,
+                classify_yn=classify if yn_hint is not None else True,
             )
 
         try:
@@ -2651,15 +2658,16 @@ def create_app(
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
         out: dict = {"status": "ok", **payload}
-        router = get_context_router(username)
-        yn = normalize_yes_no(body.kind)
-        if router.live_mode and yn is not None:
+        if router.live_mode and yn_hint is not None:
+            classified = normalize_yes_no(
+                str(payload.get("classified_answer") or payload.get("impulse", {}).get("kind") or yn_hint)
+            ) or yn_hint
             routed = await _apply_context_decision(
                 request,
                 profiles,
                 username=username,
-                answer=yn,
-                impulse_kind=body.kind,
+                answer=classified,
+                impulse_kind=classified,
                 impulse_payload=payload,
                 via="headset_live",
             )
@@ -3151,6 +3159,17 @@ def create_app(
         if impulse_payload:
             base["impulse"] = impulse_payload.get("impulse")
             base["agent"] = impulse_payload.get("status")
+            for key in (
+                "classified_answer",
+                "similarity_si",
+                "similarity_no",
+                "used_templates_count",
+                "intended_kind",
+                "message",
+                "classification",
+            ):
+                if key in impulse_payload and impulse_payload[key] is not None:
+                    base[key] = impulse_payload[key]
         return base
 
     @app.get("/contesto", response_class=HTMLResponse)
@@ -3247,8 +3266,8 @@ def create_app(
         username = _session_username(request)
         if not username:
             raise HTTPException(status_code=401, detail="Login required")
-        yn = normalize_yes_no(body.answer)
-        if yn is None:
+        yn_hint = normalize_yes_no(body.answer)
+        if yn_hint is None:
             raise HTTPException(status_code=400, detail="Serve SÌ o NO")
 
         profile = profiles.ensure_headset_pairing(username)
@@ -3259,22 +3278,38 @@ def create_app(
         )
 
         def _recv() -> dict:
-            return agent.receive_impulse(yn)
+            # Button = intended thought prior; classifier picks SI/NO vs templates.
+            return agent.receive_impulse(yn_hint, classify_yn=True)
 
         try:
             impulse_payload = await run_in_threadpool(_recv)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+        classified = normalize_yes_no(
+            str(
+                impulse_payload.get("classified_answer")
+                or (impulse_payload.get("impulse") or {}).get("kind")
+                or yn_hint
+            )
+        ) or yn_hint
+
         routed = await _apply_context_decision(
             request,
             profiles,
             username=username,
-            answer=yn,
-            impulse_kind=yn,
+            answer=classified,
+            impulse_kind=classified,
             impulse_payload=impulse_payload,
             via="context_decide",
         )
+        routed["classified_answer"] = classified
+        routed["intended_kind"] = yn_hint
+        routed["similarity_si"] = impulse_payload.get("similarity_si")
+        routed["similarity_no"] = impulse_payload.get("similarity_no")
+        routed["used_templates_count"] = impulse_payload.get("used_templates_count")
+        if impulse_payload.get("message"):
+            routed["message"] = impulse_payload["message"]
         return {"status": "ok", **routed}
 
     @app.post("/dashboard")

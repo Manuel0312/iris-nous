@@ -138,7 +138,7 @@ def test_contesto_page_smoke(tmp_path: Path) -> None:
     assert "Sto decidendo su" in page.text or "focus" in page.text.lower()
     assert "Simula chiamata" in page.text
     assert "Pensa SÌ" in page.text
-    assert "cuffia virtuale" in page.text
+    assert "modelli della calibrazione" in page.text or "finestra EEG" in page.text
     assert "calibrazione" in page.text
 
 

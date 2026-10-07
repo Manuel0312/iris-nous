@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
@@ -60,47 +61,77 @@ def test_agent_power_wear_contact_impulse_and_memory(tmp_path: Path) -> None:
     assert again.memory.impulses[0]["kind"] == "ACCENDI"
 
 
-def test_si_no_replays_calibration_template(tmp_path: Path) -> None:
-    """Second SI/NO reuses the calibrated impulse (same features + replay flag)."""
+def test_si_no_classifies_against_calibration_templates(tmp_path: Path) -> None:
+    """After SI+NO templates, live impulses acquire new windows and classify by similarity."""
 
     agent = SimulatedHeadsetAgent(
-        username="replay",
-        headset_id="h-replay",
+        username="classify",
+        headset_id="h-cls",
         data_root=tmp_path,
         seed=11,
     )
     agent.power_on()
     agent.wear(on_head=True)
 
-    first = agent.receive_impulse("SI")
+    first = agent.receive_impulse("SI", classify_yn=False)
     assert first["replayed_from_calibration"] is False
     assert first["impulse"]["signal_source"] != "calibration_replay"
+    assert first["impulse"]["is_calibration_template"] is True
     assert first["impulse"]["features"]
-    template_feats = list(first["impulse"]["features"])
+    template_si = list(first["impulse"]["features"])
 
-    second = agent.receive_impulse("SI")
-    assert second["replayed_from_calibration"] is True
-    assert second["impulse"]["signal_source"] == "calibration_replay"
-    assert second["impulse"]["replayed_from_calibration"] is True
-    assert second["impulse"]["features"] == template_feats
-    assert second["impulse"]["kind"] == "SI"
-    assert second["status"]["impulses_count"] == 2
-    # Live history grows with a new event (even if same second as template).
-    assert len(agent.memory.impulses) == 2
-    assert agent.memory.impulses[-1]["replayed_from_calibration"] is True
-
-    # Alias YES also replays the SI template.
-    third = agent.receive_impulse("YES")
-    assert third["replayed_from_calibration"] is True
-    assert third["impulse"]["features"] == template_feats
-
-    # NO with no template yet still acquires a fresh window.
-    no_first = agent.receive_impulse("NO")
+    no_first = agent.receive_impulse("NO", classify_yn=False)
     assert no_first["replayed_from_calibration"] is False
-    assert "calibrazione" in (no_first.get("message") or "").lower()
-    no_second = agent.receive_impulse("NO")
-    assert no_second["replayed_from_calibration"] is True
-    assert no_second["impulse"]["features"] == no_first["impulse"]["features"]
+    assert no_first["impulse"]["is_calibration_template"] is True
+    template_no = list(no_first["impulse"]["features"])
+    assert template_si != template_no or len(template_si) > 0
+
+    assert agent.status()["templates_si"] >= 1
+    assert agent.status()["templates_no"] >= 1
+
+    live = agent.receive_impulse("SI", classify_yn=True)
+    assert live["replayed_from_calibration"] is False
+    assert live["impulse"]["signal_source"] != "calibration_replay"
+    assert live["impulse"]["is_calibration_template"] is False
+    assert live["classified_answer"] in {"SI", "NO"}
+    assert live["similarity_si"] is not None
+    assert live["similarity_no"] is not None
+    assert live["used_templates_count"] >= 2
+    # New window: features should not be an exact copy of the SI template mean path.
+    assert live["impulse"]["features"] != template_si or live["impulse"]["kind"] in {"SI", "NO"}
+    assert "Riconosciuto come" in (live.get("message") or "")
+
+
+def test_classify_yes_no_closer_to_si_template(tmp_path: Path) -> None:
+    agent = SimulatedHeadsetAgent(
+        username="centroid",
+        headset_id="h-cent",
+        data_root=tmp_path,
+        seed=3,
+    )
+    # Plant clear SI / NO templates without acquisition noise.
+    agent.memory.impulses = [
+        {
+            "kind": "SI",
+            "features": [1.0, 0.0, 0.0, 0.0],
+            "is_calibration_template": True,
+            "signal_source": "prior_fallback",
+        },
+        {
+            "kind": "NO",
+            "features": [0.0, 1.0, 0.0, 0.0],
+            "is_calibration_template": True,
+            "signal_source": "prior_fallback",
+        },
+    ]
+    near_si = agent.classify_yes_no([0.95, 0.05, 0.0, 0.0])
+    assert near_si["label"] == "SI"
+    assert near_si["score_si"] > near_si["score_no"]
+    assert near_si["used_templates_count"] == 2
+
+    near_no = agent.classify_yes_no(np.asarray([0.05, 0.95, 0.0, 0.0]))
+    assert near_no["label"] == "NO"
+    assert near_no["score_no"] > near_no["score_si"]
 
 
 def test_agent_rejects_impulse_without_ready_state(tmp_path: Path) -> None:

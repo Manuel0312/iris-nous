@@ -54,7 +54,7 @@
 
   <div class="form-block panel">
     <h2>{{ t('Decisione dalla cuffia') }}</h2>
-    <p class="form-hint">{{ t('Il tasto chiede alla cuffia virtuale di ricevere lo stesso impulso SÌ/NO della calibrazione') }}</p>
+    <p class="form-hint">{{ t('Il tasto chiede alla cuffia di emettere un nuovo pensiero SÌ/NO: acquisisce una finestra EEG e la confronta con i modelli della calibrazione.') }}</p>
     {% if not agent or not agent.ready_for_impulses %}
     <p class="form-hint warn">{{ t('Prepara prima la cuffia (accendi, indossa, contatto) su /cuffia.') }}
       <a href="/cuffia?stage=1">{{ t('La tua cuffia') }}</a>
@@ -67,6 +67,7 @@
     <div class="calib-meter panel" id="impulse-meter" hidden>
       <p class="meter-label">{{ t('Impulso') }}</p>
       <p id="impulse-last" class="calib-last"></p>
+      <p id="impulse-recog" class="form-hint" hidden></p>
       <div class="meter-track"><div class="meter-fill" id="impulse-fill"></div></div>
     </div>
     <p class="form-hint" id="status-msg" aria-live="polite"></p>
@@ -77,6 +78,8 @@
     {% if ctx.last_decision %}
     <ul class="detail-list" id="last-decision">
       <li><span>{{ t('Risposta') }}</span><strong id="ld-answer">{{ ctx.last_decision.answer }}</strong></li>
+      <li><span>{{ t('Riconosciuto') }}</span><strong id="ld-recog">—</strong></li>
+      <li><span>{{ t('Similarità') }}</span><strong id="ld-sim">—</strong></li>
       <li><span>{{ t('Focus') }}</span><strong id="ld-focus">{{ ctx.last_decision.focus_title }}</strong></li>
       <li><span>{{ t('Azione') }}</span><strong id="ld-action">{{ ctx.last_decision.action }}</strong></li>
       <li><span>{{ t('Esito') }}</span><strong id="ld-feedback">{{ ctx.last_decision.feedback }}</strong></li>
@@ -85,6 +88,8 @@
     <p class="form-hint muted" id="last-empty">{{ t('Ancora nessuna decisione in questa sessione.') }}</p>
     <ul class="detail-list" id="last-decision" hidden>
       <li><span>{{ t('Risposta') }}</span><strong id="ld-answer">—</strong></li>
+      <li><span>{{ t('Riconosciuto') }}</span><strong id="ld-recog">—</strong></li>
+      <li><span>{{ t('Similarità') }}</span><strong id="ld-sim">—</strong></li>
       <li><span>{{ t('Focus') }}</span><strong id="ld-focus">—</strong></li>
       <li><span>{{ t('Azione') }}</span><strong id="ld-action">—</strong></li>
       <li><span>{{ t('Esito') }}</span><strong id="ld-feedback">—</strong></li>
@@ -108,6 +113,9 @@
     yes: {{ t('Sì')|tojson }},
     no: {{ t('No')|tojson }},
     err: {{ t('Errore')|tojson }},
+    recogAs: {{ t('Riconosciuto come')|tojson }},
+    simSi: {{ t('sim SÌ')|tojson }},
+    simNo: {{ t('sim NO')|tojson }},
   };
   const root = document.getElementById("contesto-root");
 
@@ -162,6 +170,24 @@
       document.getElementById("ld-feedback").textContent = d.feedback || "—";
     }
 
+    const classified = data.classified_answer || (data.impulse && data.impulse.classified_answer) || "";
+    const simSi = data.similarity_si != null ? data.similarity_si : (data.impulse && data.impulse.similarity_si);
+    const simNo = data.similarity_no != null ? data.similarity_no : (data.impulse && data.impulse.similarity_no);
+    const recogEl = document.getElementById("ld-recog");
+    const simEl = document.getElementById("ld-sim");
+    if (recogEl) {
+      recogEl.textContent = classified
+        ? (L.recogAs + " " + classified)
+        : "—";
+    }
+    if (simEl) {
+      if (simSi != null && simNo != null) {
+        simEl.textContent = L.simSi + " " + Number(simSi).toFixed(2) + " · " + L.simNo + " " + Number(simNo).toFixed(2);
+      } else {
+        simEl.textContent = "—";
+      }
+    }
+
     const imp = data.impulse;
     if (imp) {
       const meter = document.getElementById("impulse-meter");
@@ -169,6 +195,22 @@
       document.getElementById("impulse-last").textContent =
         (imp.kind || "") + " · " + (imp.intensity || 0) + "% · " + (imp.signal_source || "");
       document.getElementById("impulse-fill").style.width = (imp.intensity || 0) + "%";
+      const recLine = document.getElementById("impulse-recog");
+      if (recLine) {
+        if (classified && simSi != null && simNo != null) {
+          recLine.hidden = false;
+          recLine.textContent =
+            L.recogAs + " " + classified +
+            " (" + L.simSi + " " + Number(simSi).toFixed(2) +
+            " · " + L.simNo + " " + Number(simNo).toFixed(2) + ")";
+        } else if (data.message) {
+          recLine.hidden = false;
+          recLine.textContent = data.message;
+        } else {
+          recLine.hidden = true;
+          recLine.textContent = "";
+        }
+      }
     }
   }
 
