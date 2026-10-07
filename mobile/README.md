@@ -79,7 +79,9 @@ Richiesta **graduale** in app (schermata Permessi), non tutti al primo avvio.
 | App Tracking (`NSUserTracking…`) | — | **Non** usato |
 | SMS / iMessage | — | **Non leggibili** dalle app terze |
 
-Bundle id suggerito: `com.irisnous.mobile`. TestFlight = quando avrete Apple Developer Team; **non** è pubblicato sull’App Store in questo passo.
+Bundle id: `com.irisnous.mobile`.  
+
+**Apple / TestFlight:** guida completa in [`docs/APPLE_DEVELOPER.md`](../docs/APPLE_DEVELOPER.md) e sul sito `/app/apple`. Serve la tua iscrizione al Apple Developer Program (~99 USD/anno); poi Mac+Xcode oppure Codemagic (`codemagic.yaml`).
 
 ## API Iris usate dall’app
 
@@ -97,7 +99,7 @@ Bundle id suggerito: `com.irisnous.mobile`. TestFlight = quando avrete Apple Dev
 2. **iOS:** `CXCallObserver` via platform channel Dart ↔ Swift  
 3. Foreground service / BGTask per heartbeat con schermo spento  
 4. Rimuovere i tasti «Simula squillo» quando il rilevamento nativo è stabile  
-5. TestFlight / Play internal testing — **senza** affermare pubblicazione Store completata
+5. Dopo iscrizione Apple: TestFlight (vedi `docs/APPLE_DEVELOPER.md`) — CXCallObserver già in `ios/Runner/CallObserverBridge.swift`
 
 ## Limiti (da ripetere all’utente)
 

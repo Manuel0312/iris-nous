@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b0d" />
+  <title>Apple Developer · Iris</title>
+  <link rel="apple-touch-icon" href="/static/app/icon-180.png" />
+  <link rel="stylesheet" href="/static/app/app.css?v=irisApp2" />
+</head>
+<body class="app-body">
+  <div class="guide">
+    <p class="eyebrow">Percorso nativo</p>
+    <h1 class="title">Accessi Apple per Iris al 100%</h1>
+    <p class="lede">
+      L’icona in Home (/app) funziona già. Per TestFlight, App Store e rilevamento chiamate nativo
+      serve l’<strong>Apple Developer Program</strong>: lo puoi attivare solo tu (identità + pagamento).
+      Il codice Iris è già pronto ad aspettarlo.
+    </p>
+
+    <div class="card">
+      <p class="eyebrow">Solo tu</p>
+      <ol>
+        <li>Apri l’app <strong>Apple Developer</strong> sull’iPhone oppure
+          <a href="https://developer.apple.com/programs/enroll/" style="color:var(--accent)">developer.apple.com/programs/enroll</a></li>
+        <li>Accedi con Apple Account (2FA, <strong>nome e cognome legali</strong>).</li>
+        <li>Iscriviti come <strong>Individuale</strong> e paga la quota annuale (~99 USD / ~99 €).</li>
+        <li>Quando ricevi la conferma, annota il <strong>Team ID</strong> da
+          <a href="https://developer.apple.com/account" style="color:var(--accent)">developer.apple.com/account</a>.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <p class="eyebrow">Poi (insieme / con Mac o Codemagic)</p>
+      <ol>
+        <li>Crea App ID <strong>com.irisnous.mobile</strong>.</li>
+        <li>Crea l’app in <a href="https://appstoreconnect.apple.com" style="color:var(--accent)">App Store Connect</a>.</li>
+        <li>Build IPA (Mac + Xcode, oppure Codemagic sul repo).</li>
+        <li>Pubblica su <strong>TestFlight</strong> e installa sull’iPhone.</li>
+      </ol>
+    </div>
+
+    <p class="lede">
+      Guida completa nel repo: <strong>docs/APPLE_DEVELOPER.md</strong>.
+      Finché aspetti la conferma Apple, usa l’app installabile su /app.
+    </p>
+
+    <a class="btn primary" href="https://developer.apple.com/programs/enroll/">Vai all’iscrizione Apple</a>
+    <a class="btn" href="/app">Usa l’app Iris ora (/app)</a>
+    <a class="btn ghost" href="/app/installa">Guida Aggiungi a Home</a>
+  </div>
+</body>
+</html>

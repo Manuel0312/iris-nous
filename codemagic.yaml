@@ -1,0 +1,50 @@
+# Build iOS Iris Nous su Mac cloud (Codemagic).
+# Attiva dopo Apple Developer Program + certificati in Codemagic UI.
+# Docs: https://docs.codemagic.io/yaml-quick-start/building-a-flutter-app/
+
+workflows:
+  iris-ios-testflight:
+    name: Iris Nous iOS → TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      groups:
+        # Crea questo gruppo in Codemagic con:
+        # - App Store Connect API key (ASC)
+        # - oppure certificate + provisioning profile
+        - app_store_credentials
+      vars:
+        BUNDLE_ID: com.irisnous.mobile
+        APP_STORE_APPLE_ID: REPLACE_WITH_APP_APPLE_ID
+    scripts:
+      - name: Bootstrap Flutter iOS project if incomplete
+        script: |
+          cd mobile
+          flutter pub get
+          if [ ! -f ios/Runner.xcodeproj/project.pbxproj ]; then
+            flutter create . --project-name iris_nous_mobile --org com.irisnous --platforms=ios,android
+          fi
+          flutter pub get
+      - name: Install pods
+        script: |
+          cd mobile/ios
+          pod install
+      - name: Flutter build IPA
+        script: |
+          cd mobile
+          flutter build ipa --release \
+            --build-name=0.1.0 \
+            --build-number=${PROJECT_BUILD_NUMBER} \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - mobile/build/ios/ipa/*.ipa
+      - mobile/build/ios/archive/*.xcarchive
+    publishing:
+      app_store_connect:
+        # Configura in Codemagic → Team integrations → App Store Connect
+        auth: integration
+        submit_to_testflight: true
+        # submit_to_app_store: false

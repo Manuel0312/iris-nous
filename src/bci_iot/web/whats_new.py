@@ -10,6 +10,22 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.41",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Percorso Apple Developer → TestFlight",
+                "Per l’idea al 100% (app nativa, CallKit, App Store) serviva una guida chiara su cosa fare tu e cosa è già pronto nel codice.",
+                "Ora /app/apple e docs/APPLE_DEVELOPER.md spiegano iscrizione (~99 USD/anno), Team ID, App Store Connect e Codemagic; il bridge CXCallObserver è preparato in mobile/ios.",
+            ),
+            (
+                "Due modi sull’iPhone",
+                "Non era chiaro cosa usare subito e cosa dopo Apple.",
+                "Subito: /app → Aggiungi a Home. Al 100%: dopo la tua iscrizione Developer, TestFlight con com.irisnous.mobile.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.40",
         "intro": WHATS_NEW_INTRO,
         "entries": (

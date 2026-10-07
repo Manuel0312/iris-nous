@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../config.dart';
 import '../services/auth_store.dart';
+import '../services/call_observer.dart';
 import '../services/iris_api.dart';
 import 'login_screen.dart';
 import 'permissions_screen.dart';
@@ -20,6 +21,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late final IrisApi _api = IrisApi(widget.store);
+  late final CallObserverService _calls = CallObserverService(_api);
   Timer? _beat;
   Map<String, dynamic>? _status;
   String? _error;
@@ -34,11 +36,13 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     _refresh();
     _beat = Timer.periodic(const Duration(seconds: 20), (_) => _refresh());
+    _calls.start();
   }
 
   @override
   void dispose() {
     _beat?.cancel();
+    _calls.stop();
     super.dispose();
   }
 

@@ -9,30 +9,38 @@
   <title>Installa Iris · iPhone</title>
   <link rel="apple-touch-icon" href="/static/app/icon-180.png" />
   <link rel="icon" href="/static/app/icon-192.png" type="image/png" />
-  <link rel="stylesheet" href="/static/app/app.css?v=irisApp1" />
+  <link rel="stylesheet" href="/static/app/app.css?v=irisApp2" />
 </head>
 <body class="app-body">
   <div class="guide">
     <p class="eyebrow">Iris Nous</p>
     <h1 class="title">Installa sull’iPhone</h1>
     <p class="lede">
-      Da questo PC non si può pubblicare sull’App Store senza account Apple Developer e un Mac.
-      Qui scarichi l’app Iris come icona in Home (come WhatsApp Web / banche): funziona offline per la shell e online per Iris.
+      Due strade: <strong>ora</strong> l’app in Home da Safari; <strong>al 100%</strong> (TestFlight / App Store / CallKit)
+      dopo l’iscrizione Apple Developer — che puoi fare solo tu.
     </p>
 
     <div class="card">
+      <p class="eyebrow">Ora — senza App Store</p>
       <ol>
         <li>Sul telefono apri <strong>Safari</strong> (non Chrome).</li>
         <li>Vai a <strong>https://iris-nous.onrender.com/app</strong></li>
-        <li>Tocca il pulsante <strong>Condividi</strong> (quadrato con freccia in alto).</li>
-        <li>Scorri e tocca <strong>Aggiungi a Home</strong>.</li>
-        <li>Conferma: compare l’icona <strong>Iris</strong>. Aprila: si apre a schermo intero, senza barra Safari.</li>
+        <li>Tocca <strong>Condividi</strong> → <strong>Aggiungi a Home</strong>.</li>
+        <li>Apri l’icona <strong>Iris</strong> e associa con il codice a 6 cifre.</li>
       </ol>
     </div>
 
-    <p class="lede">Poi: Accedi con username, password e codice a 6 cifre da «Il tuo telefono» sul sito.</p>
+    <div class="card">
+      <p class="eyebrow">Al 100% — Apple Developer</p>
+      <ol>
+        <li>Iscriviti al Program (~99 USD/anno) con nome legale e 2FA.</li>
+        <li>Con Team ID si firma <code>com.irisnous.mobile</code> e si pubblica su TestFlight.</li>
+        <li>Sull’iPhone installi Iris dall’app TestFlight — nativa, CallKit, aggiornamenti.</li>
+      </ol>
+      <a class="btn primary" href="/app/apple" style="margin-top:.5rem">Apri checklist Apple</a>
+    </div>
 
-    <a class="btn primary" href="/app">Apri l’app</a>
+    <a class="btn" href="/app">Apri l’app</a>
     <a class="btn" href="/telefono-setup">Codice associazione</a>
     <a class="btn ghost" href="/">Torna al sito</a>
   </div>

@@ -123,6 +123,13 @@ def test_companion_pwa_routes(tmp_path: Path) -> None:
     assert guide.status_code == 200
     assert "Aggiungi a Home" in guide.text
     assert "Safari" in guide.text
+    assert "/app/apple" in guide.text
+
+    apple = client.get("/app/apple")
+    assert apple.status_code == 200
+    assert "Apple Developer" in apple.text
+    assert "TestFlight" in apple.text
+    assert "com.irisnous.mobile" in apple.text
 
     sw = client.get("/app/sw.js")
     assert sw.status_code == 200

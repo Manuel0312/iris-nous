@@ -2865,6 +2865,12 @@ def create_app(
 
         return TEMPLATES.TemplateResponse(request, "app_installa.html", {"request": request})
 
+    @app.get("/app/apple", response_class=HTMLResponse)
+    def companion_app_apple_page(request: Request) -> HTMLResponse:
+        """Checklist: Apple Developer Program → TestFlight (user enrollment)."""
+
+        return TEMPLATES.TemplateResponse(request, "app_apple.html", {"request": request})
+
     @app.get("/app/sw.js")
     def companion_app_service_worker() -> FileResponse:
         """Service worker under /app so scope covers the PWA."""
