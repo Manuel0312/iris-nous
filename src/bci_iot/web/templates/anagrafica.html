@@ -1,116 +1,132 @@
 ﻿{% extends "base.html" %}
 {% block title %}{{ t('I tuoi dati') }} · Iris{% endblock %}
-{% block body_class %}page-private{% endblock %}
+{% block body_class %}page-private page-anagrafica{% endblock %}
 {% block main_class %}shell private-shell{% endblock %}
 {% block content %}
-<section class="private-area">
-  <header class="private-welcome">
-    <p class="eyebrow">{% if profile.anagrafica_complete %}{{ t('Profilo') }}{% else %}{{ t('Passo 2 di 3') }}{% endif %}</p>
-    <h1>{{ t('I tuoi dati') }}</h1>
-    <p class="lede">
-      {{ t('Nome e cognome senza numeri. La foto è facoltativa. L’username resta univoco; email e telefono pure.') }}
-    </p>
+<section class="private-area anag-area">
+  <header class="private-welcome anag-welcome">
+    <h1>{{ t('I tuoi dati personali') }}</h1>
   </header>
 
-  {% if profile.verification_pending and profile.anagrafica_complete %}
+  {% if profile.verification_pending and profile.anagrafica_complete and not profile.email_verified %}
   <div class="verify-banner panel" role="status">
     <strong>{{ t('Account non verificato') }}</strong>
-    <p class="muted">{{ t('Puoi usare Iris lo stesso. Verifica email o telefono quando vuoi: il codice arriva via messaggio.') }}</p>
+    <p class="muted">{{ t('Puoi usare Iris lo stesso. Quando vuoi, verifica l’email con il codice che ti mandiamo.') }}</p>
   </div>
   {% endif %}
 
-  <div class="panel photo-block reveal" data-reveal>
-    <h2>{{ t('Foto profilo') }} <span class="muted">{{ t('(opzionale)') }}</span></h2>
-    <div class="photo-preview">
+  {# Photo band: freestanding like the mockup (no heavy card). #}
+  <div class="anag-photo reveal" data-reveal>
+    <div class="photo-preview" id="photo-preview">
       {% if profile.photo_filename %}
-      <img class="avatar lg" id="photo-preview-img" src="/media/photos/{{ profile.photo_filename }}" alt="Foto profilo" width="120" height="120" />
+      <img class="avatar hero" id="photo-preview-img" src="/media/photos/{{ profile.photo_filename }}" alt="{{ t('Foto profilo') }}" width="240" height="240" />
       {% else %}
-      <div class="avatar lg avatar-placeholder" id="photo-preview-fallback" aria-hidden="true">
-        <svg viewBox="0 0 64 64" width="64" height="64" fill="none" aria-hidden="true">
+      <div class="avatar hero avatar-placeholder" id="photo-preview-fallback" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="96" height="96" fill="none" aria-hidden="true">
           <circle cx="32" cy="24" r="12" fill="#9aa0a6"/>
           <path d="M8 56c0-13.255 10.745-24 24-24s24 10.745 24 24" fill="#9aa0a6"/>
         </svg>
       </div>
-      <img class="avatar lg" id="photo-preview-img" hidden alt="Anteprima foto" width="120" height="120" />
+      <img class="avatar hero" id="photo-preview-img" hidden alt="{{ t('Anteprima foto') }}" width="240" height="240" />
       {% endif %}
     </div>
-    <form method="post" action="/anagrafica/foto" enctype="multipart/form-data" class="stack" id="photo-form">
-      <label>{{ t('Scegli una foto (JPG / PNG / WebP, max 2.5 MB)') }}
-        <input type="file" name="photo" id="photo-input" accept="image/jpeg,image/png,image/webp" />
-      </label>
-      <button class="btn" type="submit">{{ t('Salva foto') }}</button>
-    </form>
-  </div>
 
-  <form method="post" action="/anagrafica" class="private-form private-form-fit" id="anagrafica-form">
-    <div class="cfg-grid">
-      <div class="form-block">
-        <h2>{{ t('Anagrafica') }}</h2>
-        <label>{{ t('Nome') }}
-          <input name="first_name" value="{{ profile.first_name }}" required maxlength="64" autocomplete="given-name" pattern="[^0-9]+" title="Niente numeri" />
-        </label>
-        <label>{{ t('Cognome') }}
-          <input name="last_name" value="{{ profile.last_name }}" maxlength="64" autocomplete="family-name" pattern="[^0-9]*" title="Niente numeri" />
-        </label>
-        <label>{{ t('Email') }}
-          <input name="email" type="email" value="{{ profile.email }}" required maxlength="254" autocomplete="email" placeholder="nome@gmail.com" />
-        </label>
-        {% if profile.email_verified %}
-        <p class="verify-ok">{{ t('Email verificata') }}</p>
-        {% elif profile.email %}
-        <p class="verify-warn">{{ t('Email non verificata') }}</p>
-        {% endif %}
+    <div class="photo-side">
+      <h2>{{ t('Foto') }} <span class="muted">{{ t('(opzionale)') }}</span></h2>
+      <p class="form-hint">{{ t('Va bene anche dopo, se preferisci.') }}</p>
 
-        <label>{{ t('Prefisso e telefono') }}</label>
-        <div class="phone-row" id="phone-row" data-locked="{{ '1' if profile.phone_country else '0' }}">
-          <button type="button" class="phone-cc-btn" id="phone-cc-btn" aria-haspopup="listbox" aria-expanded="false">
-            <span id="phone-cc-flag">{% if profile.phone_country %}{% for c in phone_countries if c.iso == profile.phone_country %}{{ c.flag }}{% endfor %}{% else %}🌐{% endif %}</span>
-            <span id="phone-cc-dial">{{ profile.phone_dial or t('Prefisso') }}</span>
-          </button>
-          <input type="hidden" name="phone_country" id="phone-country" value="{{ profile.phone_country }}" />
-          <input
-            name="phone_national"
-            id="phone-national"
-            inputmode="numeric"
-            pattern="[0-9]*"
-            maxlength="15"
-            value="{{ profile.phone_national }}"
-            placeholder="{{ t('Numero senza prefisso') }}"
-            autocomplete="tel-national"
-            required
-            {% if not profile.phone_country %}disabled{% endif %}
-          />
+      <div class="photo-crop-editor" id="photo-crop-editor" hidden>
+        <p
+          class="photo-face-status"
+          id="photo-face-status"
+          hidden
+          data-msg-guide="{{ t('Muovi e ingrandisci finché ti riconosci bene.') }}"
+          data-msg-no-face="{{ t('In questa foto non si vede un volto chiaro.') }}"
+          data-msg-face-ok="{{ t('Così va bene. Se vuoi, sposta ancora un po’ prima di salvare.') }}"
+          data-msg-need-face="{{ t('Per tenerti al sicuro, scegli una foto dove si vede il volto. Poi la ritagli tu.') }}"
+          data-msg-load-fail="{{ t('Non riesco a leggere questa immagine.') }}"
+          data-msg-save-fail="{{ t('Non è andata a buon fine. Riprova pure.') }}"
+          data-msg-pick-first="{{ t('Prima scegli una foto, poi puoi salvarla.') }}"
+        ></p>
+        <div class="photo-crop-stage">
+          <canvas id="photo-crop-canvas" width="320" height="320" aria-label="{{ t('Area foto: trascina per spostare') }}"></canvas>
         </div>
-        <div class="phone-cc-menu" id="phone-cc-menu" hidden role="listbox">
-          <input type="search" id="phone-cc-filter" placeholder="{{ t('Cerca paese…') }}" autocomplete="off" />
-          <div class="phone-cc-list" id="phone-cc-list">
-            {% for c in phone_countries %}
-            <button type="button" class="phone-cc-option" role="option"
-              data-iso="{{ c.iso }}" data-dial="{{ c.dial }}" data-flag="{{ c.flag }}"
-              data-min="{{ c.min_len }}" data-max="{{ c.max_len }}">
-              <span>{{ c.flag }}</span>
-              <span class="phone-cc-name">{{ c.name }}</span>
-              <span class="muted">{{ c.dial }}</span>
-            </button>
-            {% endfor %}
-          </div>
-        </div>
-        <p class="form-hint" id="phone-hint">{{ t('Scegli la bandiera/prefisso: si fissa, poi digita solo le cifre del numero.') }}</p>
-        {% if profile.phone_verified %}
-        <p class="verify-ok">{{ t('Telefono verificato') }}</p>
-        {% elif profile.phone_e164 %}
-        <p class="verify-warn">{{ t('Telefono non verificato') }}</p>
-        {% endif %}
-
-        <label>{{ t('Etichetta dispositivo (opzionale)') }}
-          <input name="phone_label" value="{{ profile.phone_label }}" maxlength="64" placeholder="es. iPhone di Maria" autocomplete="off" />
+        <label class="photo-zoom-label">{{ t('Ingrandimento') }}
+          <input type="range" id="photo-zoom" min="1" max="3" step="0.01" value="1" />
         </label>
+        <p class="muted photo-crop-hint">{{ t('Trascina: il cerchio è quello del profilo.') }}</p>
+        <div class="private-actions photo-crop-actions">
+          <button class="btn" type="button" id="photo-crop-cancel">{{ t('Annulla') }}</button>
+        </div>
       </div>
 
-      <div class="form-block">
-        <h2>{{ t('Come ti identifichi') }}</h2>
-        <p class="form-hint">{{ t('Scegli l’opzione con cui preferisci essere indirizzata/o/ə nel sito.') }}</p>
-        <div class="gender-choices">
+      <form method="post" action="/anagrafica/foto" enctype="multipart/form-data" class="photo-form" id="photo-form">
+        <label class="photo-file-label sr-only" for="photo-input">{{ t('Scegli una foto') }}</label>
+        <input type="file" name="photo" id="photo-input" accept="image/jpeg,image/png,image/webp" />
+        <p class="muted photo-file-meta">{{ t('JPG · PNG · WebP') }}</p>
+        <button class="btn anag-btn-soft" type="submit">{{ t('Salva') }}</button>
+      </form>
+    </div>
+  </div>
+
+  <dialog class="photo-face-dialog" id="photo-face-dialog">
+    <form method="dialog" class="photo-face-dialog-inner">
+      <h3>{{ t('Una foto con il volto') }}</h3>
+      <p id="photo-face-dialog-text">{{ t('Per tenerti al sicuro, scegli una foto dove si vede il volto. Poi la ritagli tu.') }}</p>
+      <div class="photo-face-dialog-actions">
+        <button class="btn" type="submit" value="cancel">{{ t('Chiudi') }}</button>
+        <button class="btn primary" type="button" id="photo-face-dialog-ok">{{ t('Scegli un’altra foto') }}</button>
+      </div>
+    </form>
+  </dialog>
+
+  <form method="post" action="/anagrafica" class="anag-card" id="anagrafica-form">
+    <div class="anag-grid">
+      <div class="form-block anag-identity">
+        <h2>{{ t('Come ti chiami') }}</h2>
+        <label class="anag-field">
+          <span class="sr-only">{{ t('Nome') }}</span>
+          <input name="first_name" value="{{ profile.first_name }}" required maxlength="64" autocomplete="given-name" pattern="[^0-9]+" title="{{ t('Niente numeri') }}" placeholder="{{ t('Nome') }}" />
+        </label>
+        <label class="anag-field">
+          <span class="sr-only">{{ t('Cognome') }}</span>
+          <input name="last_name" value="{{ profile.last_name }}" maxlength="64" autocomplete="family-name" pattern="[^0-9]*" title="{{ t('Niente numeri') }}" placeholder="{{ t('Cognome') }}" />
+        </label>
+        <label class="anag-field">
+          <span class="sr-only">{{ t('Email') }}</span>
+          <input name="email" type="email" value="{{ profile.email }}" required maxlength="254" autocomplete="email" inputmode="email" placeholder="nome@gmail.com" pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}" title="{{ t('Serve un dominio con estensione, es. nome@gmail.com') }}" />
+        </label>
+        {% if profile.email_verified %}
+        <p class="verify-ok anag-ok">{{ t('Email verificata') }}</p>
+        {% elif profile.email %}
+        <div class="email-verify-box">
+          <form method="post" action="/verifica/invia" class="email-verify-send">
+            <input type="hidden" name="channel" value="email" />
+            <button class="btn" type="submit">{{ t('Verifica') }}</button>
+          </form>
+          <p class="form-hint">{{ t('Ti mandiamo un codice breve via email. Aprilo e inseriscilo qui sotto.') }}</p>
+          <form method="post" action="/verifica/conferma" class="stack email-verify-confirm">
+            <input type="hidden" name="channel" value="email" />
+            <label>{{ t('Codice ricevuto via email') }}
+              <input name="code" class="otp-code" maxlength="6" minlength="6" pattern="[A-Za-z0-9]{6}" required placeholder="A3K9P2" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" inputmode="text" />
+            </label>
+            <button class="btn primary" type="submit">{{ t('Conferma email') }}</button>
+          </form>
+        </div>
+        {% endif %}
+
+        <div class="anag-phone">
+          {% set phone_country = profile.phone_country %}
+          {% set phone_dial = profile.phone_dial %}
+          {% set phone_national = profile.phone_national %}
+          {% set phone_required = false %}
+          {% include "_phone_row.html" %}
+        </div>
+      </div>
+
+      <div class="form-block anag-feel">
+        <h2>{{ t('Come ti senti') }}</h2>
+        <div class="gender-choices gender-soft">
           <label class="gender-option">
             <input type="radio" name="gender" value="female" required {% if profile.gender == 'female' %}checked{% endif %} />
             <span>{{ t('Donna') }}</span>
@@ -124,54 +140,17 @@
             <span>{{ t('Non binario') }}</span>
           </label>
         </div>
+        <p class="form-hint anag-feel-hint">{{ t('Scegli come preferisci essere chiamata/o qui.') }}</p>
+        {% if profile.anagrafica_complete %}
+        <a class="btn primary anag-btn-password" href="/cambia-password">{{ t('Cambia password') }}</a>
+        {% endif %}
       </div>
-    </div>
-
-    <div class="private-actions">
-      <button class="btn primary" type="submit">{% if profile.anagrafica_complete %}{{ t('Salva') }}{% else %}{{ t('Continua') }}{% endif %}</button>
-      {% if profile.anagrafica_complete %}
-      <a class="btn" href="/cambia-password">{{ t('Cambia password') }}</a>
-      {% endif %}
     </div>
   </form>
 
-  {% if profile.anagrafica_complete %}
-  <div class="panel reveal" data-reveal>
-    <h2>{{ t('Verifica account') }}</h2>
-    <p class="form-hint">{{ t('Non obbligatoria. Se non la fai, resta segnalata nell’area personale.') }}</p>
-    <div class="verify-actions">
-      {% if profile.email and not profile.email_verified %}
-      <form method="post" action="/verifica/invia" class="stack inline-verify">
-        <input type="hidden" name="channel" value="email" />
-        <button class="btn" type="submit">{{ t('Invia codice email') }}</button>
-      </form>
-      <form method="post" action="/verifica/conferma" class="stack inline-verify">
-        <input type="hidden" name="channel" value="email" />
-        <label>{{ t('Codice email') }}
-          <input name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" required placeholder="000000" />
-        </label>
-        <button class="btn primary" type="submit">{{ t('Conferma email') }}</button>
-      </form>
-      {% endif %}
-      {% if profile.phone_e164 and not profile.phone_verified %}
-      <form method="post" action="/verifica/invia" class="stack inline-verify">
-        <input type="hidden" name="channel" value="phone" />
-        <button class="btn" type="submit">{{ t('Invia codice SMS') }}</button>
-      </form>
-      <form method="post" action="/verifica/conferma" class="stack inline-verify">
-        <input type="hidden" name="channel" value="phone" />
-        <label>{{ t('Codice SMS') }}
-          <input name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" required placeholder="000000" />
-        </label>
-        <button class="btn primary" type="submit">{{ t('Conferma telefono') }}</button>
-      </form>
-      {% endif %}
-      {% if profile.account_verified %}
-      <p class="verify-ok">{{ t('Account verificato.') }}</p>
-      {% endif %}
-    </div>
+  <div class="anag-footer-actions">
+    <button class="btn anag-btn-continue" type="submit" form="anagrafica-form">{% if profile.anagrafica_complete %}{{ t('Salva') }}{% else %}{{ t('Continua') }}{% endif %}</button>
   </div>
-  {% endif %}
 
   {% if profile.anagrafica_complete and not profile.is_admin %}
   <form method="post" action="/elimina-account" class="danger-zone" onsubmit="return confirm('{{ t('Eliminare definitivamente l’account?') }}');">
@@ -179,91 +158,15 @@
   </form>
   {% endif %}
 </section>
+<script src="/static/photo_crop.js?v=irisPhoto4" defer></script>
+{% include "_phone_row_js.html" %}
 <script>
 (function () {
-  const file = document.getElementById("photo-input");
-  const img = document.getElementById("photo-preview-img");
-  const fallback = document.getElementById("photo-preview-fallback");
-  if (file && img) {
-    file.addEventListener("change", () => {
-      const f = file.files && file.files[0];
-      if (!f) return;
-      const url = URL.createObjectURL(f);
-      img.src = url;
-      img.hidden = false;
-      if (fallback) fallback.hidden = true;
-    });
-  }
-
-  const row = document.getElementById("phone-row");
-  const btn = document.getElementById("phone-cc-btn");
-  const menu = document.getElementById("phone-cc-menu");
-  const filter = document.getElementById("phone-cc-filter");
-  const list = document.getElementById("phone-cc-list");
-  const isoInput = document.getElementById("phone-country");
-  const national = document.getElementById("phone-national");
-  const flagEl = document.getElementById("phone-cc-flag");
-  const dialEl = document.getElementById("phone-cc-dial");
-  const hint = document.getElementById("phone-hint");
-  if (!btn || !menu || !national) return;
-
-  function lockCountry(iso, dial, flag, minLen, maxLen) {
-    isoInput.value = iso;
-    flagEl.textContent = flag;
-    dialEl.textContent = dial;
-    national.disabled = false;
-    national.focus();
-    row.dataset.locked = "1";
-    btn.classList.add("is-locked");
-    menu.hidden = true;
-    btn.setAttribute("aria-expanded", "false");
-    if (hint) {
-      hint.textContent = "Prefisso fissato (" + dial + "). Digita " + minLen + "–" + maxLen + " cifre del numero.";
-    }
-  }
-
-  btn.addEventListener("click", () => {
-    if (row.dataset.locked === "1") {
-      // Allow changing prefix explicitly by unlocking
-      row.dataset.locked = "0";
-      btn.classList.remove("is-locked");
-    }
-    const open = menu.hidden;
-    menu.hidden = !open;
-    btn.setAttribute("aria-expanded", open ? "true" : "false");
-    if (open && filter) filter.focus();
-  });
-
-  list.querySelectorAll(".phone-cc-option").forEach((opt) => {
-    opt.addEventListener("click", () => {
-      lockCountry(
-        opt.dataset.iso,
-        opt.dataset.dial,
-        opt.dataset.flag,
-        opt.dataset.min,
-        opt.dataset.max
-      );
+  document.querySelectorAll(".otp-code").forEach((el) => {
+    el.addEventListener("input", function () {
+      this.value = this.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 6);
     });
   });
-
-  if (filter) {
-    filter.addEventListener("input", () => {
-      const q = filter.value.trim().toLowerCase();
-      list.querySelectorAll(".phone-cc-option").forEach((opt) => {
-        const text = opt.textContent.toLowerCase();
-        opt.hidden = q && !text.includes(q);
-      });
-    });
-  }
-
-  national.addEventListener("input", () => {
-    national.value = national.value.replace(/\D+/g, "");
-  });
-
-  if (row.dataset.locked === "1") {
-    btn.classList.add("is-locked");
-    national.disabled = false;
-  }
 })();
 </script>
 {% endblock %}

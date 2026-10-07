@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block title %}{{ t('In ascolto') }} · Iris{% endblock %}
+{% block body_class %}page-private page-contesto{% endblock %}
+{% block main_class %}shell private-shell{% endblock %}
+{% block content %}
+<section class="private-area setup-guide calib-area contesto-area" id="contesto-root"
+         data-ready="{{ '1' if agent and agent.ready_for_impulses else '0' }}">
+  <header class="setup-hero calib-hero contesto-hero">
+    <p class="eyebrow">{{ t('In ascolto') }}</p>
+    <h1>{{ t('Cosa sta succedendo') }}</h1>
+    <p class="lede">{{ t('La cuffia riconosce solo SÌ o NO. Iris lo applica a ciò che conta ora: prima le chiamate, poi i messaggi, poi la musica.') }}</p>
+  </header>
+
+  <p class="cuffia-mobile-hint muted">{{ t('Funziona dal browser dello smartphone: non serve il PC come intermediario.') }}</p>
+
+  <article class="panel contesto-focus" id="focus-panel" aria-live="polite">
+    <p class="hub-kicker">{{ t('Ora') }}</p>
+    <h2 id="focus-prompt">{{ ctx.focus.prompt }}</h2>
+    <p class="form-hint" id="focus-detail">{{ ctx.focus.detail }}</p>
+    <ul class="detail-list compact" id="focus-meta">
+      <li><span>{{ t('SÌ') }}</span><strong id="focus-yes">{{ ctx.focus.yes_label }}</strong></li>
+      <li><span>{{ t('NO') }}</span><strong id="focus-no">{{ ctx.focus.no_label }}</strong></li>
+    </ul>
+  </article>
+
+  <div class="form-block panel">
+    <h2>{{ t('Prova senza telefono') }}</h2>
+    <p class="form-hint">{{ t('Se non hai eventi reali dal telefono, puoi far arrivare qui una chiamata, un messaggio o la musica.') }}</p>
+    <div class="contesto-sim-actions">
+      <button type="button" class="btn" id="sim-call">{{ t('Arriva una chiamata') }}</button>
+      <button type="button" class="btn" id="sim-msg">{{ t('Arriva un messaggio') }}</button>
+      <button type="button" class="btn" id="sim-music-on">{{ t('Musica in riproduzione') }}</button>
+      <button type="button" class="btn ghost" id="sim-music-off">{{ t('Ferma la musica') }}</button>
+      <button type="button" class="btn ghost" id="sim-clear">{{ t('Niente in corso') }}</button>
+    </div>
+    <ul class="detail-list compact" id="active-flags">
+      <li><span>{{ t('Chiamata') }}</span><strong id="flag-call">{% if ctx.active_contexts.call %}{{ t('Sì') }}{% else %}{{ t('No') }}{% endif %}</strong></li>
+      <li><span>{{ t('Messaggio') }}</span><strong id="flag-msg">{% if ctx.active_contexts.message %}{{ t('Sì') }}{% else %}{{ t('No') }}{% endif %}</strong></li>
+      <li><span>{{ t('Musica') }}</span><strong id="flag-music">{% if ctx.active_contexts.music %}{{ t('Sì') }}{% else %}{{ t('No') }}{% endif %}</strong></li>
+    </ul>
+  </div>
+
+  <div class="form-block panel">
+    <h2>{{ t('Pensa SÌ o NO') }}</h2>
+    <p class="form-hint">{{ t('Il tasto chiede alla cuffia un nuovo pensiero SÌ/NO vicino ai modelli della calibrazione; Iris confronta per similarità e lo applica a ciò che sta succedendo.') }}</p>
+    {% if not agent or not agent.ready_for_impulses %}
+    <p class="form-hint warn">{{ t('Prepara prima la cuffia (accendi, indossa, contatto) su /cuffia.') }}
+      <a href="/cuffia?stage=1">{{ t('La tua cuffia') }}</a>
+    </p>
+    {% endif %}
+    <div class="cuffia-yn-actions contesto-yn">
+      <button class="btn primary" type="button" id="decide-si" {% if not agent or not agent.ready_for_impulses %}disabled{% endif %}>{{ t('Pensa SÌ') }}</button>
+      <button class="btn" type="button" id="decide-no" {% if not agent or not agent.ready_for_impulses %}disabled{% endif %}>{{ t('Pensa NO') }}</button>
+    </div>
+    <div class="calib-meter panel" id="impulse-meter" hidden>
+      <p class="meter-label">{{ t('Impulso') }}</p>
+      <p id="impulse-last" class="calib-last"></p>
+      <p id="impulse-recog" class="form-hint" hidden></p>
+      <div class="meter-track"><div class="meter-fill" id="impulse-fill"></div></div>
+    </div>
+    <p class="form-hint" id="status-msg" aria-live="polite"></p>
+  </div>
+
+  <div class="form-block panel" id="last-decision-panel">
+    <h2>{{ t('Ultima decisione') }}</h2>
+    {% if ctx.last_decision %}
+    <ul class="detail-list" id="last-decision">
+      <li><span>{{ t('Risposta') }}</span><strong id="ld-answer">{{ ctx.last_decision.answer }}</strong></li>
+      <li><span>{{ t('Riconosciuto') }}</span><strong id="ld-recog">—</strong></li>
+      <li><span>{{ t('Similarità') }}</span><strong id="ld-sim">—</strong></li>
+      <li><span>{{ t('Su') }}</span><strong id="ld-focus">{{ ctx.last_decision.focus_title }}</strong></li>
+      <li><span>{{ t('Esito') }}</span><strong id="ld-feedback">{{ ctx.last_decision.feedback }}</strong></li>
+    </ul>
+    {% else %}
+    <p class="form-hint muted" id="last-empty">{{ t('Ancora nessuna decisione in questa sessione.') }}</p>
+    <ul class="detail-list" id="last-decision" hidden>
+      <li><span>{{ t('Risposta') }}</span><strong id="ld-answer">—</strong></li>
+      <li><span>{{ t('Riconosciuto') }}</span><strong id="ld-recog">—</strong></li>
+      <li><span>{{ t('Similarità') }}</span><strong id="ld-sim">—</strong></li>
+      <li><span>{{ t('Su') }}</span><strong id="ld-focus">—</strong></li>
+      <li><span>{{ t('Esito') }}</span><strong id="ld-feedback">—</strong></li>
+    </ul>
+    {% endif %}
+  </div>
+
+  <nav class="hub-shortcuts" aria-label="{{ t('Altre aree') }}">
+    <a href="/cuffia">{{ t('Cuffia') }}</a>
+    <a href="/telefono-setup">{{ t('Telefono') }}</a>
+    <a href="/dashboard">{{ t('Ecosistema') }}</a>
+    <a href="/demo">{{ t('Demo') }}</a>
+  </nav>
+</section>
+
+<script>
+(function () {
+  const L = {
+    yes: {{ t('Sì')|tojson }},
+    no: {{ t('No')|tojson }},
+    err: {{ t('Errore')|tojson }},
+    recogAs: {{ t('Riconosciuto come')|tojson }},
+    simSi: {{ t('sim SÌ')|tojson }},
+    simNo: {{ t('sim NO')|tojson }},
+  };
+
+  async function postJson(url, body) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify(body || {}),
+    });
+    const data = await res.json().catch(function () { return {}; });
+    if (!res.ok) {
+      const detail = (data && data.detail) ? data.detail : (L.err + " " + res.status);
+      throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+    }
+    return data;
+  }
+
+  function applyStatus(data) {
+    if (!data) return;
+    const focus = data.focus || {};
+    document.getElementById("focus-prompt").textContent = focus.prompt || "";
+    document.getElementById("focus-detail").textContent = focus.detail || "";
+    document.getElementById("focus-yes").textContent = focus.yes_label || "SÌ";
+    document.getElementById("focus-no").textContent = focus.no_label || "NO";
+
+    const active = data.active_contexts || {};
+    document.getElementById("flag-call").textContent = active.call ? L.yes : L.no;
+    document.getElementById("flag-msg").textContent = active.message ? L.yes : L.no;
+    document.getElementById("flag-music").textContent = active.music ? L.yes : L.no;
+
+    if (data.message) {
+      document.getElementById("status-msg").textContent = data.message;
+    }
+
+    const d = data.decision || data.last_decision;
+    if (d) {
+      const empty = document.getElementById("last-empty");
+      if (empty) empty.hidden = true;
+      const list = document.getElementById("last-decision");
+      list.hidden = false;
+      document.getElementById("ld-answer").textContent = d.answer || "—";
+      document.getElementById("ld-focus").textContent = d.focus_title || d.focus || "—";
+      document.getElementById("ld-feedback").textContent = d.feedback || "—";
+    }
+
+    const classified = data.classified_answer || (data.impulse && data.impulse.classified_answer) || "";
+    const simSi = data.similarity_si != null ? data.similarity_si : (data.impulse && data.impulse.similarity_si);
+    const simNo = data.similarity_no != null ? data.similarity_no : (data.impulse && data.impulse.similarity_no);
+    const recogEl = document.getElementById("ld-recog");
+    const simEl = document.getElementById("ld-sim");
+    if (recogEl) {
+      recogEl.textContent = classified
+        ? (L.recogAs + " " + classified)
+        : "—";
+    }
+    if (simEl) {
+      if (simSi != null && simNo != null) {
+        simEl.textContent = L.simSi + " " + Number(simSi).toFixed(2) + " · " + L.simNo + " " + Number(simNo).toFixed(2);
+      } else {
+        simEl.textContent = "—";
+      }
+    }
+
+    const imp = data.impulse;
+    if (imp) {
+      const meter = document.getElementById("impulse-meter");
+      meter.hidden = false;
+      document.getElementById("impulse-last").textContent =
+        (imp.kind || "") + " · " + (imp.intensity || 0) + "% · " + (imp.signal_source || "");
+      document.getElementById("impulse-fill").style.width = (imp.intensity || 0) + "%";
+      const recLine = document.getElementById("impulse-recog");
+      if (recLine) {
+        if (classified && simSi != null && simNo != null) {
+          recLine.hidden = false;
+          recLine.textContent =
+            L.recogAs + " " + classified +
+            " (" + L.simSi + " " + Number(simSi).toFixed(2) +
+            " · " + L.simNo + " " + Number(simNo).toFixed(2) + ")";
+        } else if (data.message) {
+          recLine.hidden = false;
+          recLine.textContent = data.message;
+        } else {
+          recLine.hidden = true;
+          recLine.textContent = "";
+        }
+      }
+    }
+  }
+
+  async function sim(event) {
+    try { applyStatus(await postJson("/api/context/event", { event: event })); }
+    catch (e) { document.getElementById("status-msg").textContent = String(e.message || e); }
+  }
+  document.getElementById("sim-call").addEventListener("click", function () { sim("call"); });
+  document.getElementById("sim-msg").addEventListener("click", function () { sim("message"); });
+  document.getElementById("sim-music-on").addEventListener("click", function () { sim("music_on"); });
+  document.getElementById("sim-music-off").addEventListener("click", function () { sim("music_off"); });
+  document.getElementById("sim-clear").addEventListener("click", function () { sim("clear"); });
+
+  async function decide(answer) {
+    document.getElementById("status-msg").textContent = "";
+    try {
+      applyStatus(await postJson("/api/context/decide", { answer: answer }));
+    } catch (e) {
+      document.getElementById("status-msg").textContent = String(e.message || e);
+    }
+  }
+  document.getElementById("decide-si").addEventListener("click", function () { decide("SI"); });
+  document.getElementById("decide-no").addEventListener("click", function () { decide("NO"); });
+})();
+</script>
+{% endblock %}

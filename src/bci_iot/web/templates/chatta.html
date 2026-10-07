@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+{% block title %}{{ t('Chatta con noi') }} · Iris{% endblock %}
+{% block body_class %}page-private page-chat{% if messages and chat_open %} page-chat-live{% endif %}{% endblock %}
+{% block main_class %}shell wide{% endblock %}
+{% block chat_fab %}{% endblock %}
+{% block content %}
+{% set live = messages and chat_open %}
+{% set closed_view = messages and not chat_open %}
+<section class="chat-room{% if live %} chat-room-live{% endif %}" aria-labelledby="team-chat-title">
+  <header class="chat-room-head">
+    <p class="eyebrow">{{ t('Spazio privato') }}</p>
+    <h1 id="team-chat-title">{{ t('Chatta con noi') }}</h1>
+    <p class="lede">
+      {% if live %}{{ t('Scrivi sotto, come su WhatsApp.') }}
+      {% elif closed_view %}{{ t('Questa conversazione è chiusa. Puoi leggerla qui; per un nuovo problema apri una nuova chat.') }}
+      {% else %}{{ t('Spiegaci il problema.') }}{% endif %}
+    </p>
+  </header>
+
+  {% if show_access_code and access_code %}
+  <div class="chat-code-banner" role="status">
+    <strong>{{ t('Salva questo codice') }}</strong>
+    <span class="code">{{ access_code }}</span>
+    <p class="muted chat-code-note">{{ t('Serve per riaprire la chat su un altro telefono o computer. Lo mostriamo solo ora.') }}</p>
+  </div>
+  {% endif %}
+
+  {% if live or closed_view %}
+  <div class="chat-live-wrap">
+    <div class="chat-main chat-live-main">
+      <ol class="chat-log" id="team-chat-log">
+        {% for m in messages %}
+        {% set mine = m.sender != 'admin' %}
+        <li class="chat-bubble {% if mine %}chat-mine chat-user{% else %}chat-theirs chat-team{% endif %} chat-{{ m.sender }}">
+          <span class="chat-who">{{ t('Team Iris Nous') if m.sender == 'admin' else t('Tu') }}</span>
+          <p>{{ m.display_body or m.body }}</p>
+          {% if m.show_original %}
+          <details class="chat-original"><summary>{{ t('Testo originale') }}</summary><p>{{ m.original_body or m.body }}</p></details>
+          {% endif %}
+          <time>{{ m.created_at | it_time(lang) }}</time>
+        </li>
+        {% endfor %}
+      </ol>
+      {% if waiting %}
+      <p class="muted chat-wait-line" id="chat-wait">{{ t('Abbiamo ricevuto il messaggio. Ti risponderemo il prima possibile.') }}</p>
+      {% endif %}
+      {% if closed_view %}
+      <p class="chat-closed-banner" role="status">{{ t('Conversazione terminata') }}</p>
+      <p class="private-actions"><a class="btn primary" href="/chatta">{{ t('Nuova chat') }}</a></p>
+      {% endif %}
+    </div>
+
+    {% if live %}
+    <div class="chat-composer-dock">
+      <form class="chat-bar" method="post" action="/chatta" id="chat-bar-form">
+        <label class="sr-only" for="chat-bar-input">{{ t('Messaggio') }}</label>
+        <textarea
+          id="chat-bar-input"
+          name="body"
+          rows="1"
+          required
+          minlength="2"
+          maxlength="8000"
+          placeholder="{{ t('Messaggio') }}"
+          autocomplete="off"
+        ></textarea>
+        <input type="hidden" name="ui_lang" value="{{ lang }}" />
+        <button class="btn primary chat-bar-send" type="submit" aria-label="{{ t('Invia') }}">{{ t('Invia') }}</button>
+      </form>
+      <form class="chat-end-form" method="post" action="/chatta/termina" onsubmit="return confirm('{{ t('Terminare questa conversazione? Potrai aprirne una nuova dopo.') }}');">
+        <input type="hidden" name="thread_id" value="{{ thread.id }}" />
+        <button class="btn chat-end-btn" type="submit">{{ t('Termina conversazione') }}</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  {% else %}
+  <div class="chat-split chat-split-request">
+    <aside class="chat-side chat-side-left" aria-label="{{ t('Richiesta di chat') }}">
+      <form class="panel contact-mail-form chat-compose" method="post" action="/chatta" id="chat-compose-form">
+        <h2>{{ t('Richiesta di chat') }}</h2>
+        {% if profile %}
+        <p class="identity-note">{{ t('Stai scrivendo come') }} <strong>{{ profile.first_name }} {{ profile.last_name }}</strong> · {{ profile.email }}</p>
+        {% else %}
+        <p class="form-hint">{{ t('Nome ed email servono per saperti rispondere. Il codice chat ti viene mostrato all’inizio.') }}</p>
+        <label>{{ t('Nome') }}
+          <input name="name" maxlength="80" autocomplete="name" required value="{{ guest_name or '' }}" />
+        </label>
+        <label>{{ t('Email') }}
+          <input name="email" type="email" required maxlength="254" autocomplete="email" inputmode="email" pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}" title="{{ t('Serve un dominio con estensione, es. nome@gmail.com') }}" value="{{ guest_email or '' }}" />
+        </label>
+        <label>{{ t('Telefono') }} <span class="opt-tag">{{ t('facoltativo') }}</span>
+          <input name="phone" type="tel" maxlength="20" autocomplete="tel" inputmode="numeric" pattern="[0-9+ ]*" data-digits-phone />
+        </label>
+        {% endif %}
+        <label>{{ t('Descrivi il problema') }}
+          <textarea name="body" rows="4" required minlength="2" placeholder="{{ t('Scrivi cosa non funziona…') }}"></textarea>
+        </label>
+        <input type="hidden" name="ui_lang" value="{{ lang }}" />
+        <div class="private-actions chat-side-actions">
+          <button class="btn primary" type="submit">{{ t('Invia') }}</button>
+        </div>
+      </form>
+    </aside>
+
+    <aside class="chat-side chat-side-right" aria-label="{{ t('Recupero chat') }}">
+      {% if not profile %}
+      <div class="panel contact-mail-form chat-side-card chat-recover-panel">
+        <h2>{{ t('Hai già una chat?') }}</h2>
+        <p class="form-hint">{{ t('Su un altro telefono o computer la chat non si apre da sola: usa il codice, oppure scrivi di nuovo con la stessa email.') }}</p>
+        <form class="contact-mail-form chat-side-block" method="post" action="/chatta/apri">
+          <label>{{ t('Codice chat') }}
+            <input name="access_code" required maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="es. FEMXXK" class="chat-code-input" />
+          </label>
+          <div class="private-actions chat-side-actions">
+            <button class="btn primary" type="submit">{{ t('Riapri la chat') }}</button>
+          </div>
+        </form>
+        <hr class="chat-side-divider" />
+        <form class="contact-mail-form chat-side-block" method="post" action="/chatta/recupera-codice">
+          <h2>{{ t('Recupera codice') }}</h2>
+          <p class="form-hint">{{ t('Non ricordi il codice? Te lo reinviamo all’email usata per aprire la chat.') }}</p>
+          <label>{{ t('Email') }}
+            <input name="email" type="email" required maxlength="254" autocomplete="email" />
+          </label>
+          <div class="private-actions chat-side-actions">
+            <button class="btn primary" type="submit">{{ t('Recupera codice') }}</button>
+          </div>
+        </form>
+      </div>
+      {% else %}
+      <div class="panel contact-mail-form chat-side-card chat-side-history">
+        <h2>{{ t('Le tue chat') }}</h2>
+        {% if chat_history %}
+        <p class="form-hint">{{ t('Tocca una conversazione per riaprirla qui.') }}</p>
+        <ul class="user-notice-list chat-history-list chat-side-list">
+          {% for trow in chat_history[:5] %}
+          <li>
+            <a href="/chatta?thread={{ trow.id }}">
+              <strong>{{ trow.subject or t('Chatta con noi') }}</strong>
+              <div class="muted">{{ trow.updated_at | it_time(lang) }} ·
+                {% if trow.closed_at %}{{ t('Chiusa') }}
+                {% elif trow.status == 'replied' %}{{ t('Aperta · risposta del team') }}
+                {% elif trow.status == 'viewed' %}{{ t('Aperta · in lettura') }}
+                {% else %}{{ t('Aperta · in attesa') }}{% endif %}
+              </div>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        <p class="chat-side-more"><a href="/le-mie-notifiche">{{ t('Vedi tutte in Le mie chat') }}</a></p>
+        {% else %}
+        <p class="form-hint">{{ t('Quando scrivi al team, le conversazioni restano qui e in Le mie chat.') }}</p>
+        <p class="private-actions chat-side-actions">
+          <a class="btn" href="/le-mie-notifiche">{{ t('Le mie chat') }}</a>
+        </p>
+        {% endif %}
+      </div>
+      {% endif %}
+    </aside>
+  </div>
+  {% endif %}
+
+  {% if not profile and (live or closed_view) %}
+  <details class="panel chat-recover-panel chat-recover-below">
+    <summary>{{ t('Hai già una chat su un altro dispositivo?') }}</summary>
+    <div class="chat-more-body">
+      <p class="form-hint">{{ t('Inserisci il codice per aprirla qui, oppure recuperalo via email.') }}</p>
+      <form class="contact-mail-form chat-side-block" method="post" action="/chatta/apri">
+        <label>{{ t('Codice chat') }}
+          <input name="access_code" required maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="es. FEMXXK" class="chat-code-input" />
+        </label>
+        <div class="private-actions chat-side-actions">
+          <button class="btn primary" type="submit">{{ t('Riapri la chat') }}</button>
+        </div>
+      </form>
+      <hr class="chat-side-divider" />
+      <form class="contact-mail-form chat-side-block" method="post" action="/chatta/recupera-codice">
+        <label>{{ t('Email') }}
+          <input name="email" type="email" required maxlength="254" autocomplete="email" />
+        </label>
+        <div class="private-actions chat-side-actions">
+          <button class="btn primary" type="submit">{{ t('Recupera codice') }}</button>
+        </div>
+      </form>
+    </div>
+  </details>
+  {% endif %}
+
+  {% if profile and chat_history and (live or closed_view) %}
+  <div class="panel chat-history-panel">
+    <h2>{{ t('Le tue chat') }}</h2>
+    <p class="form-hint">{{ t('Aperte e chiuse: tocca per leggere. Solo una chat alla volta può restare aperta.') }}</p>
+    <ul class="user-notice-list chat-history-list">
+      {% for trow in chat_history %}
+      <li>
+        <a href="/chatta?thread={{ trow.id }}">
+          <strong>{{ trow.subject or t('Chatta con noi') }}</strong>
+          <div class="muted">{{ trow.updated_at | it_time(lang) }} ·
+            {% if trow.closed_at %}{{ t('Chiusa') }}
+            {% elif trow.status == 'replied' %}{{ t('Aperta · risposta del team') }}
+            {% elif trow.status == 'viewed' %}{{ t('Aperta · in lettura') }}
+            {% else %}{{ t('Aperta · in attesa') }}{% endif %}
+          </div>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="chat-side-more"><a href="/le-mie-notifiche">{{ t('Vedi tutte in Le mie chat') }}</a></p>
+  </div>
+  {% endif %}
+
+  <p class="chat-disclaimer chat-disclaimer-full">{{ t(chat_disclaimer) }}</p>
+</section>
+<script>
+(function () {
+  document.querySelectorAll("[data-digits-phone]").forEach((el) => {
+    el.addEventListener("beforeinput", (e) => {
+      if (e.data && /[^\d+ ]/.test(e.data)) e.preventDefault();
+    });
+    el.addEventListener("input", () => {
+      el.value = el.value.replace(/[^\d+ ]+/g, "");
+    });
+  });
+  const bar = document.getElementById("chat-bar-input");
+  if (bar) {
+    const grow = () => {
+      bar.style.height = "auto";
+      bar.style.height = Math.min(bar.scrollHeight, 120) + "px";
+    };
+    bar.addEventListener("input", grow);
+    bar.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        const form = document.getElementById("chat-bar-form");
+        if (form && bar.value.trim().length >= 2) form.requestSubmit();
+      }
+    });
+    grow();
+    const log = document.getElementById("team-chat-log");
+    if (log) log.scrollTop = log.scrollHeight;
+  }
+  const live = {{ 'true' if live else 'false' }};
+  const waiting = {{ 'true' if waiting else 'false' }};
+  const log = document.getElementById("team-chat-log");
+  if (!live && !waiting && !log) return;
+  let last = {{ (messages|length) if messages else 0 }};
+  const statoUrl = {{ (('/chatta/stato?thread=' ~ thread.id) if thread else '/chatta/stato')|tojson }};
+  async function tick() {
+    try {
+      const res = await fetch(statoUrl, { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Number(data.count) !== last) location.reload();
+      if (live && data.open === false) location.reload();
+    } catch (e) {}
+  }
+  setInterval(tick, 5000);
+})();
+</script>
+{% endblock %}

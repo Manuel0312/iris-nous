@@ -1,0 +1,1335 @@
+"""Simulated headset agent — behaves like a physical device in your hands/on your head.
+
+
+
+The agent:
+
+- powers on/off
+
+- is worn or removed (user confirms “on head”)
+
+- estimates electrode contact quality
+
+- receives mental *impulses* as EEG windows (PhysioNet corpus → BrainFlow → priors)
+
+- persists memory so later steps remember pairing, contact, and captures
+
+"""
+
+
+
+from __future__ import annotations
+
+
+
+import json
+
+import time
+
+from dataclasses import asdict, dataclass, field
+
+from datetime import datetime, timezone
+
+from pathlib import Path
+
+from typing import Any, Literal
+
+
+
+import numpy as np
+
+
+
+from bci_iot.accounts.names import safe_username
+
+from bci_iot.acquisition.brainflow_source import (
+
+    brainflow_available,
+
+    capture_one_brainflow_window,
+
+)
+
+from bci_iot.acquisition.eeg_corpus import (
+
+    MIN_IMPULSES_FOR_READY,
+
+    blend_prior_on_real,
+
+    corpus_available,
+
+    corpus_meta,
+
+    sample_physionet_window,
+
+    window_compact_stats,
+
+)
+
+from bci_iot.acquisition.priors import COMMAND_PRIORS, synthesize_prior_window
+
+from bci_iot.preprocessing.features import BandPowerExtractor
+
+from bci_iot.types import EEGWindow
+
+
+
+HeadsetPower = Literal["off", "on"]
+
+WearState = Literal["off_head", "on_head"]
+
+AgentPhase = Literal[
+
+    "powered_off",
+
+    "idle",
+
+    "wearing",
+
+    "contact_check",
+
+    "ready",
+
+    "receiving",
+
+    "calibrating",
+
+]
+
+
+
+# UI / IoT action kinds → spectral prior command used to synthesize the impulse.
+
+IMPULSE_KIND_ALIASES: dict[str, str] = {
+
+    "NEXT_TRACK": "ACCENDI",
+
+    "CAMBIA_CANZONE": "ACCENDI",
+
+    "FOCUS": "ACCENDI",
+
+    "PAUSE": "SPEGNI",
+
+    "RELAX": "SPEGNI",
+
+    # YES/NO training labels (UI: pensa SÌ / pensa NO).
+
+    "SI": "RISPONDI",
+
+    "SÌ": "RISPONDI",
+
+    "YES": "RISPONDI",
+
+    "NO": "RIFIUTA",
+
+}
+
+# Live SI/NO: jitter around calibration centroid (relative to |feature|).
+# Small enough that classify almost always matches the button; still not identical.
+YN_LIVE_NOISE_REL = 0.035
+YN_LIVE_NOISE_FLOOR = 0.008
+
+
+
+# Legacy colour keys → prior commands (colour passo removed from UI; keep mapping).
+
+COLOUR_PRIOR_ALIASES: dict[str, str] = {
+
+    "ROSSO": "ACCENDI",
+
+    "VERDE": "RISPONDI",
+
+    "BLU": "RIFIUTA",
+
+    "GIALLO": "SPEGNI",
+
+    "VIDEO": "ACCENDI",
+
+    "CHAT": "RISPONDI",
+
+    "SOCIAL": "RIFIUTA",
+
+    "CASA": "SPEGNI",
+
+}
+
+
+
+
+
+def _utc_now() -> str:
+
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+
+
+
+@dataclass
+class ImpulseEvent:
+    """One impulse the headset agent received and decoded into a window."""
+
+    kind: str
+    timestamp: str
+    signal_source: str
+    alpha: float
+    beta: float
+    intensity: float
+    is_clean: bool
+    contact_mean: float
+    qc_flags: list[str] = field(default_factory=list)
+    features: list[float] = field(default_factory=list)
+    feature_names: list[str] = field(default_factory=list)
+    window_stats: dict[str, Any] = field(default_factory=dict)
+    corpus_source: str = ""
+    replayed_from_calibration: bool = False
+    is_calibration_template: bool = False
+    intended_kind: str = ""
+    classified_answer: str = ""
+    similarity_si: float | None = None
+    similarity_no: float | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+
+
+
+@dataclass
+
+class HeadsetMemory:
+
+    """Persistent memory of the virtual headset for one user."""
+
+
+
+    username: str
+
+    headset_id: str
+
+    power: HeadsetPower = "off"
+
+    wear: WearState = "off_head"
+
+    phase: AgentPhase = "powered_off"
+
+    contact_channels: list[float] = field(default_factory=list)
+
+    contact_ok: bool = False
+
+    impulses: list[dict[str, Any]] = field(default_factory=list)
+
+    colour_counts: dict[str, int] = field(default_factory=dict)
+
+    calibration_complete: bool = False
+
+    last_impulse_at: str = ""
+
+    updated_at: str = ""
+
+    signal_path: str = "pending"  # physionet_corpus | brainflow_impulse | prior_fallback
+
+
+
+    def to_dict(self) -> dict[str, Any]:
+
+        return asdict(self)
+
+
+
+    @classmethod
+
+    def from_dict(cls, data: dict[str, Any]) -> HeadsetMemory:
+
+        return cls(
+
+            username=str(data.get("username") or ""),
+
+            headset_id=str(data.get("headset_id") or ""),
+
+            power=data.get("power") or "off",  # type: ignore[arg-type]
+
+            wear=data.get("wear") or "off_head",  # type: ignore[arg-type]
+
+            phase=data.get("phase") or "powered_off",  # type: ignore[arg-type]
+
+            contact_channels=list(data.get("contact_channels") or []),
+
+            contact_ok=bool(data.get("contact_ok")),
+
+            impulses=list(data.get("impulses") or [])[-40:],
+
+            colour_counts=dict(data.get("colour_counts") or {}),
+
+            calibration_complete=bool(data.get("calibration_complete")),
+
+            last_impulse_at=str(data.get("last_impulse_at") or ""),
+
+            updated_at=str(data.get("updated_at") or ""),
+
+            signal_path=str(data.get("signal_path") or "pending"),
+
+        )
+
+
+
+
+
+class SimulatedHeadsetAgent:
+
+    """Device-like agent: you configure it through wear/contact as if it were real."""
+
+
+
+    def __init__(
+
+        self,
+
+        *,
+
+        username: str,
+
+        headset_id: str,
+
+        data_root: Path | str,
+
+        n_channels: int = 8,
+
+        seed: int | None = None,
+
+    ) -> None:
+
+        self.username = username
+
+        self.headset_id = headset_id
+
+        self.data_root = Path(data_root)
+
+        self.n_channels = n_channels
+
+        self._rng = np.random.default_rng(seed if seed is not None else secrets_seed())
+
+        self._extractor = BandPowerExtractor()
+
+        self.memory = self._load_or_create()
+
+
+
+    @property
+
+    def memory_path(self) -> Path:
+
+        folder = self.data_root / "headsets" / safe_username(self.username)
+
+        folder.mkdir(parents=True, exist_ok=True)
+
+        return folder / "agent_memory.json"
+
+
+
+    def _load_or_create(self) -> HeadsetMemory:
+
+        path = self.memory_path
+
+        if path.is_file():
+
+            try:
+
+                data = json.loads(path.read_text(encoding="utf-8"))
+
+                mem = HeadsetMemory.from_dict(data)
+
+                if self.headset_id and mem.headset_id != self.headset_id:
+
+                    mem.headset_id = self.headset_id
+
+                return mem
+
+            except (OSError, json.JSONDecodeError, TypeError, ValueError):
+
+                pass
+
+        return HeadsetMemory(username=self.username, headset_id=self.headset_id)
+
+
+
+    def save(self) -> Path:
+
+        self.memory.updated_at = _utc_now()
+
+        path = self.memory_path
+
+        path.write_text(
+
+            json.dumps(self.memory.to_dict(), indent=2, ensure_ascii=False),
+
+            encoding="utf-8",
+
+        )
+
+        return path
+
+
+
+    def status(self) -> dict[str, Any]:
+
+        mem = self.memory
+
+        contact_mean = (
+
+            float(np.mean(mem.contact_channels)) if mem.contact_channels else 0.0
+
+        )
+
+        ready = mem.power == "on" and mem.wear == "on_head" and mem.contact_ok
+
+        impulses_ok = len(mem.impulses) >= MIN_IMPULSES_FOR_READY
+
+        return {
+
+            "username": mem.username,
+
+            "headset_id": mem.headset_id,
+
+            "power": mem.power,
+
+            "wear": mem.wear,
+
+            "phase": mem.phase,
+
+            "contact_ok": mem.contact_ok,
+
+            "contact_mean": round(contact_mean, 3),
+
+            "contact_channels": [round(float(x), 3) for x in mem.contact_channels],
+
+            "signal_path": mem.signal_path,
+
+            "brainflow_available": brainflow_available(),
+
+            "corpus_available": corpus_available(),
+
+            "corpus": corpus_meta(),
+
+            "impulses_count": len(mem.impulses),
+
+            "impulses_needed": MIN_IMPULSES_FOR_READY,
+
+            "templates_si": len(self._yn_calibration_templates("SI")),
+
+            "templates_no": len(self._yn_calibration_templates("NO")),
+
+            "last_impulse_at": mem.last_impulse_at,
+
+            "colour_counts": dict(mem.colour_counts),
+
+            "calibration_complete": mem.calibration_complete,
+
+            "updated_at": mem.updated_at,
+
+            "ready_for_impulses": ready,
+
+            "setup_complete_enough": ready and impulses_ok,
+
+            "label": self._phase_label(),
+
+            "detail": self._phase_detail(),
+
+        }
+
+
+
+    def _phase_label(self) -> str:
+
+        mapping = {
+
+            "powered_off": "Spenta",
+
+            "idle": "Accesa — non in testa",
+
+            "wearing": "In testa — contatto da verificare",
+
+            "contact_check": "Controllo contatto",
+
+            "ready": "Pronta — riceve impulsi",
+
+            "receiving": "In ascolto",
+
+            "calibrating": "In calibrazione",
+
+        }
+
+        return mapping.get(self.memory.phase, self.memory.phase)
+
+
+
+    def _phase_detail(self) -> str:
+
+        if self.memory.power == "off":
+
+            return "Accendi la cuffia simulata come se l’avessi in mano."
+
+        if self.memory.wear == "off_head":
+
+            return "Indossala (conferma «in testa») per far partire il contatto elettrodi."
+
+        if not self.memory.contact_ok:
+
+            return "Contatto insufficiente: ripeti il controllo contatto."
+
+        n = len(self.memory.impulses)
+
+        if n < MIN_IMPULSES_FOR_READY:
+
+            return (
+
+                f"La cuffia ascolta. Prova {MIN_IMPULSES_FOR_READY - n} impulsi "
+
+                "EEG: restano in memoria per musica e altre azioni."
+
+            )
+
+        return (
+
+            "La cuffia è in testa e ascolta. Gli impulsi EEG sono salvati "
+
+            "e pronti per i passi successivi."
+
+        )
+
+
+
+    def power_on(self) -> dict[str, Any]:
+
+        self.memory.power = "on"
+
+        if self.memory.wear == "on_head" and self.memory.contact_ok:
+
+            self.memory.phase = "ready"
+
+        elif self.memory.wear == "on_head":
+
+            self.memory.phase = "wearing"
+
+        else:
+
+            self.memory.phase = "idle"
+
+        if corpus_available():
+
+            self.memory.signal_path = "physionet_corpus"
+
+        elif brainflow_available():
+
+            self.memory.signal_path = "brainflow_synthetic"
+
+        else:
+
+            self.memory.signal_path = "prior_fallback"
+
+        self.save()
+
+        return self.status()
+
+
+
+    def power_off(self) -> dict[str, Any]:
+
+        self.memory.power = "off"
+
+        self.memory.phase = "powered_off"
+
+        self.save()
+
+        return self.status()
+
+
+
+    def wear(self, *, on_head: bool = True) -> dict[str, Any]:
+
+        if self.memory.power != "on":
+
+            raise ValueError("Accendi prima la cuffia.")
+
+        self.memory.wear = "on_head" if on_head else "off_head"
+
+        if not on_head:
+
+            self.memory.contact_ok = False
+
+            self.memory.contact_channels = []
+
+            self.memory.phase = "idle"
+
+        else:
+
+            self.memory.phase = "wearing"
+
+            # Auto first contact pass when worn (device-like).
+
+            self.check_contact()
+
+            return self.status()
+
+        self.save()
+
+        return self.status()
+
+
+
+    def check_contact(self) -> dict[str, Any]:
+
+        """Simulate per-channel contact/impedance; good enough when worn."""
+
+
+
+        if self.memory.power != "on":
+
+            raise ValueError("Accendi prima la cuffia.")
+
+        if self.memory.wear != "on_head":
+
+            raise ValueError("Indossa la cuffia (in testa) prima del contatto.")
+
+
+
+        self.memory.phase = "contact_check"
+
+        # Higher quality when on head; small random variation per channel.
+
+        base = 0.82 + float(self._rng.uniform(-0.05, 0.08))
+
+        channels = [
+
+            float(np.clip(base + self._rng.normal(0, 0.04), 0.35, 0.99))
+
+            for _ in range(self.n_channels)
+
+        ]
+
+        self.memory.contact_channels = channels
+
+        mean = float(np.mean(channels))
+
+        self.memory.contact_ok = mean >= 0.72 and min(channels) >= 0.55
+
+        self.memory.phase = "ready" if self.memory.contact_ok else "wearing"
+
+        self.save()
+
+        status = self.status()
+
+        status["contact_pass"] = self.memory.contact_ok
+
+        return status
+
+
+
+    @staticmethod
+    def _normalize_yn_label(impulse_kind: str) -> str | None:
+        """Map explicit SI/SÌ/YES → SI and NO → NO for templates / classification.
+
+        Does not treat prior-command aliases (RISPONDI/RIFIUTA) as YES/NO so
+        colour/legacy calibration keeps acquiring fresh windows.
+        """
+
+        key = (impulse_kind or "").strip().upper().replace("Ì", "I")
+        if key in {"SI", "YES"}:
+            return "SI"
+        if key == "NO":
+            return "NO"
+        return None
+
+    def _yn_calibration_templates(self, yn: str) -> list[dict[str, Any]]:
+        """Stored SI/NO impulses that count as calibration templates (not live/replay)."""
+
+        out: list[dict[str, Any]] = []
+        for imp in self.memory.impulses:
+            if not isinstance(imp, dict):
+                continue
+            if imp.get("replayed_from_calibration") or imp.get("signal_source") == "calibration_replay":
+                continue
+            # Live classified impulses must not pollute centroids.
+            if imp.get("is_calibration_template") is False:
+                continue
+            label = self._normalize_yn_label(str(imp.get("kind") or ""))
+            if label == yn:
+                out.append(imp)
+        return out
+
+    def _append_impulse(self, event: ImpulseEvent | dict[str, Any]) -> None:
+        """Append impulse; never drop SI/NO calibration templates when trimming."""
+
+        payload = event.to_dict() if isinstance(event, ImpulseEvent) else dict(event)
+        self.memory.impulses.append(payload)
+        templates = [
+            i
+            for i in self.memory.impulses
+            if isinstance(i, dict) and i.get("is_calibration_template") is True
+        ]
+        others = [
+            i
+            for i in self.memory.impulses
+            if not (isinstance(i, dict) and i.get("is_calibration_template") is True)
+        ]
+        # Cap templates too (keep newest) so memory cannot grow without bound.
+        templates = templates[-20:]
+        max_others = max(0, 40 - len(templates))
+        self.memory.impulses = templates + others[-max_others:]
+
+    @staticmethod
+    def _feature_centroid(templates: list[dict[str, Any]]) -> np.ndarray | None:
+        feat_lists: list[list[float]] = []
+        for tmpl in templates:
+            raw = tmpl.get("features") or []
+            if raw:
+                feat_lists.append([float(x) for x in raw])
+        if not feat_lists:
+            return None
+        n = min(len(f) for f in feat_lists)
+        if n <= 0:
+            return None
+        return np.asarray(
+            [float(np.mean([f[i] for f in feat_lists])) for i in range(n)],
+            dtype=np.float64,
+        )
+
+    @staticmethod
+    def _cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
+        n = min(a.size, b.size)
+        if n <= 0:
+            return 0.0
+        va = np.asarray(a[:n], dtype=np.float64)
+        vb = np.asarray(b[:n], dtype=np.float64)
+        na = float(np.linalg.norm(va))
+        nb = float(np.linalg.norm(vb))
+        if na < 1e-12 or nb < 1e-12:
+            dist = float(np.linalg.norm(va - vb))
+            return float(1.0 / (1.0 + dist))
+        return float(np.dot(va, vb) / (na * nb))
+
+    def classify_yes_no(self, features: list[float] | np.ndarray) -> dict[str, Any]:
+        """Nearest-centroid SI vs NO on calibrated feature templates (cosine similarity)."""
+
+        vec = np.asarray(features, dtype=np.float64).ravel()
+        si_tmpls = self._yn_calibration_templates("SI")
+        no_tmpls = self._yn_calibration_templates("NO")
+        si_c = self._feature_centroid(si_tmpls)
+        no_c = self._feature_centroid(no_tmpls)
+        used = len(si_tmpls) + len(no_tmpls)
+
+        if si_c is None and no_c is None:
+            return {
+                "label": None,
+                "score_si": 0.0,
+                "score_no": 0.0,
+                "margin": 0.0,
+                "used_templates_count": 0,
+            }
+
+        score_si = self._cosine_similarity(vec, si_c) if si_c is not None else -1.0
+        score_no = self._cosine_similarity(vec, no_c) if no_c is not None else -1.0
+
+        if si_c is None:
+            label = "NO"
+        elif no_c is None:
+            label = "SI"
+        elif score_si >= score_no:
+            label = "SI"
+        else:
+            label = "NO"
+
+        return {
+            "label": label,
+            "score_si": round(float(score_si), 4),
+            "score_no": round(float(score_no), 4),
+            "margin": round(float(abs(score_si - score_no)), 4),
+            "used_templates_count": used,
+        }
+
+    def _synthesize_yn_live_features(self, yn: str) -> tuple[np.ndarray, list[str], dict[str, Any]]:
+        """New impulse ≈ calibration centroid + small noise (SI neighborhood if yn=SI)."""
+
+        tmpls = self._yn_calibration_templates(yn)
+        if not tmpls:
+            raise ValueError(
+                f"Manca il modello di calibrazione {yn}: completa SÌ e NO su /cuffia."
+            )
+        centroid = self._feature_centroid(tmpls)
+        if centroid is None or centroid.size == 0:
+            raise ValueError(
+                f"Il modello {yn} non ha feature utilizzabili: ripeti la calibrazione."
+            )
+        scale = YN_LIVE_NOISE_FLOOR + YN_LIVE_NOISE_REL * (0.2 + np.abs(centroid))
+        noise = self._rng.normal(0.0, 1.0, size=centroid.shape) * scale
+        varied = centroid + noise
+        # Guarantee not bitwise-identical to the centroid / last template.
+        if np.allclose(varied, centroid, rtol=0.0, atol=1e-12):
+            varied = centroid + scale * 0.5
+        last = tmpls[-1]
+        names = list(last.get("feature_names") or [])
+        if not names:
+            names = [f"f{i}" for i in range(int(varied.size))]
+        meta = {
+            "centroid": [round(float(x), 6) for x in centroid.tolist()],
+            "template_count": len(tmpls),
+            "last_template_features": [float(x) for x in (last.get("features") or [])],
+            "alpha": last.get("alpha"),
+            "beta": last.get("beta"),
+            "intensity": last.get("intensity"),
+            "is_clean": bool(last.get("is_clean", True)),
+            "qc_flags": list(last.get("qc_flags") or []),
+            "feature_names": names,
+            "window_stats": dict(last.get("window_stats") or {}),
+            "corpus_source": str(last.get("corpus_source") or ""),
+        }
+        return varied.astype(np.float64), names, meta
+
+    def _build_replay_event(
+        self,
+        yn: str,
+        templates: list[dict[str, Any]],
+        *,
+        contact_mean: float,
+    ) -> ImpulseEvent:
+        """Optional fallback: mean features from calibration (not the primary live path)."""
+
+        last = templates[-1]
+        feat_lists: list[list[float]] = []
+        alphas: list[float] = []
+        betas: list[float] = []
+        intensities: list[float] = []
+        for tmpl in templates:
+            raw_feats = tmpl.get("features") or []
+            if raw_feats:
+                feat_lists.append([float(x) for x in raw_feats])
+            if tmpl.get("alpha") is not None:
+                alphas.append(float(tmpl["alpha"]))
+            if tmpl.get("beta") is not None:
+                betas.append(float(tmpl["beta"]))
+            if tmpl.get("intensity") is not None:
+                intensities.append(float(tmpl["intensity"]))
+
+        if feat_lists:
+            n = min(len(f) for f in feat_lists)
+            mean_feats = [
+                round(float(np.mean([f[i] for f in feat_lists])), 6) for i in range(n)
+            ]
+        else:
+            mean_feats = [float(x) for x in (last.get("features") or [])]
+
+        if alphas and betas:
+            alpha = round(float(np.mean(alphas)), 4)
+            beta = round(float(np.mean(betas)), 4)
+        elif len(mean_feats) >= 2:
+            alpha = round(float(mean_feats[0]), 4)
+            beta = round(float(mean_feats[1]), 4)
+        else:
+            alpha = round(float(last.get("alpha") or 0.0), 4)
+            beta = round(float(last.get("beta") or 0.0), 4)
+
+        if intensities:
+            intensity = round(float(np.mean(intensities)), 1)
+        else:
+            intensity = round(float(np.clip(50.0 + 18.0 * (beta - alpha), 5.0, 98.0)), 1)
+
+        return ImpulseEvent(
+            kind=yn,
+            timestamp=_utc_now(),
+            signal_source="calibration_replay",
+            alpha=alpha,
+            beta=beta,
+            intensity=intensity,
+            is_clean=bool(last.get("is_clean", True)),
+            contact_mean=round(contact_mean, 3),
+            qc_flags=list(last.get("qc_flags") or []),
+            features=mean_feats,
+            feature_names=list(last.get("feature_names") or []),
+            window_stats=dict(last.get("window_stats") or {}),
+            corpus_source=str(last.get("corpus_source") or ""),
+            replayed_from_calibration=True,
+            is_calibration_template=False,
+            intended_kind=yn,
+            classified_answer=yn,
+        )
+
+    def _resolve_prior_kind(self, impulse_kind: str) -> str:
+
+        raw = impulse_kind.strip()
+
+        kind = raw.upper()
+
+        # Preserve Italian SÌ (uppercase keeps the accent).
+
+        if raw.upper().replace("Ì", "I") == "SI" or kind == "SÌ":
+
+            kind = "SI"
+
+        kind = IMPULSE_KIND_ALIASES.get(kind, kind)
+
+        kind = COLOUR_PRIOR_ALIASES.get(kind, kind)
+
+        if kind not in COMMAND_PRIORS:
+
+            kind = "ACCENDI"
+
+        return kind
+
+    def _acquire_window(
+        self, impulse_kind: str, *, prefer_brainflow: bool = True
+    ) -> tuple[EEGWindow, str]:
+
+        kind = self._resolve_prior_kind(impulse_kind)
+
+        seed = int(self._rng.integers(0, 1_000_000))
+
+        # 1) Prefer real public EEG windows (PhysioNet MMIDB S001R01).
+
+        real = sample_physionet_window(
+
+            n_channels=self.n_channels,
+
+            seed=seed,
+
+        )
+
+        if real is not None:
+
+            blended = blend_prior_on_real(real, kind, seed=seed + 1, prior_weight=0.28)
+
+            return blended, "physionet_corpus"
+
+        # 2) BrainFlow synthetic stream + prior tint (same API as hardware).
+
+        if prefer_brainflow and brainflow_available():
+
+            try:
+
+                live = capture_one_brainflow_window(
+
+                    window_seconds=1.0, n_channels=self.n_channels
+
+                )
+
+                if kind in COMMAND_PRIORS:
+
+                    prior = synthesize_prior_window(
+
+                        kind,
+
+                        sample_rate_hz=live.sample_rate_hz,
+
+                        n_channels=self.n_channels,
+
+                        window_seconds=1.0,
+
+                        seed=seed,
+
+                    )
+
+                    mixed = 0.35 * live.data + 0.65 * prior.data
+
+                    window = EEGWindow(
+
+                        data=mixed.astype(np.float64),
+
+                        sample_rate_hz=live.sample_rate_hz,
+
+                        timestamp_s=time.perf_counter(),
+
+                        channel_names=live.channel_names,
+
+                    )
+
+                    return window, "brainflow_impulse"
+
+                return live, "brainflow_synthetic"
+
+            except Exception:
+
+                pass
+
+        # 3) Literature spectral priors (documented fallback).
+
+        window = synthesize_prior_window(
+
+            kind,
+
+            n_channels=self.n_channels,
+
+            seed=seed,
+
+        )
+
+        return window, "prior_fallback"
+
+    def receive_impulse(
+        self,
+        kind: str,
+        *,
+        colour_key: str | None = None,
+        prefer_brainflow: bool = True,
+        classify_yn: bool = True,
+        allow_calibration_replay: bool = False,
+    ) -> dict[str, Any]:
+        """Headset receives a mental impulse and stores it in memory.
+
+        Live SI/NO (classify_yn=True): synthesize a *new* feature vector near the
+        calibrated SI or NO centroid (button = intended thought neighborhood),
+        then classify by similarity. Requires both SI and NO templates.
+
+        Calibration (classify_yn=False): acquire a fresh EEG window and store it
+        as a labeled template. Non-SI/NO kinds still acquire windows as before.
+        """
+
+        if self.memory.power != "on":
+            raise ValueError("La cuffia è spenta.")
+        if self.memory.wear != "on_head":
+            raise ValueError("Indossa la cuffia in testa per ricevere impulsi.")
+        if not self.memory.contact_ok:
+            raise ValueError("Contatto elettrodi insufficiente: ripeti il controllo.")
+
+        self.memory.phase = "receiving"
+        contact_mean = float(np.mean(self.memory.contact_channels) or 0.8)
+        yn = self._normalize_yn_label(kind)
+        intended = yn or kind.strip().upper()
+        si_tmpls = self._yn_calibration_templates("SI") if yn else []
+        no_tmpls = self._yn_calibration_templates("NO") if yn else []
+
+        # Live path requires both centroids; never fall back to random PhysioNet.
+        if yn and classify_yn:
+            if not si_tmpls or not no_tmpls:
+                missing = []
+                if not si_tmpls:
+                    missing.append("SÌ")
+                if not no_tmpls:
+                    missing.append("NO")
+                raise ValueError(
+                    "Calibra prima "
+                    + " e ".join(missing)
+                    + " sulla cuffia: servono entrambi i modelli per riconoscere SÌ/NO."
+                )
+            return self._receive_yn_live(
+                yn,
+                intended=str(intended),
+                contact_mean=contact_mean,
+                colour_key=colour_key,
+            )
+
+        _ = allow_calibration_replay  # legacy hook; live path no longer uses pure replay
+
+        note = ""
+        classification: dict[str, Any] | None = None
+
+        window, source = self._acquire_window(kind, prefer_brainflow=prefer_brainflow)
+
+        # Contact quality slightly modulates amplitude (poorer contact → weaker signal).
+        window = EEGWindow(
+            data=(window.data * (0.55 + 0.45 * contact_mean)).astype(np.float64),
+            sample_rate_hz=window.sample_rate_hz,
+            timestamp_s=window.timestamp_s,
+            channel_names=window.channel_names,
+        )
+        features = self._extractor.transform(window)
+        report = self._extractor.last_artifact_report
+        alpha = float(features.values[0])
+        beta = float(features.values[1])
+        intensity = float(np.clip(50.0 + 18.0 * (beta - alpha), 5.0, 98.0))
+        qc = list(report.flags) if report is not None else []
+        meta = corpus_meta() if source == "physionet_corpus" else {}
+        feat_list = [round(float(x), 6) for x in features.values.tolist()]
+        feat_names = list(features.names)
+        is_clean = bool(features.is_clean)
+        window_shape = list(window.data.shape)
+        wstats = window_compact_stats(window)
+        corpus_src = str(meta.get("source") or "")
+
+        is_template = False
+        classified_answer = ""
+        sim_si: float | None = None
+        sim_no: float | None = None
+        used_templates = 0
+
+        if yn:
+            # Building / extending calibration templates: label = intended thought.
+            stored_kind = yn
+            is_template = True
+            classified_answer = yn
+            if not si_tmpls and not no_tmpls:
+                note = (
+                    f"Impulso {yn} salvato come modello di calibrazione "
+                    "(servono SÌ e NO per classificare)."
+                )
+            elif (yn == "SI" and not no_tmpls) or (yn == "NO" and not si_tmpls):
+                missing = "NO" if yn == "SI" else "SI"
+                note = (
+                    f"Impulso {yn} salvato come modello; "
+                    f"manca ancora almeno un modello {missing} per classificare."
+                )
+            else:
+                note = f"Impulso {yn} salvato come modello di calibrazione."
+        else:
+            stored_kind = kind.strip().upper()
+
+        event = ImpulseEvent(
+            kind=stored_kind,
+            timestamp=_utc_now(),
+            signal_source=source,
+            alpha=round(alpha, 4),
+            beta=round(beta, 4),
+            intensity=round(intensity, 1),
+            is_clean=is_clean,
+            contact_mean=round(contact_mean, 3),
+            qc_flags=qc,
+            features=feat_list,
+            feature_names=feat_names,
+            window_stats=wstats,
+            corpus_source=corpus_src,
+            replayed_from_calibration=False,
+            is_calibration_template=is_template,
+            intended_kind=str(intended),
+            classified_answer=classified_answer,
+            similarity_si=sim_si,
+            similarity_no=sim_no,
+        )
+
+        self._append_impulse(event)
+        self.memory.last_impulse_at = event.timestamp
+        self.memory.signal_path = source
+        if colour_key:
+            key = colour_key.strip().upper()
+            counts = dict(self.memory.colour_counts)
+            counts[key] = int(counts.get(key) or 0) + 1
+            self.memory.colour_counts = counts
+        self.memory.phase = "ready"
+        self.save()
+
+        out: dict[str, Any] = {
+            "impulse": event.to_dict(),
+            "features": feat_list,
+            "feature_names": feat_names,
+            "is_clean": is_clean,
+            "status": self.status(),
+            "window_shape": window_shape,
+            "replayed_from_calibration": False,
+            "classified_answer": classified_answer or None,
+            "similarity_si": sim_si,
+            "similarity_no": sim_no,
+            "used_templates_count": used_templates,
+            "intended_kind": str(intended) if yn else None,
+        }
+        if note:
+            out["message"] = note
+        if classification is not None:
+            out["classification"] = classification
+        return out
+
+    def _receive_yn_live(
+        self,
+        yn: str,
+        *,
+        intended: str,
+        contact_mean: float,
+        colour_key: str | None = None,
+    ) -> dict[str, Any]:
+        """Button SI/NO → centroid+noise in that neighborhood → classify → store."""
+
+        varied, feat_names, meta = self._synthesize_yn_live_features(yn)
+        feat_list = [round(float(x), 6) for x in varied.tolist()]
+        classification = self.classify_yes_no(feat_list)
+        stored_kind = str(classification["label"] or yn)
+        sim_si = float(classification["score_si"])
+        sim_no = float(classification["score_no"])
+        used_templates = int(classification["used_templates_count"])
+
+        if len(feat_list) >= 2:
+            alpha = round(float(feat_list[0]), 4)
+            beta = round(float(feat_list[1]), 4)
+        else:
+            alpha = round(float(meta.get("alpha") or 0.0), 4)
+            beta = round(float(meta.get("beta") or 0.0), 4)
+        intensity = round(float(np.clip(50.0 + 18.0 * (beta - alpha), 5.0, 98.0)), 1)
+
+        other = "NO" if stored_kind == "SI" else "SI"
+        other_score = sim_no if stored_kind == "SI" else sim_si
+        self_score = sim_si if stored_kind == "SI" else sim_no
+        note = (
+            f"Riconosciuto come {stored_kind} "
+            f"(sim {self_score:.2f} vs {other} {other_score:.2f}; "
+            f"{used_templates} modelli)."
+        )
+        source = "template_plus_noise"
+
+        event = ImpulseEvent(
+            kind=stored_kind,
+            timestamp=_utc_now(),
+            signal_source=source,
+            alpha=alpha,
+            beta=beta,
+            intensity=intensity,
+            is_clean=bool(meta.get("is_clean", True)),
+            contact_mean=round(contact_mean, 3),
+            qc_flags=list(meta.get("qc_flags") or []),
+            features=feat_list,
+            feature_names=feat_names,
+            window_stats=dict(meta.get("window_stats") or {}),
+            corpus_source=str(meta.get("corpus_source") or ""),
+            replayed_from_calibration=False,
+            is_calibration_template=False,
+            intended_kind=intended,
+            classified_answer=stored_kind,
+            similarity_si=sim_si,
+            similarity_no=sim_no,
+        )
+
+        self._append_impulse(event)
+        self.memory.last_impulse_at = event.timestamp
+        self.memory.signal_path = source
+        if colour_key:
+            key = colour_key.strip().upper()
+            counts = dict(self.memory.colour_counts)
+            counts[key] = int(counts.get(key) or 0) + 1
+            self.memory.colour_counts = counts
+        self.memory.phase = "ready"
+        self.save()
+
+        return {
+            "impulse": event.to_dict(),
+            "features": feat_list,
+            "feature_names": feat_names,
+            "is_clean": bool(meta.get("is_clean", True)),
+            "status": self.status(),
+            "window_shape": [],
+            "replayed_from_calibration": False,
+            "classified_answer": stored_kind,
+            "similarity_si": sim_si,
+            "similarity_no": sim_no,
+            "used_templates_count": used_templates,
+            "intended_kind": intended,
+            "message": note,
+            "classification": classification,
+            "signal_source": source,
+        }
+
+    def mark_calibration_complete(self) -> None:
+
+        self.memory.calibration_complete = True
+
+        self.memory.phase = "ready"
+
+        self.save()
+
+
+
+    def complete_setup_if_ready(self) -> dict[str, Any]:
+
+        """Mark setup done when headset is ready and enough EEG impulses are saved."""
+
+
+
+        st = self.status()
+
+        if not st["ready_for_impulses"]:
+
+            raise ValueError(
+
+                "Completa prima Accendi → Indossa → Contatto sulla cuffia."
+
+            )
+
+        if not st["setup_complete_enough"]:
+
+            need = MIN_IMPULSES_FOR_READY - len(self.memory.impulses)
+
+            raise ValueError(
+
+                f"Servono ancora {need} impulsi EEG salvati (prova impulso)."
+
+            )
+
+        self.mark_calibration_complete()
+
+        return self.status()
+
+
+
+    def reset_session(self, *, keep_id: bool = True) -> dict[str, Any]:
+
+        hid = self.memory.headset_id if keep_id else self.headset_id
+
+        self.memory = HeadsetMemory(username=self.username, headset_id=hid)
+
+        self.save()
+
+        return self.status()
+
+
+
+
+
+def secrets_seed() -> int:
+
+    import secrets
+
+
+
+    return secrets.randbelow(1_000_000_000)
+
+
+
+
+
+_agents: dict[str, SimulatedHeadsetAgent] = {}
+
+
+
+
+
+def get_headset_agent(
+
+    *,
+
+    username: str,
+
+    headset_id: str,
+
+    data_root: Path | str,
+
+) -> SimulatedHeadsetAgent:
+
+    """Process-local agent cache; memory is always reloaded from disk on miss."""
+
+
+
+    key = safe_username(username)
+
+    agent = _agents.get(key)
+
+    root = Path(data_root)
+
+    if (
+
+        agent is None
+
+        or agent.headset_id != headset_id
+
+        or agent.data_root != root
+
+    ):
+
+        agent = SimulatedHeadsetAgent(
+
+            username=username,
+
+            headset_id=headset_id,
+
+            data_root=root,
+
+        )
+
+        _agents[key] = agent
+
+    return agent
+
+

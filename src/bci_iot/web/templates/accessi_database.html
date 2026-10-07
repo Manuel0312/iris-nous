@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ t('Database persone') }} · Iris{% endblock %}
+{% block body_class %}page-private{% endblock %}
+{% block main_class %}shell wide{% endblock %}
+{% block content %}
+<section class="dash admin-dash">
+  <p><a href="/accessi">{{ t('← Pannello admin') }}</a></p>
+  <h1>{{ t('Database persone') }}</h1>
+  <p class="lede">
+    {{ t('Tutti gli account registrati. Si cancellano solo da qui, con Elimina (admin).') }}
+  </p>
+
+  <div class="card-grid stats-grid reveal" data-reveal>
+    <div class="panel stat-card">
+      <div class="device-label">{{ t('Account totali') }}</div>
+      <p class="stat-num">{{ account_total }}</p>
+    </div>
+    <div class="panel stat-card">
+      <div class="device-label">{{ t('Persone (non admin)') }}</div>
+      <p class="stat-num">{{ account_active }}</p>
+    </div>
+  </div>
+
+  <div class="panel table-wrap reveal" data-reveal>
+    <h2>{{ t('Tutti gli account') }}</h2>
+    {% if accounts %}
+    <table class="access-table people-table">
+      <thead>
+        <tr>
+          <th>{{ t('Username') }}</th>
+          <th>{{ t('Nome') }}</th>
+          <th>{{ t('Cognome') }}</th>
+          <th>Email</th>
+          <th>{{ t('Verificata') }}</th>
+          <th>{{ t('Stato') }}</th>
+          <th>{{ t('Aggiornato') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in accounts %}
+        <tr>
+          <td>
+            <a class="person-link" href="/accessi/utente/{{ a.username }}">{{ a.username }}</a>
+            {% if a.is_admin %}<span class="muted"> · admin</span>{% endif %}
+          </td>
+          <td>{{ a.first_name or "—" }}</td>
+          <td>{{ a.last_name or "—" }}</td>
+          <td class="muted">{{ a.email or "—" }}</td>
+          <td>{% if a.email_verified %}{{ t('Sì') }}{% else %}{{ t('No') }}{% endif %}</td>
+          <td>
+            {% if a.deleted_at %}{{ t('Cancellato') }}
+            {% elif a.is_admin %}admin
+            {% else %}{{ t('Attivo') }}{% endif %}
+          </td>
+          <td class="muted">{{ a.updated_at or a.last_seen_at or "—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted">{{ t('Nessun account registrato.') }}</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -19,3 +19,6 @@ def test_password_strength_requires_medium() -> None:
     medium = password_strength("Segreta123")
     assert medium.ok is True
     assert medium.level in {"medium", "strong"}
+    optional = [r for r in medium.requirements if r.optional]
+    assert {r.id for r in optional} == {"lower", "special", "long"}
+    assert all(not r.optional for r in medium.requirements if r.id in {"len", "upper", "digit"})

@@ -37,6 +37,13 @@ def main(argv: list[str] | None = None) -> int:
     cal_parser.add_argument("--out-dir", type=str, default="models/users")
 
     run_parser = sub.add_parser("run", help="Run the EEG→intent→action pipeline (simulator)")
+    run_parser.add_argument(
+        "--config",
+        type=str,
+        default=None,
+        dest="run_config",
+        help="YAML config (same as global --config; may be placed after 'run')",
+    )
     run_parser.add_argument("--windows", type=int, default=10, help="Number of EEG windows")
     run_parser.add_argument("--user", type=str, default=None, help="Optional profile username")
     run_parser.add_argument(
@@ -112,7 +119,8 @@ def main(argv: list[str] | None = None) -> int:
         from bci_iot.pipeline.factory import build_pipeline
         from bci_iot.types import ActionContext
 
-        config = load_app_config(args.config)
+        config_path = getattr(args, "run_config", None) or args.config
+        config = load_app_config(config_path)
         if args.source:
             config = config.model_copy(
                 update={

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}{{ t('Mail Iris Nous') }} · Iris{% endblock %}
+{% block body_class %}page-private{% endblock %}
+{% block main_class %}shell private-shell{% endblock %}
+{% block content %}
+<section class="private-area">
+  <header class="private-welcome">
+    <p class="eyebrow">{{ t('Mail aziendale · una volta sola') }}</p>
+    <h1>{{ t('Mail Iris Nous') }}</h1>
+    <p class="lede">
+      {{ t('Iris manda le email come fanno i siti professionali: mittente Iris Nous, oggetto chiaro, codice di conferma iscrizione e codici di recupero password. Serve solo collegare un account Gmail (o Resend) che spedisca le mail.') }}
+    </p>
+  </header>
+
+  <div class="panel reveal" data-reveal>
+    <h2>{{ t('Stato') }}</h2>
+    {% if messaging.email_ready %}
+    <p><strong>{{ t('Attiva') }}</strong> — {{ t('provider:') }} {{ messaging.provider }}. {{ t('Conferme iscrizione e recuperi partono in posta.') }}</p>
+    {% else %}
+    <p><strong>{{ t('Da collegare') }}</strong> — {{ t('le email non partono finché Gmail non è configurato sul server.') }}</p>
+    {% endif %}
+    <p class="muted"><a href="/accessi">{{ t('← Pannello admin') }}</a></p>
+  </div>
+
+  <div class="panel reveal" data-reveal>
+    <h2>{{ t('Passi Gmail (consigliati per la tesi) — nomi da usare') }}</h2>
+    <ol class="stack">
+      <li>{{ t('Crea un account Google solo per Iris (oppure usa una Gmail che hai già).') }}</li>
+      <li>{{ t('Nome visualizzato Google: Iris Nous.') }}</li>
+      <li>{{ t('Indirizzo Gmail consigliato: una variante tipo iris.nous.app@gmail.com.') }}</li>
+      <li>{{ t('Google → Gestisci il tuo Account Google → Sicurezza.') }}</li>
+      <li>{{ t('Attiva la Verifica in due passaggi.') }}</li>
+      <li>{{ t('Password per le app → Mail → genera e copia le 16 lettere.') }}</li>
+      <li>{{ t('Compila i campi sotto e premi Attiva mail Iris Nous.') }}</li>
+    </ol>
+    <p class="muted">{{ t('Valori da inserire nel form: mittente, host smtp.gmail.com, porta 587, utente Gmail, password per le app.') }}</p>
+  </div>
+
+  <div class="panel reveal" data-reveal>
+    <h2>{{ t('Alternativa: Resend') }}</h2>
+    <p class="muted">{{ t('Account gratis su resend.com → API key → incolla sotto. Gmail va benissimo per la tesi.') }}</p>
+  </div>
+
+  <form method="post" action="/invio-codici" class="panel stack reveal" data-reveal autocomplete="off">
+    <h2>{{ t('Identità Iris Nous') }}</h2>
+    <label>{{ t('Mittente (From)') }}
+      <input name="brand_from_email" value="{{ messaging.brand_from_email }}" placeholder="iris.nous.app@gmail.com" autocomplete="off" />
+    </label>
+
+    <h2>{{ t('Resend API key (opzionale)') }}</h2>
+    <label>API key {% if messaging.resend_key_set %}<span class="muted">{{ t('(già salvata)') }}</span>{% endif %}
+      <input name="resend_api_key" type="password" value="" placeholder="{% if messaging.resend_key_set %}••••••••{% else %}re_xxxxxxxx{% endif %}" autocomplete="new-password" />
+    </label>
+
+    <h2>Gmail SMTP</h2>
+    <label>{{ t('Host SMTP') }}
+      <input name="smtp_host" value="{{ messaging.smtp_host or 'smtp.gmail.com' }}" placeholder="smtp.gmail.com" autocomplete="off" />
+    </label>
+    <label>{{ t('Porta') }}
+      <input name="smtp_port" value="{{ messaging.smtp_port }}" placeholder="587" autocomplete="off" />
+    </label>
+    <label>{{ t('Utente Gmail') }}
+      <input name="smtp_user" value="{{ messaging.smtp_user }}" placeholder="iris.nous.app@gmail.com" autocomplete="off" />
+    </label>
+    <label>{{ t('Password per le app') }} {% if messaging.smtp_password_set %}<span class="muted">{{ t('(già salvata)') }}</span>{% endif %}
+      <input name="smtp_password" type="password" value="" autocomplete="new-password" />
+    </label>
+    <label>{{ t('Mittente SMTP') }}
+      <input name="smtp_from" value="{{ messaging.smtp_from }}" placeholder="iris.nous.app@gmail.com" autocomplete="off" />
+    </label>
+
+    <button class="btn primary" type="submit">{{ t('Attiva mail Iris Nous') }}</button>
+  </form>
+</section>
+{% endblock %}

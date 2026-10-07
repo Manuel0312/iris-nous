@@ -32,7 +32,7 @@ def _complete_anagrafica(
         follow_redirects=False,
     )
     assert response.status_code == 200
-    assert "/calibrazione" in response.text
+    assert "/inizia" in response.text
 
 
 def _finish_calibration(client: TestClient) -> None:
@@ -42,6 +42,13 @@ def _finish_calibration(client: TestClient) -> None:
         for _ in range(3):
             assert client.post("/api/calibrate/capture", json={"command": word}).status_code == 200
     assert client.post("/api/calibrate/finish").status_code == 200
+
+
+def _confirm_email(app, username: str) -> None:
+    profile = app.state.store.get(username)
+    assert profile is not None
+    profile.email_verified = True
+    app.state.store.save(profile)
 
 
 def test_register_login_dashboard_flow(tmp_path: Path) -> None:
@@ -61,7 +68,8 @@ def test_register_login_dashboard_flow(tmp_path: Path) -> None:
         follow_redirects=False,
     )
     assert register.status_code == 200
-    assert "/anagrafica" in register.text
+    assert "/attendi-conferma-email" in register.text
+    _confirm_email(app, "maria")
 
     blocked = client.get("/dashboard", follow_redirects=False)
     assert blocked.status_code == 303
@@ -70,8 +78,8 @@ def test_register_login_dashboard_flow(tmp_path: Path) -> None:
     _complete_anagrafica(client, gender="female")
 
     blocked_cal = client.get("/dashboard", follow_redirects=False)
-    assert blocked_cal.status_code == 303
-    assert blocked_cal.headers["location"] == "/calibrazione"
+    assert blocked_cal.status_code == 200
+    assert "Iniziamo" in blocked_cal.text or "Ecosistema" in blocked_cal.text
 
     from bci_iot.pipeline.calibration_wizard import CALIBRATION_WORDS
 
@@ -83,7 +91,6 @@ def test_register_login_dashboard_flow(tmp_path: Path) -> None:
     dash = client.get("/dashboard")
     assert dash.status_code == 200
     assert "Ciao, Maria" in dash.text
-    assert "Account non verificato" in dash.text
     assert "Cuffia" in dash.text or "Associata" in dash.text or "associa" in dash.text.lower()
 
     save = client.post(
@@ -136,6 +143,7 @@ def test_gendered_welcome_male_and_non_binary(tmp_path: Path) -> None:
         },
         follow_redirects=False,
     )
+    _confirm_email(app, "luca")
     _complete_anagrafica(
         client,
         first_name="Luca",
@@ -167,6 +175,7 @@ def test_gendered_welcome_male_and_non_binary(tmp_path: Path) -> None:
         },
         follow_redirects=False,
     )
+    _confirm_email(app, "alex")
     _complete_anagrafica(
         client,
         first_name="Alex",

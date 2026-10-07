@@ -16,6 +16,12 @@ class PhoneCountry:
     min_len: int
     max_len: int
 
+    @property
+    def flag_src(self) -> str:
+        """Generated SVG flag (no CDN; works even if static files are missing)."""
+        code = "gb" if self.iso.upper() == "UK" else self.iso.lower()
+        return f"/flags/{code}.svg"
+
 
 # Curated world list (ISO, Italian name, E.164 dial, flag, national digit range).
 PHONE_COUNTRIES: tuple[PhoneCountry, ...] = (

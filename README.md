@@ -8,21 +8,26 @@ non commerciale.
 ## Struttura
 
 ```text
-src/bci_iot/
-  acquisition/     # sorgenti EEG (SyntheticBoard, file, hardware)
-  preprocessing/   # filtri, artefatti, feature α/β
-  ml/              # classificatore + adaptation
-  router/          # FSM intento → azione
-  integrations/    # Home Assistant, Spotify, stub chiamate
-  accounts/        # profilo utente / registrazione cuffia (web)
-  pipeline/        # orchestrazione end-to-end
-  web/             # API/config app (fase successiva)
-configs/           # YAML di configurazione
-tests/             # pytest — eseguire a fine ogni sessione
-notebooks/         # analisi sperimentali (non runtime)
-models/            # artefatti modello (gitignored i pesi)
-data/              # dati locali (gitignored)
+src/bci_iot/          # applicazione Iris Nous
+  acquisition/        # sorgenti EEG
+  preprocessing/      # filtri, artefatti, feature
+  ml/                 # classificatore + adaptation
+  router/             # intento → azione
+  integrations/       # Home Assistant, Spotify, telefono
+  accounts/           # utenti, chat, email, moderazione
+  pipeline/           # orchestrazione end-to-end
+  web/                # sito FastAPI (i18n, Chatta, admin)
+configs/              # YAML di configurazione
+tests/                # pytest
+docs/                 # deploy, email, Spotify, esperimenti
+scripts/              # utility (test suite, push GitHub, mail)
+tools/                # firewall / helper locali Windows
+data/                 # dati locali (gitignored)
+models/               # artefatti modello
+notebooks/            # analisi sperimentali
 ```
+
+Aprire il sito: **`APRI IL SITO.bat`** (online) o **`APRI IRIS (locale).bat`** (PC).
 
 ## Setup rapido
 
@@ -73,7 +78,9 @@ Sorgenti EEG:
 
 ## Aprire il sito
 
-Doppio click su **`APRI IL SITO.bat`** nella cartella TESI.
+Doppio click su **`APRI IL SITO.bat`**: apre il sito **online**
+(`https://iris-nous.onrender.com`, stesso account del telefono).
+Per sviluppare sul PC: **`APRI IRIS (locale).bat`** — database diverso.
 
 ## Roadmap MVP (marzo)
 

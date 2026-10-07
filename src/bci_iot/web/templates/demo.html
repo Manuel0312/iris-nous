@@ -1,58 +1,57 @@
 ﻿{% extends "base.html" %}
-{% block title %}Demo canali · Iris{% endblock %}
+{% block title %}{{ t('Demo canali') }} · Iris{% endblock %}
 {% block content %}
 <section class="dash">
-  <h1>Intent + Alexa corta</h1>
+  <h1>{{ t('Intent + Alexa corta') }}</h1>
   <p class="lede">
-    Tu pensi l’azione. Solo i <strong>canali aperti</strong> contano.
-    Se ci sono più device, Alexa chiede una volta; SÌ/NO; poi si chiude.
+    {{ t('Tu pensi l’azione. Solo i canali aperti contano. Se ci sono più device, Alexa chiede una volta; SÌ/NO; poi si chiude.') }}
   </p>
 
   <div class="panel">
-    <div class="device-label">Canali aperti</div>
+    <div class="device-label">{{ t('Canali aperti') }}</div>
     <div id="channels" class="chips"></div>
     <p class="muted" id="hint-text" style="margin-top:0.6rem"></p>
   </div>
 
   <div class="panel question-panel">
     <div class="phase-chip" id="phase-chip">IDLE</div>
-    <p class="question-text" id="prompt-text">Nessuna domanda. Pensa un’azione quando vuoi.</p>
+    <p class="question-text" id="prompt-text">{{ t('Nessuna domanda. Pensa un’azione quando vuoi.') }}</p>
     <p class="muted" id="message-text"></p>
   </div>
 
   <div class="panel">
-    <div class="device-label">Simula eventi (aprono i canali)</div>
+    <div class="device-label">{{ t('Simula eventi (aprono i canali)') }}</div>
     <div class="btn-grid-events">
-      <button type="button" class="btn ghost event-btn" data-event="message">Messaggio WhatsApp</button>
-      <button type="button" class="btn ghost event-btn" data-event="call">Chiamata in arrivo</button>
-      <button type="button" class="btn ghost event-btn" data-event="music_on">Musica ON</button>
-      <button type="button" class="btn ghost event-btn" data-event="music_off">Musica OFF</button>
-      <button type="button" class="btn ghost event-btn" data-event="clear">Azzera eventi</button>
+      <button type="button" class="btn ghost event-btn" data-event="message">{{ t('Messaggio WhatsApp') }}</button>
+      <button type="button" class="btn ghost event-btn" data-event="call">{{ t('Chiamata in arrivo') }}</button>
+      <button type="button" class="btn ghost event-btn" data-event="music_on">{{ t('Musica ON') }}</button>
+      <button type="button" class="btn ghost event-btn" data-event="music_off">{{ t('Musica OFF') }}</button>
+      <button type="button" class="btn ghost event-btn" data-event="clear">{{ t('Azzera eventi') }}</button>
     </div>
   </div>
 
   <div class="devices panel">
     <div class="device">
-      <div class="device-label">Casa</div>
+      <div class="device-label">{{ t('Casa') }}</div>
       <ul id="device-list" class="device-list muted"></ul>
     </div>
     <div class="device">
-      <div class="device-label">App / Musica</div>
+      <div class="device-label">{{ t('App / Musica') }}</div>
       <div class="music-disc" id="app-disc">app</div>
-      <div class="device-status" id="app-status">Nessuna app</div>
-      <div class="device-status" id="music-status">Traccia 1</div>
+      <div class="device-status" id="app-status">{{ t('Nessuna app') }}</div>
+      <div class="device-status" id="music-status">{{ t('Traccia') }} 1</div>
     </div>
     <div class="device">
-      <div class="device-label">Cornetta</div>
+      <div class="device-label">{{ t('Cornetta') }}</div>
       <svg id="phone" class="icon-phone is-idle" viewBox="0 0 120 160">
         <path class="phone-body" d="M34 36c8-8 18-10 26-6l10 6c4 2 5 8 2 12l-10 12c-2 2-2 5 0 7 6 10 14 18 24 24 2 2 5 2 7 0l12-10c4-3 10-2 12 2l6 10c4 8 2 18-6 26-10 10-26 12-40 6C51 112 34 90 26 66c-6-14-4-30 8-30z"/>
       </svg>
-      <div class="device-status" id="phone-status">In attesa</div>
+      <div class="device-status" id="phone-status">{{ t('In attesa') }}</div>
     </div>
   </div>
 
   <div class="panel stack">
-    <div class="device-label">Impulsi (pensieri)</div>
+    <div class="device-label">{{ t('Impulsi (pensieri)') }}</div>
     <div class="btn-grid-commands">
       {% for item in commands %}
       <button class="btn primary impulse-btn" type="button" data-command="{{ item.command }}" title="{{ item.description }}">{{ item.label }}</button>
@@ -61,7 +60,7 @@
   </div>
 
   <aside class="panel meta" id="result-box">
-    <p class="muted">Esempio: Messaggio WhatsApp → APRI → SÌ → si apre WhatsApp e Alexa chiude.</p>
+    <p class="muted">{{ t('Esempio: Messaggio WhatsApp → APRI → SÌ → si apre WhatsApp e Alexa chiude.') }}</p>
   </aside>
 </section>
 
@@ -113,6 +112,23 @@
   const phone = document.getElementById("phone");
   const phoneStatus = document.getElementById("phone-status");
   const box = document.getElementById("result-box");
+  const L = {
+    alexaConfirm: {{ t('ALEXA · conferma')|tojson }},
+    idleSilenzio: {{ t('IDLE · silenzio')|tojson }},
+    nessunaDomanda: {{ t('Nessuna domanda. Pensa un’azione quando vuoi.')|tojson }},
+    aperta: {{ t('Aperta:')|tojson }},
+    msgDa: {{ t('Msg da')|tojson }},
+    nessunaApp: {{ t('Nessuna app')|tojson }},
+    traccia: {{ t('Traccia')|tojson }},
+    risposta: {{ t('Risposta')|tojson }},
+    rifiutata: {{ t('Rifiutata')|tojson }},
+    squilla: {{ t('Squilla:')|tojson }},
+    inAttesa: {{ t('In attesa')|tojson }},
+    elaboro: {{ t('Elaboro')|tojson }},
+    errore: {{ t('errore')|tojson }},
+    impulso: {{ t('Impulso')|tojson }},
+    effetto: {{ t('Effetto')|tojson }}
+  };
 
   function render(data) {
     channelsEl.innerHTML = "";
@@ -125,8 +141,8 @@
       channelsEl.appendChild(span);
     });
     hintText.textContent = data.hint || "";
-    phaseChip.textContent = data.phase === "confirm" ? "ALEXA · conferma" : "IDLE · silenzio";
-    promptText.textContent = data.prompt || "Nessuna domanda. Pensa un’azione quando vuoi.";
+    phaseChip.textContent = data.phase === "confirm" ? L.alexaConfirm : L.idleSilenzio;
+    promptText.textContent = data.prompt || L.nessunaDomanda;
     messageText.textContent = data.message || "";
 
     deviceList.innerHTML = "";
@@ -140,29 +156,29 @@
     if (data.opened_app) {
       appDisc.textContent = data.opened_app.slice(0, 2).toUpperCase();
       appDisc.classList.add("open");
-      appStatus.textContent = "Aperta: " + data.opened_app;
+      appStatus.textContent = L.aperta + " " + data.opened_app;
     } else {
       appDisc.textContent = "app";
       appDisc.classList.remove("open");
       appStatus.textContent = data.unread_message
-        ? ("Msg da " + (data.message_from || "?"))
-        : "Nessuna app";
+        ? (L.msgDa + " " + (data.message_from || "?"))
+        : L.nessunaApp;
     }
-    musicStatus.textContent = (data.music_playing ? "▶ " : "■ ") + "Traccia " + data.track_number;
+    musicStatus.textContent = (data.music_playing ? "▶ " : "■ ") + L.traccia + " " + data.track_number;
 
     phone.classList.remove("is-idle", "is-accept", "is-reject");
     if (data.phone === "accept") {
       phone.classList.add("is-accept");
-      phoneStatus.textContent = "Risposta";
+      phoneStatus.textContent = L.risposta;
     } else if (data.phone === "reject") {
       phone.classList.add("is-reject");
-      phoneStatus.textContent = "Rifiutata";
+      phoneStatus.textContent = L.rifiutata;
     } else if (data.incoming_call) {
       phone.classList.add("is-idle");
-      phoneStatus.textContent = "Squilla: " + (data.caller_name || "");
+      phoneStatus.textContent = L.squilla + " " + (data.caller_name || "");
     } else {
       phone.classList.add("is-idle");
-      phoneStatus.textContent = "In attesa";
+      phoneStatus.textContent = L.inAttesa;
     }
   }
 
@@ -188,7 +204,7 @@
   document.querySelectorAll(".impulse-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const command = btn.dataset.command;
-      box.innerHTML = "<p class='muted'>Elaboro " + command + "…</p>";
+      box.innerHTML = "<p class='muted'>" + L.elaboro + " " + command + "…</p>";
       const res = await fetch("/api/demo/context", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -196,14 +212,14 @@
       });
       const data = await res.json();
       if (!res.ok) {
-        box.innerHTML = "<p class='flash error'>" + (data.detail || "errore") + "</p>";
+        box.innerHTML = "<p class='flash error'>" + (data.detail || L.errore) + "</p>";
         return;
       }
       render(data);
       box.innerHTML =
-        "<p><strong>Impulso</strong> " + data.command +
+        "<p><strong>" + L.impulso + "</strong> " + data.command +
         " → " + data.classified_intent + " (" + data.confidence + ")</p>" +
-        "<p><strong>Effetto</strong> " + (data.effect || "—") + "</p>";
+        "<p><strong>" + L.effetto + "</strong> " + (data.effect || "—") + "</p>";
     });
   });
 

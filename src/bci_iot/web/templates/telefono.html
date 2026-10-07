@@ -1,41 +1,63 @@
 {% extends "base.html" %}
-{% block title %}Telefono live · Iris{% endblock %}
-{% block body_class %}page-private{% endblock %}
+{% block title %}{{ t('Telefono live') }} · Iris{% endblock %}
+{% block body_class %}page-private page-telefono-live{% endblock %}
 {% block main_class %}shell private-shell{% endblock %}
 {% block content %}
-<section class="private-area">
+<section class="private-area telefono-live-area">
   <header class="private-welcome">
-    <p class="eyebrow">Bridge</p>
-    <h1>Telefono in linea</h1>
+    <p class="eyebrow">{{ t('Telefono live') }}</p>
+    <h1>{{ t('Telefono in linea') }}</h1>
     <p class="lede">
-      Lascia questa pagina aperta sul cellulare mentre usi Iris dal PC.
-      Qui compaiono i comandi (es. cambio canzone).
+      {{ t('Lascia questa pagina aperta sul cellulare: è il ponte. Qui compaiono chiamate e comandi (rispondi/rifiuta dalla cuffia o da In ascolto). Spotify, se collegato, cambia canzone sul player reale.') }}
     </p>
   </header>
 
   <div class="private-form private-form-fit stack">
     <div class="form-block">
       <p class="assoc-pill {% if profile.phone_paired %}is-on{% endif %}" id="pair-state">
-        {% if profile.phone_paired %}Associato{% else %}Non associato{% endif %}
+        {% if profile.phone_paired %}{{ t('Associato') }}{% else %}{{ t('Non associato') }}{% endif %}
       </p>
-      <p class="assoc-pill is-on" id="live-state">Connessione attiva…</p>
-      <p class="form-hint">
+      <p class="assoc-pill is-on" id="live-state">{{ t('Connessione attiva…') }}</p>
+      <p class="form-hint" id="spotify-hint">
         Spotify:
         {% if profile.spotify_linked %}
-          collegato{% if profile.spotify_display_name %} ({{ profile.spotify_display_name }}){% endif %}
+          {{ t('collegato') }}{% if profile.spotify_display_name %} ({{ profile.spotify_display_name }}){% endif %}
         {% else %}
-          non collegato
+          {{ t('non collegato') }} —
+          <a href="/telefono-setup?stage=2">{{ t('Collega Spotify') }}</a>
         {% endif %}
       </p>
+      <p class="form-hint muted">{{ t('Le chiamate qui sono eventi del ponte Iris, non la tipica chiamata cellulare del sistema.') }}</p>
     </div>
+
+    <div class="form-block panel telefono-call-panel" id="call-panel" hidden>
+      <p class="hub-kicker">{{ t('Chiamata') }}</p>
+      <h2 id="call-title">{{ t('Chiamata in arrivo') }}</h2>
+      <p class="form-hint" id="call-detail">{{ t('Pensa SÌ per rispondere o NO per rifiutare (cuffia / In ascolto).') }}</p>
+    </div>
+
     <div class="form-block">
-      <h2>Ultimi comandi</h2>
+      <h2>{{ t('Ultimi comandi') }}</h2>
       <ul class="detail-list" id="cmd-list">
-        <li><span>In attesa</span><strong>—</strong></li>
+        <li><span>{{ t('In attesa') }}</span><strong>—</strong></li>
       </ul>
     </div>
+
+    {% if profile.phone_paired %}
+    <div class="form-block">
+      <h2>{{ t('Prova sul telefono') }}</h2>
+      <p class="form-hint">{{ t('Simula una chiamata sul ponte: poi da In ascolto (o cuffia) pensa SÌ/NO e vedi l’esito qui.') }}</p>
+      <div class="private-actions">
+        <button type="button" class="btn" id="sim-call-btn">{{ t('Arriva una chiamata') }}</button>
+        <a class="btn ghost" href="/contesto">{{ t('In ascolto') }}</a>
+      </div>
+      <p class="form-hint" id="sim-msg" hidden></p>
+    </div>
+    {% endif %}
+
     <div class="private-actions">
-      <a class="btn ghost" href="/associa-telefono">Torna ad Associa</a>
+      <a class="btn ghost" href="/telefono-setup">{{ t('Il tuo telefono') }}</a>
+      <a class="btn ghost" href="/cuffia">{{ t('La tua cuffia') }}</a>
     </div>
   </div>
 </section>
@@ -43,28 +65,82 @@
 (function () {
   var list = document.getElementById("cmd-list");
   var live = document.getElementById("live-state");
+  var callPanel = document.getElementById("call-panel");
+  var callTitle = document.getElementById("call-title");
+  var simBtn = document.getElementById("sim-call-btn");
+  var simMsg = document.getElementById("sim-msg");
+  var L = {
+    inLinea: {{ t('In linea')|tojson }},
+    errore: {{ t('Errore')|tojson }},
+    reteAssente: {{ t('Rete assente — riprovo…')|tojson }},
+    callIncoming: {{ t('Chiamata in arrivo')|tojson }},
+    callFrom: {{ t('Chiamata da')|tojson }},
+    simOk: {{ t('Chiamata inviata al ponte. Ora pensa SÌ/NO da In ascolto.')|tojson }},
+    simErr: {{ t('Non sono riuscita a simulare la chiamata.')|tojson }}
+  };
   function render(events) {
     if (!events || !events.length) return;
     list.innerHTML = events.slice().reverse().map(function (ev) {
       return "<li><span>" + (ev.at || "") + "</span><strong>" + (ev.label || ev.action) + "</strong></li>";
     }).join("");
   }
+  function renderContext(ctx) {
+    if (!callPanel) return;
+    if (ctx && ctx.incoming_call) {
+      callPanel.hidden = false;
+      var who = ctx.caller_name || "";
+      callTitle.textContent = who ? (L.callFrom + " " + who) : L.callIncoming;
+    } else {
+      callPanel.hidden = true;
+    }
+  }
   async function beat() {
     try {
       var res = await fetch("/api/phone/heartbeat", { method: "POST", headers: { "Accept": "application/json" } });
       var data = await res.json();
       if (data.status === "ok") {
-        live.textContent = "In linea";
+        live.textContent = L.inLinea;
         live.className = "assoc-pill is-on";
         render(data.events || []);
+        renderContext(data.context || {});
       } else {
-        live.textContent = data.detail || "Errore";
+        live.textContent = data.detail || L.errore;
         live.className = "assoc-pill";
+        if (callPanel) callPanel.hidden = true;
       }
     } catch (err) {
-      live.textContent = "Rete assente — riprovo…";
+      live.textContent = L.reteAssente;
       live.className = "assoc-pill";
     }
+  }
+  if (simBtn) {
+    simBtn.addEventListener("click", async function () {
+      if (simMsg) {
+        simMsg.hidden = false;
+        simMsg.className = "form-hint";
+        simMsg.textContent = "…";
+      }
+      try {
+        var res = await fetch("/api/context/event", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ event: "call", caller: "Anna" })
+        });
+        var data = await res.json().catch(function () { return {}; });
+        if (!res.ok) throw new Error((data && data.detail) || L.simErr);
+        if (simMsg) {
+          simMsg.textContent = L.simOk;
+          simMsg.className = "flash ok";
+        }
+        beat();
+      } catch (err) {
+        if (simMsg) {
+          simMsg.textContent = (err && err.message) || L.simErr;
+          simMsg.className = "flash error";
+        }
+      }
+    });
   }
   beat();
   setInterval(beat, 2500);

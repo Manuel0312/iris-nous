@@ -36,17 +36,23 @@ data/profiles/
 data/*.db
 data/photos/
 data/profiles_deleted/
-data/_t/
+data/messaging.json
+data/_*/
 tmp_cal_test/
 models/*.pt
 models/*.pkl
+models/*.joblib
 !models/.gitkeep
 results/
+!results/.gitkeep
 
-# Local tooling / deploy helpers
+# Generated at app startup
+src/bci_iot/web/static/flags/
+
+# Local tooling output
 .tools/
-APRI_SPOTIFY.html
-METTI_CHIAVI_RENDER.html
+scripts/test_results.txt
+codice_completo.md
 
 # Notebooks checkpoints
 .ipynb_checkpoints/

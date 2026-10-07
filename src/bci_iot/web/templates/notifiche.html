@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}{{ t('Notifiche') }} · Admin{% endblock %}
+{% block body_class %}page-private{% endblock %}
+{% block main_class %}shell wide{% endblock %}
+{% block content %}
+<section class="dash admin-dash">
+  <p><a href="/accessi">{{ t('← Pannello admin') }}</a></p>
+  <h1>{{ t('Notifiche') }}</h1>
+  <p class="lede notice-lede">
+    {{ t('Messaggi da Chatta con noi.') }}
+  </p>
+  <ul class="notice-legend" aria-label="{{ t('Legenda stati') }}">
+    <li><span class="status-dot status-unread" aria-hidden="true"></span>{{ t('Nuovo') }}</li>
+    <li><span class="status-dot status-viewed" aria-hidden="true"></span>{{ t('Letto') }}</li>
+    <li><span class="status-dot status-replied" aria-hidden="true"></span>{{ t('Risposto') }}</li>
+  </ul>
+  <p class="muted notice-live">{{ t('Aggiornamento automatico attivo.') }}</p>
+  <p>
+    {% if archive %}
+    <a href="/notifiche">Inbox</a>
+    · <strong>{{ t('Archivio tutela') }}</strong>
+    {% else %}
+    <strong>Inbox</strong>
+    · <a href="/notifiche?archivio=1">{{ t('Archivio tutela') }}</a>
+    {% endif %}
+  </p>
+
+  <form class="panel notice-manage" method="post" action="/notifiche/elimina" id="bulk-delete-form">
+    <input type="hidden" name="archive" value="{{ '1' if archive else '0' }}" />
+    <h2>{{ t('Gestione conversazioni') }}</h2>
+    <p class="muted">{{ t('Cancella una, più chat o tutte quelle filtrate. Operazione definitiva.') }}</p>
+    <div class="bulk-row">
+      <label>{{ t('Filtro stato') }}
+        <select name="status">
+          <option value="">{{ t('Tutti') }}</option>
+          <option value="unread">{{ t('Non visualizzato') }}</option>
+          <option value="viewed">{{ t('Visto, non risposto') }}</option>
+          <option value="replied">{{ t('Risposto') }}</option>
+        </select>
+      </label>
+      <label>{{ t('Cerca') }}
+        <input name="q" value="{{ filters.q if filters else '' }}" placeholder="{{ t('nome, email, codice…') }}" />
+      </label>
+      <button class="btn" type="submit" name="delete_all_matching" value="1" onclick="return confirm({{ t('Eliminare TUTTE le chat che corrispondono ai filtri?')|tojson }});">{{ t('Elimina filtrate') }}</button>
+    </div>
+
+  <div class="panel table-wrap reveal" data-reveal>
+    {% if threads %}
+    <table class="access-table notice-table">
+      <thead>
+        <tr>
+          <th><input type="checkbox" id="check-all" aria-label="{{ t('Seleziona tutte') }}" /></th>
+          <th>{{ t('Stato') }}</th>
+          <th>{{ t('Presenza') }}</th>
+          <th>{{ t('Persona') }}</th>
+          <th>{{ t('Oggetto') }}</th>
+          <th>{{ t('Aggiornato') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for trow in threads %}
+        <tr>
+          <td><input type="checkbox" name="thread_ids" value="{{ trow.id }}" /></td>
+          <td>
+            <a class="person-link" href="/notifiche/{{ trow.id }}">
+              <span class="status-dot status-{{ trow.status }}" aria-label="{{ trow.status }}"></span>
+              {% if trow.status == 'unread' %}{{ t('Non visualizzato') }}
+              {% elif trow.status == 'viewed' %}{{ t('Visto, non risposto') }}
+              {% else %}{{ t('Risposto') }}{% endif %}
+            </a>
+          </td>
+          <td>
+            {% set online = presence.get(trow.username) if presence and trow.username else none %}
+            {% if online is none %}
+            <span class="muted">—</span>
+            {% else %}
+            <span class="presence-dot {% if online %}is-online{% else %}is-offline{% endif %}"></span>
+            {{ t('Online') if online else t('Offline') }}
+            {% endif %}
+          </td>
+          <td>
+            {% if trow.username %}
+            <a class="person-link" href="/accessi/utente/{{ trow.username }}">{{ trow.guest_name or trow.username }}</a>
+            {% else %}
+            {{ trow.guest_name or trow.guest_email or t('Ospite') }}
+            {% endif %}
+            <div class="muted">{{ trow.guest_email }}{% if trow.guest_phone %} · {{ trow.guest_phone }}{% endif %}</div>
+          </td>
+          <td><a class="person-link" href="/notifiche/{{ trow.id }}">{{ trow.subject or "—" }}</a></td>
+          <td>{{ trow.updated_at | it_time(lang) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="private-actions" style="margin-top:1rem">
+      <button class="btn" type="submit" onclick="return confirm({{ t('Eliminare le chat selezionate?')|tojson }});">{{ t('Elimina selezionate') }}</button>
+    </div>
+    {% else %}
+    <p class="muted">{% if archive %}{{ t('Nessuna chat in archivio tutela.') }}{% else %}{{ t('Nessuna notifica in inbox.') }}{% endif %}</p>
+    {% endif %}
+  </div>
+  </form>
+</section>
+<script>
+(function () {
+  const all = document.getElementById("check-all");
+  if (all) {
+    all.addEventListener("change", () => {
+      document.querySelectorAll('input[name="thread_ids"]').forEach((el) => {
+        el.checked = all.checked;
+      });
+    });
+  }
+  const archive = {{ 'true' if archive else 'false' }};
+  let fingerprint = {{ fingerprint | tojson }};
+  // Clicking a thread marks it viewed server-side; a parallel /stato poll must NOT
+  // reload this list or it cancels navigation and leaves the admin on the inbox.
+  let navigating = false;
+  document.addEventListener("click", (ev) => {
+    const a = ev.target && ev.target.closest ? ev.target.closest('a[href^="/notifiche/"]') : null;
+    if (!a) return;
+    const href = a.getAttribute("href") || "";
+    if (/^\/notifiche\/\d+/.test(href)) navigating = true;
+  }, true);
+  window.addEventListener("pagehide", () => { navigating = true; });
+  async function tick() {
+    if (navigating || document.hidden) return;
+    try {
+      const url = "/notifiche/stato" + (archive ? "?archivio=1" : "");
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok || navigating) return;
+      const data = await res.json();
+      if (navigating) return;
+      if (JSON.stringify(data.ids) !== JSON.stringify(fingerprint.ids)
+          || data.unread !== fingerprint.unread
+          || data.last !== fingerprint.last) {
+        location.reload();
+      }
+    } catch (e) {}
+  }
+  setInterval(tick, 5000);
+})();
+</script>
+{% endblock %}

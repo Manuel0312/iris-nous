@@ -10,6 +10,104 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.38",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Telefono: associa, Spotify, ponte chiamate",
+                "Associazione e Spotify c’erano, ma il percorso non era chiaro e le chiamate non arrivavano bene su Telefono live.",
+                "Ora /telefono-setup ha due passi chiari (associa → Spotify), un tocco «Associa questo dispositivo», e Telefono live mostra le chiamate del ponte; Spotify resta reale quando è collegato.",
+            ),
+            (
+                "Onesti su cosa è reale",
+                "Si rischiava di sembrare che Iris controllasse la tipica chiamata cellulare o Alexa.",
+                "Chiaro in UI: chiamate = ponte browser + SÌ/NO; musica = Spotify Premium vero; niente Alexa inventata.",
+            ),
+        ),
+    },
+    {
+        "version": "0.4.37",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "In ascolto, senza accendere nulla",
+                "C’era una «modalità live» e un «router» da attivare a mano: sembrava un’opzione tecnica, non il comportamento normale.",
+                "Ora Iris è sempre in ascolto dopo il login: SÌ/NO si applica a ciò che sta succedendo (chiamata > messaggio > musica). La pagina «In ascolto» spiega solo cosa succede, senza gergo.",
+            ),
+            (
+                "Pensa SÌ/NO vicino alla calibrazione",
+                "Premendo SÌ o NO dopo un evento, a volte Iris riconosceva il contrario: prendeva una finestra EEG poco legata al pensiero e la classificazione sembrava a caso.",
+                "Ora ogni Pensa SÌ/NO crea un impulso nuovo vicino ai modelli della calibrazione (con una piccola variazione), poi confronta per similarità: di solito resta allineato al tasto, senza essere una copia identica.",
+            ),
+        ),
+    },
+    {
+        "version": "0.4.36",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "SÌ/NO per similarità, non replay",
+                "Il modello ripeteva l’impulso identico della calibrazione: poco realistico, perché l’attività cerebrale non è mai uguale.",
+                "Ora ogni Pensa SÌ/NO acquisisce una nuova finestra EEG e la classifica per similarità ai modelli SÌ/NO della calibrazione; /contesto mostra «riconosciuto come» e i punteggi.",
+            ),
+        ),
+    },
+    {
+        "version": "0.4.35",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "SÌ/NO come in calibrazione",
+                "Su /contesto i tasti Pensa SÌ/NO acquistavano una nuova finestra EEG ogni volta: stessa famiglia, non l’impulso salvato in cuffia.",
+                "Ora la cuffia virtuale ripete l’impulso SÌ/NO della calibrazione (stesse feature); se manca il modello, acquisisce ancora una finestra nuova.",
+            ),
+        ),
+    },
+    {
+        "version": "0.4.34",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Testi cuffia di nuovo leggibili",
+                "Nella calibrazione SÌ/NO, col tema scuro, testo e pulsante «Pensa NO» sparivano sulla scheda chiara: sembrava una pagina vuota.",
+                "Ora scheda e pulsanti hanno contrasto corretto in chiaro e scuro: istruzioni, conteggi e «Pensa NO» si leggono bene.",
+            ),
+        ),
+    },
+    {
+        "version": "0.4.33",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Router contesto SÌ/NO",
+                "La cuffia sapeva solo etichette semplici, ma non c’era un posto chiaro dove il sito dicesse a cosa si applica il SÌ/NO quando coincidono chiamata, messaggio e musica.",
+                "Ora /contesto mostra il focus attivo («Sto decidendo su…»), simula eventi e instrada SÌ/NO con priorità chiamata > messaggio > musica; Spotify e ponte telefono dove già esistono.",
+            ),
+        ),
+    },
+    {
+        "version": "0.4.32",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Hub «Il tuo telefono»",
+                "Associazione telefono, Spotify e Telefono live erano sparsi, senza un percorso chiaro dal browser dello smartphone.",
+                "Ora /telefono-setup ha due tappe: perché + codice/QR, poi stato, Spotify e Alexa «dopo»; funziona anche solo dal telefono.",
+            ),
+        ),
+    },
+    {
+        "version": "0.4.31",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Hub «La tua cuffia»",
+                "Associazione e calibrazione erano mescolate con codice email e telefono, senza un percorso chiaro SÌ/NO dal telefono.",
+                "Ora /cuffia ha due tappe: associazione (accendi, indossa, contatto) e calibrazione pensa SÌ / pensa NO; telefono resta separato (prossimamente).",
+            ),
+        ),
+    },
+    {
         "version": "0.4.30",
         "intro": WHATS_NEW_INTRO,
         "entries": (

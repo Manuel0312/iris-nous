@@ -1,17 +1,39 @@
-"""Deliver verification / recovery codes (SMTP, Twilio, or demo fallback)."""
+"""Deliver Iris Nous branded email (signup confirm, recovery codes).
+
+SMS intentionally unused for password recovery.
+Order: Brevo / SendGrid (HTTPS, From = Iris Gmail) → GitHub Actions relay
+(Gmail SMTP from a GitHub runner, because Render Free blocks 587/465) →
+local SMTP → Resend only if the From is a verified domain
+(never onboarding@resend.dev).
+"""
 
 from __future__ import annotations
 
+import json
+import logging
 import os
 import smtplib
 import ssl
 from dataclasses import dataclass
 from email.message import EmailMessage
-from typing import Literal
-from urllib import error, parse, request
+from email.utils import formataddr, formatdate, make_msgid
+from pathlib import Path
+from typing import Any, Literal
+from urllib import error, request
+
+log = logging.getLogger("iris.mail")
 
 
 Channel = Literal["email", "phone"]
+
+_CONFIG_PATH: Path | None = None
+_DOTENV_LOADED = False
+
+BRAND_NAME = "Iris Nous"
+DEFAULT_FROM_EMAIL = "noreply@iris-nous.app"
+RESEND_TEST_FROM = "Iris Nous <" + "onboarding@" + "resend.dev" + ">"
+MAIL_USER_AGENT = "IrisNous/1.0 (+https://iris-nous.onrender.com)"
+SUPPORT_LINE = "Questa è una mail automatica di Iris Nous."
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,13 +41,623 @@ class DeliveryResult:
     ok: bool
     channel: Channel
     destination: str
-    mode: Literal["smtp", "twilio", "demo"]
+    mode: Literal["brevo", "sendgrid", "github", "resend", "smtp", "http", "demo"]
     detail: str = ""
     demo_code: str = ""
+    demo_link: str = ""
+
+
+def configure_messaging_store(data_root: Path | str) -> Path:
+    global _CONFIG_PATH
+    root = Path(data_root)
+    root.mkdir(parents=True, exist_ok=True)
+    _CONFIG_PATH = root / "messaging.json"
+    return _CONFIG_PATH
+
+
+def _project_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def load_dotenv_file(path: Path | None = None) -> None:
+    global _DOTENV_LOADED
+    if _DOTENV_LOADED:
+        return
+    _DOTENV_LOADED = True
+    env_path = path or (_project_root() / ".env")
+    if not env_path.is_file():
+        return
+    try:
+        text = env_path.read_text(encoding="utf-8")
+    except OSError:
+        return
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip("'").strip('"')
+        if key and key not in os.environ:
+            os.environ[key] = value
 
 
 def _env(name: str) -> str:
+    load_dotenv_file()
     return (os.environ.get(name) or "").strip()
+
+
+def _file_config() -> dict[str, Any]:
+    path = _CONFIG_PATH
+    if path is None or not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def save_messaging_config(values: dict[str, str]) -> Path:
+    if _CONFIG_PATH is None:
+        configure_messaging_store(_project_root() / "data")
+    assert _CONFIG_PATH is not None
+    current = _file_config()
+    for key, value in values.items():
+        cleaned = (value or "").strip()
+        if cleaned:
+            current[key] = cleaned
+    _CONFIG_PATH.write_text(json.dumps(current, indent=2), encoding="utf-8")
+    return _CONFIG_PATH
+
+
+def update_messaging_config(
+    *,
+    brand_from_email: str | None = None,
+    resend_api_key: str | None = None,
+    smtp_host: str | None = None,
+    smtp_port: str | None = None,
+    smtp_user: str | None = None,
+    smtp_password: str | None = None,
+    smtp_from: str | None = None,
+) -> Path:
+    payload: dict[str, str] = {}
+    mapping = {
+        "brand_from_email": brand_from_email,
+        "resend_api_key": resend_api_key,
+        "smtp_host": smtp_host,
+        "smtp_port": smtp_port,
+        "smtp_user": smtp_user,
+        "smtp_password": smtp_password,
+        "smtp_from": smtp_from,
+    }
+    for key, value in mapping.items():
+        if value is None:
+            continue
+        cleaned = value.strip()
+        if cleaned:
+            payload[key] = cleaned
+    return save_messaging_config(payload)
+
+
+def _merged_settings() -> dict[str, str]:
+    file_cfg = _file_config()
+    smtp_from = (
+        _env("BCI_IOT_SMTP_FROM")
+        or str(file_cfg.get("smtp_from") or "")
+        or _env("BCI_IOT_SMTP_USER")
+        or str(file_cfg.get("smtp_user") or "")
+    )
+    brand_from = (
+        _env("BCI_IOT_MAIL_FROM")
+        or str(file_cfg.get("brand_from_email") or "")
+        or smtp_from
+        or DEFAULT_FROM_EMAIL
+    )
+    return {
+        "brand_from_email": brand_from,
+        "resend_api_key": _env("BCI_IOT_RESEND_API_KEY")
+        or str(file_cfg.get("resend_api_key") or ""),
+        "brevo_api_key": _env("BCI_IOT_BREVO_API_KEY")
+        or str(file_cfg.get("brevo_api_key") or ""),
+        "sendgrid_api_key": _env("BCI_IOT_SENDGRID_API_KEY")
+        or str(file_cfg.get("sendgrid_api_key") or ""),
+        "github_mail_token": _env("BCI_IOT_GITHUB_MAIL_TOKEN")
+        or str(file_cfg.get("github_mail_token") or ""),
+        "github_mail_repo": _env("BCI_IOT_GITHUB_MAIL_REPO")
+        or str(file_cfg.get("github_mail_repo") or "Manuel0312/iris-nous"),
+        "smtp_host": _env("BCI_IOT_SMTP_HOST") or str(file_cfg.get("smtp_host") or ""),
+        "smtp_port": _env("BCI_IOT_SMTP_PORT") or str(file_cfg.get("smtp_port") or "587"),
+        "smtp_user": _env("BCI_IOT_SMTP_USER") or str(file_cfg.get("smtp_user") or ""),
+        "smtp_password": _env("BCI_IOT_SMTP_PASSWORD")
+        or str(file_cfg.get("smtp_password") or ""),
+        "smtp_from": smtp_from or brand_from,
+    }
+
+
+def messaging_status() -> dict[str, Any]:
+    cfg = _merged_settings()
+    has_brevo = bool(cfg.get("brevo_api_key"))
+    has_sendgrid = bool(cfg.get("sendgrid_api_key"))
+    has_github = bool(cfg.get("github_mail_token"))
+    has_resend = bool(cfg.get("resend_api_key"))
+    has_smtp = bool(
+        cfg.get("smtp_host")
+        and cfg.get("smtp_password")
+        and (cfg.get("smtp_from") or cfg.get("smtp_user"))
+    )
+    if has_brevo:
+        provider = "brevo"
+    elif has_sendgrid:
+        provider = "sendgrid"
+    elif has_github:
+        provider = "gmail"
+    elif has_resend:
+        provider = "resend"
+    elif has_smtp:
+        provider = "smtp"
+    else:
+        provider = "none"
+    return {
+        "email_ready": has_brevo or has_sendgrid or has_github or has_resend or has_smtp,
+        "sms_ready": False,
+        "provider": provider,
+        "brand_name": BRAND_NAME,
+        "brand_from_email": cfg.get("brand_from_email") or DEFAULT_FROM_EMAIL,
+        "resend_key_set": has_resend,
+        "smtp_host": cfg.get("smtp_host") or "",
+        "smtp_port": cfg.get("smtp_port") or "587",
+        "smtp_user": cfg.get("smtp_user") or "",
+        "smtp_from": cfg.get("smtp_from") or "",
+        "smtp_password_set": bool(cfg.get("smtp_password")),
+        "demo_allowed": _demo_allowed(),
+    }
+
+
+def _demo_allowed() -> bool:
+    if _env("BCI_IOT_REQUIRE_REAL_OTP").lower() in {"1", "true", "yes", "on"}:
+        return False
+    flag = _env("BCI_IOT_OTP_DEMO").lower()
+    if flag in {"0", "false", "no", "off"}:
+        return False
+    if flag in {"1", "true", "yes", "on"}:
+        return True
+    if _env("BCI_IOT_HTTPS").lower() in {"1", "true", "yes", "on"}:
+        return False
+    env = (_env("BCI_IOT_ENV") or "dev").lower()
+    return env not in {"prod", "production"}
+
+
+def mask_destination(destination: str, *, channel: Channel) -> str:
+    dest = (destination or "").strip()
+    if channel == "email":
+        if "@" not in dest:
+            return "***"
+        local, _, domain = dest.partition("@")
+        shown = (local[:1] + "***") if len(local) <= 2 else (local[:2] + "***")
+        return f"{shown}@{domain}"
+    digits = "".join(ch for ch in dest if ch.isdigit())
+    if len(digits) < 4:
+        return "***"
+    return f"+***{digits[-4:]}"
+
+
+_SHELL_FOOTER: dict[str, str] = {
+    "it": (
+        f"© {BRAND_NAME} · Tesi UNITO · Messaggio automatico relativo al tuo account. "
+        "Se non hai richiesto questa operazione, puoi ignorare questa email in sicurezza."
+    ),
+    "en": (
+        f"© {BRAND_NAME} · UNITO thesis · Automatic message about your account. "
+        "If you did not request this, you can safely ignore this email."
+    ),
+    "es": (
+        f"© {BRAND_NAME} · Tesis UNITO · Mensaje automático sobre tu cuenta. "
+        "Si no pediste esto, puedes ignorar este correo."
+    ),
+    "fr": (
+        f"© {BRAND_NAME} · Thèse UNITO · Message automatique lié à votre compte. "
+        "Si vous n’avez pas demandé ceci, ignorez cet e-mail."
+    ),
+    "de": (
+        f"© {BRAND_NAME} · UNITO-Thesis · Automatische Nachricht zu Ihrem Konto. "
+        "Falls Sie dies nicht angefordert haben, können Sie diese E-Mail ignorieren."
+    ),
+    "pt": (
+        f"© {BRAND_NAME} · Tese UNITO · Mensagem automática sobre a sua conta. "
+        "Se não pediu isto, pode ignorar este e-mail."
+    ),
+    "zh": (
+        f"© {BRAND_NAME} · UNITO 论文 · 与您账户相关的自动邮件。"
+        "如非本人操作，可忽略本邮件。"
+    ),
+    "ja": (
+        f"© {BRAND_NAME} · UNITO学位論文 · アカウントに関する自動メールです。"
+        "心当たりがない場合はこのメールを無視してください。"
+    ),
+}
+
+_SUPPORT_LINE_I18N: dict[str, str] = {
+    "it": SUPPORT_LINE,
+    "en": "This is an automatic email from Iris Nous.",
+    "es": "Este es un correo automático de Iris Nous.",
+    "fr": "Ceci est un e-mail automatique d’Iris Nous.",
+    "de": "Dies ist eine automatische E-Mail von Iris Nous.",
+    "pt": "Este é um e-mail automático da Iris Nous.",
+    "zh": "这是来自 Iris Nous 的自动邮件。",
+    "ja": "これは Iris Nous からの自動メールです。",
+}
+
+
+def _shell_html(
+    *,
+    title: str,
+    intro: str,
+    middle_html: str,
+    footer_extra: str = "",
+    lang: str = "it",
+) -> str:
+    code = (lang or "it").strip().lower()[:2] or "it"
+    footer = _SHELL_FOOTER.get(code, _SHELL_FOOTER["en"])
+    support = _SUPPORT_LINE_I18N.get(code, _SUPPORT_LINE_I18N["en"])
+    return f"""\
+<!DOCTYPE html>
+<html lang="{code}">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
+<body style="margin:0;background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#1d1d1f;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f5f7;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" style="max-width:520px;background:#ffffff;border-radius:18px;overflow:hidden;">
+        <tr><td style="padding:28px 28px 8px;">
+          <p style="margin:0;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#86868b;font-weight:600;">{BRAND_NAME}</p>
+          <h1 style="margin:12px 0 0;font-size:24px;line-height:1.25;font-weight:700;">{title}</h1>
+        </td></tr>
+        <tr><td style="padding:8px 28px 24px;">
+          <p style="margin:0 0 20px;font-size:15px;line-height:1.55;color:#1d1d1f;">{intro}</p>
+          {middle_html}
+          <p style="margin:24px 0 0;font-size:12px;line-height:1.5;color:#86868b;">{support}{footer_extra}</p>
+        </td></tr>
+        <tr><td style="padding:16px 28px 24px;border-top:1px solid #e8e8ed;">
+          <p style="margin:0;font-size:11px;color:#aeaeb2;line-height:1.45;">
+            {footer}
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+"""
+
+
+def build_code_email(*, code: str, purpose: str) -> tuple[str, str, str]:
+    labels = {
+        "verify_email": "verifica del tuo indirizzo email",
+        "verify_phone": "verifica telefono",
+        "recover": "reimpostazione della password",
+        "confirm_signup": "conferma della tua iscrizione",
+    }
+    label = labels.get(purpose, "il tuo account")
+    if purpose == "recover":
+        subject = f"{BRAND_NAME}: codice per recuperare la password"
+    else:
+        subject = f"{BRAND_NAME}: il tuo codice di sicurezza"
+    text = (
+        f"{BRAND_NAME}\n\n"
+        f"Hai richiesto {label}.\n\n"
+        f"Il tuo codice di sicurezza è: {code}\n\n"
+        f"Il codice scade tra 10 minuti. Non condividerlo con nessuno.\n"
+        f"Iris Nous non ti chiederà mai questo codice al telefono o in chat.\n\n"
+        f"Se non sei stata/o tu, ignora questa email: la password non verrà modificata.\n\n"
+        f"— Team {BRAND_NAME}\n"
+    )
+    middle = f"""
+      <p style="margin:0 0 8px;font-size:13px;color:#86868b;">Codice di sicurezza</p>
+      <p style="margin:0 0 20px;font-size:32px;letter-spacing:.35em;font-weight:700;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;">{code}</p>
+      <p style="margin:0;font-size:14px;line-height:1.5;color:#424245;">
+        Valido per <strong>10 minuti</strong>. Usalo solo sulla pagina ufficiale di {BRAND_NAME}.
+      </p>
+    """
+    html = _shell_html(
+        title="Conferma la tua richiesta",
+        intro=f"Hai richiesto <strong>{label}</strong> sul tuo account {BRAND_NAME}. "
+        f"Usa il codice qui sotto per continuare.",
+        middle_html=middle,
+    )
+    return subject, text, html
+
+
+def build_signup_confirm_email(*, username: str, code: str) -> tuple[str, str, str]:
+    subject = f"Conferma la tua iscrizione a {BRAND_NAME}"
+    text = (
+        f"{BRAND_NAME}\n\n"
+        f"Ciao {username},\n\n"
+        f"per completare l'iscrizione a {BRAND_NAME} inserisci questo codice "
+        f"nella pagina di conferma sul sito:\n\n"
+        f"  {code}\n\n"
+        f"Il codice scade tra 24 ore.\n"
+        f"Non usare link: la conferma vale solo con il codice.\n"
+        f"Se non trovi l'email, controlla anche Spam.\n\n"
+        f"Se non hai creato tu questo account, ignora questa email.\n\n"
+        f"— Team {BRAND_NAME}\n"
+    )
+    middle = f"""
+      <p style="margin:0 0 8px;font-size:13px;color:#86868b;">Codice di conferma</p>
+      <p style="margin:0 0 18px;font-size:32px;letter-spacing:.35em;font-weight:700;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;">{code}</p>
+      <p style="margin:0 0 12px;font-size:14px;line-height:1.5;color:#424245;">
+        Copialo nella pagina <strong>Conferma la tua email</strong> sul sito Iris Nous.
+      </p>
+      <p style="margin:0;font-size:12px;line-height:1.5;color:#86868b;">
+        La conferma funziona solo con questo codice (non con un pulsante o un link). Controlla anche Spam.
+      </p>
+    """
+    html = _shell_html(
+        title="Conferma la tua iscrizione",
+        intro=f"Ciao <strong>{username}</strong>, benvenuta/o in {BRAND_NAME}. "
+        f"Per attivare l'account conferma il tuo indirizzo email con il codice.",
+        middle_html=middle,
+        footer_extra=" Il codice scade tra 24 ore.",
+    )
+    return subject, text, html
+
+
+def _escape_mail(text: str) -> str:
+    return (
+        (text or "")
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\n", "<br />")
+    )
+
+
+_SUPPORT_REPLY_COPY: dict[str, dict[str, str]] = {
+    "it": {
+        "hello": "ciao",
+        "you": "Tu",
+        "team": "Team Iris Nous",
+        "conversation": "Conversazione",
+        "team_reply": "Risposta del team",
+        "subject": f"{BRAND_NAME}: risposta al tuo messaggio",
+        "title": "Risposta del team",
+        "intro": "Ciao <strong>{who}</strong>, abbiamo letto il tuo messaggio.",
+        "intro_text": "Ciao {who},",
+        "cta": (
+            "Se hai bisogno di altro, rispondi da Chatta con noi sul sito "
+            "oppure aspetta una nuova mail da questo indirizzo."
+        ),
+        "footer_extra": " Questa mail è una risposta personale del team Iris Nous.",
+        "signoff": f"— Team {BRAND_NAME}",
+    },
+    "en": {
+        "hello": "there",
+        "you": "You",
+        "team": "Iris Nous Team",
+        "conversation": "Conversation",
+        "team_reply": "Team reply",
+        "subject": f"{BRAND_NAME}: reply to your message",
+        "title": "Team reply",
+        "intro": "Hi <strong>{who}</strong>, we’ve read your message.",
+        "intro_text": "Hi {who},",
+        "cta": (
+            "If you need anything else, reply from Chat with us on the site "
+            "or wait for another email from this address."
+        ),
+        "footer_extra": " This email is a personal reply from the Iris Nous team.",
+        "signoff": f"— {BRAND_NAME} Team",
+    },
+    "es": {
+        "hello": "hola",
+        "you": "Tú",
+        "team": "Equipo Iris Nous",
+        "conversation": "Conversación",
+        "team_reply": "Respuesta del equipo",
+        "subject": f"{BRAND_NAME}: respuesta a tu mensaje",
+        "title": "Respuesta del equipo",
+        "intro": "Hola <strong>{who}</strong>, hemos leído tu mensaje.",
+        "intro_text": "Hola {who},",
+        "cta": (
+            "Si necesitas algo más, responde desde Chatea con nosotros en el sitio "
+            "o espera otro correo de esta dirección."
+        ),
+        "footer_extra": " Este correo es una respuesta personal del equipo Iris Nous.",
+        "signoff": f"— Equipo {BRAND_NAME}",
+    },
+    "fr": {
+        "hello": "bonjour",
+        "you": "Vous",
+        "team": "Équipe Iris Nous",
+        "conversation": "Conversation",
+        "team_reply": "Réponse de l’équipe",
+        "subject": f"{BRAND_NAME}: réponse à votre message",
+        "title": "Réponse de l’équipe",
+        "intro": "Bonjour <strong>{who}</strong>, nous avons lu votre message.",
+        "intro_text": "Bonjour {who},",
+        "cta": (
+            "Si vous avez besoin d’autre chose, répondez depuis Discutez avec nous "
+            "sur le site ou attendez un nouvel e-mail de cette adresse."
+        ),
+        "footer_extra": " Cet e-mail est une réponse personnelle de l’équipe Iris Nous.",
+        "signoff": f"— Équipe {BRAND_NAME}",
+    },
+    "de": {
+        "hello": "hallo",
+        "you": "Du",
+        "team": "Iris-Nous-Team",
+        "conversation": "Unterhaltung",
+        "team_reply": "Antwort des Teams",
+        "subject": f"{BRAND_NAME}: Antwort auf deine Nachricht",
+        "title": "Antwort des Teams",
+        "intro": "Hallo <strong>{who}</strong>, wir haben deine Nachricht gelesen.",
+        "intro_text": "Hallo {who},",
+        "cta": (
+            "Wenn du noch etwas brauchst, antworte über Chatte mit uns auf der Website "
+            "oder warte auf eine weitere E-Mail von dieser Adresse."
+        ),
+        "footer_extra": " Diese E-Mail ist eine persönliche Antwort vom Iris-Nous-Team.",
+        "signoff": f"— Team {BRAND_NAME}",
+    },
+    "pt": {
+        "hello": "olá",
+        "you": "Tu",
+        "team": "Equipa Iris Nous",
+        "conversation": "Conversa",
+        "team_reply": "Resposta da equipa",
+        "subject": f"{BRAND_NAME}: resposta à sua mensagem",
+        "title": "Resposta da equipa",
+        "intro": "Olá <strong>{who}</strong>, lemos a sua mensagem.",
+        "intro_text": "Olá {who},",
+        "cta": (
+            "Se precisar de mais alguma coisa, responda em Fale connosco no site "
+            "ou aguarde outro e-mail deste endereço."
+        ),
+        "footer_extra": " Este e-mail é uma resposta pessoal da equipa Iris Nous.",
+        "signoff": f"— Equipa {BRAND_NAME}",
+    },
+    "zh": {
+        "hello": "你好",
+        "you": "你",
+        "team": "Iris Nous 团队",
+        "conversation": "对话",
+        "team_reply": "团队回复",
+        "subject": f"{BRAND_NAME}：对您消息的回复",
+        "title": "团队回复",
+        "intro": "<strong>{who}</strong>，您好，我们已阅读您的消息。",
+        "intro_text": "{who}，您好，",
+        "cta": "如需进一步帮助，请在网站「与我们聊天」中回复，或等待此邮箱的下一封邮件。",
+        "footer_extra": " 此邮件为 Iris Nous 团队的个人回复。",
+        "signoff": f"— {BRAND_NAME} 团队",
+    },
+    "ja": {
+        "hello": "さま",
+        "you": "あなた",
+        "team": "Iris Nous チーム",
+        "conversation": "会話",
+        "team_reply": "チームからの返信",
+        "subject": f"{BRAND_NAME}: メッセージへの返信",
+        "title": "チームからの返信",
+        "intro": "<strong>{who}</strong> 様、メッセージを確認しました。",
+        "intro_text": "{who} 様、",
+        "cta": (
+            "追加のご質問があれば、サイトの「チャットで問い合わせ」から返信するか、"
+            "このアドレスからの次のメールをお待ちください。"
+        ),
+        "footer_extra": " このメールは Iris Nous チームからの個人返信です。",
+        "signoff": f"— {BRAND_NAME} チーム",
+    },
+}
+
+
+def build_support_reply_email(
+    *,
+    name: str,
+    body: str,
+    conversation: list[dict[str, Any]] | None = None,
+    lang: str = "it",
+) -> tuple[str, str, str]:
+    """Build support-reply mail already localized for the recipient ``lang``."""
+
+    code = (lang or "it").strip().lower()[:2] or "it"
+    copy = _SUPPORT_REPLY_COPY.get(code) or _SUPPORT_REPLY_COPY["en"]
+    who = (name or "").strip() or copy["hello"]
+    safe_body = _escape_mail(body)
+    thread_lines: list[str] = []
+    thread_html_bits: list[str] = []
+    for item in conversation or []:
+        sender = str(item.get("sender") or "")
+        msg = str(
+            item.get("display_body") or item.get("body_translated") or item.get("body") or ""
+        ).strip()
+        if not msg:
+            continue
+        label = copy["team"] if sender == "admin" else copy["you"]
+        thread_lines.append(f"{label}:\n{msg}")
+        thread_html_bits.append(
+            f'<p style="margin:0 0 4px;font-size:12px;color:#86868b;font-weight:700;letter-spacing:.04em;text-transform:uppercase;">{label}</p>'
+            f'<p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#1d1d1f;">{_escape_mail(msg)}</p>'
+        )
+    thread_text = ""
+    thread_html = ""
+    if thread_lines:
+        thread_text = f"{copy['conversation']}:\n\n" + "\n\n".join(thread_lines) + "\n\n"
+        thread_html = (
+            f'<p style="margin:0 0 14px;font-size:13px;color:#86868b;">{copy["conversation"]}</p>'
+            + "".join(thread_html_bits)
+            + '<hr style="border:none;border-top:1px solid #eee;margin:8px 0 18px;" />'
+            f'<p style="margin:0 0 10px;font-size:13px;color:#86868b;">{copy["team_reply"]}</p>'
+        )
+    subject = copy["subject"]
+    text = (
+        f"{BRAND_NAME}\n\n"
+        f"{copy['intro_text'].format(who=who)}\n\n"
+        f"{thread_text}"
+        f"{copy['team_reply']}:\n\n"
+        f"{body}\n\n"
+        f"{copy['cta']}\n\n"
+        f"{copy['signoff']}\n"
+    )
+    middle = f"""
+      {thread_html}
+      <p style="margin:0;font-size:15px;line-height:1.6;color:#1d1d1f;">{safe_body}</p>
+    """
+    html = _shell_html(
+        title=copy["title"],
+        intro=copy["intro"].format(who=who),
+        middle_html=middle,
+        footer_extra=copy["footer_extra"],
+        lang=code,
+    )
+    return subject, text, html
+
+
+def send_branded_email(
+    *,
+    destination: str,
+    subject: str,
+    text: str,
+    html: str,
+    demo_payload: str = "",
+    demo_is_link: bool = False,
+    demo_link: str = "",
+) -> DeliveryResult:
+    load_dotenv_file()
+    errors: list[str] = []
+    for sender in (_try_brevo, _try_sendgrid, _try_github_relay, _try_smtp, _try_resend):
+        result = sender(destination, subject=subject, text=text, html=html)
+        if result is None:
+            continue
+        if result.ok:
+            log.info("mail sent via %s to %s", result.mode, destination)
+            return result
+        log.warning("%s failed: %s", result.mode, result.detail)
+        errors.append(result.detail)
+    if _demo_allowed():
+        link = demo_link or (demo_payload if demo_is_link else "")
+        code = "" if demo_is_link else demo_payload
+        return DeliveryResult(
+            ok=True,
+            channel="email",
+            destination=destination,
+            mode="demo",
+            detail=(
+                "Mail aziendale non ancora collegata: in locale trovi il contenuto qui sotto. "
+                "Collega Gmail o Brevo dalle impostazioni del server per l'invio reale."
+            ),
+            demo_code=code,
+            demo_link=link,
+        )
+    return DeliveryResult(
+        ok=False,
+        channel="email",
+        destination=destination,
+        mode="demo",
+        detail=(
+            " ".join(errors).strip()
+            or "Invio email non configurato."
+        ),
+        demo_code="" if demo_is_link else demo_payload,
+        demo_link=demo_link or (demo_payload if demo_is_link else ""),
+    )
 
 
 def send_code(
@@ -35,109 +667,546 @@ def send_code(
     code: str,
     purpose: str,
 ) -> DeliveryResult:
-    """Send a 6-digit code. Falls back to demo mode when providers are unset."""
-    label = {
-        "verify_email": "verifica email",
-        "verify_phone": "verifica telefono",
-        "recover": "recupero password",
-    }.get(purpose, "Iris Nous")
-    body = f"Il tuo codice Iris Nous ({label}) è: {code}. Scade tra 15 minuti."
-
-    if channel == "email":
-        smtp = _try_smtp(destination, subject=f"Codice Iris Nous — {label}", body=body)
-        if smtp is not None:
-            return smtp
-    else:
-        sms = _try_twilio(destination, body=body)
-        if sms is not None:
-            return sms
-
-    return DeliveryResult(
-        ok=True,
-        channel=channel,
+    if channel != "email":
+        return DeliveryResult(
+            ok=False,
+            channel=channel,
+            destination=destination,
+            mode="demo",
+            detail="Per ora Iris manda i codici solo via email (niente SMS).",
+        )
+    subject, text, html = build_code_email(code=code, purpose=purpose)
+    return send_branded_email(
         destination=destination,
-        mode="demo",
-        detail=(
-            "Invio reale non configurato: in questa installazione il codice "
-            "viene mostrato a schermo (modalità demo / tesi)."
-        ),
-        demo_code=code,
+        subject=subject,
+        text=text,
+        html=html,
+        demo_payload=code,
+        demo_is_link=False,
     )
 
 
-def _try_smtp(to_addr: str, *, subject: str, body: str) -> DeliveryResult | None:
-    host = _env("BCI_IOT_SMTP_HOST")
-    user = _env("BCI_IOT_SMTP_USER")
-    password = _env("BCI_IOT_SMTP_PASSWORD")
-    from_addr = _env("BCI_IOT_SMTP_FROM") or user
-    if not host or not from_addr:
-        return None
-    port = int(_env("BCI_IOT_SMTP_PORT") or "587")
-    msg = EmailMessage()
-    msg["Subject"] = subject
-    msg["From"] = from_addr
-    msg["To"] = to_addr
-    msg.set_content(body)
+def send_signup_confirmation(
+    *, destination: str, username: str, code: str, confirm_url: str = ""
+) -> DeliveryResult:
+    # confirm_url kept optional for older callers; ignored — code-only verification.
+    _ = confirm_url
+    subject, text, html = build_signup_confirm_email(username=username, code=code)
+    return send_branded_email(
+        destination=destination,
+        subject=subject,
+        text=text,
+        html=html,
+        demo_payload=code,
+        demo_is_link=False,
+    )
+
+
+def build_pairing_email(
+    *,
+    name: str,
+    code: str,
+    pair_url: str,
+    headset_id: str = "",
+) -> tuple[str, str, str]:
+    who = (name or "").strip() or "ciao"
+    device = (headset_id or "").strip() or "la tua cuffia"
+    subject = f"Il tuo codice Iris Nous: {code}"
+    text = (
+        f"{BRAND_NAME}\n\n"
+        f"Ciao {who},\n\n"
+        f"ecco il codice a 6 cifre per associare {device} e, se vuoi, lo smartphone.\n\n"
+        f"  {code}\n\n"
+        f"Apri la pagina di associazione e inserisci il codice:\n"
+        f"{pair_url}\n\n"
+        f"Non condividerlo. Se non hai chiesto tu questo codice, ignora la mail.\n\n"
+        f"— Team {BRAND_NAME}\n"
+    )
+    middle = f"""
+      <p style="margin:0 0 8px;font-size:13px;color:#86868b;">Codice di associazione</p>
+      <p style="margin:0 0 18px;font-size:32px;letter-spacing:.35em;font-weight:700;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;">{code}</p>
+      <p style="margin:0 0 20px;font-size:14px;line-height:1.55;color:#424245;">
+        Serve per collegare <strong>{device}</strong>.
+        Aprilo sulla pagina di associazione.
+      </p>
+      <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 16px;">
+        <tr><td style="border-radius:980px;background:#1d1d1f;">
+          <a href="{pair_url}"
+             style="display:inline-block;padding:14px 28px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;">
+            Apri associazione
+          </a>
+        </td></tr>
+      </table>
+      <p style="margin:0;font-size:12px;line-height:1.5;color:#86868b;">
+        Se il pulsante non apre la pagina giusta, vai su Associa telefono nel menu e scrivi il codice a mano.
+      </p>
+    """
+    html = _shell_html(
+        title="Il tuo codice è pronto",
+        intro=f"Ciao <strong>{who}</strong>, abbiamo generato il codice per il tuo ecosistema {BRAND_NAME}.",
+        middle_html=middle,
+    )
+    return subject, text, html
+
+
+def send_pairing_code(
+    *,
+    destination: str,
+    code: str,
+    name: str,
+    pair_url: str,
+    headset_id: str = "",
+) -> DeliveryResult:
+    subject, text, html = build_pairing_email(
+        name=name, code=code, pair_url=pair_url, headset_id=headset_id
+    )
+    return send_branded_email(
+        destination=destination,
+        subject=subject,
+        text=text,
+        html=html,
+        demo_payload=code,
+        demo_is_link=False,
+        demo_link=pair_url,
+    )
+
+
+def _from_header(cfg: dict[str, str]) -> str:
+    addr = cfg.get("brand_from_email") or cfg.get("smtp_from") or DEFAULT_FROM_EMAIL
+    return f"{BRAND_NAME} <{addr}>"
+
+
+def _resend_from_header(cfg: dict[str, str]) -> str:
+    """Resend rejects gmail.com / unverified domains. Use their test sender."""
+    override = _env("BCI_IOT_RESEND_FROM")
+    if override:
+        return override if "<" in override else f"{BRAND_NAME} <{override}>"
+    addr = (cfg.get("brand_from_email") or cfg.get("smtp_from") or "").strip()
+    domain = addr.rsplit("@", 1)[-1].lower() if "@" in addr else ""
+    if domain in {"gmail.com", "googlemail.com", "iris-nous.app", ""}:
+        return RESEND_TEST_FROM
+    return f"{BRAND_NAME} <{addr}>"
+
+
+def _smtp_blocked_here() -> bool:
+    """Render free instances drop outbound SMTP; skip the minute-long timeout."""
+    if _env("BCI_IOT_FORCE_SMTP").lower() in {"1", "true", "yes", "on"}:
+        return False
+    return _env("BCI_IOT_HTTPS").lower() in {"1", "true", "yes", "on"}
+
+
+def _iris_from_email(cfg: dict[str, str]) -> str:
+    return (
+        cfg.get("smtp_from")
+        or cfg.get("smtp_user")
+        or cfg.get("brand_from_email")
+        or DEFAULT_FROM_EMAIL
+    ).strip()
+
+
+def _http_post_json(
+    url: str,
+    payload: dict[str, Any],
+    extra_headers: dict[str, str],
+    *,
+    timeout: int = 20,
+) -> tuple[int, str]:
+    headers = {
+        "User-Agent": MAIL_USER_AGENT,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        **extra_headers,
+    }
+    req = request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        method="POST",
+        headers=headers,
+    )
     try:
-        context = ssl.create_default_context()
-        with smtplib.SMTP(host, port, timeout=20) as smtp:
-            smtp.starttls(context=context)
-            if user and password:
-                smtp.login(user, password)
-            smtp.send_message(msg)
-    except (OSError, smtplib.SMTPException) as exc:
+        with request.urlopen(req, timeout=timeout) as resp:
+            raw = resp.read().decode("utf-8", errors="replace")
+            return int(resp.status), raw
+    except error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace") if exc.fp else str(exc)
+        return int(exc.code), raw
+    except error.URLError as exc:
+        return 0, str(exc)
+
+
+def _try_brevo(
+    to_addr: str, *, subject: str, text: str, html: str
+) -> DeliveryResult | None:
+    cfg = _merged_settings()
+    api_key = cfg.get("brevo_api_key") or ""
+    if not api_key:
+        return None
+    from_addr = _iris_from_email(cfg)
+    if "@" not in from_addr:
+        return None
+    status, raw = _http_post_json(
+        "https://api.brevo.com/v3/smtp/email",
+        {
+            "sender": {"name": BRAND_NAME, "email": from_addr},
+            "to": [{"email": to_addr}],
+            "subject": subject,
+            "htmlContent": html,
+            "textContent": text,
+            "replyTo": {"name": BRAND_NAME, "email": from_addr},
+        },
+        {"api-key": api_key},
+    )
+    if 200 <= status < 300:
+        return DeliveryResult(
+            ok=True,
+            channel="email",
+            destination=to_addr,
+            mode="brevo",
+            detail="Email inviata da Iris Nous.",
+        )
+    return DeliveryResult(
+        ok=False,
+        channel="email",
+        destination=to_addr,
+        mode="brevo",
+        detail=f"Invio Brevo non riuscito: {raw[:240]}",
+    )
+
+
+def _try_sendgrid(
+    to_addr: str, *, subject: str, text: str, html: str
+) -> DeliveryResult | None:
+    cfg = _merged_settings()
+    api_key = cfg.get("sendgrid_api_key") or ""
+    if not api_key:
+        return None
+    from_addr = _iris_from_email(cfg)
+    if "@" not in from_addr:
+        return None
+    status, raw = _http_post_json(
+        "https://api.sendgrid.com/v3/mail/send",
+        {
+            "personalizations": [{"to": [{"email": to_addr}]}],
+            "from": {"email": from_addr, "name": BRAND_NAME},
+            "reply_to": {"email": from_addr, "name": BRAND_NAME},
+            "subject": subject,
+            "content": [
+                {"type": "text/plain", "value": text},
+                {"type": "text/html", "value": html},
+            ],
+        },
+        {"Authorization": f"Bearer {api_key}"},
+    )
+    if status in {200, 202}:
+        return DeliveryResult(
+            ok=True,
+            channel="email",
+            destination=to_addr,
+            mode="sendgrid",
+            detail="Email inviata da Iris Nous.",
+        )
+    return DeliveryResult(
+        ok=False,
+        channel="email",
+        destination=to_addr,
+        mode="sendgrid",
+        detail=f"Invio SendGrid non riuscito: {raw[:240]}",
+    )
+
+
+def _github_client_payload(
+    to_addr: str, subject: str, text: str, html: str
+) -> dict[str, str]:
+    """Keep repository_dispatch under GitHub's ~10 KB client_payload limit."""
+    payload: dict[str, str] = {
+        "to": (to_addr or "").strip()[:254],
+        "subject": (subject or BRAND_NAME)[:180],
+        "text": (text or "")[:4500],
+    }
+    html_cut = (html or "")[:3500]
+    if html_cut:
+        trial = {"event_type": "iris-mail", "client_payload": {**payload, "html": html_cut}}
+        if len(json.dumps(trial)) < 9000:
+            payload["html"] = html_cut
+    return payload
+
+
+def _try_github_relay(
+    to_addr: str, *, subject: str, text: str, html: str
+) -> DeliveryResult | None:
+    """Send from Iris Gmail via GitHub Actions (HTTPS), because Render free blocks SMTP."""
+    cfg = _merged_settings()
+    token = cfg.get("github_mail_token") or ""
+    repo = (cfg.get("github_mail_repo") or "").strip()
+    if not token or "/" not in repo:
+        return None
+    status, raw = _http_post_json(
+        f"https://api.github.com/repos/{repo}/dispatches",
+        {
+            "event_type": "iris-mail",
+            "client_payload": _github_client_payload(to_addr, subject, text, html),
+        },
+        {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+    )
+    if status in {204, 200}:
+        return DeliveryResult(
+            ok=True,
+            channel="email",
+            destination=to_addr,
+            mode="github",
+            detail="Email inviata da Iris Nous.",
+        )
+    return DeliveryResult(
+        ok=False,
+        channel="email",
+        destination=to_addr,
+        mode="github",
+        detail=f"Invio Gmail non riuscito: {raw[:240]}",
+    )
+
+
+def _try_resend(
+    to_addr: str, *, subject: str, text: str, html: str
+) -> DeliveryResult | None:
+    cfg = _merged_settings()
+    api_key = cfg.get("resend_api_key") or ""
+    if not api_key:
+        return None
+    from_header = _resend_from_header(cfg)
+    if "resend.dev" in from_header.lower():
+        return None
+    reply = (cfg.get("smtp_from") or cfg.get("smtp_user") or "").strip()
+    body: dict[str, Any] = {
+        "from": from_header,
+        "to": [to_addr],
+        "subject": subject,
+        "text": text,
+        "html": html,
+    }
+    if reply and "@" in reply:
+        body["reply_to"] = reply
+    payload = json.dumps(body).encode("utf-8")
+    req = request.Request(
+        "https://api.resend.com/emails",
+        data=payload,
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            # Resend/Cloudflare 403 code 1010 if User-Agent is missing.
+            "User-Agent": "IrisNous/1.0 (+https://iris-nous.onrender.com)",
+        },
+    )
+    try:
+        with request.urlopen(req, timeout=20) as resp:
+            if resp.status >= 400:
+                raw = resp.read().decode("utf-8", errors="replace")
+                return DeliveryResult(
+                    ok=False,
+                    channel="email",
+                    destination=to_addr,
+                    mode="resend",
+                    detail=f"Invio Resend non riuscito (HTTP {resp.status}): {raw[:200]}",
+                )
+    except error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace") if exc.fp else str(exc)
         return DeliveryResult(
             ok=False,
             channel="email",
             destination=to_addr,
-            mode="smtp",
-            detail=f"Invio email non riuscito: {exc}",
+            mode="resend",
+            detail=f"Invio Resend non riuscito: {raw[:240]}",
+        )
+    except error.URLError as exc:
+        return DeliveryResult(
+            ok=False,
+            channel="email",
+            destination=to_addr,
+            mode="resend",
+            detail=f"Invio Resend non riuscito: {exc}",
         )
     return DeliveryResult(
         ok=True,
         channel="email",
         destination=to_addr,
-        mode="smtp",
-        detail="Codice inviato via email.",
+        mode="resend",
+        detail="Email inviata da Iris Nous.",
     )
 
 
-def _try_twilio(to_e164: str, *, body: str) -> DeliveryResult | None:
-    sid = _env("BCI_IOT_TWILIO_ACCOUNT_SID")
-    token = _env("BCI_IOT_TWILIO_AUTH_TOKEN")
-    from_num = _env("BCI_IOT_TWILIO_FROM")
-    if not sid or not token or not from_num:
-        return None
-    url = f"https://api.twilio.com/2010-04-01/Accounts/{sid}/Messages.json"
-    data = parse.urlencode({"To": to_e164, "From": from_num, "Body": body}).encode()
-    req = request.Request(url, data=data, method="POST")
-    import base64
+def _build_message(
+    *,
+    to_addr: str,
+    from_addr: str,
+    subject: str,
+    text: str,
+    html: str,
+) -> EmailMessage:
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = formataddr((BRAND_NAME, from_addr))
+    msg["To"] = to_addr
+    msg["Reply-To"] = from_addr
+    msg["Date"] = formatdate(localtime=False)
+    msg["Message-ID"] = make_msgid(domain="iris-nous.onrender.com")
+    msg["X-Mailer"] = BRAND_NAME
+    msg["List-Unsubscribe"] = f"<mailto:{from_addr}?subject=unsubscribe>"
+    msg.set_content(text)
+    msg.add_alternative(html, subtype="html")
+    return msg
 
-    auth = base64.b64encode(f"{sid}:{token}".encode()).decode()
-    req.add_header("Authorization", f"Basic {auth}")
-    req.add_header("Content-Type", "application/x-www-form-urlencoded")
+
+def _try_smtp(
+    to_addr: str, *, subject: str, text: str, html: str
+) -> DeliveryResult | None:
+    cfg = _merged_settings()
+    host = (cfg.get("smtp_host") or "").strip()
+    user = (cfg.get("smtp_user") or "").strip()
+    password = (cfg.get("smtp_password") or "").strip()
+    from_addr = (cfg.get("smtp_from") or user or "").strip()
+    if from_addr == DEFAULT_FROM_EMAIL and user:
+        from_addr = user
+    if not host or not from_addr or not password:
+        return None
+    if _smtp_blocked_here():
+        return DeliveryResult(
+            ok=False,
+            channel="email",
+            destination=to_addr,
+            mode="smtp",
+            detail=(
+                "Gmail SMTP non è raggiungibile dal piano free di Render "
+                "(porte 587/465 bloccate). Iris usa Resend via HTTPS."
+            ),
+        )
+    if not user:
+        user = from_addr
+    configured = int(cfg.get("smtp_port") or "587")
+    ports: list[int] = []
+    for port in (configured, 587, 465):
+        if port not in ports:
+            ports.append(port)
+    msg = _build_message(
+        to_addr=to_addr,
+        from_addr=from_addr,
+        subject=subject,
+        text=text,
+        html=html,
+    )
+    errors: list[str] = []
+    context = ssl.create_default_context()
+    for port in ports:
+        try:
+            if port == 465:
+                with smtplib.SMTP_SSL(host, port, timeout=20, context=context) as smtp:
+                    smtp.login(user, password)
+                    smtp.send_message(msg)
+            else:
+                with smtplib.SMTP(host, port, timeout=20) as smtp:
+                    smtp.ehlo()
+                    smtp.starttls(context=context)
+                    smtp.ehlo()
+                    smtp.login(user, password)
+                    smtp.send_message(msg)
+            return DeliveryResult(
+                ok=True,
+                channel="email",
+                destination=to_addr,
+                mode="smtp",
+                detail="Email inviata da Iris Nous.",
+            )
+        except (OSError, smtplib.SMTPException) as exc:
+            errors.append(f"{host}:{port} {exc}")
+    return DeliveryResult(
+        ok=False,
+        channel="email",
+        destination=to_addr,
+        mode="smtp",
+        detail="Invio email non riuscito: " + " | ".join(errors)[:400],
+    )
+
+
+def _try_http_mail(
+    to_addr: str, *, subject: str, text: str, html: str
+) -> DeliveryResult | None:
+    """Reach the user's inbox from Render even when Gmail SMTP is not set."""
+    dest = (to_addr or "").strip()
+    if "@" not in dest or "." not in dest.split("@")[-1]:
+        return None
+    payload = json.dumps(
+        {
+            "name": BRAND_NAME,
+            "_subject": subject[:160],
+            "_template": "box",
+            "_captcha": "false",
+            "_honey": "",
+            "message": text,
+        }
+    ).encode("utf-8")
+    req = request.Request(
+        f"https://formsubmit.co/ajax/{dest}",
+        data=payload,
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "IrisNous/1.0",
+            "Origin": "https://iris-nous.onrender.com",
+            "Referer": "https://iris-nous.onrender.com/chatta",
+        },
+    )
     try:
         with request.urlopen(req, timeout=20) as resp:
+            raw = resp.read().decode("utf-8", errors="replace")
+            data: dict[str, Any] = {}
+            try:
+                parsed = json.loads(raw)
+                if isinstance(parsed, dict):
+                    data = parsed
+            except json.JSONDecodeError:
+                data = {}
+            success = str(data.get("success", "")).lower() in {"true", "1", "yes"}
+            if success or (resp.status < 300 and "FormSubmit" in raw):
+                return DeliveryResult(
+                    ok=True,
+                    channel="email",
+                    destination=dest,
+                    mode="http",
+                    detail="Email inviata da Iris Nous.",
+                )
             if resp.status >= 400:
                 return DeliveryResult(
                     ok=False,
-                    channel="phone",
-                    destination=to_e164,
-                    mode="twilio",
-                    detail=f"Invio SMS non riuscito (HTTP {resp.status}).",
+                    channel="email",
+                    destination=dest,
+                    mode="http",
+                    detail=f"Invio HTTP non riuscito (HTTP {resp.status}): {raw[:180]}",
                 )
+            return DeliveryResult(
+                ok=False,
+                channel="email",
+                destination=dest,
+                mode="http",
+                detail=f"Invio HTTP non riuscito: {raw[:180]}",
+            )
+    except error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace") if exc.fp else str(exc)
+        return DeliveryResult(
+            ok=False,
+            channel="email",
+            destination=dest,
+            mode="http",
+            detail=f"Invio HTTP non riuscito: {raw[:240]}",
+        )
     except error.URLError as exc:
         return DeliveryResult(
             ok=False,
-            channel="phone",
-            destination=to_e164,
-            mode="twilio",
-            detail=f"Invio SMS non riuscito: {exc}",
+            channel="email",
+            destination=dest,
+            mode="http",
+            detail=f"Invio HTTP non riuscito: {exc}",
         )
-    return DeliveryResult(
-        ok=True,
-        channel="phone",
-        destination=to_e164,
-        mode="twilio",
-        detail="Codice inviato via SMS.",
-    )

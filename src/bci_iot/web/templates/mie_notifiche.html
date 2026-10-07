@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ t('Le mie chat') }} · Iris{% endblock %}
+{% block body_class %}page-private page-mie-chat{% endblock %}
+{% block main_class %}shell private-shell{% endblock %}
+{% block content %}
+<section class="private-area mie-chat-area">
+  <header class="private-welcome mie-chat-welcome">
+    <h1>{{ t('Le mie chat') }}</h1>
+    <p class="lede">{{ t('Qui trovi le conversazioni con il team: aperte e chiuse.') }}</p>
+  </header>
+
+  <div class="panel mie-chat-panel">
+    <div class="mie-chat-panel-head">
+      <h2>{{ t('Chat con Iris') }}</h2>
+      <a class="btn primary mie-chat-new" href="/chatta">{{ t('Chatta con noi') }}</a>
+    </div>
+    {% if threads %}
+    <ul class="user-notice-list chat-history-list mie-chat-list">
+      {% for trow in threads %}
+      <li>
+        <a href="/chatta?thread={{ trow.id }}">
+          <strong>{{ trow.subject or t('Chatta con noi') }}</strong>
+          <div class="muted">{{ trow.updated_at | it_time(lang) }} ·
+            {% if trow.closed_at %}{{ t('Chiusa') }}
+            {% elif trow.status == 'replied' %}{{ t('Aperta · risposta del team') }}
+            {% elif trow.status == 'viewed' %}{{ t('Aperta · in lettura') }}
+            {% else %}{{ t('Aperta · in attesa') }}{% endif %}
+          </div>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="mie-chat-empty">
+      <p class="form-hint">{{ t('Ancora nessuna conversazione. Quando ti serve, scrivici da Chatta con noi.') }}</p>
+      <a class="btn primary" href="/chatta">{{ t('Chatta con noi') }}</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="panel mie-chat-panel mie-chat-notices">
+    <h2>{{ t('Avvisi di sistema') }}</h2>
+    {% if notices %}
+    <ul class="user-notice-list">
+      {% for n in notices %}
+      <li>
+        <article class="mie-notice-card">
+          <strong>{{ n.title }}</strong>
+          <p>{{ n.body }}</p>
+          <time class="muted">{{ n.created_at | it_time(lang) }}</time>
+        </article>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">{{ t('Nessun avviso di sistema per ora.') }}</p>
+    {% endif %}
+  </div>
+</section>
+<script>
+(function () {
+  let last = {{ user_unread }};
+  async function tick() {
+    try {
+      const res = await fetch("/le-mie-notifiche/stato", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Number(data.unread) !== last || Number(data.threads) !== {{ threads|length }}) {
+        location.reload();
+      }
+    } catch (e) {}
+  }
+  setInterval(tick, 5000);
+})();
+</script>
+{% endblock %}
