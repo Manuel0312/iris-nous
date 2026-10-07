@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>it</string>
+	<key>CFBundleDisplayName</key>
+	<string>Iris Nous</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>iris_nous_mobile</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(FLUTTER_BUILD_NAME)</string>
+	<key>CFBundleVersion</key>
+	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>processing</string>
+	</array>
+	<!-- Notifiche: testo mostrato dal sistema (EN richiesto da Apple; IT in README) -->
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>Iris Nous uses notifications to tell you when a call or music event was sent to your Iris account. / Iris usa le notifiche per avvisarti quando un evento chiamata o musica è stato inviato al tuo account.</string>
+	<!-- Microfono: NON richiesto in questa versione (evitare se non serve). -->
+	<!-- NSMicrophoneUsageDescription omesso di proposito. -->
+	<!-- Tracking: NON usato. -->
+	<!-- NSUserTrackingUsageDescription omesso di proposito. -->
+	<!--
+	  CallKit / CXCallObserver: osservare lo stato chiamata cellulare non richiede
+	  una privacy string dedicata. Non possiamo rispondere/rifiutare la tipica
+	  chiamata cellulare; un CallKit provider VoIP sarebbe una fase successiva.
+	-->
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+</dict>
+</plist>

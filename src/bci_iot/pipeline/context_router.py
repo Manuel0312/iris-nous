@@ -166,6 +166,24 @@ class ContextRouter:
         self.world.track_hint = ""
         return self.status(message="Musica ferma.")
 
+    def end_call(self) -> dict[str, Any]:
+        """Clear incoming-call focus (cellular call ended / dismissed)."""
+
+        who = self.world.caller_name or ""
+        self.world.incoming_call = False
+        self.world.caller_name = ""
+        if who:
+            return self.status(message=f"Chiamata di {who} terminata.")
+        return self.status(message="Chiamata terminata.")
+
+    def end_call(self) -> dict[str, Any]:
+        """Clear incoming-call focus (companion CallObserver / telephony ended)."""
+
+        who = self.world.caller_name or "chiamata"
+        self.world.incoming_call = False
+        self.world.caller_name = ""
+        return self.status(message=f"Chiamata terminata ({who}).")
+
     def clear_events(self) -> dict[str, Any]:
         self.world = ContextWorld()
         return self.status(message="Niente in corso al momento.")

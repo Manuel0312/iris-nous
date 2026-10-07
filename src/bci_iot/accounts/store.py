@@ -27,7 +27,7 @@ from bci_iot.accounts.otp import (
     otp_matches,
 )
 from bci_iot.accounts.phone_countries import format_phone_display, normalize_phone
-from bci_iot.accounts.security import hash_password, password_strength, verify_password
+from bci_iot.accounts.security import hash_password, password_strength, secrets_equal, verify_password
 from bci_iot.accounts.validators import normalize_email, validate_person_name
 
 
@@ -977,6 +977,10 @@ class ProfileStore:
         profile.phone_paired = False
         profile.phone_last_seen_at = ""
         profile.pairing_code = new_pairing_code()
+        stats = dict(profile.usage_stats or {})
+        stats.pop("companion_device_token", None)
+        stats.pop("companion_issued_at", None)
+        profile.usage_stats = stats
         self.save(profile)
         return profile
 
@@ -985,6 +989,44 @@ class ProfileStore:
         if profile is None:
             raise KeyError(f"unknown user: {username}")
         profile.phone_last_seen_at = _utc_now()
+        self.save(profile)
+        return profile
+
+    def issue_companion_token(self, username: str) -> tuple[UserProfile, str]:
+        """Mint a long-lived device token for the Iris Nous Flutter companion app."""
+
+        import secrets as _secrets
+
+        profile = self.get(username)
+        if profile is None:
+            raise KeyError(f"unknown user: {username}")
+        token = _secrets.token_urlsafe(32)
+        stats = dict(profile.usage_stats or {})
+        stats["companion_device_token"] = token
+        stats["companion_issued_at"] = _utc_now()
+        profile.usage_stats = stats
+        profile.phone_last_seen_at = _utc_now()
+        self.save(profile)
+        return profile, token
+
+    def find_by_companion_token(self, token: str) -> UserProfile | None:
+        raw = (token or "").strip()
+        if not raw or len(raw) < 16:
+            return None
+        for profile in self.list_profiles():
+            stored = str((profile.usage_stats or {}).get("companion_device_token") or "")
+            if stored and secrets_equal(stored, raw):
+                return profile
+        return None
+
+    def clear_companion_token(self, username: str) -> UserProfile:
+        profile = self.get(username)
+        if profile is None:
+            raise KeyError(f"unknown user: {username}")
+        stats = dict(profile.usage_stats or {})
+        stats.pop("companion_device_token", None)
+        stats.pop("companion_issued_at", None)
+        profile.usage_stats = stats
         self.save(profile)
         return profile
 

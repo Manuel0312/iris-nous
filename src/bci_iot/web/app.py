@@ -193,6 +193,23 @@ class ContextEventRequest(BaseModel):
 class ContextDecideRequest(BaseModel):
     answer: str = Field(min_length=1, max_length=32)
 
+
+class CompanionPairRequest(BaseModel):
+    """Pair the Flutter companion: code (+ optional username/password if no session)."""
+
+    code: str = Field(min_length=4, max_length=12)
+    username: str = Field(default="", max_length=64)
+    password: str = Field(default="", max_length=128)
+
+
+class CompanionEventRequest(BaseModel):
+    """Ingest live phone events from the companion (CallObserver / telephony)."""
+
+    event: str = Field(min_length=1, max_length=32)
+    caller: str = Field(default="", max_length=64)
+    track: str = Field(default="", max_length=128)
+
+
 def _session_username(request: Request) -> str | None:
 
     value = request.session.get("username")
@@ -2980,6 +2997,214 @@ def create_app(
                 "focus": router.focus_snapshot().to_dict(),
             },
         }
+
+    def _companion_token_from_request(request: Request) -> str:
+        auth = (request.headers.get("authorization") or "").strip()
+        if auth.lower().startswith("bearer "):
+            return auth[7:].strip()
+        return (request.headers.get("x-iris-device-token") or "").strip()
+
+    def _resolve_companion_user(
+        request: Request,
+        profiles: ProfileStore,
+        *,
+        require_paired: bool = True,
+    ) -> UserProfile:
+        """Session cookie or companion device token (Flutter app)."""
+
+        token = _companion_token_from_request(request)
+        if token:
+            profile = profiles.find_by_companion_token(token)
+            if profile is None:
+                raise HTTPException(status_code=401, detail="Token companion non valido")
+            if require_paired and not profile.phone_paired:
+                raise HTTPException(status_code=403, detail="Telefono non associato")
+            return profile
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        profile = profiles.get(username)
+        if profile is None:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        if require_paired and not profile.phone_paired:
+            raise HTTPException(status_code=403, detail="Telefono non associato")
+        return profile
+
+    def _companion_status_payload(
+        profiles: ProfileStore,
+        profile: UserProfile,
+        *,
+        device_token: str = "",
+    ) -> dict:
+        from bci_iot.pipeline.context_router import get_context_router
+
+        profiles.touch_phone(profile.username)
+        router = get_context_router(profile.username)
+        world = router.world
+        events = list(app.state.phone_queues.get(profile.username) or [])
+        payload = {
+            "status": "ok",
+            "username": profile.username,
+            "phone_paired": bool(profile.phone_paired),
+            "spotify_linked": bool(profile.spotify_linked),
+            "events": events,
+            "context": {
+                "incoming_call": bool(world.incoming_call),
+                "caller_name": world.caller_name or "",
+                "unread_message": bool(world.unread_message),
+                "message_from": world.message_from or "",
+                "music_playing": bool(world.music_playing),
+                "track_hint": world.track_hint or "",
+                "focus": router.focus_snapshot().to_dict(),
+            },
+            "limits": {
+                "cellular_answer_reject": False,
+                "sms_read": False,
+                "note": (
+                    "L’app può rilevare lo stato chiamata (ingresso/fine) e aggiornare Iris; "
+                    "non può rispondere o rifiutare la tipica chiamata cellulare del sistema."
+                ),
+            },
+        }
+        if device_token:
+            payload["device_token"] = device_token
+        return payload
+
+    @app.post("/api/companion/pair")
+    def api_companion_pair(
+        request: Request,
+        body: CompanionPairRequest,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        """Login opzionale + codice a 6 cifre → token dispositivo per l’app Flutter."""
+
+        username = _session_username(request)
+        if not username:
+            user = (body.username or "").strip()
+            pwd = body.password or ""
+            if not user or not pwd:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Serve login (sessione) oppure username e password con il codice.",
+                )
+            auth_profile = profiles.authenticate(user, pwd)
+            if auth_profile is None:
+                raise HTTPException(status_code=401, detail="Credenziali non valide")
+            username = auth_profile.username
+            request.session["username"] = username
+        profiles.ensure_headset_pairing(username)
+        try:
+            profiles.confirm_phone_pairing(username, body.code)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        profile, token = profiles.issue_companion_token(username)
+        return _companion_status_payload(profiles, profile, device_token=token)
+
+    @app.post("/api/companion/heartbeat")
+    def api_companion_heartbeat(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        profile = _resolve_companion_user(request, profiles)
+        return _companion_status_payload(profiles, profile)
+
+    @app.get("/api/companion/status")
+    def api_companion_status(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        profile = _resolve_companion_user(request, profiles, require_paired=False)
+        return _companion_status_payload(profiles, profile)
+
+    @app.post("/api/companion/event")
+    def api_companion_event(
+        request: Request,
+        body: CompanionEventRequest,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        """Ingest call/music signals from the companion into context_router."""
+
+        from bci_iot.pipeline.context_router import get_context_router
+
+        profile = _resolve_companion_user(request, profiles)
+        router = get_context_router(profile.username)
+        ev = body.event.strip().lower().replace("-", "_")
+        caller = (body.caller or "").strip() or "sconosciuto"
+
+        if ev in {"call_incoming", "call_ringing", "incoming_call"}:
+            payload = router.simulate_call(caller=caller)
+            event = _push_phone_bridge_event(
+                profile.username,
+                action="context.incoming_call",
+                label=f"Chiamata in arrivo (app): {caller}",
+                kind="incoming_call",
+                caller=caller,
+                source="companion_app",
+            )
+            payload["phone_event"] = event
+            payload["companion"] = _companion_status_payload(profiles, profile)
+            return payload
+
+        if ev in {"call_ended", "call_end", "ended"}:
+            payload = router.end_call()
+            event = _push_phone_bridge_event(
+                profile.username,
+                action="context.call_ended",
+                label="Chiamata terminata (app)",
+                kind="call_ended",
+                source="companion_app",
+            )
+            payload["phone_event"] = event
+            payload["companion"] = _companion_status_payload(profiles, profile)
+            return payload
+
+        if ev in {"music_playing", "music_on", "music"}:
+            payload = router.set_music(True, track=body.track)
+            event = _push_phone_bridge_event(
+                profile.username,
+                action="context.music_on",
+                label="Musica in riproduzione (app)",
+                kind="music_on",
+                source="companion_app",
+            )
+            payload["phone_event"] = event
+            payload["companion"] = _companion_status_payload(profiles, profile)
+            return payload
+
+        if ev in {"music_stopped", "music_off"}:
+            payload = router.set_music(False)
+            event = _push_phone_bridge_event(
+                profile.username,
+                action="context.music_off",
+                label="Musica ferma (app)",
+                kind="music_off",
+                source="companion_app",
+            )
+            payload["phone_event"] = event
+            payload["companion"] = _companion_status_payload(profiles, profile)
+            return payload
+
+        raise HTTPException(
+            status_code=400,
+            detail="Evento sconosciuto. Usa: call_incoming, call_ended, music_playing, music_stopped.",
+        )
+
+    @app.post("/api/companion/music/next")
+    def api_companion_music_next(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        """Next track via Iris Spotify OAuth (no headset impulse — companion button)."""
+
+        from bci_iot.integrations.music_control import run_spotify_action
+        from bci_iot.pipeline.context_router import get_context_router
+
+        profile = _resolve_companion_user(request, profiles)
+        queue = app.state.phone_queues.setdefault(profile.username, [])
+        music = run_spotify_action(profiles, profile, "next_track", queue=queue)
+        if music.get("status") == "ok":
+            get_context_router(profile.username).set_music(True)
+        return {**music, "via": "companion_app"}
 
     @app.get("/auth/spotify/start")
     def spotify_start(

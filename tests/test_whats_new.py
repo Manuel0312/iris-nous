@@ -32,8 +32,9 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
         or "Hub «La tua cuffia»" in page.text
         or "Privacy e chiarezza demo" in page.text
     )
+    assert "App companion Android e iPhone" in page.text
+    assert "Chiamate rilevate dall’app → In ascolto" in page.text
     assert "Telefono: associa, Spotify, ponte chiamate" in page.text
-    assert "Onesti su cosa è reale" in page.text
     assert "In ascolto, senza accendere nulla" in page.text
     assert "whats-new-body" in page.text
     assert "whats-new-problem" not in page.text

@@ -10,6 +10,22 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.39",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "App companion Android e iPhone",
+                "Per usare il telefono con Iris serviva il browser o scorciatoie; non c’era un’app unica da configurare.",
+                "Ora c’è il progetto Flutter in mobile/: una sola app per Android e iPhone (associa, permessi, stato). Su /telefono-setup trovi il riferimento; TestFlight/Play arriveranno dopo.",
+            ),
+            (
+                "Chiamate rilevate dall’app → In ascolto",
+                "Il focus chiamata su Iris si aggiornava solo con simulazioni dal sito.",
+                "Nuove API companion ricevono call_incoming / call_ended (e musica) dal telefono associato e aggiornano il contesto sempre in ascolto — senza fingere di rispondere o rifiutare la chiamata cellulare.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.38",
         "intro": WHATS_NEW_INTRO,
         "entries": (
