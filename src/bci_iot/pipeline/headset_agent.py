@@ -124,6 +124,11 @@ IMPULSE_KIND_ALIASES: dict[str, str] = {
 
 }
 
+# Live SI/NO: jitter around calibration centroid (relative to |feature|).
+# Small enough that classify almost always matches the button; still not identical.
+YN_LIVE_NOISE_REL = 0.035
+YN_LIVE_NOISE_FLOOR = 0.008
+
 
 
 # Legacy colour keys → prior commands (colour passo removed from UI; keep mapping).
@@ -653,6 +658,26 @@ class SimulatedHeadsetAgent:
                 out.append(imp)
         return out
 
+    def _append_impulse(self, event: ImpulseEvent | dict[str, Any]) -> None:
+        """Append impulse; never drop SI/NO calibration templates when trimming."""
+
+        payload = event.to_dict() if isinstance(event, ImpulseEvent) else dict(event)
+        self.memory.impulses.append(payload)
+        templates = [
+            i
+            for i in self.memory.impulses
+            if isinstance(i, dict) and i.get("is_calibration_template") is True
+        ]
+        others = [
+            i
+            for i in self.memory.impulses
+            if not (isinstance(i, dict) and i.get("is_calibration_template") is True)
+        ]
+        # Cap templates too (keep newest) so memory cannot grow without bound.
+        templates = templates[-20:]
+        max_others = max(0, 40 - len(templates))
+        self.memory.impulses = templates + others[-max_others:]
+
     @staticmethod
     def _feature_centroid(templates: list[dict[str, Any]]) -> np.ndarray | None:
         feat_lists: list[list[float]] = []
@@ -722,6 +747,44 @@ class SimulatedHeadsetAgent:
             "margin": round(float(abs(score_si - score_no)), 4),
             "used_templates_count": used,
         }
+
+    def _synthesize_yn_live_features(self, yn: str) -> tuple[np.ndarray, list[str], dict[str, Any]]:
+        """New impulse ≈ calibration centroid + small noise (SI neighborhood if yn=SI)."""
+
+        tmpls = self._yn_calibration_templates(yn)
+        if not tmpls:
+            raise ValueError(
+                f"Manca il modello di calibrazione {yn}: completa SÌ e NO su /cuffia."
+            )
+        centroid = self._feature_centroid(tmpls)
+        if centroid is None or centroid.size == 0:
+            raise ValueError(
+                f"Il modello {yn} non ha feature utilizzabili: ripeti la calibrazione."
+            )
+        scale = YN_LIVE_NOISE_FLOOR + YN_LIVE_NOISE_REL * (0.2 + np.abs(centroid))
+        noise = self._rng.normal(0.0, 1.0, size=centroid.shape) * scale
+        varied = centroid + noise
+        # Guarantee not bitwise-identical to the centroid / last template.
+        if np.allclose(varied, centroid, rtol=0.0, atol=1e-12):
+            varied = centroid + scale * 0.5
+        last = tmpls[-1]
+        names = list(last.get("feature_names") or [])
+        if not names:
+            names = [f"f{i}" for i in range(int(varied.size))]
+        meta = {
+            "centroid": [round(float(x), 6) for x in centroid.tolist()],
+            "template_count": len(tmpls),
+            "last_template_features": [float(x) for x in (last.get("features") or [])],
+            "alpha": last.get("alpha"),
+            "beta": last.get("beta"),
+            "intensity": last.get("intensity"),
+            "is_clean": bool(last.get("is_clean", True)),
+            "qc_flags": list(last.get("qc_flags") or []),
+            "feature_names": names,
+            "window_stats": dict(last.get("window_stats") or {}),
+            "corpus_source": str(last.get("corpus_source") or ""),
+        }
+        return varied.astype(np.float64), names, meta
 
     def _build_replay_event(
         self,
@@ -912,10 +975,12 @@ class SimulatedHeadsetAgent:
     ) -> dict[str, Any]:
         """Headset receives a mental impulse and stores it in memory.
 
-        For SI/NO live use: always acquire a *new* EEG window (button kind only
-        biases the generation prior), then classify against calibrated SI/NO
-        feature templates. Pure calibration_replay is optional and disabled by
-        default (allow_calibration_replay); kept only as a non-primary hook.
+        Live SI/NO (classify_yn=True): synthesize a *new* feature vector near the
+        calibrated SI or NO centroid (button = intended thought neighborhood),
+        then classify by similarity. Requires both SI and NO templates.
+
+        Calibration (classify_yn=False): acquire a fresh EEG window and store it
+        as a labeled template. Non-SI/NO kinds still acquire windows as before.
         """
 
         if self.memory.power != "on":
@@ -931,13 +996,28 @@ class SimulatedHeadsetAgent:
         intended = yn or kind.strip().upper()
         si_tmpls = self._yn_calibration_templates("SI") if yn else []
         no_tmpls = self._yn_calibration_templates("NO") if yn else []
-        can_classify = bool(yn and classify_yn and si_tmpls and no_tmpls)
 
-        # Optional legacy hook: if explicitly allowed and templates exist for the
-        # intended label but classification is impossible, still prefer acquire.
-        if allow_calibration_replay and yn and not can_classify and (si_tmpls or no_tmpls):
-            # Prefer acquire+label over silent replay for thesis architecture.
-            pass
+        # Live path requires both centroids; never fall back to random PhysioNet.
+        if yn and classify_yn:
+            if not si_tmpls or not no_tmpls:
+                missing = []
+                if not si_tmpls:
+                    missing.append("SÌ")
+                if not no_tmpls:
+                    missing.append("NO")
+                raise ValueError(
+                    "Calibra prima "
+                    + " e ".join(missing)
+                    + " sulla cuffia: servono entrambi i modelli per riconoscere SÌ/NO."
+                )
+            return self._receive_yn_live(
+                yn,
+                intended=str(intended),
+                contact_mean=contact_mean,
+                colour_key=colour_key,
+            )
+
+        _ = allow_calibration_replay  # legacy hook; live path no longer uses pure replay
 
         note = ""
         classification: dict[str, Any] | None = None
@@ -959,6 +1039,11 @@ class SimulatedHeadsetAgent:
         qc = list(report.flags) if report is not None else []
         meta = corpus_meta() if source == "physionet_corpus" else {}
         feat_list = [round(float(x), 6) for x in features.values.tolist()]
+        feat_names = list(features.names)
+        is_clean = bool(features.is_clean)
+        window_shape = list(window.data.shape)
+        wstats = window_compact_stats(window)
+        corpus_src = str(meta.get("source") or "")
 
         is_template = False
         classified_answer = ""
@@ -966,23 +1051,7 @@ class SimulatedHeadsetAgent:
         sim_no: float | None = None
         used_templates = 0
 
-        if yn and can_classify:
-            classification = self.classify_yes_no(feat_list)
-            stored_kind = str(classification["label"] or yn)
-            classified_answer = stored_kind
-            sim_si = float(classification["score_si"])
-            sim_no = float(classification["score_no"])
-            used_templates = int(classification["used_templates_count"])
-            is_template = False
-            other = "NO" if stored_kind == "SI" else "SI"
-            other_score = sim_no if stored_kind == "SI" else sim_si
-            self_score = sim_si if stored_kind == "SI" else sim_no
-            note = (
-                f"Riconosciuto come {stored_kind} "
-                f"(sim {self_score:.2f} vs {other} {other_score:.2f}; "
-                f"{used_templates} modelli)."
-            )
-        elif yn:
+        if yn:
             # Building / extending calibration templates: label = intended thought.
             stored_kind = yn
             is_template = True
@@ -992,8 +1061,8 @@ class SimulatedHeadsetAgent:
                     f"Impulso {yn} salvato come modello di calibrazione "
                     "(servono SÌ e NO per classificare)."
                 )
-            elif not si_tmpls or not no_tmpls:
-                missing = "SI" if not si_tmpls else "NO"
+            elif (yn == "SI" and not no_tmpls) or (yn == "NO" and not si_tmpls):
+                missing = "NO" if yn == "SI" else "SI"
                 note = (
                     f"Impulso {yn} salvato come modello; "
                     f"manca ancora almeno un modello {missing} per classificare."
@@ -1010,13 +1079,13 @@ class SimulatedHeadsetAgent:
             alpha=round(alpha, 4),
             beta=round(beta, 4),
             intensity=round(intensity, 1),
-            is_clean=bool(features.is_clean),
+            is_clean=is_clean,
             contact_mean=round(contact_mean, 3),
             qc_flags=qc,
             features=feat_list,
-            feature_names=list(features.names),
-            window_stats=window_compact_stats(window),
-            corpus_source=str(meta.get("source") or ""),
+            feature_names=feat_names,
+            window_stats=wstats,
+            corpus_source=corpus_src,
             replayed_from_calibration=False,
             is_calibration_template=is_template,
             intended_kind=str(intended),
@@ -1025,8 +1094,7 @@ class SimulatedHeadsetAgent:
             similarity_no=sim_no,
         )
 
-        self.memory.impulses.append(event.to_dict())
-        self.memory.impulses = self.memory.impulses[-40:]
+        self._append_impulse(event)
         self.memory.last_impulse_at = event.timestamp
         self.memory.signal_path = source
         if colour_key:
@@ -1039,11 +1107,11 @@ class SimulatedHeadsetAgent:
 
         out: dict[str, Any] = {
             "impulse": event.to_dict(),
-            "features": features.values.tolist(),
-            "feature_names": list(features.names),
-            "is_clean": bool(features.is_clean),
+            "features": feat_list,
+            "feature_names": feat_names,
+            "is_clean": is_clean,
             "status": self.status(),
-            "window_shape": list(window.data.shape),
+            "window_shape": window_shape,
             "replayed_from_calibration": False,
             "classified_answer": classified_answer or None,
             "similarity_si": sim_si,
@@ -1056,6 +1124,93 @@ class SimulatedHeadsetAgent:
         if classification is not None:
             out["classification"] = classification
         return out
+
+    def _receive_yn_live(
+        self,
+        yn: str,
+        *,
+        intended: str,
+        contact_mean: float,
+        colour_key: str | None = None,
+    ) -> dict[str, Any]:
+        """Button SI/NO → centroid+noise in that neighborhood → classify → store."""
+
+        varied, feat_names, meta = self._synthesize_yn_live_features(yn)
+        feat_list = [round(float(x), 6) for x in varied.tolist()]
+        classification = self.classify_yes_no(feat_list)
+        stored_kind = str(classification["label"] or yn)
+        sim_si = float(classification["score_si"])
+        sim_no = float(classification["score_no"])
+        used_templates = int(classification["used_templates_count"])
+
+        if len(feat_list) >= 2:
+            alpha = round(float(feat_list[0]), 4)
+            beta = round(float(feat_list[1]), 4)
+        else:
+            alpha = round(float(meta.get("alpha") or 0.0), 4)
+            beta = round(float(meta.get("beta") or 0.0), 4)
+        intensity = round(float(np.clip(50.0 + 18.0 * (beta - alpha), 5.0, 98.0)), 1)
+
+        other = "NO" if stored_kind == "SI" else "SI"
+        other_score = sim_no if stored_kind == "SI" else sim_si
+        self_score = sim_si if stored_kind == "SI" else sim_no
+        note = (
+            f"Riconosciuto come {stored_kind} "
+            f"(sim {self_score:.2f} vs {other} {other_score:.2f}; "
+            f"{used_templates} modelli)."
+        )
+        source = "template_plus_noise"
+
+        event = ImpulseEvent(
+            kind=stored_kind,
+            timestamp=_utc_now(),
+            signal_source=source,
+            alpha=alpha,
+            beta=beta,
+            intensity=intensity,
+            is_clean=bool(meta.get("is_clean", True)),
+            contact_mean=round(contact_mean, 3),
+            qc_flags=list(meta.get("qc_flags") or []),
+            features=feat_list,
+            feature_names=feat_names,
+            window_stats=dict(meta.get("window_stats") or {}),
+            corpus_source=str(meta.get("corpus_source") or ""),
+            replayed_from_calibration=False,
+            is_calibration_template=False,
+            intended_kind=intended,
+            classified_answer=stored_kind,
+            similarity_si=sim_si,
+            similarity_no=sim_no,
+        )
+
+        self._append_impulse(event)
+        self.memory.last_impulse_at = event.timestamp
+        self.memory.signal_path = source
+        if colour_key:
+            key = colour_key.strip().upper()
+            counts = dict(self.memory.colour_counts)
+            counts[key] = int(counts.get(key) or 0) + 1
+            self.memory.colour_counts = counts
+        self.memory.phase = "ready"
+        self.save()
+
+        return {
+            "impulse": event.to_dict(),
+            "features": feat_list,
+            "feature_names": feat_names,
+            "is_clean": bool(meta.get("is_clean", True)),
+            "status": self.status(),
+            "window_shape": [],
+            "replayed_from_calibration": False,
+            "classified_answer": stored_kind,
+            "similarity_si": sim_si,
+            "similarity_no": sim_no,
+            "used_templates_count": used_templates,
+            "intended_kind": intended,
+            "message": note,
+            "classification": classification,
+            "signal_source": source,
+        }
 
     def mark_calibration_complete(self) -> None:
 

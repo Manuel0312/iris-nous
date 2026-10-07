@@ -2642,14 +2642,16 @@ def create_app(
 
         router = get_context_router(username)
         yn_hint = normalize_yes_no(body.kind)
-        # Live: classify vs templates. Calibration on /cuffia: store as templates.
-        classify = bool(router.live_mode and yn_hint is not None)
+        # Always-on after calibration: classify + apply to current focus.
+        # Before calibration complete (/cuffia): store SI/NO as templates.
+        calibrated = bool(getattr(agent.memory, "calibration_complete", False))
+        route_yn = bool(yn_hint is not None and calibrated)
 
         def _recv() -> dict:
             return agent.receive_impulse(
                 body.kind,
                 colour_key=body.colour_key or None,
-                classify_yn=classify if yn_hint is not None else True,
+                classify_yn=route_yn if yn_hint is not None else True,
             )
 
         try:
@@ -2658,7 +2660,7 @@ def create_app(
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
         out: dict = {"status": "ok", **payload}
-        if router.live_mode and yn_hint is not None:
+        if route_yn:
             classified = normalize_yes_no(
                 str(payload.get("classified_answer") or payload.get("impulse", {}).get("kind") or yn_hint)
             ) or yn_hint
@@ -3190,6 +3192,7 @@ def create_app(
             data_root=profiles.data_root,
         )
         router = get_context_router(profile.username)
+        router.live_mode = True  # always on — no user toggle
         return TEMPLATES.TemplateResponse(
             request,
             "contesto.html",
@@ -3225,7 +3228,8 @@ def create_app(
         username = _session_username(request)
         if not username:
             raise HTTPException(status_code=401, detail="Login required")
-        return get_context_router(username).set_live_mode(body.enabled)
+        # API kept for compatibility; live cannot be turned off.
+        return get_context_router(username).set_live_mode(True)
 
     @app.post("/api/context/event")
     def api_context_event(

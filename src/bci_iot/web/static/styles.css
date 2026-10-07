@@ -3681,7 +3681,7 @@ html[data-theme-resolved="dark"] .page-cuffia .cuffia-phone-stub .btn.ghost {
   }
 }
 
-/* Contesto live — focus + simulate + SÌ/NO */
+/* In ascolto (/contesto) — focus + demo events + SÌ/NO */
 .page-contesto .shell.private-shell {
   max-width: 40rem;
 }
@@ -3705,7 +3705,6 @@ html[data-theme-resolved="dark"] .page-cuffia .cuffia-phone-stub .btn.ghost {
   line-height: 1.25;
 }
 
-.page-contesto .contesto-live-row,
 .page-contesto .contesto-sim-actions {
   display: flex;
   flex-wrap: wrap;
@@ -3713,7 +3712,6 @@ html[data-theme-resolved="dark"] .page-cuffia .cuffia-phone-stub .btn.ghost {
   margin: 0.65rem 0 0.85rem;
 }
 
-.page-contesto .contesto-live-row .btn,
 .page-contesto .contesto-sim-actions .btn,
 .page-contesto .contesto-yn .btn {
   min-height: 2.75rem;

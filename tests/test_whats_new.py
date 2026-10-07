@@ -32,8 +32,9 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
         or "Hub «La tua cuffia»" in page.text
         or "Privacy e chiarezza demo" in page.text
     )
-    assert "SÌ/NO per similarità, non replay" in page.text
+    assert "In ascolto, senza accendere nulla" in page.text
+    assert "Pensa SÌ/NO vicino alla calibrazione" in page.text
     assert "whats-new-body" in page.text
     assert "whats-new-problem" not in page.text
     assert "Versioni precedenti" in page.text or "whats-new-history" in page.text
-    assert "SÌ/NO come in calibrazione" in page.text  # previous release still listed
+    assert "SÌ/NO per similarità, non replay" in page.text  # previous release still listed

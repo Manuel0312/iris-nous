@@ -1,49 +1,37 @@
 {% extends "base.html" %}
-{% block title %}{{ t('Contesto live') }} · Iris{% endblock %}
+{% block title %}{{ t('In ascolto') }} · Iris{% endblock %}
 {% block body_class %}page-private page-contesto{% endblock %}
 {% block main_class %}shell private-shell{% endblock %}
 {% block content %}
 <section class="private-area setup-guide calib-area contesto-area" id="contesto-root"
-         data-live="{{ '1' if ctx.live_mode else '0' }}"
          data-ready="{{ '1' if agent and agent.ready_for_impulses else '0' }}">
   <header class="setup-hero calib-hero contesto-hero">
-    <p class="eyebrow">{{ t('Contesto live') }}</p>
-    <h1>{{ t('SÌ / NO sul focus giusto') }}</h1>
-    <p class="lede">{{ t('La cuffia riconosce solo SÌ o NO. Il sito sceglie a cosa si applica, con priorità: chiamata > messaggio > musica.') }}</p>
+    <p class="eyebrow">{{ t('In ascolto') }}</p>
+    <h1>{{ t('Cosa sta succedendo') }}</h1>
+    <p class="lede">{{ t('La cuffia riconosce solo SÌ o NO. Iris lo applica a ciò che conta ora: prima le chiamate, poi i messaggi, poi la musica.') }}</p>
   </header>
 
   <p class="cuffia-mobile-hint muted">{{ t('Funziona dal browser dello smartphone: non serve il PC come intermediario.') }}</p>
 
   <article class="panel contesto-focus" id="focus-panel" aria-live="polite">
-    <p class="hub-kicker">{{ t('Focus attivo') }}</p>
+    <p class="hub-kicker">{{ t('Ora') }}</p>
     <h2 id="focus-prompt">{{ ctx.focus.prompt }}</h2>
     <p class="form-hint" id="focus-detail">{{ ctx.focus.detail }}</p>
     <ul class="detail-list compact" id="focus-meta">
-      <li><span>{{ t('Contesto') }}</span><strong id="focus-kind">{{ ctx.focus.kind }}</strong></li>
       <li><span>{{ t('SÌ') }}</span><strong id="focus-yes">{{ ctx.focus.yes_label }}</strong></li>
       <li><span>{{ t('NO') }}</span><strong id="focus-no">{{ ctx.focus.no_label }}</strong></li>
     </ul>
   </article>
 
   <div class="form-block panel">
-    <h2>{{ t('Modalità live') }}</h2>
-    <p class="form-hint">{{ t('Con live acceso, Pensa SÌ / Pensa NO dalla cuffia (o i tasti qui) passano dal router di contesto.') }}</p>
-    <div class="contesto-live-row">
-      <button type="button" class="btn primary" id="live-on" {% if ctx.live_mode %}disabled{% endif %}>{{ t('Accendi live') }}</button>
-      <button type="button" class="btn ghost" id="live-off" {% if not ctx.live_mode %}disabled{% endif %}>{{ t('Spegni live') }}</button>
-      <span class="assoc-pill" id="live-pill">{% if ctx.live_mode %}{{ t('Live acceso') }}{% else %}{{ t('Live spento') }}{% endif %}</span>
-    </div>
-  </div>
-
-  <div class="form-block panel">
-    <h2>{{ t('Simula eventi') }}</h2>
-    <p class="form-hint">{{ t('Senza eventi reali dal telefono: simula chiamata, messaggio o musica per vedere quale focus vince.') }}</p>
+    <h2>{{ t('Prova senza telefono') }}</h2>
+    <p class="form-hint">{{ t('Se non hai eventi reali dal telefono, puoi far arrivare qui una chiamata, un messaggio o la musica.') }}</p>
     <div class="contesto-sim-actions">
-      <button type="button" class="btn" id="sim-call">{{ t('Simula chiamata') }}</button>
-      <button type="button" class="btn" id="sim-msg">{{ t('Simula messaggio') }}</button>
-      <button type="button" class="btn" id="sim-music-on">{{ t('Musica on') }}</button>
-      <button type="button" class="btn ghost" id="sim-music-off">{{ t('Musica off') }}</button>
-      <button type="button" class="btn ghost" id="sim-clear">{{ t('Azzera') }}</button>
+      <button type="button" class="btn" id="sim-call">{{ t('Arriva una chiamata') }}</button>
+      <button type="button" class="btn" id="sim-msg">{{ t('Arriva un messaggio') }}</button>
+      <button type="button" class="btn" id="sim-music-on">{{ t('Musica in riproduzione') }}</button>
+      <button type="button" class="btn ghost" id="sim-music-off">{{ t('Ferma la musica') }}</button>
+      <button type="button" class="btn ghost" id="sim-clear">{{ t('Niente in corso') }}</button>
     </div>
     <ul class="detail-list compact" id="active-flags">
       <li><span>{{ t('Chiamata') }}</span><strong id="flag-call">{% if ctx.active_contexts.call %}{{ t('Sì') }}{% else %}{{ t('No') }}{% endif %}</strong></li>
@@ -53,8 +41,8 @@
   </div>
 
   <div class="form-block panel">
-    <h2>{{ t('Decisione dalla cuffia') }}</h2>
-    <p class="form-hint">{{ t('Il tasto chiede alla cuffia di emettere un nuovo pensiero SÌ/NO: acquisisce una finestra EEG e la confronta con i modelli della calibrazione.') }}</p>
+    <h2>{{ t('Pensa SÌ o NO') }}</h2>
+    <p class="form-hint">{{ t('Il tasto chiede alla cuffia un nuovo pensiero SÌ/NO vicino ai modelli della calibrazione; Iris confronta per similarità e lo applica a ciò che sta succedendo.') }}</p>
     {% if not agent or not agent.ready_for_impulses %}
     <p class="form-hint warn">{{ t('Prepara prima la cuffia (accendi, indossa, contatto) su /cuffia.') }}
       <a href="/cuffia?stage=1">{{ t('La tua cuffia') }}</a>
@@ -80,8 +68,7 @@
       <li><span>{{ t('Risposta') }}</span><strong id="ld-answer">{{ ctx.last_decision.answer }}</strong></li>
       <li><span>{{ t('Riconosciuto') }}</span><strong id="ld-recog">—</strong></li>
       <li><span>{{ t('Similarità') }}</span><strong id="ld-sim">—</strong></li>
-      <li><span>{{ t('Focus') }}</span><strong id="ld-focus">{{ ctx.last_decision.focus_title }}</strong></li>
-      <li><span>{{ t('Azione') }}</span><strong id="ld-action">{{ ctx.last_decision.action }}</strong></li>
+      <li><span>{{ t('Su') }}</span><strong id="ld-focus">{{ ctx.last_decision.focus_title }}</strong></li>
       <li><span>{{ t('Esito') }}</span><strong id="ld-feedback">{{ ctx.last_decision.feedback }}</strong></li>
     </ul>
     {% else %}
@@ -90,8 +77,7 @@
       <li><span>{{ t('Risposta') }}</span><strong id="ld-answer">—</strong></li>
       <li><span>{{ t('Riconosciuto') }}</span><strong id="ld-recog">—</strong></li>
       <li><span>{{ t('Similarità') }}</span><strong id="ld-sim">—</strong></li>
-      <li><span>{{ t('Focus') }}</span><strong id="ld-focus">—</strong></li>
-      <li><span>{{ t('Azione') }}</span><strong id="ld-action">—</strong></li>
+      <li><span>{{ t('Su') }}</span><strong id="ld-focus">—</strong></li>
       <li><span>{{ t('Esito') }}</span><strong id="ld-feedback">—</strong></li>
     </ul>
     {% endif %}
@@ -108,8 +94,6 @@
 <script>
 (function () {
   const L = {
-    liveOn: {{ t('Live acceso')|tojson }},
-    liveOff: {{ t('Live spento')|tojson }},
     yes: {{ t('Sì')|tojson }},
     no: {{ t('No')|tojson }},
     err: {{ t('Errore')|tojson }},
@@ -117,7 +101,6 @@
     simSi: {{ t('sim SÌ')|tojson }},
     simNo: {{ t('sim NO')|tojson }},
   };
-  const root = document.getElementById("contesto-root");
 
   async function postJson(url, body) {
     const res = await fetch(url, {
@@ -139,7 +122,6 @@
     const focus = data.focus || {};
     document.getElementById("focus-prompt").textContent = focus.prompt || "";
     document.getElementById("focus-detail").textContent = focus.detail || "";
-    document.getElementById("focus-kind").textContent = focus.kind || "idle";
     document.getElementById("focus-yes").textContent = focus.yes_label || "SÌ";
     document.getElementById("focus-no").textContent = focus.no_label || "NO";
 
@@ -147,12 +129,6 @@
     document.getElementById("flag-call").textContent = active.call ? L.yes : L.no;
     document.getElementById("flag-msg").textContent = active.message ? L.yes : L.no;
     document.getElementById("flag-music").textContent = active.music ? L.yes : L.no;
-
-    const live = !!data.live_mode;
-    root.dataset.live = live ? "1" : "0";
-    document.getElementById("live-pill").textContent = live ? L.liveOn : L.liveOff;
-    document.getElementById("live-on").disabled = live;
-    document.getElementById("live-off").disabled = !live;
 
     if (data.message) {
       document.getElementById("status-msg").textContent = data.message;
@@ -166,7 +142,6 @@
       list.hidden = false;
       document.getElementById("ld-answer").textContent = d.answer || "—";
       document.getElementById("ld-focus").textContent = d.focus_title || d.focus || "—";
-      document.getElementById("ld-action").textContent = d.action || "—";
       document.getElementById("ld-feedback").textContent = d.feedback || "—";
     }
 
@@ -213,15 +188,6 @@
       }
     }
   }
-
-  document.getElementById("live-on").addEventListener("click", async function () {
-    try { applyStatus(await postJson("/api/context/live", { enabled: true })); }
-    catch (e) { document.getElementById("status-msg").textContent = String(e.message || e); }
-  });
-  document.getElementById("live-off").addEventListener("click", async function () {
-    try { applyStatus(await postJson("/api/context/live", { enabled: false })); }
-    catch (e) { document.getElementById("status-msg").textContent = String(e.message || e); }
-  });
 
   async function sim(event) {
     try { applyStatus(await postJson("/api/context/event", { event: event })); }

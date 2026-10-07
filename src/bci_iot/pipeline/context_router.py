@@ -130,7 +130,8 @@ class ContextRouter:
     def __init__(self, *, username: str = "") -> None:
         self.username = username
         self.world = ContextWorld()
-        self.live_mode = False
+        # Always on for logged-in use: call > message > music. Not a user toggle.
+        self.live_mode = True
         self.last_decision: DecisionRecord | None = None
         self.history: list[dict[str, Any]] = []
 
@@ -139,7 +140,7 @@ class ContextRouter:
     def simulate_call(self, *, caller: str = "Anna") -> dict[str, Any]:
         self.world.incoming_call = True
         self.world.caller_name = (caller or "Anna").strip() or "Anna"
-        return self.status(message=f"Chiamata simulata da {self.world.caller_name}.")
+        return self.status(message=f"Arriva una chiamata da {self.world.caller_name}.")
 
     def simulate_message(
         self,
@@ -152,8 +153,8 @@ class ContextRouter:
         self.world.message_app = (app or "WhatsApp").strip() or "WhatsApp"
         return self.status(
             message=(
-                f"Messaggio simulato da {self.world.message_from} "
-                f"su {self.world.message_app}."
+                f"Arriva un messaggio da {self.world.message_from} "
+                f"({self.world.message_app})."
             )
         )
 
@@ -161,22 +162,20 @@ class ContextRouter:
         self.world.music_playing = bool(playing)
         if playing:
             self.world.track_hint = (track or self.world.track_hint or "in riproduzione").strip()
-            return self.status(message="Musica attiva (priorità sotto chiamata/messaggio).")
+            return self.status(message="Musica in riproduzione.")
         self.world.track_hint = ""
         return self.status(message="Musica ferma.")
 
     def clear_events(self) -> dict[str, Any]:
         self.world = ContextWorld()
-        return self.status(message="Contesti azzerati — focus idle.")
+        return self.status(message="Niente in corso al momento.")
 
-    def set_live_mode(self, enabled: bool) -> dict[str, Any]:
-        self.live_mode = bool(enabled)
-        msg = (
-            "Modalità live: SÌ/NO dalla cuffia seguono il contesto attivo."
-            if self.live_mode
-            else "Modalità live spenta (calibrazione cuffia non passa dal router)."
-        )
-        return self.status(message=msg)
+    def set_live_mode(self, enabled: bool = True) -> dict[str, Any]:
+        """Kept for API compatibility; live is always on (cannot be turned off)."""
+
+        _ = enabled  # ignored — product rule: always on
+        self.live_mode = True
+        return self.status(message="In ascolto: SÌ/NO seguono ciò che sta succedendo ora.")
 
     # --- focus / decision ---
 
@@ -196,8 +195,8 @@ class ContextRouter:
             return FocusSnapshot(
                 kind=kind,
                 title=title,
-                detail="Priorità massima: la musica e i messaggi restano in attesa.",
-                prompt=f"Sto decidendo su: {title} — pensa SÌ o NO",
+                detail="Prima le chiamate: messaggi e musica restano in attesa.",
+                prompt=f"{title} — pensa SÌ o NO",
                 yes_label="Rispondi",
                 no_label="Rifiuta",
             )
@@ -208,8 +207,8 @@ class ContextRouter:
             return FocusSnapshot(
                 kind=kind,
                 title=title,
-                detail="Apri o ignora; poi il canale messaggio si chiude.",
-                prompt=f"Sto decidendo su: {title} — pensa SÌ o NO",
+                detail="Apri o ignora; poi si passa a ciò che resta (musica, ecc.).",
+                prompt=f"{title} — pensa SÌ o NO",
                 yes_label="Apri",
                 no_label="Ignora",
             )
@@ -220,15 +219,15 @@ class ContextRouter:
                 kind=kind,
                 title=title,
                 detail="SÌ = prossima canzone · NO = tieni questa.",
-                prompt=f"Sto decidendo su: {title} — pensa SÌ o NO",
+                prompt=f"{title} — pensa SÌ o NO",
                 yes_label="Cambia canzone",
                 no_label="Tieni questa",
             )
         return FocusSnapshot(
             kind="idle",
-            title="Nessun evento attivo",
-            detail="Simula una chiamata, un messaggio o la musica per dare un focus al SÌ/NO.",
-            prompt="Sto decidendo su: niente in questo momento — simula un evento, poi pensa SÌ o NO",
+            title="Niente in questo momento",
+            detail="Quando arriva una chiamata, un messaggio o c’è musica, il SÌ/NO si applica a quello.",
+            prompt="Niente in questo momento — pensa SÌ o NO quando arriva qualcosa",
             yes_label="SÌ",
             no_label="NO",
         )
@@ -337,6 +336,8 @@ def get_context_router(username: str) -> ContextRouter:
     if router is None:
         router = ContextRouter(username=key)
         _routers[key] = router
+    # Persist always-on: older process state cannot leave live off.
+    router.live_mode = True
     return router
 
 

@@ -16,6 +16,7 @@ from bci_iot.pipeline.context_router import (
     reset_context_router,
     resolve_focus,
 )
+from bci_iot.pipeline.headset_agent import get_headset_agent
 from bci_iot.web import create_app
 
 
@@ -47,6 +48,7 @@ def test_decision_matrix_complete() -> None:
 
 def test_music_plus_call_si_answers_call() -> None:
     r = ContextRouter(username="demo")
+    assert r.live_mode is True
     r.set_music(True)
     r.simulate_call(caller="Luca")
     snap = r.focus_snapshot()
@@ -82,6 +84,14 @@ def test_normalize_yes_no_aliases() -> None:
     assert normalize_yes_no("RISPONDI") == "SI"
     assert normalize_yes_no("RIFIUTA") == "NO"
     assert normalize_yes_no("NEXT_TRACK") is None
+
+
+def test_live_mode_always_on_cannot_disable() -> None:
+    r = ContextRouter(username="always")
+    assert r.live_mode is True
+    out = r.set_live_mode(False)
+    assert out["live_mode"] is True
+    assert get_context_router("always").live_mode is True
 
 
 def _register(client: TestClient, username: str = "ctx_user") -> None:
@@ -121,6 +131,40 @@ def _ready_headset(client: TestClient) -> None:
     assert wear.json()["agent"]["ready_for_impulses"] is True
 
 
+def _calibrate_yn_templates(client: TestClient, username: str = "ctx_user") -> None:
+    """Store SI+NO templates and mark calibration complete (live routing gate)."""
+
+    store = client.app.state.store
+    profile = store.ensure_headset_pairing(username)
+    agent = get_headset_agent(
+        username=username,
+        headset_id=profile.headset_id,
+        data_root=store.data_root,
+    )
+    # Distinct centroids so live classify is stable.
+    agent.memory.impulses = [
+        {
+            "kind": "SI",
+            "features": [1.0, 0.05, 0.1, 0.0],
+            "feature_names": ["a", "b", "c", "d"],
+            "is_calibration_template": True,
+            "signal_source": "prior_fallback",
+            "alpha": 1.0,
+            "beta": 0.05,
+        },
+        {
+            "kind": "NO",
+            "features": [0.05, 1.0, 0.0, 0.1],
+            "feature_names": ["a", "b", "c", "d"],
+            "is_calibration_template": True,
+            "signal_source": "prior_fallback",
+            "alpha": 0.05,
+            "beta": 1.0,
+        },
+    ]
+    agent.mark_calibration_complete()
+
+
 @pytest.fixture(autouse=True)
 def _reset_routers() -> None:
     reset_context_router("ctx_user")
@@ -134,12 +178,14 @@ def test_contesto_page_smoke(tmp_path: Path) -> None:
     _register(client)
     page = client.get("/contesto")
     assert page.status_code == 200
-    assert "Contesto live" in page.text
-    assert "Sto decidendo su" in page.text or "focus" in page.text.lower()
-    assert "Simula chiamata" in page.text
+    assert "In ascolto" in page.text
+    assert "Contesto live" not in page.text
+    assert "Accendi live" not in page.text
+    assert "Modalità live" not in page.text
+    assert "pensa SÌ o NO" in page.text.lower() or "Pensa SÌ" in page.text
+    assert "Arriva una chiamata" in page.text
     assert "Pensa SÌ" in page.text
-    assert "modelli della calibrazione" in page.text or "finestra EEG" in page.text
-    assert "calibrazione" in page.text
+    assert "calibrazione" in page.text.lower()
 
 
 def test_context_api_priority_and_decide(tmp_path: Path) -> None:
@@ -147,11 +193,17 @@ def test_context_api_priority_and_decide(tmp_path: Path) -> None:
     client = TestClient(app)
     _register(client)
     _ready_headset(client)
+    _calibrate_yn_templates(client)
 
-    assert client.post("/api/context/live", json={"enabled": True}).status_code == 200
+    # Live always on — enable POST is a no-op that stays on.
+    live = client.post("/api/context/live", json={"enabled": False})
+    assert live.status_code == 200
+    assert live.json()["live_mode"] is True
+
     client.post("/api/context/event", json={"event": "music_on"})
     client.post("/api/context/event", json={"event": "call", "caller": "Anna"})
     st = client.get("/api/context/status").json()
+    assert st["live_mode"] is True
     assert st["focus"]["kind"] == "call"
     assert "Anna" in st["focus"]["prompt"]
 
@@ -159,28 +211,29 @@ def test_context_api_priority_and_decide(tmp_path: Path) -> None:
     assert res.status_code == 200
     body = res.json()
     assert body["decision"]["action"] == "reject_call"
-    assert body["impulse"]["kind"] in {"NO", "SI"}
+    assert body["classified_answer"] == "NO"
+    assert body["impulse"]["signal_source"] == "template_plus_noise"
     assert body["focus"]["kind"] == "music"
     assert body["execution"]["kind"] == "reject_call"
     assert body["execution"]["mode"] == "phone_queue_demo"
 
-    # Phone queue got the demo event
     queue = app.state.phone_queues.get("ctx_user") or []
     assert any(e.get("action") == "context.reject_call" for e in queue)
 
 
-def test_headset_impulse_routes_when_live(tmp_path: Path) -> None:
+def test_headset_impulse_routes_when_calibrated(tmp_path: Path) -> None:
     app = create_app(data_dir=tmp_path, session_secret="ctx-live")
     client = TestClient(app)
     _register(client)
     _ready_headset(client)
-    client.post("/api/context/live", json={"enabled": True})
+    _calibrate_yn_templates(client)
     client.post("/api/context/event", json={"event": "message", "sender": "Marco"})
 
     res = client.post("/api/headset/impulse", json={"kind": "SI"})
     assert res.status_code == 200
     body = res.json()
     assert "context" in body
+    assert body["classified_answer"] == "SI"
     assert body["context"]["decision"]["action"] == "open_message"
 
 
@@ -191,6 +244,8 @@ def test_dashboard_links_contesto(tmp_path: Path) -> None:
     page = client.get("/dashboard")
     assert page.status_code == 200
     assert 'href="/contesto"' in page.text
+    assert "In ascolto" in page.text
+    assert "Contesto live" not in page.text
 
 
 def test_get_context_router_cached() -> None:
