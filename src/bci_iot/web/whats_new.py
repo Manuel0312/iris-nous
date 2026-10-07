@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.35",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "SÌ/NO come in calibrazione",
+                "Su /contesto i tasti Pensa SÌ/NO acquistavano una nuova finestra EEG ogni volta: stessa famiglia, non l’impulso salvato in cuffia.",
+                "Ora la cuffia virtuale ripete l’impulso SÌ/NO della calibrazione (stesse feature); se manca il modello, acquisisce ancora una finestra nuova.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.34",
         "intro": WHATS_NEW_INTRO,
         "entries": (

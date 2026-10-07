@@ -54,12 +54,11 @@
 
   <div class="form-block panel">
     <h2>{{ t('Decisione dalla cuffia') }}</h2>
+    <p class="form-hint">{{ t('Il tasto chiede alla cuffia virtuale di ricevere lo stesso impulso SÌ/NO della calibrazione') }}</p>
     {% if not agent or not agent.ready_for_impulses %}
     <p class="form-hint warn">{{ t('Prepara prima la cuffia (accendi, indossa, contatto) su /cuffia.') }}
       <a href="/cuffia?stage=1">{{ t('La tua cuffia') }}</a>
     </p>
-    {% else %}
-    <p class="form-hint">{{ t('Impulso mentale virtuale (SimulatedHeadsetAgent), poi il router applica SÌ/NO al focus.') }}</p>
     {% endif %}
     <div class="cuffia-yn-actions contesto-yn">
       <button class="btn primary" type="button" id="decide-si" {% if not agent or not agent.ready_for_impulses %}disabled{% endif %}>{{ t('Pensa SÌ') }}</button>

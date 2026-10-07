@@ -32,8 +32,8 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
         or "Hub «La tua cuffia»" in page.text
         or "Privacy e chiarezza demo" in page.text
     )
-    assert "Testi cuffia di nuovo leggibili" in page.text
+    assert "SÌ/NO come in calibrazione" in page.text
     assert "whats-new-body" in page.text
     assert "whats-new-problem" not in page.text
     assert "Versioni precedenti" in page.text or "whats-new-history" in page.text
-    assert "Router contesto SÌ/NO" in page.text  # previous release still listed
+    assert "Testi cuffia di nuovo leggibili" in page.text  # previous release still listed

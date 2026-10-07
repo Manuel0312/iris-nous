@@ -60,6 +60,49 @@ def test_agent_power_wear_contact_impulse_and_memory(tmp_path: Path) -> None:
     assert again.memory.impulses[0]["kind"] == "ACCENDI"
 
 
+def test_si_no_replays_calibration_template(tmp_path: Path) -> None:
+    """Second SI/NO reuses the calibrated impulse (same features + replay flag)."""
+
+    agent = SimulatedHeadsetAgent(
+        username="replay",
+        headset_id="h-replay",
+        data_root=tmp_path,
+        seed=11,
+    )
+    agent.power_on()
+    agent.wear(on_head=True)
+
+    first = agent.receive_impulse("SI")
+    assert first["replayed_from_calibration"] is False
+    assert first["impulse"]["signal_source"] != "calibration_replay"
+    assert first["impulse"]["features"]
+    template_feats = list(first["impulse"]["features"])
+
+    second = agent.receive_impulse("SI")
+    assert second["replayed_from_calibration"] is True
+    assert second["impulse"]["signal_source"] == "calibration_replay"
+    assert second["impulse"]["replayed_from_calibration"] is True
+    assert second["impulse"]["features"] == template_feats
+    assert second["impulse"]["kind"] == "SI"
+    assert second["status"]["impulses_count"] == 2
+    # Live history grows with a new event (even if same second as template).
+    assert len(agent.memory.impulses) == 2
+    assert agent.memory.impulses[-1]["replayed_from_calibration"] is True
+
+    # Alias YES also replays the SI template.
+    third = agent.receive_impulse("YES")
+    assert third["replayed_from_calibration"] is True
+    assert third["impulse"]["features"] == template_feats
+
+    # NO with no template yet still acquires a fresh window.
+    no_first = agent.receive_impulse("NO")
+    assert no_first["replayed_from_calibration"] is False
+    assert "calibrazione" in (no_first.get("message") or "").lower()
+    no_second = agent.receive_impulse("NO")
+    assert no_second["replayed_from_calibration"] is True
+    assert no_second["impulse"]["features"] == no_first["impulse"]["features"]
+
+
 def test_agent_rejects_impulse_without_ready_state(tmp_path: Path) -> None:
     agent = SimulatedHeadsetAgent(
         username="luca",

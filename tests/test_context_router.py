@@ -138,6 +138,8 @@ def test_contesto_page_smoke(tmp_path: Path) -> None:
     assert "Sto decidendo su" in page.text or "focus" in page.text.lower()
     assert "Simula chiamata" in page.text
     assert "Pensa SÌ" in page.text
+    assert "cuffia virtuale" in page.text
+    assert "calibrazione" in page.text
 
 
 def test_context_api_priority_and_decide(tmp_path: Path) -> None:

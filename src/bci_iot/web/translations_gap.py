@@ -1,6 +1,42 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    "SÌ/NO come in calibrazione": {
+        "en": "YES/NO as in calibration",
+        "fr": "OUI/NON comme en calibration",
+        "de": "JA/NEIN wie in der Kalibrierung",
+        "pt": "SIM/NÃO como na calibração",
+        "zh": "是/否与校准时相同",
+        "ja": "校正と同じ YES/NO",
+        "es": "SÍ/NO como en la calibración",
+    },
+    "Su /contesto i tasti Pensa SÌ/NO acquistavano una nuova finestra EEG ogni volta: stessa famiglia, non l’impulso salvato in cuffia.": {
+        "en": "On /contesto the Think YES/NO buttons acquired a new EEG window every time: same family, not the impulse saved on the headset.",
+        "fr": "Sur /contesto, les boutons Pense OUI/NON acquéraient une nouvelle fenêtre EEG à chaque fois : même famille, pas l’impulsion enregistrée sur le casque.",
+        "de": "Auf /contesto erfassten die Denk JA/NEIN-Tasten jedes Mal ein neues EEG-Fenster: dieselbe Familie, nicht der am Headset gespeicherte Impuls.",
+        "pt": "Em /contesto os botões Pensa SIM/NÃO adquiriam uma nova janela EEG de cada vez: mesma família, não o impulso guardado na cinta.",
+        "zh": "在 /contesto 上，「想是/否」按钮每次都会采集新的 EEG 窗口：同类信号，但不是头带里保存的冲动。",
+        "ja": "/contesto の「YES/NOを考える」ボタンは毎回新しいEEG窓を取得していました。同じ系統ですが、ヘッドセットに保存した衝動ではありません。",
+        "es": "En /contesto los botones Piensa SÍ/NO adquirían una ventana EEG nueva cada vez: misma familia, no el impulso guardado en el auricular.",
+    },
+    "Ora la cuffia virtuale ripete l’impulso SÌ/NO della calibrazione (stesse feature); se manca il modello, acquisisce ancora una finestra nuova.": {
+        "en": "Now the virtual headset replays the YES/NO impulse from calibration (same features); if the template is missing, it still acquires a new window.",
+        "fr": "Désormais le casque virtuel rejoue l’impulsion OUI/NON de la calibration (mêmes features) ; s’il manque le modèle, il acquiert encore une nouvelle fenêtre.",
+        "de": "Jetzt spielt das virtuelle Headset den JA/NEIN-Impuls aus der Kalibrierung ab (gleiche Features); fehlt die Vorlage, wird weiterhin ein neues Fenster erfasst.",
+        "pt": "Agora a cinta virtual repete o impulso SIM/NÃO da calibração (mesmas features); se faltar o modelo, ainda adquire uma janela nova.",
+        "zh": "现在虚拟头带会重放校准时的是/否冲动（相同特征）；若缺少模板，仍会采集新窗口。",
+        "ja": "いま仮想ヘッドセットは校正時の YES/NO 衝動を再生します（同じ特徴量）。テンプレートが無い場合はこれまで通り新しい窓を取得します。",
+        "es": "Ahora el auricular virtual repite el impulso SÍ/NO de la calibración (mismas features); si falta el modelo, sigue adquiriendo una ventana nueva.",
+    },
+    "Il tasto chiede alla cuffia virtuale di ricevere lo stesso impulso SÌ/NO della calibrazione": {
+        "en": "The button asks the virtual headset to receive the same YES/NO impulse from calibration",
+        "fr": "Le bouton demande au casque virtuel de recevoir la même impulsion OUI/NON que lors de la calibration",
+        "de": "Die Taste fordert das virtuelle Headset auf, denselben JA/NEIN-Impuls wie in der Kalibrierung zu empfangen",
+        "pt": "O botão pede à cinta virtual que receba o mesmo impulso SIM/NÃO da calibração",
+        "zh": "该按钮让虚拟头带接收与校准时相同的是/否冲动",
+        "ja": "このボタンは仮想ヘッドセットに、校正時と同じ YES/NO 衝動を受け取らせます",
+        "es": "El botón pide al auricular virtual que reciba el mismo impulso SÍ/NO de la calibración",
+    },
     "Testi cuffia di nuovo leggibili": {
         "en": "Headset texts readable again",
         "fr": "Textes du casque de nouveau lisibles",

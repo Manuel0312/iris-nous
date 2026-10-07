@@ -194,6 +194,8 @@ class ImpulseEvent:
 
     corpus_source: str = ""
 
+    replayed_from_calibration: bool = False
+
 
 
     def to_dict(self) -> dict[str, Any]:
@@ -630,6 +632,106 @@ class SimulatedHeadsetAgent:
 
 
 
+    @staticmethod
+    def _normalize_yn_label(impulse_kind: str) -> str | None:
+        """Map explicit SI/SÌ/YES → SI and NO → NO for calibration replay.
+
+        Does not treat prior-command aliases (RISPONDI/RIFIUTA) as YES/NO so
+        colour/legacy calibration keeps acquiring fresh windows.
+        """
+
+        key = (impulse_kind or "").strip().upper().replace("Ì", "I")
+        if key in {"SI", "YES"}:
+            return "SI"
+        if key == "NO":
+            return "NO"
+        return None
+
+    def _yn_calibration_templates(self, yn: str) -> list[dict[str, Any]]:
+        """Stored impulses of this YES/NO family that are not themselves replays."""
+
+        out: list[dict[str, Any]] = []
+        for imp in self.memory.impulses:
+            if not isinstance(imp, dict):
+                continue
+            if imp.get("replayed_from_calibration") or imp.get("signal_source") == "calibration_replay":
+                continue
+            label = self._normalize_yn_label(str(imp.get("kind") or ""))
+            if label == yn:
+                out.append(imp)
+        return out
+
+    def _build_replay_event(
+        self,
+        yn: str,
+        templates: list[dict[str, Any]],
+        *,
+        contact_mean: float,
+    ) -> ImpulseEvent:
+        """Replay calibrated SI/NO: copy (or mean) features from calibration templates."""
+
+        last = templates[-1]
+        feat_lists: list[list[float]] = []
+        alphas: list[float] = []
+        betas: list[float] = []
+        intensities: list[float] = []
+        for tmpl in templates:
+            raw_feats = tmpl.get("features") or []
+            if raw_feats:
+                feat_lists.append([float(x) for x in raw_feats])
+            if tmpl.get("alpha") is not None:
+                alphas.append(float(tmpl["alpha"]))
+            if tmpl.get("beta") is not None:
+                betas.append(float(tmpl["beta"]))
+            if tmpl.get("intensity") is not None:
+                intensities.append(float(tmpl["intensity"]))
+
+        if feat_lists:
+            n = min(len(f) for f in feat_lists)
+            mean_feats = [
+                round(float(np.mean([f[i] for f in feat_lists])), 6) for i in range(n)
+            ]
+        else:
+            mean_feats = [float(x) for x in (last.get("features") or [])]
+
+        if alphas and betas:
+            alpha = round(float(np.mean(alphas)), 4)
+            beta = round(float(np.mean(betas)), 4)
+        elif len(mean_feats) >= 2:
+            alpha = round(float(mean_feats[0]), 4)
+            beta = round(float(mean_feats[1]), 4)
+        else:
+            alpha = round(float(last.get("alpha") or 0.0), 4)
+            beta = round(float(last.get("beta") or 0.0), 4)
+
+        if intensities:
+            intensity = round(float(np.mean(intensities)), 1)
+        else:
+            intensity = round(float(np.clip(50.0 + 18.0 * (beta - alpha), 5.0, 98.0)), 1)
+
+        feature_names = list(last.get("feature_names") or [])
+        window_stats = dict(last.get("window_stats") or {})
+        qc_flags = list(last.get("qc_flags") or [])
+        is_clean = bool(last.get("is_clean", True))
+        corpus_source = str(last.get("corpus_source") or "")
+
+        return ImpulseEvent(
+            kind=yn,
+            timestamp=_utc_now(),
+            signal_source="calibration_replay",
+            alpha=alpha,
+            beta=beta,
+            intensity=intensity,
+            is_clean=is_clean,
+            contact_mean=round(contact_mean, 3),
+            qc_flags=qc_flags,
+            features=mean_feats,
+            feature_names=feature_names,
+            window_stats=window_stats,
+            corpus_source=corpus_source,
+            replayed_from_calibration=True,
+        )
+
     def _resolve_prior_kind(self, impulse_kind: str) -> str:
 
         raw = impulse_kind.strip()
@@ -766,7 +868,11 @@ class SimulatedHeadsetAgent:
 
     ) -> dict[str, Any]:
 
-        """Headset receives a mental impulse and stores it in memory."""
+        """Headset receives a mental impulse and stores it in memory.
+
+        For SI/NO (and aliases), prefers replaying a stored calibration template
+        when memory already has ≥1 non-replay impulse of that kind.
+        """
 
 
 
@@ -786,6 +892,48 @@ class SimulatedHeadsetAgent:
 
         self.memory.phase = "receiving"
 
+        contact_mean = float(np.mean(self.memory.contact_channels) or 0.8)
+
+        yn = self._normalize_yn_label(kind)
+        templates = self._yn_calibration_templates(yn) if yn else []
+        replay_note = ""
+
+        if yn and templates:
+            event = self._build_replay_event(yn, templates, contact_mean=contact_mean)
+            self.memory.impulses.append(event.to_dict())
+            self.memory.impulses = self.memory.impulses[-40:]
+            self.memory.last_impulse_at = event.timestamp
+            self.memory.signal_path = "calibration_replay"
+            if colour_key:
+                key = colour_key.strip().upper()
+                counts = dict(self.memory.colour_counts)
+                counts[key] = int(counts.get(key) or 0) + 1
+                self.memory.colour_counts = counts
+            self.memory.phase = "ready"
+            self.save()
+            ws = event.window_stats or {}
+            shape = [int(ws["n_channels"]), int(ws["n_samples"])] if (
+                ws.get("n_channels") is not None and ws.get("n_samples") is not None
+            ) else []
+            return {
+                "impulse": event.to_dict(),
+                "features": list(event.features),
+                "feature_names": list(event.feature_names),
+                "is_clean": bool(event.is_clean),
+                "status": self.status(),
+                "window_shape": shape,
+                "replayed_from_calibration": True,
+                "message": (
+                    f"Impulso {yn} ripreso dalla calibrazione "
+                    f"({len(templates)} modello/i)."
+                ),
+            }
+
+        if yn and not templates:
+            replay_note = (
+                f"Nessun impulso {yn} in calibrazione: acquisisco una nuova finestra EEG."
+            )
+
         window, source = self._acquire_window(
 
             kind, prefer_brainflow=prefer_brainflow
@@ -793,8 +941,6 @@ class SimulatedHeadsetAgent:
         )
 
         # Contact quality slightly modulates amplitude (poorer contact → weaker signal).
-
-        contact_mean = float(np.mean(self.memory.contact_channels) or 0.8)
 
         window = EEGWindow(
 
@@ -822,11 +968,11 @@ class SimulatedHeadsetAgent:
 
         meta = corpus_meta() if source == "physionet_corpus" else {}
 
-
+        stored_kind = yn if yn else kind.strip().upper()
 
         event = ImpulseEvent(
 
-            kind=kind.strip().upper(),
+            kind=stored_kind,
 
             timestamp=_utc_now(),
 
@@ -851,6 +997,8 @@ class SimulatedHeadsetAgent:
             window_stats=window_compact_stats(window),
 
             corpus_source=str(meta.get("source") or ""),
+
+            replayed_from_calibration=False,
 
         )
 
@@ -878,7 +1026,7 @@ class SimulatedHeadsetAgent:
 
 
 
-        return {
+        out: dict[str, Any] = {
 
             "impulse": event.to_dict(),
 
@@ -892,7 +1040,12 @@ class SimulatedHeadsetAgent:
 
             "window_shape": list(window.data.shape),
 
+            "replayed_from_calibration": False,
+
         }
+        if replay_note:
+            out["message"] = replay_note
+        return out
 
 
 
