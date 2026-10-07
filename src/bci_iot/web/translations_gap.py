@@ -1,6 +1,33 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    "Testi cuffia di nuovo leggibili": {
+        "en": "Headset texts readable again",
+        "fr": "Textes du casque de nouveau lisibles",
+        "de": "Headset-Texte wieder lesbar",
+        "pt": "Textos da cinta legíveis de novo",
+        "zh": "头带文字再次清晰可读",
+        "ja": "ヘッドセットの文字が再び読める",
+        "es": "Textos del auricular legibles de nuevo",
+    },
+    "Nella calibrazione SÌ/NO, col tema scuro, testo e pulsante «Pensa NO» sparivano sulla scheda chiara: sembrava una pagina vuota.": {
+        "en": "In YES/NO calibration, with dark theme, text and the «Think NO» button vanished on the light card: it looked like a blank page.",
+        "fr": "Dans la calibration OUI/NON, en thème sombre, le texte et le bouton « Pense NON » disparaissaient sur la carte claire : la page semblait vide.",
+        "de": "Bei der JA/NEIN-Kalibrierung verschwanden im dunklen Theme Text und die Schaltfläche «Denk NEIN» auf der hellen Karte: die Seite wirkte leer.",
+        "pt": "Na calibração SIM/NÃO, com tema escuro, o texto e o botão «Pensa NÃO» sumiam no cartão claro: parecia uma página vazia.",
+        "zh": "在是/否校准中，深色主题下浅色卡片上的文字和「想否」按钮几乎看不见，像空白页。",
+        "ja": "YES/NO校正でダークテーマだと、明るいカード上の文字と「NOを考える」ボタンが見えず、空のページに見えました。",
+        "es": "En la calibración SÍ/NO, con tema oscuro, el texto y el botón «Piensa NO» desaparecían en la tarjeta clara: parecía una página vacía.",
+    },
+    "Ora scheda e pulsanti hanno contrasto corretto in chiaro e scuro: istruzioni, conteggi e «Pensa NO» si leggono bene.": {
+        "en": "Now the card and buttons have correct contrast in light and dark: instructions, counters and «Think NO» are easy to read.",
+        "fr": "Désormais la carte et les boutons ont un contraste correct en clair et sombre : consignes, compteurs et « Pense NON » se lisent bien.",
+        "de": "Jetzt haben Karte und Schaltflächen korrekten Kontrast hell und dunkel: Hinweise, Zähler und «Denk NEIN» sind gut lesbar.",
+        "pt": "Agora o cartão e os botões têm contraste correto no claro e no escuro: instruções, contagens e «Pensa NÃO» leem-se bem.",
+        "zh": "现在卡片与按钮在浅色/深色下对比度正确：说明、计数和「想否」都清晰可读。",
+        "ja": "カードとボタンは明暗どちらでも十分なコントラストになり、説明・カウント・「NOを考える」がはっきり読めます。",
+        "es": "Ahora la tarjeta y los botones tienen contraste correcto en claro y oscuro: instrucciones, contadores y «Piensa NO» se leen bien.",
+    },
     "Un ponte invisibile tra intento e ambiente — prototipo di tesi. Iris dimostra come stati di concentrazione e rilassamento possano guidare dispositivi smart in una demo pubblica, con cuffia simulata. Senza voce, senza interfacce fisiche.": {
         "en": "An invisible bridge between intent and environment — a thesis prototype. Iris shows how concentration and relaxation states can guide smart devices in a public demo, with a simulated headset. No voice, no physical interfaces.",
         "fr": "Un pont invisible entre intention et environnement — prototype de mémoire. Iris montre comment des états de concentration et de détente peuvent guider des appareils intelligents dans une démo publique, avec casque simulé. Sans voix, sans interfaces physiques.",
