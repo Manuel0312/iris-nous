@@ -1,7 +1,7 @@
 plugins {
-    id "com.android.application"
-    id "kotlin-android"
-    id "dev.flutter.flutter-gradle-plugin"
+    id("com.android.application")
+    id("kotlin-android")
+    id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
@@ -14,10 +14,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17
-    }
-
     defaultConfig {
         applicationId = "com.irisnous.mobile"
         minSdk = 26
@@ -28,8 +24,15 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.debug
+            // Debug signing: ok for thesis sideload APK (not Play Store).
+            signingConfig = signingConfigs.getByName("debug")
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
 }
 
@@ -38,5 +41,5 @@ flutter {
 }
 
 dependencies {
-    implementation "androidx.core:core-ktx:1.13.1"
+    implementation("androidx.core:core-ktx:1.13.1")
 }

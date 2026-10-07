@@ -29,12 +29,9 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Bootstrap Flutter project
+      - name: Pub get
         working-directory: mobile
-        run: |
-          flutter pub get
-          flutter create . --project-name iris_nous_mobile --org com.irisnous --platforms=android,ios
-          flutter pub get
+        run: flutter pub get
 
       - name: Build release APK
         working-directory: mobile
