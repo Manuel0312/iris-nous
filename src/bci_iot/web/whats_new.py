@@ -10,6 +10,39 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.33",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Router contesto SÌ/NO",
+                "La cuffia sapeva solo etichette semplici, ma non c’era un posto chiaro dove il sito dicesse a cosa si applica il SÌ/NO quando coincidono chiamata, messaggio e musica.",
+                "Ora /contesto mostra il focus attivo («Sto decidendo su…»), simula eventi e instrada SÌ/NO con priorità chiamata > messaggio > musica; Spotify e ponte telefono dove già esistono.",
+            ),
+        ),
+    },
+    {
+        "version": "0.4.32",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Hub «Il tuo telefono»",
+                "Associazione telefono, Spotify e Telefono live erano sparsi, senza un percorso chiaro dal browser dello smartphone.",
+                "Ora /telefono-setup ha due tappe: perché + codice/QR, poi stato, Spotify e Alexa «dopo»; funziona anche solo dal telefono.",
+            ),
+        ),
+    },
+    {
+        "version": "0.4.31",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Hub «La tua cuffia»",
+                "Associazione e calibrazione erano mescolate con codice email e telefono, senza un percorso chiaro SÌ/NO dal telefono.",
+                "Ora /cuffia ha due tappe: associazione (accendi, indossa, contatto) e calibrazione pensa SÌ / pensa NO; telefono resta separato (prossimamente).",
+            ),
+        ),
+    },
+    {
         "version": "0.4.30",
         "intro": WHATS_NEW_INTRO,
         "entries": (

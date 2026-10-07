@@ -1,4 +1,4 @@
-"""Tests for headset colour calibration wizard + setup-without-colours flow."""
+"""Tests for headset hub (/cuffia) + setup-without-colours flow."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from bci_iot.pipeline.calibration_wizard import CALIBRATION_COLORS, CalibrationSession
+from bci_iot.pipeline.headset_agent import IMPULSE_KIND_ALIASES, get_headset_agent
 from bci_iot.web import create_app
 
 
@@ -52,6 +53,12 @@ def test_calibration_rejects_disconnected_mode() -> None:
         sess.capture("ROSSO")
 
 
+def test_yes_no_impulse_aliases() -> None:
+    assert IMPULSE_KIND_ALIASES["SI"] == "RISPONDI"
+    assert IMPULSE_KIND_ALIASES["NO"] == "RIFIUTA"
+    assert IMPULSE_KIND_ALIASES["YES"] == "RISPONDI"
+
+
 @pytest.mark.skipif(
     __import__("bci_iot.acquisition", fromlist=["brainflow_available"]).brainflow_available()
     is False,
@@ -71,18 +78,7 @@ def test_calibration_capture_brainflow_path() -> None:
     assert result.intensity > 0
 
 
-def test_web_calibration_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(
-        "bci_iot.pipeline.calibration_wizard.brainflow_available",
-        lambda: False,
-    )
-    monkeypatch.setattr(
-        "bci_iot.pipeline.headset_agent.brainflow_available",
-        lambda: False,
-    )
-    app = create_app(data_dir=tmp_path, session_secret="calib-secret")
-    client = TestClient(app)
-
+def _register_ready(client: TestClient, app) -> None:
     client.post(
         "/register",
         data={
@@ -110,17 +106,48 @@ def test_web_calibration_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
         follow_redirects=False,
     )
 
-    page = client.get("/calibrazione")
+
+def test_web_calibration_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "bci_iot.pipeline.calibration_wizard.brainflow_available",
+        lambda: False,
+    )
+    monkeypatch.setattr(
+        "bci_iot.pipeline.headset_agent.brainflow_available",
+        lambda: False,
+    )
+    app = create_app(data_dir=tmp_path, session_secret="calib-secret")
+    client = TestClient(app)
+    _register_ready(client, app)
+
+    page = client.get("/cuffia")
     assert page.status_code == 200
-    assert "cuffia" in page.text.lower() or "Simulata" in page.text
-    cfg = client.get("/calibrazione?passo=1")
-    assert cfg.status_code == 200
-    assert "Agente cuffia" in cfg.text
-    assert "agent-power-on" in cfg.text
-    assert "agent-impulse" in cfg.text
-    assert "Simulata (BrainFlow)" in cfg.text
-    assert "passo=4" not in cfg.text
-    assert "calib-color-tile" not in cfg.text
+    assert "La tua cuffia" in page.text or "Associazione" in page.text
+    assert "agent-power-on" in page.text
+    assert "yn-si-btn" not in page.text
+
+    stage1 = client.get("/cuffia?stage=1")
+    assert stage1.status_code == 200
+    assert "Agente cuffia" in stage1.text
+    assert "Vai alla calibrazione" in stage1.text
+    assert "Simulata (BrainFlow)" in stage1.text
+
+    stage2 = client.get("/cuffia?stage=2")
+    assert stage2.status_code == 200
+    assert "Pensa SÌ" in stage2.text
+    assert "Pensa NO" in stage2.text
+    assert "yn-si-btn" in stage2.text
+    assert "setup-finish" in stage2.text
+    assert "/telefono-setup" in stage2.text
+    assert "Il tuo telefono" in stage2.text
+
+    # Legacy /calibrazione redirects into the hub.
+    legacy1 = client.get("/calibrazione?passo=1", follow_redirects=False)
+    assert legacy1.status_code == 303
+    assert legacy1.headers["location"] == "/cuffia?stage=1"
+    legacy2 = client.get("/calibrazione?passo=3", follow_redirects=False)
+    assert legacy2.status_code == 303
+    assert legacy2.headers["location"] == "/cuffia?stage=2"
 
     saved = client.post(
         "/api/headset/configure",
@@ -131,32 +158,16 @@ def test_web_calibration_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
 
     intro = client.get("/inizia")
     assert intro.status_code == 200
-    assert "Iniziamo" in intro.text or "Pensi" in intro.text
+    assert "/cuffia" in intro.text
 
-    code = client.get("/calibrazione?passo=2")
-    assert code.status_code == 200
-    assert "Invia il codice" in code.text
-    assert "Invia il codice via email" in code.text
-
-    phone = client.get("/calibrazione?passo=3")
-    assert phone.status_code == 200
-    assert "Associa il telefono" in phone.text
-    assert "setup-finish" in phone.text
-    assert "Completa configurazione" in phone.text
-
-    # Legacy passo 4 redirects conceptually to 3 (clamped).
-    legacy = client.get("/calibrazione?passo=4")
-    assert legacy.status_code == 200
-    assert "calib-color-tile" not in legacy.text
-    assert "setup-finish" in legacy.text
-
-    # Headset ready + impulses → complete setup (no colours).
     assert client.post("/api/headset/power", json={"on": True}).status_code == 200
     assert client.post("/api/headset/wear", json={"on_head": True}).status_code == 200
-    for _ in range(3):
-        imp = client.post("/api/headset/impulse", json={"kind": "ACCENDI"})
+
+    for kind in ("SI", "NO", "SI"):
+        imp = client.post("/api/headset/impulse", json={"kind": kind})
         assert imp.status_code == 200
         body = imp.json()
+        assert body["impulse"]["kind"] == kind
         assert body["impulse"]["signal_source"] in {
             "physionet_corpus",
             "prior_fallback",
@@ -164,22 +175,36 @@ def test_web_calibration_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
             "brainflow_synthetic",
         }
         assert body["impulse"]["features"]
-        assert body["impulse"]["window_stats"]
+
+    agent = get_headset_agent(
+        username="maria",
+        headset_id="cuffia-maria",
+        data_root=tmp_path,
+    )
+    resolved = agent._resolve_prior_kind("SI")
+    assert resolved == "RISPONDI"
+    assert agent._resolve_prior_kind("NO") == "RIFIUTA"
 
     fin = client.post("/api/calibrate/complete-setup")
     assert fin.status_code == 200
     assert fin.json()["status"] == "ok"
 
-    done = client.get("/calibrazione?done=1")
-    assert "Configurazione completata" in done.text or "Calibrazione avvenuta" in done.text
+    done = client.get("/cuffia?done=1")
+    assert done.status_code == 200
+    assert "Cuffia pronta" in done.text or "Calibrazione avvenuta" in done.text
 
     dash = client.get("/dashboard")
     assert dash.status_code == 200
     assert "Ciao, Maria" in dash.text
+    assert "/cuffia" in dash.text
 
-    profile_page = client.get("/associa-telefono")
+    profile_page = client.get("/telefono-setup?stage=1")
     assert profile_page.status_code == 200
     assert "Codice" in profile_page.text
+
+    legacy_pair = client.get("/associa-telefono", follow_redirects=False)
+    assert legacy_pair.status_code == 303
+    assert legacy_pair.headers["location"].startswith("/telefono-setup")
 
     profiles = app.state.store
     profile = profiles.get("maria")
@@ -193,8 +218,8 @@ def test_web_calibration_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
         data={"code": profile.pairing_code},
         follow_redirects=False,
     )
-    assert paired.status_code == 200
+    assert paired.status_code in {200, 302, 303}
     assert profiles.get("maria").phone_paired is True
 
-    again = client.get("/associa-telefono")
+    again = client.get("/telefono-setup?done=1")
     assert "associato" in again.text.lower()

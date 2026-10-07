@@ -177,6 +177,22 @@ class HeadsetImpulseRequest(BaseModel):
     kind: str = Field(min_length=1, max_length=32)
     colour_key: str = Field(default="", max_length=32)
 
+
+class ContextLiveRequest(BaseModel):
+    enabled: bool = True
+
+
+class ContextEventRequest(BaseModel):
+    event: str = Field(min_length=1, max_length=32)
+    caller: str = Field(default="Anna", max_length=64)
+    sender: str = Field(default="Marco", max_length=64)
+    app: str = Field(default="WhatsApp", max_length=64)
+    track: str = Field(default="", max_length=128)
+
+
+class ContextDecideRequest(BaseModel):
+    answer: str = Field(min_length=1, max_length=32)
+
 def _session_username(request: Request) -> str | None:
 
     value = request.session.get("username")
@@ -514,7 +530,7 @@ def create_app(
             return profile, None
         if not force and _pairing_mail_already_sent(profile):
             return profile, None
-        pair_url = f"{_public_base_url(request)}/associa-telefono"
+        pair_url = f"{_public_base_url(request)}/telefono-setup"
         delivery = send_pairing_code(
             destination=dest,
             code=profile.pairing_code,
@@ -2356,11 +2372,15 @@ def create_app(
             _template_ctx(request, profiles, profile=profile),
         )
 
-    @app.get("/calibrazione", response_class=HTMLResponse)
-    def calibrazione_page(
+    def _cuffia_page_response(
         request: Request,
-        profiles: ProfileStore = Depends(_store),
+        profiles: ProfileStore,
+        *,
+        stage: int | None = None,
+        done: bool | None = None,
     ) -> HTMLResponse:
+        """Shared renderer for /cuffia (associazione + calibrazione SÌ/NO)."""
+
         loaded = _require_profile(request, profiles)
         if isinstance(loaded, RedirectResponse):
             return loaded
@@ -2369,32 +2389,29 @@ def create_app(
             return RedirectResponse("/anagrafica", status_code=303)
         profiles.ensure_headset_pairing(profile.username)
         profile = profiles.get(profile.username) or profile
-        done_flag = request.query_params.get("done") == "1"
-        passo_raw = (request.query_params.get("passo") or "").strip()
+
+        done_flag = request.query_params.get("done") == "1" if done is None else done
+        stage_raw = (request.query_params.get("stage") or "").strip()
         if done_flag:
-            done = True
-            passo = 0
-        elif passo_raw:
-            done = False
+            done_view = True
+            stage_view = 0
+        elif stage is not None:
+            done_view = False
+            stage_view = min(2, max(1, stage))
+        elif stage_raw:
+            done_view = False
             try:
-                passo = int(passo_raw)
+                stage_view = int(stage_raw)
             except ValueError:
-                passo = 1
-            # Colour passo (4) removed — clamp legacy links to step 3.
-            passo = min(3, max(1, passo))
+                stage_view = 1
+            stage_view = min(2, max(1, stage_view))
         elif profile.calibration_complete:
-            done = True
-            passo = 0
+            done_view = True
+            stage_view = 0
         else:
-            done = False
-            passo = 1
-        acc_raw = request.query_params.get("acc")
-        accuracy = None
-        if acc_raw is not None:
-            try:
-                accuracy = float(acc_raw)
-            except ValueError:
-                accuracy = None
+            done_view = False
+            stage_view = 1
+
         from bci_iot.pipeline.calibration_wizard import headset_status_payload
 
         mode = profiles.get_headset_mode(profile.username)
@@ -2414,22 +2431,50 @@ def create_app(
             ).status()
         return TEMPLATES.TemplateResponse(
             request,
-            "calibrazione.html",
+            "cuffia.html",
             _template_ctx(
                 request,
                 profiles,
                 profile=profile,
-                done=done,
-                passo=passo,
-                accuracy=accuracy,
+                done=done_view,
+                stage=stage_view,
                 headset=headset,
                 agent=agent_status,
-                pairing_mail_sent=_pairing_mail_already_sent(profile),
-                pairing_email_masked=mask_destination(profile.email or "", channel="email")
-                if profile.email
-                else "",
             ),
         )
+
+    @app.get("/cuffia", response_class=HTMLResponse)
+    def cuffia_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> HTMLResponse:
+        return _cuffia_page_response(request, profiles)
+
+    @app.get("/calibrazione", response_class=HTMLResponse)
+    def calibrazione_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> HTMLResponse:
+        """Legacy URL → hub cuffia (passo 1 = associazione, 2/3 = calibrazione)."""
+
+        loaded = _require_profile(request, profiles)
+        if isinstance(loaded, RedirectResponse):
+            return loaded
+        if loaded.needs_anagrafica:
+            return RedirectResponse("/anagrafica", status_code=303)
+        if request.query_params.get("done") == "1":
+            return RedirectResponse("/cuffia?done=1", status_code=303)
+        passo_raw = (request.query_params.get("passo") or "").strip()
+        if passo_raw:
+            try:
+                passo = int(passo_raw)
+            except ValueError:
+                passo = 1
+            stage = 1 if passo <= 1 else 2
+            return RedirectResponse(f"/cuffia?stage={stage}", status_code=303)
+        if loaded.calibration_complete:
+            return RedirectResponse("/cuffia?done=1", status_code=303)
+        return RedirectResponse("/cuffia?stage=1", status_code=303)
 
     @app.get("/api/headset/status")
     def api_headset_status(
@@ -2585,6 +2630,7 @@ def create_app(
         username = _session_username(request)
         if not username:
             raise HTTPException(status_code=401, detail="Login required")
+        from bci_iot.pipeline.context_router import get_context_router, normalize_yes_no
         from bci_iot.pipeline.headset_agent import get_headset_agent
 
         profile = profiles.ensure_headset_pairing(username)
@@ -2603,7 +2649,22 @@ def create_app(
             payload = await run_in_threadpool(_recv)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        return {"status": "ok", **payload}
+
+        out: dict = {"status": "ok", **payload}
+        router = get_context_router(username)
+        yn = normalize_yes_no(body.kind)
+        if router.live_mode and yn is not None:
+            routed = await _apply_context_decision(
+                request,
+                profiles,
+                username=username,
+                answer=yn,
+                impulse_kind=body.kind,
+                impulse_payload=payload,
+                via="headset_live",
+            )
+            out["context"] = routed
+        return out
 
     @app.post("/api/calibrate/capture")
     async def api_calibrate_capture(
@@ -2705,11 +2766,15 @@ def create_app(
             "signal_note": "impulsi EEG (PhysioNet / BrainFlow / prior) salvati in memoria",
         }
 
-    @app.get("/associa-telefono", response_class=HTMLResponse)
-    def associa_telefono_page(
+    def _telefono_setup_page_response(
         request: Request,
-        profiles: ProfileStore = Depends(_store),
+        profiles: ProfileStore,
+        *,
+        stage: int | None = None,
+        done: bool | None = None,
     ) -> HTMLResponse:
+        """Shared renderer for /telefono-setup (associazione + stato/servizi)."""
+
         from bci_iot.integrations.spotify_oauth import (
             pairing_qr_url,
             public_site_url,
@@ -2720,21 +2785,69 @@ def create_app(
         if isinstance(loaded, RedirectResponse):
             return loaded
         profile = profiles.ensure_headset_pairing(loaded.username)
+
+        done_flag = request.query_params.get("done") == "1" if done is None else done
+        stage_raw = (request.query_params.get("stage") or "").strip()
+        if done_flag:
+            done_view = True
+            stage_view = 0
+        elif stage is not None:
+            done_view = False
+            stage_view = min(2, max(1, stage))
+        elif stage_raw:
+            done_view = False
+            try:
+                stage_view = int(stage_raw)
+            except ValueError:
+                stage_view = 1
+            stage_view = min(2, max(1, stage_view))
+        elif profile.phone_paired:
+            done_view = True
+            stage_view = 0
+        else:
+            done_view = False
+            stage_view = 1
+
         base = str(request.base_url)
         public = public_site_url(base)
-        pair_link = f"{public}/associa-telefono"
+        pair_link = f"{public}/telefono-setup"
         return TEMPLATES.TemplateResponse(
             request,
-            "associa_telefono.html",
+            "telefono_setup.html",
             _template_ctx(
                 request,
                 profiles,
                 profile=profile,
+                done=done_view,
+                stage=stage_view,
                 public_url=public,
                 qr_url=pairing_qr_url(pair_link),
                 spotify_ready=spotify_configured(),
             ),
         )
+
+    @app.get("/telefono-setup", response_class=HTMLResponse)
+    def telefono_setup_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> HTMLResponse:
+        return _telefono_setup_page_response(request, profiles)
+
+    @app.get("/associa-telefono", response_class=HTMLResponse)
+    def associa_telefono_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> HTMLResponse:
+        """Legacy URL → hub telefono (stessi stage/done di /telefono-setup)."""
+
+        loaded = _require_profile(request, profiles)
+        if isinstance(loaded, RedirectResponse):
+            return loaded
+        qs = request.url.query
+        dest = "/telefono-setup"
+        if qs:
+            dest = f"{dest}?{qs}"
+        return RedirectResponse(dest, status_code=303)
 
     @app.post("/associa-telefono")
     def associa_telefono_submit(
@@ -2749,9 +2862,9 @@ def create_app(
             profile = profiles.confirm_phone_pairing(loaded.username, code)
         except ValueError as exc:
             _flash(request, str(exc), kind="error")
-            return RedirectResponse("/associa-telefono", status_code=303)
+            return RedirectResponse("/telefono-setup?stage=1", status_code=303)
         _flash(request, "Telefono associato. Apri Telefono live e collega Spotify.", kind="ok")
-        dest = "/telefono" if not profile.needs_calibration else "/calibrazione?passo=3"
+        dest = "/cuffia?stage=2" if profile.needs_calibration else "/telefono-setup?stage=2"
         return _continue(
             request,
             next_url=dest,
@@ -2769,7 +2882,7 @@ def create_app(
         profiles.unpair_phone(loaded.username)
         app.state.phone_queues.pop(loaded.username, None)
         _flash(request, "Telefono scollegato. Nuovo codice pronto: invialo via email quando vuoi.", kind="ok")
-        return RedirectResponse("/associa-telefono", status_code=303)
+        return RedirectResponse("/telefono-setup?stage=1", status_code=303)
 
     @app.post("/associa-telefono/invia-codice")
     def associa_telefono_send_code(
@@ -2781,9 +2894,9 @@ def create_app(
             return loaded
         _send_pairing_mail(request, profiles, loaded, force=True, flash=True)
         back = request.headers.get("referer") or ""
-        if "/calibrazione" in back:
-            return RedirectResponse("/calibrazione?passo=2", status_code=303)
-        return RedirectResponse("/associa-telefono", status_code=303)
+        if "/calibrazione" in back or "/cuffia" in back:
+            return RedirectResponse("/cuffia?stage=2", status_code=303)
+        return RedirectResponse("/telefono-setup?stage=1", status_code=303)
 
     @app.get("/telefono", response_class=HTMLResponse)
     def telefono_live_page(
@@ -2837,7 +2950,7 @@ def create_app(
             return loaded
         if not spotify_configured():
             _flash(request, "Spotify non configurato sul server.", kind="error")
-            return RedirectResponse("/associa-telefono", status_code=303)
+            return RedirectResponse("/telefono-setup?stage=2", status_code=303)
         state = new_oauth_state()
         request.session["spotify_oauth_state"] = state
         redir = redirect_uri(_public_base_url(request))
@@ -2863,11 +2976,11 @@ def create_app(
             return loaded
         if error:
             _flash(request, f"Spotify ha rifiutato: {error}", kind="error")
-            return RedirectResponse("/associa-telefono", status_code=303)
+            return RedirectResponse("/telefono-setup?stage=2", status_code=303)
         expected = request.session.pop("spotify_oauth_state", None)
         if not code or not state or state != expected:
             _flash(request, "Sessione Spotify non valida. Riprova.", kind="error")
-            return RedirectResponse("/associa-telefono", status_code=303)
+            return RedirectResponse("/telefono-setup?stage=2", status_code=303)
         redir = redirect_uri(_public_base_url(request))
         try:
             tokens = exchange_code(code, redirect=redir)
@@ -2885,9 +2998,9 @@ def create_app(
             )
         except Exception as exc:  # noqa: BLE001
             _flash(request, f"Collegamento Spotify fallito: {exc}", kind="error")
-            return RedirectResponse("/associa-telefono", status_code=303)
+            return RedirectResponse("/telefono-setup?stage=2", status_code=303)
         _flash(request, "Spotify collegato. Apri Spotify sul telefono e prova il test.", kind="ok")
-        return RedirectResponse("/associa-telefono", status_code=303)
+        return RedirectResponse("/telefono-setup?stage=2", status_code=303)
 
     @app.post("/auth/spotify/disconnect")
     def spotify_disconnect(
@@ -2899,7 +3012,7 @@ def create_app(
             return loaded
         profiles.clear_spotify(loaded.username)
         _flash(request, "Spotify scollegato.", kind="ok")
-        return RedirectResponse("/associa-telefono", status_code=303)
+        return RedirectResponse("/telefono-setup?stage=2", status_code=303)
 
     @app.post("/api/music/next")
     async def api_music_next(
@@ -2954,6 +3067,215 @@ def create_app(
             raise HTTPException(status_code=404, detail="Profile not found")
         queue = app.state.phone_queues.setdefault(username, [])
         return run_spotify_action(profiles, profile, "pause", queue=queue)
+
+    async def _apply_context_decision(
+        request: Request,
+        profiles: ProfileStore,
+        *,
+        username: str,
+        answer: str,
+        impulse_kind: str = "",
+        impulse_payload: dict | None = None,
+        via: str = "context_router",
+    ) -> dict:
+        """Map SÌ/NO through ContextRouter; Spotify for next_track; phone queue for call/msg."""
+
+        from bci_iot.integrations.music_control import run_spotify_action
+        from bci_iot.pipeline.context_router import get_context_router, phone_queue_event
+
+        router = get_context_router(username)
+        focus_before = router.active_focus()
+        # Side-effects (close call/msg) happen inside decide — capture labels first.
+        snap = router.focus_snapshot()
+        try:
+            base = router.decide(answer, impulse_kind=impulse_kind, via=via)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        decision = base.get("decision") or {}
+        action = str(decision.get("action") or "noop")
+        queue = app.state.phone_queues.setdefault(username, [])
+        execution: dict = {"kind": action}
+
+        if action in {"answer_call", "reject_call", "open_message", "dismiss_message"}:
+            label = {
+                "answer_call": f"Rispondi: {snap.title}",
+                "reject_call": f"Rifiuta: {snap.title}",
+                "open_message": f"Apri: {snap.title}",
+                "dismiss_message": f"Ignora: {snap.title}",
+            }.get(action, snap.title)
+            event = phone_queue_event(action, label=label)  # type: ignore[arg-type]
+            queue.append(event)
+            del queue[:-20]
+            execution = {
+                "kind": action,
+                "mode": "phone_queue_demo",
+                "event": event,
+                "note": "Decisione registrata sul ponte telefono (nessuna API chiamate esterna).",
+            }
+        elif action == "next_track":
+            profile = profiles.get(username)
+            if profile is None:
+                execution = {"kind": action, "mode": "demo", "status": "error", "detail": "Profilo assente"}
+            else:
+                # Ensure music context stays sticky after next (decide already left it on).
+                music = run_spotify_action(profiles, profile, "next_track", queue=queue)
+                execution = {
+                    "kind": action,
+                    "mode": "spotify" if music.get("status") == "ok" else "spotify_or_demo",
+                    **music,
+                }
+                if music.get("status") != "ok":
+                    # Still record a bridge event so Telefono live shows the intent.
+                    if not music.get("event"):
+                        event = phone_queue_event("next_track", label="Prossima canzone (contesto)")  # type: ignore[arg-type]
+                        queue.append(event)
+                        del queue[:-20]
+                        execution["event"] = event
+        elif action == "keep_track":
+            event = phone_queue_event("keep_track", label="Tieni canzone (contesto)")  # type: ignore[arg-type]
+            queue.append(event)
+            del queue[:-20]
+            execution = {"kind": action, "mode": "demo", "event": event}
+
+        # Re-stamp decision with execution details.
+        if router.last_decision is not None:
+            router.last_decision.execution = execution
+            if router.history:
+                router.history[-1]["execution"] = execution
+            base["decision"] = router.last_decision.to_dict()
+            base["last_decision"] = router.last_decision.to_dict()
+
+        base["execution"] = execution
+        base["focus_before"] = focus_before
+        if impulse_payload:
+            base["impulse"] = impulse_payload.get("impulse")
+            base["agent"] = impulse_payload.get("status")
+        return base
+
+    @app.get("/contesto", response_class=HTMLResponse)
+    def contesto_page(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> HTMLResponse:
+        from bci_iot.pipeline.context_router import get_context_router
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
+        loaded = _require_profile(request, profiles)
+        if isinstance(loaded, RedirectResponse):
+            return loaded
+        profile = profiles.ensure_headset_pairing(loaded.username)
+        agent = get_headset_agent(
+            username=profile.username,
+            headset_id=profile.headset_id,
+            data_root=profiles.data_root,
+        )
+        router = get_context_router(profile.username)
+        return TEMPLATES.TemplateResponse(
+            request,
+            "contesto.html",
+            _template_ctx(
+                request,
+                profiles,
+                profile=profile,
+                agent=agent.status(),
+                ctx=router.status(),
+            ),
+        )
+
+    @app.get("/api/context/status")
+    def api_context_status(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        from bci_iot.pipeline.context_router import get_context_router
+
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        return get_context_router(username).status()
+
+    @app.post("/api/context/live")
+    def api_context_live(
+        request: Request,
+        body: ContextLiveRequest,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        from bci_iot.pipeline.context_router import get_context_router
+
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        return get_context_router(username).set_live_mode(body.enabled)
+
+    @app.post("/api/context/event")
+    def api_context_event(
+        request: Request,
+        body: ContextEventRequest,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        from bci_iot.pipeline.context_router import get_context_router
+
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        router = get_context_router(username)
+        ev = body.event.strip().lower()
+        if ev == "call":
+            return router.simulate_call(caller=body.caller)
+        if ev in {"message", "msg"}:
+            return router.simulate_message(sender=body.sender, app=body.app)
+        if ev in {"music_on", "music"}:
+            return router.set_music(True, track=body.track)
+        if ev == "music_off":
+            return router.set_music(False)
+        if ev == "clear":
+            return router.clear_events()
+        raise HTTPException(status_code=400, detail=f"Unknown event: {body.event}")
+
+    @app.post("/api/context/decide")
+    async def api_context_decide(
+        request: Request,
+        body: ContextDecideRequest,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        """Headset impulse (SÌ/NO) → context router → Spotify / phone-queue demo."""
+
+        from bci_iot.pipeline.context_router import normalize_yes_no
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        yn = normalize_yes_no(body.answer)
+        if yn is None:
+            raise HTTPException(status_code=400, detail="Serve SÌ o NO")
+
+        profile = profiles.ensure_headset_pairing(username)
+        agent = get_headset_agent(
+            username=username,
+            headset_id=profile.headset_id,
+            data_root=profiles.data_root,
+        )
+
+        def _recv() -> dict:
+            return agent.receive_impulse(yn)
+
+        try:
+            impulse_payload = await run_in_threadpool(_recv)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        routed = await _apply_context_decision(
+            request,
+            profiles,
+            username=username,
+            answer=yn,
+            impulse_kind=yn,
+            impulse_payload=impulse_payload,
+            via="context_decide",
+        )
+        return {"status": "ok", **routed}
 
     @app.post("/dashboard")
     def dashboard_save(

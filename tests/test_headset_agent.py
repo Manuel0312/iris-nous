@@ -123,11 +123,15 @@ def test_web_headset_agent_apis(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     client = TestClient(app)
     _register_verified(client, app)
 
-    page = client.get("/calibrazione?passo=1")
+    page = client.get("/cuffia?stage=1")
     assert page.status_code == 200
     assert "Agente cuffia" in page.text
     assert "agent-power-on" in page.text
-    assert "agent-impulse" in page.text
+    assert "Vai alla calibrazione" in page.text
+    stage2 = client.get("/cuffia?stage=2")
+    assert stage2.status_code == 200
+    assert "yn-si-btn" in stage2.text
+    assert "yn-no-btn" in stage2.text
 
     power = client.post("/api/headset/power", json={"on": True})
     assert power.status_code == 200

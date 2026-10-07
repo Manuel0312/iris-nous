@@ -1,23 +1,71 @@
-﻿{% extends "base.html" %}
-{% block title %}{{ t('Ponte smartphone') }} · Iris{% endblock %}
-{% block body_class %}page-private{% endblock %}
+{% extends "base.html" %}
+{% block title %}{{ t('Il tuo telefono') }} · Iris{% endblock %}
+{% block body_class %}page-private page-telefono-setup{% endblock %}
 {% block main_class %}shell private-shell{% endblock %}
 {% block content %}
-<section class="private-area pair-hub">
-  <header class="private-welcome">
-    <p class="eyebrow">{{ t('Funzione avanzata') }}</p>
-    <h1>{{ t('Ponte smartphone') }}</h1>
+<section class="private-area setup-guide wizard calib-area telefono-setup-area" id="telefono-setup-root"
+         data-done="{{ '1' if done else '0' }}"
+         data-stage="{{ stage }}"
+         data-paired="{{ '1' if profile.phone_paired else '0' }}">
+  {% if done %}
+  <header class="setup-hero calib-hero telefono-hero">
+    <p class="eyebrow">{{ t('Il tuo telefono') }}</p>
+    <h1>{{ t('Telefono associato.') }}</h1>
+    <p class="lede">{{ t('Il telefono è collegato all’account. Chiamate, notifiche e musica usano questo ponte — dal browser dello smartphone, senza PC obbligatorio.') }}</p>
+  </header>
+  <div class="setup-done calib-done">
+    <ul class="detail-list">
+      <li><span>{{ t('Associazione') }}</span><strong>{{ t('Attiva') }}{% if profile.phone_label %} · {{ profile.phone_label }}{% endif %}</strong></li>
+      <li><span>{{ t('In linea') }}</span><strong>{% if profile.phone_online %}{{ t('Sì') }}{% else %}{{ t('Apri Telefono live sul cellulare') }}{% endif %}</strong></li>
+      <li><span>Spotify</span><strong>{% if profile.spotify_linked %}{{ t('Collegato') }}{% if profile.spotify_display_name %} · {{ profile.spotify_display_name }}{% endif %}{% else %}{{ t('Da collegare') }}{% endif %}</strong></li>
+      <li><span>Alexa</span><strong>{{ t('Collegamento dopo') }}</strong></li>
+    </ul>
+    <div class="private-actions cuffia-done-actions">
+      <a class="btn primary" href="/telefono">{{ t('Apri Telefono live') }}</a>
+      <a class="btn" href="/telefono-setup?stage=2">{{ t('Stato e musica') }}</a>
+      <a class="btn ghost" href="/cuffia">{{ t('La tua cuffia') }}</a>
+      <a class="btn ghost" href="/dashboard">{{ t('Apri l’ecosistema') }}</a>
+    </div>
+    <p class="form-hint muted">{{ t('SÌ/NO dalla cuffia segue la priorità: chiamata > messaggio > musica — prova Contesto live.') }}
+      <a href="/contesto">{{ t('Contesto live') }}</a>
+    </p>
+  </div>
+  {% else %}
+  <header class="setup-hero calib-hero telefono-hero">
+    <p class="eyebrow">{{ t('Il tuo telefono') }} · {{ stage }} / 2</p>
+    <h1>
+      {% if stage == 1 %}{{ t('Associazione') }}
+      {% else %}{{ t('Stato e servizi') }}{% endif %}
+    </h1>
     <p class="lede">
-      {{ t('Estendi Iris Nous al tuo Smartphone: intercetta chiamate e notifiche in tempo reale tenendo aperto il bridge sul tuo dispositivo mobile.') }}
+      {% if stage == 1 %}{{ t('Perché associarlo: chiamate, notifiche e controllo musica sul telefono. Funziona dal browser dello smartphone da solo — oppure solo dal PC. Non serve un intermediario.') }}
+      {% else %}{{ t('Vedi se il ponte è attivo, collega Spotify se vuoi la musica vera, apri Telefono live sul cellulare. Alexa arriverà dopo.') }}{% endif %}
     </p>
   </header>
 
-  <div class="private-form private-form-fit stack hub-pair-stack">
+  <nav class="wizard-dots cuffia-stages" aria-label="{{ t('Passi del tutorial') }}">
+    <a href="/telefono-setup?stage=1" class="{% if stage == 1 %}is-on{% endif %}" title="{{ t('Associazione') }}">1</a>
+    <a href="/telefono-setup?stage=2" class="{% if stage == 2 %}is-on{% endif %}" title="{{ t('Stato e servizi') }}">2</a>
+  </nav>
+
+  <p class="cuffia-mobile-hint muted">{{ t('Funziona dal browser dello smartphone: non serve il PC come intermediario.') }}</p>
+
+  {% if stage == 1 %}
+  <article class="calib-pane" id="phone-pair">
+    <div class="form-block panel telefono-why">
+      <h2>{{ t('A cosa serve') }}</h2>
+      <ul class="detail-list">
+        <li><span>{{ t('Chiamate') }}</span><strong>{{ t('Accetta / rifiuta dal contesto Iris') }}</strong></li>
+        <li><span>{{ t('Notifiche') }}</span><strong>{{ t('Avvisi essenziali sul ponte') }}</strong></li>
+        <li><span>{{ t('Musica') }}</span><strong>{{ t('Spotify sul dispositivo che sta riproducendo') }}</strong></li>
+      </ul>
+    </div>
+
     <div class="form-block">
       <h2>{{ t('QR e codice di associazione') }}</h2>
       <p class="form-hint">
-        {{ t('Il codice a 6 cifre viene inviato via email solo quando lo chiedi. Aprilo sul telefono con lo stesso account, oppure inquadra il QR. Il telefono diventa un ponte dell’ecosistema, non un obbligo di setup.') }}
-        <strong>{{ public_url }}/associa-telefono</strong>
+        {{ t('Il codice a 6 cifre viene inviato via email solo quando lo chiedi. Aprilo sul telefono con lo stesso account, oppure inquadra il QR.') }}
+        <strong>{{ public_url }}/telefono-setup</strong>
       </p>
       <form method="post" action="/associa-telefono/invia-codice" class="stack">
         <button class="btn primary" type="submit">{{ t('Invia il codice via email') }}</button>
@@ -48,16 +96,29 @@
       {% endif %}
     </div>
 
+    <div class="wizard-nav">
+      <a class="btn ghost" href="/cuffia">{{ t('La tua cuffia') }}</a>
+      <a class="btn primary" href="/telefono-setup?stage=2">{{ t('Vai a stato e servizi') }}</a>
+    </div>
+  </article>
+  {% else %}
+  <article class="calib-pane" id="phone-status">
+    {% if not profile.phone_paired %}
+    <p class="flash warn">{{ t('Prima associa il telefono (codice o QR).') }}
+      <a href="/telefono-setup?stage=1">{{ t('Torna all’associazione') }}</a>
+    </p>
+    {% endif %}
+
     <div class="form-block">
-      <h2>{{ t('Telefono in linea') }}</h2>
-      <p class="form-hint">
-        {{ t('Quando vuoi chiamate e notifiche in diretta, tieni aperta la pagina') }}
-        <a href="/telefono"><strong>{{ t('Telefono live') }}</strong></a>
-        {{ t('sul dispositivo mobile: è il bridge dell’ecosistema.') }}
-      </p>
-      <p class="assoc-pill {% if profile.phone_online %}is-on{% endif %}">
-        {% if profile.phone_online %}{{ t('In linea ora') }}{% else %}{{ t('Non in linea') }}{% endif %}
-      </p>
+      <h2>{{ t('Stato del ponte') }}</h2>
+      <ul class="detail-list">
+        <li><span>{{ t('Associazione') }}</span><strong>{% if profile.phone_paired %}{{ t('Attiva') }}{% else %}{{ t('Non associato') }}{% endif %}</strong></li>
+        <li><span>{{ t('In linea') }}</span><strong>{% if profile.phone_online %}{{ t('In linea ora') }}{% else %}{{ t('Non in linea') }}{% endif %}</strong></li>
+      </ul>
+      <p class="form-hint">{{ t('Quando vuoi chiamate e notifiche in diretta, tieni aperta la pagina Telefono live sul dispositivo mobile.') }}</p>
+      <div class="private-actions">
+        <a class="btn {% if profile.phone_paired %}primary{% else %}ghost{% endif %}" href="/telefono">{{ t('Apri Telefono live') }}</a>
+      </div>
     </div>
 
     <div class="form-block">
@@ -96,14 +157,28 @@
         <div class="meter-track"><div class="meter-fill" id="music-impulse-fill"></div></div>
       </div>
       <p class="form-hint" id="music-test-msg" hidden></p>
-      <div class="private-actions">
-        <a class="btn ghost" href="/telefono">{{ t('Apri telefono live') }}</a>
-        <a class="btn ghost" href="/cuffia?stage=1">{{ t('Prepara la cuffia') }}</a>
-        <a class="btn ghost" href="/dashboard">{{ t('Torna all’ecosistema') }}</a>
-      </div>
     </div>
-  </div>
+
+    <div class="form-block telefono-alexa-stub">
+      <h2>Alexa</h2>
+      <p class="form-hint">{{ t('Alexa: collegamento dopo. Non è ancora disponibile in questa versione.') }}</p>
+      <span class="assoc-pill">{{ t('Collegamento dopo') }}</span>
+    </div>
+
+    <div class="wizard-nav">
+      <a class="btn ghost" href="/telefono-setup?stage=1">{{ t('Indietro') }}</a>
+      {% if profile.phone_paired %}
+      <a class="btn primary" href="/telefono-setup?done=1">{{ t('Telefono pronto') }}</a>
+      {% else %}
+      <a class="btn primary" href="/telefono-setup?stage=1">{{ t('Associa il telefono') }}</a>
+      {% endif %}
+    </div>
+  </article>
+  {% endif %}
+  {% endif %}
 </section>
+
+{% if not done and stage == 2 %}
 <script>
 (function () {
   var form = document.getElementById("music-test-form");
@@ -166,4 +241,5 @@
   });
 })();
 </script>
+{% endif %}
 {% endblock %}

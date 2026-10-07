@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+{% block title %}{{ t('La tua cuffia') }} · Iris{% endblock %}
+{% block body_class %}page-private page-cuffia{% endblock %}
+{% block main_class %}shell private-shell{% endblock %}
+{% block content %}
+<section class="private-area setup-guide wizard calib-area cuffia-area" id="cuffia-root"
+         data-done="{{ '1' if done else '0' }}"
+         data-stage="{{ stage }}"
+         data-ready="{{ '1' if agent and agent.ready_for_impulses else '0' }}">
+  {% if done %}
+  <header class="setup-hero calib-hero cuffia-hero">
+    <p class="eyebrow">{{ t('La tua cuffia') }}</p>
+    <h1>{{ t('Cuffia pronta.') }}</h1>
+    <p class="lede">{{ t('Associazione e calibrazione SÌ/NO completate. Gli impulsi EEG (finestre pubbliche o sintetiche) sono in memoria. Non è ancora una cuffia fisica né un dispositivo medico.') }}</p>
+  </header>
+  <div class="setup-done calib-done">
+    <p class="lede muted">{{ t('Calibrazione avvenuta') }} · {{ t('segnale da corpus EEG pubblico o prior documentati finché non colleghi una cuffia reale') }}</p>
+    <div class="private-actions cuffia-done-actions">
+      <a class="btn primary" href="/dashboard">{{ t('Apri l’ecosistema') }}</a>
+      <a class="btn" href="/inizia">{{ t('Cosa puoi fare') }}</a>
+    </div>
+    <aside class="cuffia-phone-stub">
+      <p class="hub-kicker">{{ t('Telefono') }}</p>
+      <h2>{{ t('Il tuo telefono') }}</h2>
+      <p class="form-hint">{{ t('Dopo la cuffia: associa il telefono per chiamate, notifiche e musica. Funziona dal browser dello smartphone, senza PC obbligatorio.') }}</p>
+      <div class="private-actions">
+        <a class="btn primary" href="/telefono-setup">{{ t('Il tuo telefono') }}</a>
+        <a class="btn" href="/contesto">{{ t('Contesto live') }}</a>
+        <span class="assoc-pill">{{ t('priorità chiamata > messaggio > musica') }}</span>
+      </div>
+    </aside>
+  </div>
+  {% else %}
+  <header class="setup-hero calib-hero cuffia-hero">
+    <p class="eyebrow">{{ t('La tua cuffia') }} · {{ stage }} / 2</p>
+    <h1>
+      {% if stage == 1 %}{{ t('Associazione') }}
+      {% else %}{{ t('Calibrazione') }}{% endif %}
+    </h1>
+    <p class="lede">
+      {% if stage == 1 %}{{ t('Dal telefono o dal PC: accendi la cuffia simulata, indossala, controlla il contatto. Il sito deve «ricevere» i dati prima della calibrazione.') }}
+      {% else %}{{ t('Guida: pensa SÌ o pensa NO. Ogni etichetta allena il sistema con finestre EEG pubbliche o sintetiche — non il tuo EEG clinico.') }}{% endif %}
+    </p>
+  </header>
+
+  <nav class="wizard-dots cuffia-stages" aria-label="{{ t('Passi del tutorial') }}">
+    <a href="/cuffia?stage=1" class="{% if stage == 1 %}is-on{% endif %}" title="{{ t('Associazione') }}">1</a>
+    <a href="/cuffia?stage=2" class="{% if stage == 2 %}is-on{% endif %}" title="{{ t('Calibrazione') }}">2</a>
+  </nav>
+
+  <p class="cuffia-mobile-hint muted">{{ t('Funziona dal browser dello smartphone: non serve il PC come intermediario.') }}</p>
+
+  {% if stage == 1 %}
+  <article class="calib-pane" id="headset-config">
+    <p class="form-hint">{{ t('Questa è la cuffia simulata: trattala come se fosse in mano e poi in testa. Si accende, controlla il contatto, riceve finestre EEG pubbliche o sintetiche per la demo (corpus pubblico) e salva tutto in memoria per i passi dopo.') }}</p>
+    {% if headset.hosted_hint %}
+    <p class="flash warn">{{ headset.hosted_hint }}</p>
+    {% endif %}
+    <div class="headset-device panel" id="agent-panel"
+         data-ready="{{ '1' if agent and agent.ready_for_impulses else '0' }}">
+      <p class="device-label">{{ t('Agente cuffia') }}</p>
+      <p><strong id="agent-label">{% if agent %}{{ agent.label }}{% else %}{{ t('Spenta') }}{% endif %}</strong></p>
+      <p class="muted" id="agent-detail">{% if agent %}{{ agent.detail }}{% else %}{{ t('Accendi la cuffia simulata come se l’avessi in mano.') }}{% endif %}</p>
+      <ul class="detail-list" id="agent-stats">
+        <li><span>{{ t('Alimentazione') }}</span><strong id="agent-power">{% if agent %}{{ agent.power }}{% else %}off{% endif %}</strong></li>
+        <li><span>{{ t('In testa') }}</span><strong id="agent-wear">{% if agent and agent.wear == 'on_head' %}{{ t('sì') }}{% else %}{{ t('no') }}{% endif %}</strong></li>
+        <li><span>{{ t('Contatto') }}</span><strong id="agent-contact-val">{% if agent and agent.contact_ok %}{{ t('ok') }} · {{ '%.0f'|format(agent.contact_mean * 100) }}%{% elif agent %}{{ t('da verificare') }}{% else %}—{% endif %}</strong></li>
+        <li><span>{{ t('Sorgente segnale') }}</span><strong id="agent-signal">{% if agent %}{{ agent.signal_path }}{% else %}pending{% endif %}</strong></li>
+      </ul>
+      <div class="contact-bars" id="contact-bars" aria-hidden="true"></div>
+      <div class="private-actions headset-actions">
+        <button class="btn primary" type="button" id="agent-power-on">{{ t('Accendi') }}</button>
+        <button class="btn" type="button" id="agent-wear-on">{{ t('Indossa (in testa)') }}</button>
+        <button class="btn" type="button" id="agent-contact-btn">{{ t('Controlla contatto') }}</button>
+        <button class="btn ghost" type="button" id="agent-power-off">{{ t('Spegni') }}</button>
+      </div>
+    </div>
+    <form class="stack calib-form" id="headset-form">
+      <label>{{ t('Modalità') }}
+        <select name="mode" id="headset-mode">
+          <option value="simulated" {% if headset.mode == 'simulated' %}selected{% endif %}>{{ t('Simulata (BrainFlow)') }}</option>
+          <option value="disconnected" {% if headset.mode == 'disconnected' %}selected{% endif %}>{{ t('Non collegata') }}</option>
+          <option value="real" {% if headset.mode == 'real' %}selected{% endif %}>{{ t('Reale (prossimamente)') }}</option>
+        </select>
+      </label>
+      <label>{{ t('ID cuffia') }}
+        <input name="headset_id" id="headset-id-input" value="{{ profile.headset_id }}" maxlength="128" autocomplete="off" />
+      </label>
+      <div class="private-actions">
+        <button class="btn" type="submit" id="headset-save">{{ t('Salva configurazione cuffia') }}</button>
+      </div>
+      <p class="flash error" id="headset-error" hidden></p>
+      <p class="flash ok" id="headset-ok" hidden></p>
+    </form>
+    <div class="wizard-nav">
+      <a class="btn ghost" href="/inizia">{{ t('Indietro') }}</a>
+      <a class="btn primary" href="/cuffia?stage=2" id="headset-next">{{ t('Vai alla calibrazione') }}</a>
+    </div>
+  </article>
+  {% else %}
+  <article class="calib-pane calib-pane-simple" id="calib-yesno">
+    <div class="calib-card cuffia-yesno-card">
+      <h2>{{ t('Pensa SÌ / pensa NO') }}</h2>
+      <p class="form-hint">{{ t('Premi quando stai pensando SÌ o NO. L’etichetta allena il modello demo: usiamo finestre EEG da corpus pubblico o prior documentati, non una lettura cerebrale reale.') }}</p>
+      {% if not agent or not agent.ready_for_impulses %}
+      <p class="flash warn">{{ t('Prima completa l’associazione: cuffia accesa, in testa, contatto ok.') }}
+        <a href="/cuffia?stage=1">{{ t('Torna all’associazione') }}</a>
+      </p>
+      {% endif %}
+      <ul class="detail-list calib-phone-meta">
+        <li><span>{{ t('Impulsi in memoria') }}</span><strong id="yn-impulses">{% if agent %}{{ agent.impulses_count }}{% else %}0{% endif %}{% if agent %} / {{ agent.impulses_needed }}{% endif %}</strong></li>
+        <li><span>{{ t('Etichette SÌ') }}</span><strong id="yn-si">0</strong></li>
+        <li><span>{{ t('Etichette NO') }}</span><strong id="yn-no">0</strong></li>
+        <li><span>{{ t('Sorgente segnale') }}</span><strong id="yn-signal">{% if agent %}{{ agent.signal_path }}{% else %}pending{% endif %}</strong></li>
+      </ul>
+      <div class="private-actions headset-actions cuffia-yn-actions">
+        <button class="btn primary" type="button" id="yn-si-btn" {% if not agent or not agent.ready_for_impulses %}disabled{% endif %}>{{ t('Pensa SÌ') }}</button>
+        <button class="btn" type="button" id="yn-no-btn" {% if not agent or not agent.ready_for_impulses %}disabled{% endif %}>{{ t('Pensa NO') }}</button>
+      </div>
+      <div class="calib-meter panel" id="impulse-meter" hidden>
+        <p class="device-label">{{ t('Ultimo impulso ricevuto') }}</p>
+        <p id="impulse-last" class="calib-last"></p>
+        <div class="meter-track"><div class="meter-fill" id="impulse-fill"></div></div>
+      </div>
+      <p class="flash error" id="setup-error" hidden></p>
+      <p class="flash ok" id="setup-ok" hidden></p>
+      <p class="form-hint muted" id="setup-hint">
+        {{ t('Per chiudere servono almeno un SÌ, un NO e') }}
+        {% if agent %}{{ agent.impulses_needed }}{% else %}3{% endif %}
+        {{ t('impulsi EEG in memoria.') }}
+      </p>
+    </div>
+    <aside class="cuffia-phone-stub">
+      <p class="hub-kicker">{{ t('Telefono') }}</p>
+      <p class="form-hint">{{ t('Poi associa il telefono (chiamate, musica, notifiche). Alexa: collegamento dopo; Spotify è già nell’ecosistema.') }}</p>
+      <a class="btn ghost" href="/telefono-setup">{{ t('Il tuo telefono') }}</a>
+    </aside>
+    <div class="wizard-nav">
+      <a class="btn ghost" href="/cuffia?stage=1">{{ t('Indietro') }}</a>
+      <button type="button" class="btn primary" id="setup-finish" {% if not agent or not agent.ready_for_impulses %}disabled{% endif %}>{{ t('Completa configurazione') }}</button>
+    </div>
+  </article>
+  {% endif %}
+  {% endif %}
+</section>
+
+{% if not done and stage == 1 %}
+<script>
+(function () {
+  const form = document.getElementById("headset-form");
+  const err = document.getElementById("headset-error");
+  const ok = document.getElementById("headset-ok");
+  const bars = document.getElementById("contact-bars");
+  const L = {
+    salvato: {{ t('Configurazione cuffia salvata.')|tojson }},
+    errore: {{ t('Errore configurazione cuffia')|tojson }},
+    si: {{ t('sì')|tojson }},
+    no: {{ t('no')|tojson }},
+    ok: {{ t('ok')|tojson }},
+    daVerificare: {{ t('da verificare')|tojson }},
+    pronto: {{ t('Cuffia associata: puoi passare alla calibrazione.')|tojson }},
+  };
+
+  function renderBars(channels) {
+    if (!bars) return;
+    bars.innerHTML = "";
+    (channels || []).forEach((v) => {
+      const d = document.createElement("div");
+      d.className = "contact-bar";
+      d.style.setProperty("--h", Math.round(Math.max(0, Math.min(1, v)) * 100) + "%");
+      bars.appendChild(d);
+    });
+  }
+
+  function applyAgent(a) {
+    if (!a) return;
+    document.getElementById("agent-label").textContent = a.label || "";
+    document.getElementById("agent-detail").textContent = a.detail || "";
+    document.getElementById("agent-power").textContent = a.power || "off";
+    document.getElementById("agent-wear").textContent = a.wear === "on_head" ? L.si : L.no;
+    const contactEl = document.getElementById("agent-contact-val");
+    if (a.contact_ok) {
+      contactEl.textContent = L.ok + " · " + Math.round((a.contact_mean || 0) * 100) + "%";
+    } else {
+      contactEl.textContent = L.daVerificare;
+    }
+    document.getElementById("agent-signal").textContent = a.signal_path || "pending";
+    renderBars(a.contact_channels || []);
+    document.getElementById("agent-panel").dataset.ready = a.ready_for_impulses ? "1" : "0";
+    document.getElementById("cuffia-root").dataset.ready = a.ready_for_impulses ? "1" : "0";
+  }
+
+  async function postJson(url, body) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body || {}),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || L.errore);
+    return data;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    err.hidden = true; ok.hidden = true;
+    try {
+      const data = await postJson("/api/headset/configure", {
+        mode: document.getElementById("headset-mode").value,
+        headset_id: document.getElementById("headset-id-input").value,
+      });
+      if (data.agent) applyAgent(data.agent);
+      ok.hidden = false;
+      ok.textContent = L.salvato;
+    } catch (ex) {
+      err.hidden = false;
+      err.textContent = String(ex.message || ex);
+    }
+  });
+
+  document.getElementById("agent-power-on").addEventListener("click", async () => {
+    err.hidden = true; ok.hidden = true;
+    try {
+      const data = await postJson("/api/headset/power", { on: true });
+      applyAgent(data.agent);
+      ok.hidden = false;
+      ok.textContent = data.agent.detail || L.salvato;
+    } catch (ex) {
+      err.hidden = false;
+      err.textContent = String(ex.message || ex);
+    }
+  });
+  document.getElementById("agent-power-off").addEventListener("click", async () => {
+    err.hidden = true; ok.hidden = true;
+    try {
+      const data = await postJson("/api/headset/power", { on: false });
+      applyAgent(data.agent);
+    } catch (ex) {
+      err.hidden = false;
+      err.textContent = String(ex.message || ex);
+    }
+  });
+  document.getElementById("agent-wear-on").addEventListener("click", async () => {
+    err.hidden = true; ok.hidden = true;
+    try {
+      const data = await postJson("/api/headset/wear", { on_head: true });
+      applyAgent(data.agent);
+      ok.hidden = false;
+      ok.textContent = data.agent.ready_for_impulses ? L.pronto : (data.agent.detail || L.salvato);
+    } catch (ex) {
+      err.hidden = false;
+      err.textContent = String(ex.message || ex);
+    }
+  });
+  document.getElementById("agent-contact-btn").addEventListener("click", async () => {
+    err.hidden = true; ok.hidden = true;
+    try {
+      const data = await postJson("/api/headset/contact", {});
+      applyAgent(data.agent);
+      ok.hidden = false;
+      ok.textContent = data.agent.contact_ok
+        ? (L.ok + " · " + Math.round((data.agent.contact_mean || 0) * 100) + "%")
+        : L.daVerificare;
+      if (data.agent.ready_for_impulses) ok.textContent = L.pronto;
+    } catch (ex) {
+      err.hidden = false;
+      err.textContent = String(ex.message || ex);
+    }
+  });
+
+  {% if agent and agent.contact_channels %}
+  renderBars({{ agent.contact_channels|tojson }});
+  {% endif %}
+})();
+</script>
+{% endif %}
+
+{% if not done and stage == 2 %}
+<script>
+(function () {
+  const btnSi = document.getElementById("yn-si-btn");
+  const btnNo = document.getElementById("yn-no-btn");
+  const btnFin = document.getElementById("setup-finish");
+  const err = document.getElementById("setup-error");
+  const ok = document.getElementById("setup-ok");
+  const meter = document.getElementById("impulse-meter");
+  const impulseLast = document.getElementById("impulse-last");
+  const impulseFill = document.getElementById("impulse-fill");
+  let countSi = 0;
+  let countNo = 0;
+  const L = {
+    errore: {{ t('Completa prima la cuffia e gli impulsi.')|tojson }},
+    ok: {{ t('Configurazione completata.')|tojson }},
+    impulsoOk: {{ t('Impulso ricevuto e salvato in memoria.')|tojson }},
+    serveSiNo: {{ t('Serve almeno un SÌ e un NO, più abbastanza impulsi in memoria.')|tojson }},
+  };
+
+  function refreshCounts(status, kind) {
+    if (kind === "SI" || kind === "SÌ" || kind === "YES") countSi += 1;
+    if (kind === "NO") countNo += 1;
+    document.getElementById("yn-si").textContent = String(countSi);
+    document.getElementById("yn-no").textContent = String(countNo);
+    if (status) {
+      const needed = status.impulses_needed || 3;
+      document.getElementById("yn-impulses").textContent = String(status.impulses_count || 0) + " / " + needed;
+      document.getElementById("yn-signal").textContent = status.signal_path || "pending";
+    }
+  }
+
+  async function postJson(url, body) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body || {}),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || L.errore);
+    return data;
+  }
+
+  async function sendLabel(kind) {
+    err.hidden = true; ok.hidden = true;
+    try {
+      const data = await postJson("/api/headset/impulse", { kind: kind });
+      const imp = data.impulse || {};
+      refreshCounts(data.status, kind);
+      meter.hidden = false;
+      impulseLast.textContent = (imp.kind || kind) + " · " + (imp.intensity || 0) + "% · " + (imp.signal_source || "");
+      impulseFill.style.width = (imp.intensity || 0) + "%";
+      ok.hidden = false;
+      ok.textContent = L.impulsoOk;
+    } catch (ex) {
+      err.hidden = false;
+      err.textContent = String(ex.message || ex);
+    }
+  }
+
+  if (btnSi) btnSi.addEventListener("click", () => sendLabel("SI"));
+  if (btnNo) btnNo.addEventListener("click", () => sendLabel("NO"));
+
+  btnFin.addEventListener("click", async () => {
+    err.hidden = true;
+    ok.hidden = true;
+    if (countSi < 1 || countNo < 1) {
+      err.hidden = false;
+      err.textContent = L.serveSiNo;
+      return;
+    }
+    btnFin.disabled = true;
+    try {
+      const res = await fetch("/api/calibrate/complete-setup", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || L.errore);
+      ok.hidden = false;
+      ok.textContent = L.ok;
+      location.href = "/cuffia?done=1";
+    } catch (e) {
+      err.hidden = false;
+      err.textContent = String(e.message || e);
+      btnFin.disabled = false;
+    }
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

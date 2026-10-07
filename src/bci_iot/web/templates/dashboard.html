@@ -12,7 +12,7 @@
 
   {% if not profile.calibration_complete %}
   <p class="setup-banner">{{ t('La configurazione non è ancora completa.') }}
-    <a href="/inizia">{{ t('Iniziamo') }}</a>
+    <a href="/cuffia?stage=1">{{ t('La tua cuffia') }}</a>
   </p>
   {% endif %}
 
@@ -169,21 +169,23 @@
           {% if profile.phone_paired %}{{ t('Ponte attivo') }}{% else %}{{ t('Opzionale') }}{% endif %}
         </span>
       </div>
-      <p class="hub-copy">{{ t('Per intercettare chiamate native o notifiche, il telefono deve agire da Ponte. Non è un passaggio obbligatorio: è una funzione avanzata dell’ecosistema.') }}</p>
+      <p class="hub-copy">{{ t('Associa il telefono per chiamate, notifiche e musica. Funziona dal browser dello smartphone da solo — oppure solo dal PC. Non è obbligatorio.') }}</p>
       <p class="assoc-pill {% if profile.phone_online %}is-on{% endif %}">
         {% if profile.phone_online %}{{ t('In linea ora') }}{% else %}{{ t('Bridge in attesa') }}{% endif %}
       </p>
       <div class="hub-card-actions">
-        <a class="hub-connect" href="/associa-telefono">{{ t('Associa con QR') }}</a>
-        <a class="hub-connect is-ghost" href="/telefono">{{ t('Apri il ponte') }}</a>
+        <a class="hub-connect" href="/telefono-setup">{{ t('Il tuo telefono') }}</a>
+        <a class="hub-connect is-ghost" href="/telefono">{{ t('Apri Telefono live') }}</a>
       </div>
     </article>
   </div>
 
   <nav class="hub-shortcuts reveal" data-reveal aria-label="{{ t('Altre aree') }}">
     <a href="/anagrafica?edit=1">{{ t('Dati') }}</a>
+    <a href="/cuffia">{{ t('Cuffia') }}</a>
+    <a href="/contesto">{{ t('Contesto live') }}</a>
+    <a href="/telefono-setup">{{ t('Telefono') }}</a>
     <a href="/inizia">{{ t('Cosa puoi fare') }}</a>
-    <a href="/calibrazione?passo=1">{{ t('Configurazione') }}</a>
     <a href="/chatta">{{ t('Chatta con noi') }}</a>
     <a href="/cambia-password">{{ t('Password') }}</a>
   </nav>

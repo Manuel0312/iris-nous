@@ -96,8 +96,9 @@ def test_associa_telefono_shows_impulse_ux(tmp_path: Path) -> None:
     app = create_app(data_dir=tmp_path, session_secret="impulse-ux")
     client = TestClient(app)
     _register(client)
-    page = client.get("/associa-telefono")
+    page = client.get("/telefono-setup?stage=2")
     assert page.status_code == 200
     assert "music-impulse-meter" in page.text
     assert "Invio impulso alla cuffia" in page.text
-    assert "Prepara la cuffia" in page.text
+    assert "Spotify" in page.text
+    assert "Alexa" in page.text

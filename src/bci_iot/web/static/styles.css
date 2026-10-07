@@ -3478,6 +3478,199 @@ html[data-theme-resolved="dark"] .password-toggle:hover {
   }
 }
 
+/* Hub cuffia + telefono — mobile-first (allinea anagrafica) */
+.page-cuffia .shell.private-shell,
+.page-telefono-setup .shell.private-shell {
+  max-width: 42rem;
+  width: 100%;
+  padding-inline: max(0.85rem, env(safe-area-inset-left))
+    max(0.85rem, env(safe-area-inset-right));
+  box-sizing: border-box;
+}
+
+.page-cuffia .cuffia-area,
+.page-telefono-setup .telefono-setup-area {
+  gap: 1rem;
+  width: 100%;
+}
+
+.page-cuffia .cuffia-hero h1,
+.page-telefono-setup .telefono-hero h1 {
+  font-size: clamp(1.7rem, 6vw, 2.4rem);
+}
+
+.page-cuffia .cuffia-mobile-hint,
+.page-telefono-setup .cuffia-mobile-hint {
+  text-align: center;
+  margin: 0 auto;
+  max-width: 28rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.page-telefono-setup .telefono-why {
+  margin-bottom: 0.5rem;
+}
+
+.page-telefono-setup .telefono-alexa-stub {
+  opacity: 0.92;
+}
+
+.page-telefono-setup .wizard-nav {
+  gap: 0.75rem;
+}
+
+.page-telefono-setup .wizard-nav .btn {
+  flex: 1 1 8rem;
+  min-height: 2.85rem;
+  justify-content: center;
+}
+
+.page-telefono-setup .pair-qr img {
+  max-width: min(220px, 70vw);
+  height: auto;
+}
+
+.page-cuffia .cuffia-yn-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
+.page-cuffia .cuffia-yn-actions .btn {
+  min-height: 3rem;
+  width: 100%;
+}
+
+.page-cuffia .cuffia-phone-stub {
+  margin-top: 1rem;
+  padding: 1rem 1.1rem;
+  border-radius: 14px;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.28));
+  border: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+.page-cuffia .cuffia-phone-stub h2 {
+  margin: 0.2rem 0 0.4rem;
+  font-size: 1.05rem;
+}
+
+.page-cuffia .cuffia-done-actions {
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.page-cuffia .headset-actions .btn {
+  min-height: 2.75rem;
+}
+
+.page-cuffia .wizard-nav {
+  gap: 0.75rem;
+}
+
+.page-cuffia .wizard-nav .btn {
+  flex: 1 1 8rem;
+  min-height: 2.85rem;
+  justify-content: center;
+}
+
+.discover-secondary {
+  margin: 0.35rem 0 0;
+}
+
+html[data-theme-resolved="dark"] .page-cuffia .cuffia-phone-stub {
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+@media (min-width: 721px) {
+  .page-cuffia .shell.private-shell,
+  .page-telefono-setup .shell.private-shell,
+  .page-contesto .shell.private-shell {
+    max-width: 46rem;
+  }
+
+  .page-cuffia .cuffia-yn-actions {
+    grid-template-columns: 1fr 1fr;
+    max-width: 22rem;
+  }
+}
+
+/* Contesto live — focus + simulate + SÌ/NO */
+.page-contesto .shell.private-shell {
+  max-width: 40rem;
+}
+
+.page-contesto .contesto-area {
+  gap: 1.1rem;
+}
+
+.page-contesto .contesto-hero h1 {
+  letter-spacing: -0.03em;
+}
+
+.page-contesto .contesto-focus {
+  border-left: 3px solid var(--accent, #2a6f6a);
+  padding: 1.1rem 1.15rem;
+}
+
+.page-contesto .contesto-focus h2 {
+  margin: 0.2rem 0 0.45rem;
+  font-size: clamp(1.15rem, 3.6vw, 1.45rem);
+  line-height: 1.25;
+}
+
+.page-contesto .contesto-live-row,
+.page-contesto .contesto-sim-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 0.65rem 0 0.85rem;
+}
+
+.page-contesto .contesto-live-row .btn,
+.page-contesto .contesto-sim-actions .btn,
+.page-contesto .contesto-yn .btn {
+  min-height: 2.75rem;
+}
+
+.page-contesto .contesto-yn {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  max-width: 22rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 420px) {
+  .page-contesto .contesto-yn {
+    grid-template-columns: 1fr;
+  }
+
+  .page-contesto .contesto-sim-actions .btn {
+    flex: 1 1 calc(50% - 0.55rem);
+  }
+}
+
+html[data-theme-resolved="dark"] .page-contesto .contesto-focus {
+  border-left-color: #6ecfc4;
+}
+
+@media (max-width: 420px) {
+  .page-cuffia .cuffia-yn-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .page-cuffia .headset-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .page-cuffia .headset-actions .btn {
+    width: 100%;
+  }
+}
+
 .anag-area {
   gap: 0.7rem;
 }
