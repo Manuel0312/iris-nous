@@ -32,6 +32,8 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
         or "Hub «La tua cuffia»" in page.text
         or "Privacy e chiarezza demo" in page.text
     )
+    assert "App Iris installabile sull’iPhone" in page.text
+    assert "Stato e eventi dall’app" in page.text
     assert "App companion Android e iPhone" in page.text
     assert "Chiamate rilevate dall’app → In ascolto" in page.text
     assert "Telefono: associa, Spotify, ponte chiamate" in page.text

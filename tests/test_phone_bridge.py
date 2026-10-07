@@ -53,6 +53,7 @@ def test_phone_setup_hub_stages(tmp_path: Path) -> None:
     assert "Funziona dal browser dello smartphone" in stage1.text
     assert "associa-telefono/questo-dispositivo" in stage1.text
     assert "App companion" in stage1.text
+    assert 'href="/app"' in stage1.text
     assert "telefono-alexa-stub" not in stage1.text
 
     stage2 = client.get("/telefono-setup?stage=2")

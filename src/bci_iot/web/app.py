@@ -16,7 +16,7 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 
 from fastapi.staticfiles import StaticFiles
 
@@ -2851,6 +2851,32 @@ def create_app(
                 qr_url=pairing_qr_url(pair_link),
                 spotify_ready=spotify_configured(),
             ),
+        )
+
+    @app.get("/app", response_class=HTMLResponse)
+    def companion_app_page(request: Request) -> HTMLResponse:
+        """Installable companion PWA (Add to Home on iPhone / Android)."""
+
+        return TEMPLATES.TemplateResponse(request, "app.html", {"request": request})
+
+    @app.get("/app/installa", response_class=HTMLResponse)
+    def companion_app_install_page(request: Request) -> HTMLResponse:
+        """How to install the companion on iPhone Safari."""
+
+        return TEMPLATES.TemplateResponse(request, "app_installa.html", {"request": request})
+
+    @app.get("/app/sw.js")
+    def companion_app_service_worker() -> FileResponse:
+        """Service worker under /app so scope covers the PWA."""
+
+        path = WEB_DIR / "static" / "app" / "sw.js"
+        return FileResponse(
+            path,
+            media_type="application/javascript; charset=utf-8",
+            headers={
+                "Service-Worker-Allowed": "/app",
+                "Cache-Control": "no-cache",
+            },
         )
 
     @app.get("/telefono-setup", response_class=HTMLResponse)

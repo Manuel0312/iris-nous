@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b0d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Iris" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Iris Nous</title>
+  <link rel="manifest" href="/static/app/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/static/app/icon-180.png" />
+  <link rel="icon" href="/static/app/icon-192.png" type="image/png" />
+  <link rel="stylesheet" href="/static/app/app.css?v=irisApp1" />
+</head>
+<body class="app-body">
+  <div class="app-shell">
+    <header class="app-top">
+      <div class="brand">
+        <img src="/static/app/icon-180.png" alt="" width="28" height="28" />
+        <span>Iris Nous</span>
+      </div>
+      <span class="pill-live" id="live-pill">non collegato</span>
+    </header>
+
+    <div class="install-banner" id="install-banner" hidden>
+      Su iPhone: apri questa pagina in <strong>Safari</strong>, tocca
+      <strong>Condividi</strong> → <strong>Aggiungi a Home</strong>.
+      <a href="/app/installa">Guida</a>
+    </div>
+
+    <nav class="tabs" role="tablist">
+      <button type="button" class="on" data-tab="login">Accedi</button>
+      <button type="button" data-tab="home">Stato</button>
+      <button type="button" data-tab="perm">Info</button>
+    </nav>
+
+    <p class="msg" id="app-msg" aria-live="polite"></p>
+
+    <section class="screen on" id="screen-login">
+      <p class="eyebrow">Configurazione</p>
+      <h1 class="title">Accedi e associa</h1>
+      <p class="lede">Stesso account del sito. Il codice a 6 cifre è in «Il tuo telefono» sul web.</p>
+      <form id="pair-form" autocomplete="on">
+        <input class="field" id="f-user" name="username" autocomplete="username" placeholder="Username" required />
+        <input class="field" id="f-pass" name="password" type="password" autocomplete="current-password" placeholder="Password" required />
+        <input class="field" id="f-code" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="12" placeholder="Codice 6 cifre" required />
+        <button class="btn primary" type="submit" id="btn-pair">Associa questo telefono</button>
+      </form>
+      <a class="btn ghost" href="/telefono-setup">Apri setup sul sito</a>
+    </section>
+
+    <section class="screen" id="screen-home">
+      <p class="eyebrow">Home</p>
+      <h1 class="title">Stato</h1>
+      <p class="lede">Il telefono resta collegato a Iris (heartbeat) e può segnalare eventi.</p>
+      <div class="card">
+        <div class="row"><span class="muted">Account</span><span id="st-user">—</span></div>
+        <div class="row"><span class="muted">Associato</span><span id="st-paired">—</span></div>
+        <div class="row"><span class="muted">Spotify</span><span id="st-spotify">—</span></div>
+        <div class="row"><span class="muted">Chiamata</span><span id="st-call">—</span></div>
+        <div class="row"><span class="muted">Musica</span><span id="st-music">—</span></div>
+        <div class="row"><span class="muted">Focus</span><span id="st-focus">—</span></div>
+      </div>
+      <button type="button" class="btn" id="btn-call">Segnala chiamata in arrivo</button>
+      <button type="button" class="btn" id="btn-end">Chiamata terminata</button>
+      <button type="button" class="btn primary" id="btn-next">Prossima canzone (Spotify)</button>
+      <button type="button" class="btn ghost" id="btn-refresh">Aggiorna stato</button>
+      <button type="button" class="btn ghost" id="btn-unpair">Scollega questa app</button>
+    </section>
+
+    <section class="screen" id="screen-perm">
+      <p class="eyebrow">Privacy</p>
+      <h1 class="title">Cosa fa questa app</h1>
+      <p class="lede">App Iris sul telefono (icona in Home). Non legge SMS e non risponde alle chiamate cellulari del sistema.</p>
+      <div class="card">
+        <div class="perm">
+          <div>
+            <strong>Associazione</strong>
+            <span class="muted">Collega l’account Iris con il codice a 6 cifre.</span>
+          </div>
+          <span class="tag">Ok</span>
+        </div>
+        <div class="perm">
+          <div>
+            <strong>Stato / heartbeat</strong>
+            <span class="muted">Tiene il ponte attivo con Iris.</span>
+          </div>
+          <span class="tag">Ok</span>
+        </div>
+        <div class="perm">
+          <div>
+            <strong>Eventi demo</strong>
+            <span class="muted">Puoi segnalare chiamata/musica a Iris. Il rilevamento automatico OS arriverà con l’app nativa.</span>
+          </div>
+          <span class="tag">Manuale</span>
+        </div>
+      </div>
+      <a class="btn primary" href="/app/installa">Come installarla su iPhone</a>
+      <a class="btn ghost" href="/contesto">Apri In ascolto</a>
+    </section>
+
+    <p class="foot">
+      Iris Nous · <a href="/">sito</a> · <a href="/telefono-setup">telefono</a>
+    </p>
+  </div>
+  <script src="/static/app/app.js?v=irisApp1" defer></script>
+</body>
+</html>

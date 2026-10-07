@@ -10,6 +10,22 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.40",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "App Iris installabile sull’iPhone",
+                "Senza Mac e App Store non c’era un modo chiaro per avere Iris come icona sul telefono.",
+                "Ora apri /app in Safari → Condividi → Aggiungi a Home: compare l’icona Iris, a schermo intero. Associa con username, password e codice a 6 cifre; guida su /app/installa.",
+            ),
+            (
+                "Stato e eventi dall’app",
+                "L’anteprima HTML non parlava col server.",
+                "L’app su /app si collega alle API companion: heartbeat, segnala chiamata, prossima canzone Spotify, come l’app nativa in arrivo.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.39",
         "intro": WHATS_NEW_INTRO,
         "entries": (

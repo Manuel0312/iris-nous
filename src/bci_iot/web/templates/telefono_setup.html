@@ -78,11 +78,16 @@
 
     <div class="form-block panel telefono-app-download">
       <h2>{{ t('App companion (Android e iPhone)') }}</h2>
-      <p class="form-hint">{{ t('Un’unica app Flutter: associ il telefono, gestisci i permessi e (presto) rileva le chiamate per Iris — senza Shortcuts. Per ora puoi anche continuare con il ponte nel browser.') }}</p>
+      <p class="form-hint">{{ t('Installa Iris sul telefono: icona in Home, associa con il codice, stato e eventi per In ascolto. Su iPhone usa Safari → Condividi → Aggiungi a Home.') }}</p>
       <ul class="detail-list">
-        <li><span>{{ t('Progetto') }}</span><strong>mobile/</strong></li>
-        <li><span>{{ t('Store') }}</span><strong>{{ t('TestFlight / Play in arrivo — non ancora pubblicato') }}</strong></li>
+        <li><span>{{ t('Apri l’app') }}</span><strong><a href="/app">/app</a></strong></li>
+        <li><span>{{ t('Guida iPhone') }}</span><strong><a href="/app/installa">/app/installa</a></strong></li>
+        <li><span>{{ t('Store') }}</span><strong>{{ t('App Store / TestFlight dopo (serve account Apple Developer)') }}</strong></li>
       </ul>
+      <div class="private-actions" style="margin-top:.75rem">
+        <a class="btn primary" href="/app">{{ t('Apri l’app Iris') }}</a>
+        <a class="btn" href="/app/installa">{{ t('Come installarla su iPhone') }}</a>
+      </div>
       <p class="form-hint muted">{{ t('L’app non risponde né rifiuta la tipica chiamata cellulare: aggiorna Iris e lascia a te (o alla cuffia SÌ/NO) la decisione.') }}</p>
     </div>
 

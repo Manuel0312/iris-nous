@@ -104,4 +104,36 @@ def test_telefono_setup_mentions_companion_app(tmp_path: Path) -> None:
     page = client.get("/telefono-setup?stage=1")
     assert page.status_code == 200
     assert "App companion" in page.text
-    assert "Flutter" in page.text or "mobile/" in page.text
+    assert 'href="/app"' in page.text
+    assert "/app/installa" in page.text
+
+
+def test_companion_pwa_routes(tmp_path: Path) -> None:
+    app = create_app(data_dir=tmp_path, session_secret="pwa-app")
+    client = TestClient(app)
+
+    app_page = client.get("/app")
+    assert app_page.status_code == 200
+    assert "Associa questo telefono" in app_page.text
+    assert "apple-mobile-web-app-capable" in app_page.text
+    assert "/static/app/manifest.webmanifest" in app_page.text
+    assert "/static/app/app.js" in app_page.text
+
+    guide = client.get("/app/installa")
+    assert guide.status_code == 200
+    assert "Aggiungi a Home" in guide.text
+    assert "Safari" in guide.text
+
+    sw = client.get("/app/sw.js")
+    assert sw.status_code == 200
+    assert "iris-app" in sw.text
+    assert sw.headers.get("service-worker-allowed") == "/app"
+
+    manifest = client.get("/static/app/manifest.webmanifest")
+    assert manifest.status_code == 200
+    assert "Iris Nous" in manifest.text
+    assert '"start_url": "/app"' in manifest.text
+
+    icon = client.get("/static/app/icon-180.png")
+    assert icon.status_code == 200
+    assert icon.headers["content-type"].startswith("image/png")
