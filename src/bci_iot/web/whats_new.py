@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.43",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Colori soft e testo leggibile",
+                "Su /app il verde era troppo acceso e i titoli sembravano schiacciati (font stretto + letter-spacing negativo).",
+                "Palette più soft (salvia su antracite), solo Outfit con interlinea normale, niente gradiente sulle frasi; autofill del browser non sbianca più i campi.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.42",
         "intro": WHATS_NEW_INTRO,
         "entries": (

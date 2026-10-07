@@ -1,9 +1,9 @@
 /* Iris Nous companion PWA — cache shell only (API always network). */
-const CACHE = "iris-app-v2-glass";
+const CACHE = "iris-app-v3-glass";
 const SHELL = [
   "/app",
-  "/static/app/app.css?v=irisGlass2",
-  "/static/app/app.js?v=irisGlass2",
+  "/static/app/app.css?v=irisGlass3",
+  "/static/app/app.js?v=irisGlass3",
   "/static/app/manifest.webmanifest",
   "/static/app/icon-180.png",
   "/static/app/icon-192.png",

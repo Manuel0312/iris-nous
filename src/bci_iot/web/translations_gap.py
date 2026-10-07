@@ -4862,6 +4862,34 @@ EXTRA_RAW: dict[str, dict[str, str]] = {
         "ja": "エラー",
         "es": "Error",
     },
+    # --- v0.4.43 softer glass typography ---
+    "Colori soft e testo leggibile": {
+        "en": "Softer colors and readable text",
+        "fr": "Couleurs douces et texte lisible",
+        "de": "Sanftere Farben und lesbarer Text",
+        "pt": "Cores suaves e texto legível",
+        "zh": "更柔和的颜色与可读文字",
+        "ja": "柔らかい色と読みやすい文字",
+        "es": "Colores suaves y texto legible",
+    },
+    "Su /app il verde era troppo acceso e i titoli sembravano schiacciati (font stretto + letter-spacing negativo).": {
+        "en": "On /app the green was too loud and titles looked squashed (tight font + negative letter-spacing).",
+        "fr": "Sur /app le vert était trop vif et les titres paraissaient écrasés (police serrée + letter-spacing négatif).",
+        "de": "Auf /app war das Grün zu grell und Titel wirkten gequetscht (enge Schrift + negatives Letter-Spacing).",
+        "pt": "Em /app o verde era demasiado forte e os títulos pareciam esmagados (fonte estreita + letter-spacing negativo).",
+        "zh": "/app 上绿色过亮，标题显得被压扁（窄字体 + 负字距）。",
+        "ja": "/app の緑が強すぎ、見出しが潰れて見えました（狭い書体 + 負の字間）。",
+        "es": "En /app el verde era demasiado chillón y los títulos parecían aplastados (fuente estrecha + letter-spacing negativo).",
+    },
+    "Palette più soft (salvia su antracite), solo Outfit con interlinea normale, niente gradiente sulle frasi; autofill del browser non sbianca più i campi.": {
+        "en": "Softer palette (sage on charcoal), Outfit only with normal line-height, no sentence gradients; browser autofill no longer washes out fields.",
+        "fr": "Palette plus douce (sauge sur anthracite), Outfit seul avec interligne normal, plus de dégradé sur les phrases ; l’autofill ne blanchit plus les champs.",
+        "de": "Sanftere Palette (Salbei auf Anthrazit), nur Outfit mit normaler Zeilenhöhe, kein Satz-Verlauf; Autofill bleicht Felder nicht mehr aus.",
+        "pt": "Paleta mais suave (sálvia sobre antracite), só Outfit com entrelinha normal, sem gradiente nas frases; o autofill já não branqueia os campos.",
+        "zh": "更柔和的配色（炭黑上的鼠尾草绿）、仅用 Outfit 与正常行高、句子不再渐变；浏览器自动填充不再把输入框刷白。",
+        "ja": "柔らかい配色（炭にセージ）、Outfit のみで通常の行間、文のグラデなし；オートフィルで欄が白くならない。",
+        "es": "Paleta más suave (salvia sobre antracita), solo Outfit con interlineado normal, sin degradado en frases; el autocompletado ya no blanquea los campos.",
+    },
     # --- v0.4.42 liquid glass companion UI ---
     "App /app in liquid glass": {
         "en": "/app companion in liquid glass",

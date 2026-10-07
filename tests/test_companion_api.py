@@ -120,7 +120,7 @@ def test_companion_pwa_routes(tmp_path: Path) -> None:
     assert "/static/app/app.js" in app_page.text
     assert "liquid-mesh" in app_page.text
     assert "data-liquid-title" in app_page.text
-    assert "Syne" in app_page.text or "irisGlass" in app_page.text
+    assert "irisGlass" in app_page.text or "Outfit" in app_page.text
 
     guide = client.get("/app/installa")
     assert guide.status_code == 200
