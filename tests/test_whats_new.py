@@ -32,6 +32,7 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
         or "Hub «La tua cuffia»" in page.text
         or "Privacy e chiarezza demo" in page.text
     )
+    assert "App /app in liquid glass" in page.text
     assert "Percorso Apple Developer → TestFlight" in page.text
     assert "Due modi sull’iPhone" in page.text
     assert "App Iris installabile sull’iPhone" in page.text

@@ -3,46 +3,53 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0b0b0d" />
+  <meta name="theme-color" content="#07080c" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Iris" />
   <title>Installa Iris · iPhone</title>
   <link rel="apple-touch-icon" href="/static/app/icon-180.png" />
   <link rel="icon" href="/static/app/icon-192.png" type="image/png" />
-  <link rel="stylesheet" href="/static/app/app.css?v=irisApp2" />
+  <link rel="stylesheet" href="/static/app/app.css?v=irisGlass2" />
 </head>
 <body class="app-body">
+  <div class="liquid-mesh" aria-hidden="true"></div>
+  <div class="liquid-shine" aria-hidden="true"></div>
   <div class="guide">
     <p class="eyebrow">Iris Nous</p>
-    <h1 class="title">Installa sull’iPhone</h1>
-    <p class="lede">
-      Due strade: <strong>ora</strong> l’app in Home da Safari; <strong>al 100%</strong> (TestFlight / App Store / CallKit)
-      dopo l’iscrizione Apple Developer — che puoi fare solo tu.
+    <h1 class="title" data-liquid-title>Installa sull’iPhone</h1>
+    <p class="lede" data-liquid-lede>
+      Due strade: ora l’app in Home da Safari; al 100% dopo Apple Developer.
     </p>
 
     <div class="card">
       <p class="eyebrow">Ora — senza App Store</p>
       <ol>
-        <li>Sul telefono apri <strong>Safari</strong> (non Chrome).</li>
-        <li>Vai a <strong>https://iris-nous.onrender.com/app</strong></li>
+        <li>Sul telefono apri <strong>Safari</strong>.</li>
+        <li>Vai a <strong>/app</strong> sul sito Iris.</li>
         <li>Tocca <strong>Condividi</strong> → <strong>Aggiungi a Home</strong>.</li>
-        <li>Apri l’icona <strong>Iris</strong> e associa con il codice a 6 cifre.</li>
+        <li>Apri l’icona <strong>Iris</strong> e associa con il codice.</li>
       </ol>
     </div>
 
     <div class="card">
       <p class="eyebrow">Al 100% — Apple Developer</p>
       <ol>
-        <li>Iscriviti al Program (~99 USD/anno) con nome legale e 2FA.</li>
-        <li>Con Team ID si firma <code>com.irisnous.mobile</code> e si pubblica su TestFlight.</li>
-        <li>Sull’iPhone installi Iris dall’app TestFlight — nativa, CallKit, aggiornamenti.</li>
+        <li>Iscriviti al Program (~99 USD/anno).</li>
+        <li>Con Team ID si firma <code>com.irisnous.mobile</code>.</li>
+        <li>Installi Iris da <strong>TestFlight</strong>.</li>
       </ol>
-      <a class="btn primary" href="/app/apple" style="margin-top:.5rem">Apri checklist Apple</a>
+      <a class="btn primary" href="/app/apple" style="margin-top:.5rem">Checklist Apple</a>
     </div>
 
     <a class="btn" href="/app">Apri l’app</a>
     <a class="btn" href="/telefono-setup">Codice associazione</a>
     <a class="btn ghost" href="/">Torna al sito</a>
   </div>
+  <script>
+    document.querySelectorAll("[data-liquid-title], [data-liquid-lede]").forEach((el) => {
+      const text = el.textContent.trim();
+      el.innerHTML = text.split(/(\s+)/).map((p) => /^\s+$/.test(p) ? p : `<span class="word">${p}</span>`).join("");
+    });
+  </script>
 </body>
 </html>

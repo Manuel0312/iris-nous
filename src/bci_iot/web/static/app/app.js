@@ -167,9 +167,43 @@
     showTab("login");
   }
 
+  function wrapWords(el, className) {
+    if (!el || el.dataset.liquidDone === "1") return;
+    const text = (el.textContent || "").trim();
+    if (!text) return;
+    el.dataset.liquidDone = "1";
+    el.innerHTML = text
+      .split(/(\s+)/)
+      .map((part) => {
+        if (/^\s+$/.test(part)) return part;
+        return `<span class="${className}">${part}</span>`;
+      })
+      .join("");
+  }
+
+  function animateLiquidCopy(root) {
+    const scope = root || document;
+    scope.querySelectorAll("[data-liquid-title]").forEach((el) => {
+      el.dataset.liquidDone = "";
+      wrapWords(el, "word");
+    });
+    scope.querySelectorAll("[data-liquid-lede]").forEach((el) => {
+      el.dataset.liquidDone = "";
+      wrapWords(el, "word");
+    });
+  }
+
   function showTab(id) {
     $$("nav.tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === id));
     $$(".screen").forEach((s) => s.classList.toggle("on", s.id === "screen-" + id));
+    const active = document.getElementById("screen-" + id);
+    if (active) {
+      // re-trigger word motion each visit
+      active.querySelectorAll("[data-liquid-title], [data-liquid-lede]").forEach((el) => {
+        el.dataset.liquidDone = "";
+      });
+      animateLiquidCopy(active);
+    }
   }
 
   function isStandalone() {
@@ -212,6 +246,7 @@
 
     setupInstallBanner();
     registerSw();
+    animateLiquidCopy(document);
 
     if (token()) {
       showTab("home");

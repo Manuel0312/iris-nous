@@ -4862,6 +4862,34 @@ EXTRA_RAW: dict[str, dict[str, str]] = {
         "ja": "エラー",
         "es": "Error",
     },
+    # --- v0.4.42 liquid glass companion UI ---
+    "App /app in liquid glass": {
+        "en": "/app companion in liquid glass",
+        "fr": "App /app en liquid glass",
+        "de": "App /app im Liquid-Glass-Stil",
+        "pt": "App /app em liquid glass",
+        "zh": "/app 液态玻璃风格",
+        "ja": "/app のリキッドグラス",
+        "es": "App /app en liquid glass",
+    },
+    "L’app companion era funzionale ma piatta: tipografia generica e poca dinamica.": {
+        "en": "The companion app worked but felt flat: generic type and little motion.",
+        "fr": "L’app compagnon fonctionnait mais était plate : typo générique et peu de dynamique.",
+        "de": "Die Companion-App funktionierte, wirkte aber flach: generische Schrift und wenig Dynamik.",
+        "pt": "A app companion funcionava mas era plana: tipografia genérica e pouca dinâmica.",
+        "zh": "配套应用能用但偏平：字体普通、动效很少。",
+        "ja": "コンパニオンアプリは動くが平坦：ありきたりな書体と少ない動き。",
+        "es": "La app companion funcionaba pero era plana: tipografía genérica y poca dinámica.",
+    },
+    "Ora /app ha vetro liquido (blur, riflessi, orb), font Syne + Outfit e parole che entrano e scivolano con un gradiente vivo.": {
+        "en": "Now /app has liquid glass (blur, reflections, orbs), Syne + Outfit fonts, and words that enter and shift with a living gradient.",
+        "fr": "Désormais /app a du verre liquide (flou, reflets, orbes), polices Syne + Outfit, et des mots qui entrent et glissent avec un dégradé vivant.",
+        "de": "Jetzt hat /app Liquid Glass (Blur, Reflexe, Orbs), Syne + Outfit und Wörter, die mit lebendigem Verlauf einfliegen.",
+        "pt": "Agora /app tem vidro líquido (blur, reflexos, orbs), fontes Syne + Outfit e palavras que entram e deslizam com um gradiente vivo.",
+        "zh": "现在 /app 有液态玻璃（模糊、反射、光晕）、Syne + Outfit 字体，以及带流动渐变的入场文字。",
+        "ja": "いま /app はリキッドグラス（ぼかし・反射・オーブ）、Syne + Outfit、生きたグラデで入る言葉。",
+        "es": "Ahora /app tiene cristal líquido (blur, reflejos, orbes), fuentes Syne + Outfit y palabras que entran y se deslizan con un degradado vivo.",
+    },
     # --- v0.4.41 Apple Developer path ---
     "Percorso Apple Developer → TestFlight": {
         "en": "Apple Developer path → TestFlight",

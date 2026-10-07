@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0b0b0d" />
+  <meta name="theme-color" content="#07080c" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Iris" />
@@ -12,9 +12,14 @@
   <link rel="manifest" href="/static/app/manifest.webmanifest" />
   <link rel="apple-touch-icon" href="/static/app/icon-180.png" />
   <link rel="icon" href="/static/app/icon-192.png" type="image/png" />
-  <link rel="stylesheet" href="/static/app/app.css?v=irisApp1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="/static/app/app.css?v=irisGlass2" />
 </head>
 <body class="app-body">
+  <div class="liquid-mesh" aria-hidden="true"></div>
+  <div class="liquid-shine" aria-hidden="true"></div>
+
   <div class="app-shell">
     <header class="app-top">
       <div class="brand">
@@ -25,8 +30,7 @@
     </header>
 
     <div class="install-banner" id="install-banner" hidden>
-      Su iPhone: apri questa pagina in <strong>Safari</strong>, tocca
-      <strong>Condividi</strong> → <strong>Aggiungi a Home</strong>.
+      Su iPhone: apri in <strong>Safari</strong> → <strong>Condividi</strong> → <strong>Aggiungi a Home</strong>.
       <a href="/app/installa">Guida</a>
     </div>
 
@@ -40,8 +44,8 @@
 
     <section class="screen on" id="screen-login">
       <p class="eyebrow">Configurazione</p>
-      <h1 class="title">Accedi e associa</h1>
-      <p class="lede">Stesso account del sito. Il codice a 6 cifre è in «Il tuo telefono» sul web.</p>
+      <h1 class="title" data-liquid-title>Accedi e associa</h1>
+      <p class="lede" data-liquid-lede>Stesso account del sito. Il codice a 6 cifre è in «Il tuo telefono» sul web.</p>
       <form id="pair-form" autocomplete="on">
         <input class="field" id="f-user" name="username" autocomplete="username" placeholder="Username" required />
         <input class="field" id="f-pass" name="password" type="password" autocomplete="current-password" placeholder="Password" required />
@@ -53,8 +57,8 @@
 
     <section class="screen" id="screen-home">
       <p class="eyebrow">Home</p>
-      <h1 class="title">Stato</h1>
-      <p class="lede">Il telefono resta collegato a Iris (heartbeat) e può segnalare eventi.</p>
+      <h1 class="title" data-liquid-title>Stato vivo</h1>
+      <p class="lede" data-liquid-lede>Il telefono resta collegato a Iris e può segnalare eventi in tempo reale.</p>
       <div class="card">
         <div class="row"><span class="muted">Account</span><span id="st-user">—</span></div>
         <div class="row"><span class="muted">Associato</span><span id="st-paired">—</span></div>
@@ -72,8 +76,8 @@
 
     <section class="screen" id="screen-perm">
       <p class="eyebrow">Privacy</p>
-      <h1 class="title">Cosa fa questa app</h1>
-      <p class="lede">App Iris sul telefono (icona in Home). Non legge SMS e non risponde alle chiamate cellulari del sistema.</p>
+      <h1 class="title" data-liquid-title>Cosa fa Iris</h1>
+      <p class="lede" data-liquid-lede>App sul telefono: associa, stato e eventi. Non legge SMS e non risponde alle chiamate del sistema.</p>
       <div class="card">
         <div class="perm">
           <div>
@@ -91,10 +95,10 @@
         </div>
         <div class="perm">
           <div>
-            <strong>Eventi demo</strong>
-            <span class="muted">Puoi segnalare chiamata/musica a Iris. Il rilevamento automatico OS arriverà con l’app nativa.</span>
+            <strong>Eventi</strong>
+            <span class="muted">Segnala chiamata/musica; su Android il rilevamento nativo è nell’APK.</span>
           </div>
-          <span class="tag">Manuale</span>
+          <span class="tag">Live</span>
         </div>
       </div>
       <a class="btn primary" href="/app/installa">Come installarla su iPhone</a>
@@ -105,6 +109,6 @@
       Iris Nous · <a href="/">sito</a> · <a href="/telefono-setup">telefono</a>
     </p>
   </div>
-  <script src="/static/app/app.js?v=irisApp1" defer></script>
+  <script src="/static/app/app.js?v=irisGlass2" defer></script>
 </body>
 </html>
