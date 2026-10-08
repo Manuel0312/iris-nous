@@ -391,7 +391,7 @@ def render_flag_svg(iso: str) -> str:
     svg = _RECIPES.get(code)
     if svg:
         return svg
-    palette = ("#3d8ec9", "#0d5eaf", "#c8102e", "#f4c430", "#2d2a4a", "#006233")
+    palette = ("#1e8fff", "#0d5eaf", "#c8102e", "#f4c430", "#2d2a4a", "#006233")
     bg = palette[sum(ord(ch) for ch in code) % len(palette)]
     return _letter(code, bg)
 

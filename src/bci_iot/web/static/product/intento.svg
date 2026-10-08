@@ -6,15 +6,15 @@
     </linearGradient>
   </defs>
   <rect width="640" height="400" fill="url(#bg)"/>
-  <circle cx="220" cy="200" r="78" fill="#1c242c" stroke="#5baad8" stroke-width="3"/>
-  <path d="M145 185 Q120 200 145 215" fill="none" stroke="#5baad8" stroke-width="10" stroke-linecap="round"/>
-  <path d="M295 185 Q320 200 295 215" fill="none" stroke="#5baad8" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="220" cy="200" r="78" fill="#1c242c" stroke="#47a6ff" stroke-width="3"/>
+  <path d="M145 185 Q120 200 145 215" fill="none" stroke="#47a6ff" stroke-width="10" stroke-linecap="round"/>
+  <path d="M295 185 Q320 200 295 215" fill="none" stroke="#47a6ff" stroke-width="10" stroke-linecap="round"/>
   <path d="M160 150 Q220 110 280 150" fill="none" stroke="#9bb0a4" stroke-width="6" stroke-linecap="round"/>
-  <path d="M360 160 C420 140 480 180 520 150" fill="none" stroke="#5baad8" stroke-width="3" opacity="0.9"/>
-  <path d="M360 200 C430 190 470 230 520 210" fill="none" stroke="#8eb8d9" stroke-width="3" opacity="0.7"/>
+  <path d="M360 160 C420 140 480 180 520 150" fill="none" stroke="#47a6ff" stroke-width="3" opacity="0.9"/>
+  <path d="M360 200 C430 190 470 230 520 210" fill="none" stroke="#7ab8ff" stroke-width="3" opacity="0.7"/>
   <path d="M360 240 C410 250 470 220 520 250" fill="none" stroke="#9bb0a4" stroke-width="3" opacity="0.55"/>
-  <circle cx="520" cy="150" r="6" fill="#5baad8"/>
-  <circle cx="520" cy="210" r="6" fill="#8eb8d9"/>
+  <circle cx="520" cy="150" r="6" fill="#47a6ff"/>
+  <circle cx="520" cy="210" r="6" fill="#7ab8ff"/>
   <circle cx="520" cy="250" r="6" fill="#9bb0a4"/>
   <text x="40" y="48" fill="#eaf3ee" font-family="Segoe UI, sans-serif" font-size="22" font-weight="700">1 � Intento</text>
   <text x="40" y="78" fill="#9bb0a4" font-family="Segoe UI, sans-serif" font-size="15">Pensi un comando semplice (es. ACCENDI).</text>

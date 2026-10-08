@@ -4862,6 +4862,34 @@ EXTRA_RAW: dict[str, dict[str, str]] = {
         "ja": "エラー",
         "es": "Error",
     },
+    # --- v0.4.49 vivid blue ---
+    "Blu più vivace": {
+        "en": "More vivid blue",
+        "fr": "Bleu plus vif",
+        "de": "Lebendigeres Blau",
+        "pt": "Azul mais vivo",
+        "zh": "更鲜艳的蓝色",
+        "ja": "より鮮やかな青",
+        "es": "Azul más vivo",
+    },
+    "L’azzurro precedente risultava spento e il sito sembrava «morto».": {
+        "en": "The previous azure looked dull and the site felt “dead”.",
+        "fr": "Le bleu précédent paraissait terne et le site « mort ».",
+        "de": "Das vorherige Azur wirkte stumpf und die Seite „tot“.",
+        "pt": "O azul anterior parecia apagado e o site «morto».",
+        "zh": "之前的浅蓝显得发闷，网站像“死气沉沉”。",
+        "ja": "前の水色はくすんでサイトが「死んだ」ように見えました。",
+        "es": "El azul anterior se veía apagado y el sitio «muerto».",
+    },
+    "Accento più saturo e luminoso (#1e8fff al chiaro, #6bc4ff al scuro): bottoni, link e stati tornano vivi senza riprendere il verde.": {
+        "en": "More saturated, brighter accent (#1e8fff light, #6bc4ff dark): buttons, links and states feel alive again — still not green.",
+        "fr": "Accent plus saturé et lumineux (#1e8fff clair, #6bc4ff sombre) : boutons et liens revivent, sans revenir au vert.",
+        "de": "Satterer, hellerer Akzent (#1e8fff hell, #6bc4ff dunkel): Buttons und Links wirken wieder lebendig — ohne Grün.",
+        "pt": "Acento mais saturado e luminoso (#1e8fff claro, #6bc4ff escuro): botões e links voltam a viver, sem verde.",
+        "zh": "更高饱和更亮的强调色（浅色 #1e8fff，深色 #6bc4ff）：按钮与链接重新有活力，仍不用绿。",
+        "ja": "より鮮やかなアクセント（明 #1e8fff／暗 #6bc4ff）。ボタンやリンクが生き返る。緑には戻さない。",
+        "es": "Acento más saturado y luminoso (#1e8fff claro, #6bc4ff oscuro): botones y enlaces vuelven a vivir, sin verde.",
+    },
     # --- v0.4.48 accent azure ---
     "Accento azzurro leggero (niente più verde)": {
         "en": "Light azure accent (no more green)",

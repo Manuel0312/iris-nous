@@ -4,9 +4,9 @@
   --bg: #0e1116;
   --ink: #eef1f6;
   --muted: #9aa3b2;
-  --accent: #8eb8d9;
-  --accent-strong: #a8cff0;
-  --accent-soft: rgba(142, 184, 217, 0.16);
+  --accent: #7ab8ff;
+  --accent-strong: #a0d4ff;
+  --accent-soft: rgba(74, 168, 255, 0.16);
   --danger: #e89a90;
   --field: rgba(22, 26, 34, 0.72);
   --glass: rgba(255, 255, 255, 0.06);
@@ -64,7 +64,7 @@ body.app-body::before {
   height: min(65vw, 380px);
   top: -12%;
   left: -18%;
-  background: radial-gradient(circle, rgba(142, 184, 217, 0.22), transparent 70%);
+  background: radial-gradient(circle, rgba(74, 168, 255, 0.22), transparent 70%);
 }
 
 body.app-body::after {
@@ -173,7 +173,7 @@ body.app-body::after {
 
 .pill-live.on {
   color: var(--accent-strong);
-  border-color: rgba(142, 184, 217, 0.4);
+  border-color: rgba(74, 168, 255, 0.4);
   background: var(--accent-soft);
 }
 
@@ -184,7 +184,7 @@ body.app-body::after {
   background: var(--accent-soft);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(142, 184, 217, 0.28);
+  border: 1px solid rgba(74, 168, 255, 0.28);
   font-size: 0.9rem;
   line-height: 1.5;
   color: var(--ink);
@@ -228,7 +228,7 @@ nav.tabs button.on {
   color: #0e1a28;
   background: var(--accent);
   font-weight: 600;
-  box-shadow: 0 6px 16px rgba(142, 184, 217, 0.22);
+  box-shadow: 0 6px 16px rgba(74, 168, 255, 0.22);
 }
 
 .msg {
@@ -322,8 +322,8 @@ nav.tabs button.on {
 
 .field:focus {
   outline: none;
-  border-color: rgba(142, 184, 217, 0.55);
-  box-shadow: 0 0 0 3px rgba(142, 184, 217, 0.12);
+  border-color: rgba(74, 168, 255, 0.55);
+  box-shadow: 0 0 0 3px rgba(74, 168, 255, 0.12);
 }
 
 /* Evita campi autofill bianco/azzurro del browser */
@@ -368,7 +368,7 @@ nav.tabs button.on {
   background: var(--accent);
   color: #0e1a28;
   border-color: transparent;
-  box-shadow: 0 8px 22px rgba(142, 184, 217, 0.2);
+  box-shadow: 0 8px 22px rgba(74, 168, 255, 0.2);
 }
 
 .btn.primary:hover { background: var(--accent-strong); }
