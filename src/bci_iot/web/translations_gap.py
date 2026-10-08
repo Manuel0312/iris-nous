@@ -4862,6 +4862,34 @@ EXTRA_RAW: dict[str, dict[str, str]] = {
         "ja": "エラー",
         "es": "Error",
     },
+    # --- v0.4.54 brighter accent ---
+    "Blu più acceso": {
+        "en": "Brighter blue",
+        "fr": "Bleu plus vif",
+        "de": "Helleres Blau",
+        "pt": "Azul mais aceso",
+        "zh": "更亮的蓝",
+        "ja": "もっと明るい青",
+        "es": "Azul más vivo",
+    },
+    "Il blu precedente era corretto ma ancora troppo soft sullo schermo.": {
+        "en": "The previous blue was right in hue but still too soft on screen.",
+        "fr": "Le bleu précédent était juste en teinte mais encore trop soft à l’écran.",
+        "de": "Das vorherige Blau war farblich richtig, aber auf dem Bildschirm noch zu soft.",
+        "pt": "O azul anterior era certo na cor, mas ainda demasiado suave no ecrã.",
+        "zh": "之前的蓝色相正确，但在屏幕上仍偏柔。",
+        "ja": "前の青は色味は合っていましたが、画面ではまだソフトすぎました。",
+        "es": "El azul anterior era correcto en tono, pero aún demasiado suave en pantalla.",
+    },
+    "Accento più luminoso (#00b7ff chiaro, #6ef0ff scuro), CTA e alone più brillanti, sfondo 3D più saturo.": {
+        "en": "Brighter accent (#00b7ff light, #6ef0ff dark), more brilliant CTAs and glow, more saturated 3D background.",
+        "fr": "Accent plus lumineux (#00b7ff clair, #6ef0ff sombre), CTA et halo plus brillants, fond 3D plus saturé.",
+        "de": "Hellerer Akzent (#00b7ff hell, #6ef0ff dunkel), brillantere CTAs und Glow, satterer 3D-Hintergrund.",
+        "pt": "Acento mais luminoso (#00b7ff claro, #6ef0ff escuro), CTA e brilho mais intensos, fundo 3D mais saturado.",
+        "zh": "更亮强调色（浅 #00b7ff、深 #6ef0ff），CTA 与光晕更亮，3D 背景更饱和。",
+        "ja": "より明るいアクセント（明 #00b7ff、暗 #6ef0ff）、CTAと光彩を強く、3D背景をより鮮やかに。",
+        "es": "Acento más luminoso (#00b7ff claro, #6ef0ff oscuro), CTA y halo más brillantes, fondo 3D más saturado.",
+    },
     # --- v0.4.53 remaining black CTAs ---
     "Continua e chat: niente più nero": {
         "en": "Continue and chat: no more black",
