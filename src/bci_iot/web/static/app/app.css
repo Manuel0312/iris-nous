@@ -130,6 +130,19 @@ body.app-body::after {
   padding: 0 0.4rem;
 }
 
+@media (min-width: 720px) {
+  .app-shell {
+    width: min(560px, 100%);
+    padding: 0 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-shell {
+    width: min(640px, 100%);
+  }
+}
+
 .app-top {
   margin: 0.75rem 0.55rem 0.35rem;
   padding: 0.7rem 0.9rem;
@@ -452,9 +465,10 @@ nav.tabs button.on {
 }
 
 .guide {
-  max-width: 420px;
+  width: min(520px, 100%);
+  max-width: 520px;
   margin: 0 auto;
-  padding: 1.35rem 1.15rem 2rem;
+  padding: 1.35rem max(0.85rem, env(safe-area-inset-left)) 2rem max(0.85rem, env(safe-area-inset-right));
   position: relative;
   z-index: 1;
 }
@@ -468,6 +482,20 @@ nav.tabs button.on {
 
 .guide ol li { margin: 0.45rem 0; }
 .guide strong { color: var(--ink); }
+
+@media (max-width: 420px) {
+  .guide .title {
+    font-size: clamp(1.45rem, 7vw, 1.85rem);
+  }
+  .guide .btn,
+  .guide a.btn {
+    width: 100%;
+    min-height: 48px;
+    justify-content: center;
+    display: inline-flex;
+    align-items: center;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

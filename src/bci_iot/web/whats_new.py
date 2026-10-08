@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.58",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Sito e app anche su tablet e telefono",
+                "Le novità recenti (Ecosistema a triangolo, bentornato, In ascolto, CTA, APK) erano pensate soprattutto per lo schermo grande.",
+                "Ora tablet e telefono hanno layout dedicati: Ecosistema si adatta, tasti a tutta larghezza, safe-area, In ascolto e bentornato centrati; l’APK ripete lo stesso schema su schermi stretti e larghi.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.57",
         "intro": WHATS_NEW_INTRO,
         "entries": (

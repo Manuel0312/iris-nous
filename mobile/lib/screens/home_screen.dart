@@ -156,6 +156,64 @@ class _HomeScreenState extends State<HomeScreen> {
     final canaliDone = (eco['canali'] as Map?)?['done'] == true;
     final accent = Theme.of(context).colorScheme.primary;
 
+    final media = MediaQuery.of(context);
+    final padH = media.size.width >= 720 ? 32.0 : 20.0;
+    final wideEco = media.size.width >= 560;
+
+    Widget ecoSteps() {
+      final cuffia = _EcoStepCard(
+        mark: '1',
+        title: 'Cuffia',
+        done: cuffiaDone,
+        subtitle: cuffiaDone ? 'Pronta' : 'Da configurare',
+        onTap: () => _openWeb(IrisConfig.webCuffia),
+      );
+      final telefono = _EcoStepCard(
+        mark: '2',
+        title: 'Telefono',
+        done: telefonoDone,
+        subtitle: telefonoDone ? 'Collegato' : 'Da collegare',
+        onTap: () => _openWeb(IrisConfig.webTelefonoSetup),
+      );
+      final canali = _EcoStepCard(
+        mark: '3',
+        title: 'Canali',
+        done: canaliDone,
+        subtitle: canaliDone ? 'Spotify attivo' : 'Collega i servizi',
+        onTap: () => _openWeb(
+          canaliDone ? IrisConfig.webEcosistema : IrisConfig.webSpotify,
+        ),
+      );
+      if (!wideEco) {
+        return Column(
+          children: [
+            cuffia,
+            const SizedBox(height: 10),
+            telefono,
+            const SizedBox(height: 10),
+            canali,
+          ],
+        );
+      }
+      return Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: cuffia),
+              const SizedBox(width: 10),
+              Expanded(child: telefono),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.center,
+            child: FractionallySizedBox(widthFactor: 0.5, child: canali),
+          ),
+        ],
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Iris · Ecosistema'),
@@ -167,11 +225,21 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: ListView(
+        padding: EdgeInsets.fromLTRB(
+          padH,
+          8,
+          padH,
+          28 + media.padding.bottom,
+        ),
         children: [
           Text(
             _username == null ? 'Associato a Iris' : 'Ciao, $_username',
+            textAlign: wideEco ? TextAlign.left : TextAlign.center,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.4,
@@ -180,6 +248,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 6),
           Text(
             'Stesso ecosistema del sito: cuffia, telefono e canali.',
+            textAlign: wideEco ? TextAlign.left : TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.black54,
                 ),
@@ -191,47 +260,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 18),
           Text('Ecosistema', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 10),
-          // Fasi 1 | 2 sopra, fase 3 centrata sotto (pari al sito)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _EcoStepCard(
-                  mark: '1',
-                  title: 'Cuffia',
-                  done: cuffiaDone,
-                  subtitle: cuffiaDone ? 'Pronta' : 'Da configurare',
-                  onTap: () => _openWeb(IrisConfig.webCuffia),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _EcoStepCard(
-                  mark: '2',
-                  title: 'Telefono',
-                  done: telefonoDone,
-                  subtitle: telefonoDone ? 'Collegato' : 'Da collegare',
-                  onTap: () => _openWeb(IrisConfig.webTelefonoSetup),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Align(
-            alignment: Alignment.center,
-            child: FractionallySizedBox(
-              widthFactor: 0.5,
-              child: _EcoStepCard(
-                mark: '3',
-                title: 'Canali',
-                done: canaliDone,
-                subtitle: canaliDone ? 'Spotify attivo' : 'Collega i servizi',
-                onTap: () => _openWeb(
-                  canaliDone ? IrisConfig.webEcosistema : IrisConfig.webSpotify,
-                ),
-              ),
-            ),
-          ),
+          ecoSteps(),
           const SizedBox(height: 8),
           TextButton.icon(
             onPressed: () => _openWeb(IrisConfig.webEcosistema),
@@ -351,6 +380,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -6089,24 +6089,283 @@ html[data-theme-resolved="dark"] .eco-channel {
   border-color: rgba(255, 255, 255, 0.1);
 }
 
+/* —— Tablet: Ecosistema + In ascolto + bentornato —— */
+@media (min-width: 721px) and (max-width: 1024px) {
+  .page-ecosistema .shell.private-shell,
+  .page-contesto .shell.private-shell,
+  .page-telefono-setup .shell.private-shell {
+    width: min(720px, calc(100% - 2rem));
+  }
+
+  .eco-hub {
+    max-width: 44rem;
+    gap: 1.15rem;
+    padding-inline: 0.25rem;
+  }
+
+  .eco-steps {
+    gap: 0.9rem 1rem;
+  }
+
+  .eco-step {
+    padding: 1rem 1.05rem 1.1rem;
+  }
+
+  .eco-step:nth-child(3) {
+    max-width: calc((100% - 1rem) / 2);
+  }
+
+  .eco-step-body > p {
+    font-size: 0.92rem;
+  }
+
+  .eco-channels {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .flash.ok {
+    font-size: clamp(1.2rem, 2.6vw, 1.4rem);
+    max-width: 36rem;
+    padding-inline: 1rem;
+  }
+
+  .page-contesto .contesto-sim-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+  }
+
+  .page-contesto .contesto-sim-actions .btn {
+    min-height: 2.75rem;
+    justify-content: center;
+  }
+
+  .page-contesto .contesto-yn {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+  }
+
+  .page-contesto .contesto-yn .btn {
+    min-height: 3rem;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .page-telefono-setup .private-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+  }
+
+  .page-telefono-setup .private-actions .btn {
+    min-height: 2.75rem;
+  }
+
+  .anag-password-block {
+    padding: 1rem 1.1rem;
+  }
+
+  .pwd-reqs {
+    font-size: 0.92rem;
+  }
+}
+
+/* —— Telefono: Ecosistema + bentornato + CTA + In ascolto —— */
 @media (max-width: 720px) {
+  .page-ecosistema .shell.private-shell,
+  .page-contesto .shell.private-shell,
+  .page-telefono-setup .shell.private-shell {
+    width: min(100%, calc(100% - 1rem));
+    padding-inline: max(0.35rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.35rem, env(safe-area-inset-right, 0px));
+  }
+
+  .eco-hub {
+    max-width: none;
+    gap: 1rem;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .eco-welcome h1 {
+    font-size: clamp(1.45rem, 7vw, 1.85rem);
+  }
+
+  .eco-welcome .lede {
+    font-size: 0.92rem;
+    padding-inline: 0.35rem;
+  }
+
   .eco-steps {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
+
   .eco-step:nth-child(3) {
     max-width: none;
     justify-self: stretch;
   }
+
   .eco-step {
     grid-template-columns: 1fr;
+    padding: 1rem 0.95rem 1.05rem;
   }
+
   .eco-step-mark {
     width: 1.9rem;
     height: 1.9rem;
   }
-  .eco-step-actions .btn {
+
+  .eco-step-actions {
+    flex-direction: column;
+  }
+
+  .eco-step-actions .btn,
+  .eco-step-body > .btn {
     width: 100%;
+    min-height: 48px;
     justify-content: center;
+  }
+
+  .eco-channels {
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+
+  .eco-channel {
+    flex-direction: row;
+    justify-content: flex-start;
+    text-align: left;
+    min-height: 3.6rem;
+    padding: 0.75rem 0.9rem;
+    gap: 0.75rem;
+  }
+
+  .eco-channel-icon {
+    flex: 0 0 auto;
+  }
+
+  .eco-channel-name,
+  .eco-channel-meta {
+    display: block;
+  }
+
+  .eco-disconnect .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .flash.ok {
+    font-size: clamp(1.05rem, 4.8vw, 1.28rem);
+    max-width: 22rem;
+    padding: 0.45rem 0.85rem 0.75rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .flash.error {
+    text-align: center;
+  }
+
+  .page-contesto .contesto-hero h1 {
+    font-size: clamp(1.4rem, 6.5vw, 1.85rem);
+    text-align: center;
+  }
+
+  .page-contesto .cuffia-mobile-hint,
+  .page-contesto #live-bridge-hint {
+    text-align: center;
+    font-size: 0.88rem;
+    padding-inline: 0.35rem;
+  }
+
+  .page-contesto .contesto-focus {
+    text-align: center;
+  }
+
+  .page-contesto .contesto-sim-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .page-contesto .contesto-sim-actions .btn,
+  .page-contesto .contesto-yn .btn {
+    width: 100%;
+    min-height: 48px;
+    justify-content: center;
+  }
+
+  .page-contesto .contesto-yn {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .page-telefono-setup .telefono-hero,
+  .page-telefono-setup .telefono-hero h1 {
+    text-align: center;
+  }
+
+  .page-telefono-setup .private-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .page-telefono-setup .private-actions .btn {
+    width: 100%;
+    min-height: 48px;
+    justify-content: center;
+  }
+
+  .page-telefono-setup .phone-pin-box .pair-code {
+    font-size: clamp(1.6rem, 8vw, 2.1rem);
+    letter-spacing: 0.18em;
+  }
+
+  .discover-cta {
+    width: 100%;
+    max-width: 22rem;
+    min-height: 48px;
+  }
+
+  .chat-fab {
+    right: max(0.75rem, env(safe-area-inset-right, 0px));
+    bottom: max(0.75rem, calc(0.65rem + env(safe-area-inset-bottom, 0px)));
+    min-height: 48px;
+    padding: 0.75rem 1rem;
+  }
+
+  .anag-password-block {
+    padding: 0.95rem 0.9rem;
+  }
+
+  .pwd-reqs {
+    padding-left: 0.15rem;
+  }
+
+  .pwd-reqs li {
+    min-height: 1.65rem;
+    font-size: 0.9rem;
+  }
+
+  .btn.primary,
+  .btn {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 420px) {
+  .page-contesto .contesto-yn {
+    grid-template-columns: 1fr;
+  }
+
+  .eco-step-head h2 {
+    font-size: 1.05rem;
+  }
+
+  .flash.ok {
+    font-size: 1.02rem;
   }
 }
 

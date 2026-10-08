@@ -4862,6 +4862,34 @@ EXTRA_RAW: dict[str, dict[str, str]] = {
         "ja": "エラー",
         "es": "Error",
     },
+    # --- v0.4.58 tablet + phone responsive ---
+    "Sito e app anche su tablet e telefono": {
+        "en": "Site and app also on tablet and phone",
+        "fr": "Site et app aussi sur tablette et téléphone",
+        "de": "Website und App auch auf Tablet und Telefon",
+        "pt": "Site e app também em tablet e telemóvel",
+        "zh": "网站与应用也适配平板和手机",
+        "ja": "サイトとアプリをタブレット・スマホにも対応",
+        "es": "Sitio y app también en tablet y teléfono",
+    },
+    "Le novità recenti (Ecosistema a triangolo, bentornato, In ascolto, CTA, APK) erano pensate soprattutto per lo schermo grande.": {
+        "en": "Recent updates (triangle Ecosistema, welcome back, In ascolto, CTAs, APK) were mostly aimed at large screens.",
+        "fr": "Les nouveautés récentes (Ecosistema en triangle, accueil, In ascolto, CTA, APK) visaient surtout les grands écrans.",
+        "de": "Die letzten Neuerungen (Ecosistema-Dreieck, Willkommen, In ascolto, CTAs, APK) zielten vor allem auf große Bildschirme.",
+        "pt": "As novidades recentes (Ecosistema em triângulo, boas-vindas, In ascolto, CTA, APK) eram sobretudo para ecrãs grandes.",
+        "zh": "近期更新（三角生态系统、欢迎回来、In ascolto、CTA、APK）主要面向大屏。",
+        "ja": "最近の更新（三角エコシステム、おかえり、In ascolto、CTA、APK）は主に大画面向けでした。",
+        "es": "Las novedades recientes (Ecosistema en triángulo, bienvenida, In ascolto, CTA, APK) pensaban sobre todo en pantallas grandes.",
+    },
+    "Ora tablet e telefono hanno layout dedicati: Ecosistema si adatta, tasti a tutta larghezza, safe-area, In ascolto e bentornato centrati; l’APK ripete lo stesso schema su schermi stretti e larghi.": {
+        "en": "Now tablet and phone have dedicated layouts: Ecosistema adapts, full-width buttons, safe-area, centered In ascolto and welcome; the APK mirrors the same scheme on narrow and wide screens.",
+        "fr": "Tablette et téléphone ont désormais des layouts dédiés : Ecosistema s’adapte, boutons pleine largeur, safe-area, In ascolto et accueil centrés ; l’APK reprend le même schéma sur écrans étroits et larges.",
+        "de": "Tablet und Telefon haben jetzt eigene Layouts: Ecosistema passt sich an, Buttons volle Breite, Safe-Area, In ascolto und Willkommen zentriert; die APK spiegelt dasselbe Schema auf schmalen und breiten Displays.",
+        "pt": "Agora tablet e telemóvel têm layouts dedicados: Ecosistema adapta-se, botões em largura total, safe-area, In ascolto e boas-vindas centrados; o APK repete o esquema em ecrãs estreitos e largos.",
+        "zh": "平板与手机现有专用布局：Ecosistema 自适应、全宽按钮、安全区、In ascolto 与欢迎居中；APK 在窄屏与宽屏重复同一结构。",
+        "ja": "タブレットとスマホに専用レイアウト。Ecosistemaは適応、ボタン全幅、safe-area、In ascoltoとおかえりは中央。APKも狭い／広い画面で同じ構成。",
+        "es": "Tablet y teléfono tienen layouts dedicados: Ecosistema se adapta, botones a ancho completo, safe-area, In ascolto y bienvenida centrados; el APK repite el mismo esquema en pantallas estrechas y anchas.",
+    },
     # --- v0.4.57 welcome + green pwd reqs ---
     "Bentornato più caldo e requisiti password di nuovo verdi": {
         "en": "Warmer welcome back and green password requirements again",
