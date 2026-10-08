@@ -197,14 +197,15 @@ def test_web_calibration_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     assert done.status_code == 200
     assert "Cuffia pronta" in done.text or "Calibrazione avvenuta" in done.text
 
-    dash = client.get("/dashboard")
+    dash = client.get("/ecosistema")
     assert dash.status_code == 200
-    assert "Ciao, Maria" in dash.text
+    assert "Ecosistema" in dash.text
     assert "/cuffia" in dash.text
+    assert "Canali" in dash.text or "Spotify" in dash.text
 
     profile_page = client.get("/telefono-setup?stage=1")
     assert profile_page.status_code == 200
-    assert "Codice" in profile_page.text
+    assert "PIN" in profile_page.text or "associazione" in profile_page.text.lower()
 
     legacy_pair = client.get("/associa-telefono", follow_redirects=False)
     assert legacy_pair.status_code == 303

@@ -1,217 +1,102 @@
 ﻿{% extends "base.html" %}
 {% block title %}{{ t('Ecosistema') }} · Iris{% endblock %}
-{% block body_class %}page-private{% endblock %}
+{% block body_class %}page-private page-ecosistema{% endblock %}
 {% block main_class %}shell private-shell{% endblock %}
 {% block content %}
-<section class="private-area dash-hub">
-  <header class="private-welcome">
-    <p class="eyebrow">{{ t('Area privata') }}</p>
-    <h1>{{ hello }}</h1>
-    <p class="lede">{{ t('Il tuo hub. Collega i servizi quando ti servono, da qualsiasi schermo.') }}</p>
+<section class="private-area eco-hub">
+  <header class="private-welcome eco-welcome">
+    <h1>{{ t('Ecosistema') }}</h1>
+    <p class="lede">{{ t('Dopo i tuoi dati, qui colleghi cuffia, telefono e i canali che userai con Iris — un passo alla volta.') }}</p>
   </header>
 
-  {% if not profile.calibration_complete %}
-  <p class="setup-banner">{{ t('La configurazione non è ancora completa.') }}
-    <a href="/cuffia?stage=1">{{ t('La tua cuffia') }}</a>
-  </p>
-  {% endif %}
-
-  <div class="hub-identity reveal" data-reveal>
-    {% if profile.photo_filename %}
-    <img class="avatar" src="/media/photos/{{ profile.photo_filename }}" alt="{{ t('La tua foto') }}" width="88" height="88" />
-    {% else %}
-    <div class="avatar avatar-placeholder" aria-hidden="true">
-      <svg viewBox="0 0 64 64" width="44" height="44" fill="none" aria-hidden="true">
-        <circle cx="32" cy="24" r="12" fill="#9aa0a6"/>
-        <path d="M8 56c0-13.255 10.745-24 24-24s24 10.745 24 24" fill="#9aa0a6"/>
-      </svg>
-    </div>
-    {% endif %}
-    <div class="hub-identity-copy">
-      <p class="device-label">{{ t('Account cloud') }}</p>
-      <h2 class="headset-name">{{ profile.headset_id or t('Cuffia non nominata') }}</h2>
-      <p class="assoc-pill {% if profile.phone_paired %}is-on{% endif %}">
-        {% if profile.phone_paired %}
-          {{ t('Ponte attivo') }}{% if profile.phone_online %} · {{ t('in linea') }}{% endif %}{% if profile.spotify_linked %} · Spotify{% endif %}
-        {% else %}
-          {{ t('Ponte opzionale') }}
-        {% endif %}
-      </p>
-      {% if profile.verification_pending %}
-      <p class="verify-warn dash-verify">{{ t('Account non verificato') }} · <a href="/anagrafica?edit=1">{{ t('Verifica ora') }}</a></p>
-      {% else %}
-      <p class="verify-ok dash-verify">{{ t('Account verificato') }}</p>
-      {% endif %}
-    </div>
-  </div>
-
-  <div class="hub-section-head reveal" data-reveal>
-    <p class="eyebrow">{{ t('Integrazioni & Ecosistema') }}</p>
-    <h2>{{ t('Un hub, ogni dispositivo') }}</h2>
-    <p>{{ t('Configura ogni servizio da qui — PC, smartphone o tablet. Il backend resta l’orchestratore universale.') }}</p>
-  </div>
-
-  <div class="hub-grid">
-    <form method="post" action="/dashboard" class="hub-card reveal" data-reveal>
-      <div class="hub-card-top">
-        <span class="hub-glyph" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7">
-            <path d="M4 12v1a8 8 0 0 0 16 0v-1"/>
-            <path d="M4 12a4 4 0 0 1 4-4h.5"/>
-            <path d="M20 12a4 4 0 0 0-4-4H15.5"/>
-            <path d="M8.5 8V7a3.5 3.5 0 0 1 7 0v1"/>
-          </svg>
-        </span>
-        <div>
-          <p class="hub-kicker">{{ t('Hardware') }}</p>
-          <h3>{{ t('Cuffia') }}</h3>
+  <ol class="eco-steps">
+    <li class="eco-step {% if profile.calibration_complete %}is-done{% elif profile.headset_id %}is-active{% else %}is-active{% endif %}">
+      <div class="eco-step-mark" aria-hidden="true"><span>1</span></div>
+      <div class="eco-step-body">
+        <div class="eco-step-head">
+          <h2>{{ t('Cuffia') }}</h2>
+          <span class="eco-pill {% if profile.calibration_complete %}is-on{% endif %}">
+            {% if profile.calibration_complete %}{{ t('Pronta') }}{% else %}{{ t('Da configurare') }}{% endif %}
+          </span>
         </div>
-        <span class="hub-status {% if profile.headset_id %}is-on{% endif %}">
-          {% if profile.headset_id %}{{ t('Pronta') }}{% else %}{{ t('Da nominare') }}{% endif %}
-        </span>
+        <p>{{ t('Associa la cuffia al tuo account e completa la calibrazione SÌ/NO. È il primo passo per far capire a Iris i tuoi intenti.') }}</p>
+        <a class="btn primary" href="/cuffia">{% if profile.calibration_complete %}{{ t('Apri la cuffia') }}{% else %}{{ t('Associa e configura') }}{% endif %}</a>
       </div>
-      <p class="hub-copy">{{ t('Identifica la cuffia BCI collegata al tuo account. Quando arriverà l’hardware reale, nome e ID resteranno il riferimento del dispositivo.') }}</p>
-      <div class="form-block hub-fields">
-        <label>{{ t('Nome cuffia') }} / ID
-          <input name="headset_id" value="{{ profile.headset_id }}" required maxlength="128" placeholder="IRIS-01" />
-        </label>
-        <label>{{ t('Note') }}
-          <textarea name="notes" rows="2" maxlength="500">{{ profile.notes }}</textarea>
-        </label>
-        <input type="hidden" name="action_focus" value="{{ profile.action_map.get('FOCUS', 'spotify.next_track') }}" />
-        <input type="hidden" name="action_relax" value="{{ profile.action_map.get('RELAX', 'spotify.pause') }}" />
-        <input type="hidden" name="action_accept" value="{{ profile.action_map.get('ACCEPT', 'phone.accept_call') }}" />
-        <input type="hidden" name="action_reject" value="{{ profile.action_map.get('REJECT', 'phone.reject_call') }}" />
-      </div>
-      <div class="hub-card-actions">
-        <button class="hub-connect" type="submit">{{ t('Salva') }}</button>
-      </div>
-    </form>
+    </li>
 
-    <article class="hub-card reveal" data-reveal>
-      <div class="hub-card-top">
-        <span class="hub-glyph" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7">
-            <circle cx="12" cy="12" r="9"/>
-            <path d="M8 16.5c2.2-1.6 5.8-1.6 8 0"/>
-            <circle cx="9.2" cy="10" r="1" fill="currentColor" stroke="none"/>
-            <circle cx="14.8" cy="10" r="1" fill="currentColor" stroke="none"/>
-          </svg>
-        </span>
-        <div>
-          <p class="hub-kicker">{{ t('Media') }}</p>
-          <h3>Spotify</h3>
+    <li class="eco-step {% if profile.phone_paired %}is-done{% elif profile.calibration_complete %}is-active{% endif %}">
+      <div class="eco-step-mark" aria-hidden="true"><span>2</span></div>
+      <div class="eco-step-body">
+        <div class="eco-step-head">
+          <h2>{{ t('Telefono') }}</h2>
+          <span class="eco-pill {% if profile.phone_paired %}is-on{% endif %}">
+            {% if profile.phone_paired %}{{ t('Collegato') }}{% else %}{{ t('Da collegare') }}{% endif %}
+          </span>
         </div>
-        <span class="hub-status {% if profile.spotify_linked %}is-on{% endif %}">
-          {% if profile.spotify_linked %}{{ t('Connesso') }}{% else %}{{ t('Non connesso') }}{% endif %}
-        </span>
+        <p>{{ t('Scarica l’app Iris sul telefono e completa l’associazione con PIN e account. Così Iris può sapere quando arriva una chiamata.') }}</p>
+        <div class="eco-step-actions">
+          <a class="btn primary" href="/app/installa">{{ t('Scarica / installa l’app') }}</a>
+          <a class="btn" href="/telefono-setup">{% if profile.phone_paired %}{{ t('Stato telefono') }}{% else %}{{ t('Codice e collegamento') }}{% endif %}</a>
+        </div>
       </div>
-      {% if profile.spotify_linked %}
-      <p class="hub-copy">
-        {{ t('Collegato') }}{% if profile.spotify_display_name %} · <strong>{{ profile.spotify_display_name }}</strong>{% endif %}.
-        {{ t('Una volta connesso, la cuffia controlla la musica su qualsiasi dispositivo attivo: telefono, PC o speaker.') }}
-      </p>
-      <div class="hub-card-actions">
-        <form method="post" action="/auth/spotify/disconnect">
-          <button class="hub-connect is-ghost" type="submit">{{ t('Scollega Spotify') }}</button>
+    </li>
+
+    <li class="eco-step {% if profile.spotify_linked %}is-done{% elif profile.phone_paired or profile.calibration_complete %}is-active{% endif %}">
+      <div class="eco-step-mark" aria-hidden="true"><span>3</span></div>
+      <div class="eco-step-body">
+        <div class="eco-step-head">
+          <h2>{{ t('Canali') }}</h2>
+          <span class="eco-pill {% if profile.spotify_linked %}is-on{% endif %}">
+            {% if profile.spotify_linked %}{{ t('Spotify attivo') }}{% else %}{{ t('Collega i servizi') }}{% endif %}
+          </span>
+        </div>
+        <p>{{ t('Qui trovi i canali da cui Iris può agire: musica, assistenti vocali e altro. Oggi Spotify è disponibile; gli altri arrivano dopo.') }}</p>
+        <ul class="eco-channels" aria-label="{{ t('Canali') }}">
+          <li>
+            {% if profile.spotify_linked %}
+            <a class="eco-channel is-on" href="/auth/spotify/start" title="Spotify">
+              <span class="eco-channel-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.6 14.4a.75.75 0 0 1-1.03.25c-2.82-1.73-6.37-2.12-10.55-1.16a.75.75 0 1 1-.33-1.46c4.56-1.04 8.5-.59 11.66 1.34a.75.75 0 0 1 .25 1.03Zm1.23-2.74a.9.9 0 0 1-1.24.3c-3.23-1.98-8.15-2.56-11.96-1.4a.9.9 0 1 1-.52-1.72c4.3-1.3 9.7-.65 13.42 1.63a.9.9 0 0 1 .3 1.19Zm.1-2.86c-3.87-2.3-10.26-2.51-13.96-1.39a1.05 1.05 0 1 1-.6-2.01c4.24-1.27 11.2-1.02 15.64 1.61a1.05 1.05 0 0 1-1.08 1.79Z"/></svg>
+              </span>
+              <span class="eco-channel-name">Spotify</span>
+              <span class="eco-channel-meta">{{ t('Collegato') }}</span>
+            </a>
+            {% else %}
+            <a class="eco-channel" href="/auth/spotify/start" title="Spotify">
+              <span class="eco-channel-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.6 14.4a.75.75 0 0 1-1.03.25c-2.82-1.73-6.37-2.12-10.55-1.16a.75.75 0 1 1-.33-1.46c4.56-1.04 8.5-.59 11.66 1.34a.75.75 0 0 1 .25 1.03Zm1.23-2.74a.9.9 0 0 1-1.24.3c-3.23-1.98-8.15-2.56-11.96-1.4a.9.9 0 1 1-.52-1.72c4.3-1.3 9.7-.65 13.42 1.63a.9.9 0 0 1 .3 1.19Zm.1-2.86c-3.87-2.3-10.26-2.51-13.96-1.39a1.05 1.05 0 1 1-.6-2.01c4.24-1.27 11.2-1.02 15.64 1.61a1.05 1.05 0 0 1-1.08 1.79Z"/></svg>
+              </span>
+              <span class="eco-channel-name">Spotify</span>
+              <span class="eco-channel-meta">{{ t('Collega') }}</span>
+            </a>
+            {% endif %}
+          </li>
+          <li>
+            <span class="eco-channel is-soon" title="Alexa">
+              <span class="eco-channel-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M8 13.5c1.2 1.4 2.6 2.1 4 2.1s2.8-.7 4-2.1"/></svg>
+              </span>
+              <span class="eco-channel-name">Alexa</span>
+              <span class="eco-channel-meta">{{ t('In arrivo') }}</span>
+            </span>
+          </li>
+          <li>
+            <span class="eco-channel is-soon" title="Google Assistant">
+              <span class="eco-channel-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="10" r="3.2"/><circle cx="16" cy="8" r="2.2"/><circle cx="16.5" cy="14.5" r="2.6"/><circle cx="10.5" cy="16.5" r="1.8"/></svg>
+              </span>
+              <span class="eco-channel-name">Google Assistant</span>
+              <span class="eco-channel-meta">{{ t('In arrivo') }}</span>
+            </span>
+          </li>
+        </ul>
+        {% if profile.spotify_linked %}
+        <form method="post" action="/auth/spotify/disconnect" class="eco-disconnect">
+          <button class="btn" type="submit">{{ t('Scollega Spotify') }}</button>
         </form>
+        {% endif %}
       </div>
-      {% else %}
-      <p class="hub-copy">{{ t('Collega Spotify per far sì che la cuffia controlli la musica su qualsiasi dispositivo attivo — telefono, PC o speaker — senza scegliere dove stai ascoltando.') }}</p>
-      <div class="hub-card-actions">
-        <a class="hub-connect" href="/auth/spotify/start">{{ t('Collega Spotify') }}</a>
-      </div>
-      {% endif %}
-    </article>
-
-    <article class="hub-card reveal" data-reveal>
-      <div class="hub-card-top">
-        <span class="hub-glyph" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7">
-            <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9.5Z"/>
-            <path d="M10 21v-6h4v6"/>
-          </svg>
-        </span>
-        <div>
-          <p class="hub-kicker">{{ t('Domotica') }}</p>
-          <h3>{{ t('Smart Home') }}</h3>
-        </div>
-        <span class="hub-status {% if profile.calibration_complete %}is-on{% endif %}">
-          {% if profile.calibration_complete %}{{ t('In ascolto') }}{% else %}{{ t('Setup') }}{% endif %}
-        </span>
-      </div>
-      <p class="hub-copy">{{ t('Iris orchestra accensione e spegnimento dei dispositivi IoT tramite Home Assistant. Il pensiero diventa un comando verso luci, prese e scene — su qualsiasi schermo da cui apri l’hub.') }}</p>
-      <ul class="hub-iot">
-        <li>
-          <span>{{ t('Accendi') }} · FOCUS</span>
-          <strong>{{ profile.action_map.get('FOCUS', 'spotify.next_track') }}</strong>
-        </li>
-        <li>
-          <span>{{ t('Spegni') }} · RELAX</span>
-          <strong>{{ profile.action_map.get('RELAX', 'spotify.pause') }}</strong>
-        </li>
-      </ul>
-    </article>
-
-    <article class="hub-card reveal" data-reveal>
-      <div class="hub-card-top">
-        <span class="hub-glyph" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7">
-            <rect x="8" y="3" width="8" height="18" rx="2"/>
-            <path d="M11 18.5h2"/>
-          </svg>
-        </span>
-        <div>
-          <p class="hub-kicker">{{ t('Chiamate / App') }}</p>
-          <h3>{{ t('Smartphone') }}</h3>
-        </div>
-        <span class="hub-status {% if profile.phone_paired %}is-on{% endif %}">
-          {% if profile.phone_paired %}{{ t('Ponte attivo') }}{% else %}{{ t('Opzionale') }}{% endif %}
-        </span>
-      </div>
-      <p class="hub-copy">{{ t('Associa il telefono per chiamate, notifiche e musica. Funziona dal browser dello smartphone da solo — oppure solo dal PC. Non è obbligatorio.') }}</p>
-      <p class="assoc-pill {% if profile.phone_online %}is-on{% endif %}">
-        {% if profile.phone_online %}{{ t('In linea ora') }}{% else %}{{ t('Bridge in attesa') }}{% endif %}
-      </p>
-      <div class="hub-card-actions">
-        <a class="hub-connect" href="/telefono-setup">{{ t('Il tuo telefono') }}</a>
-        <a class="hub-connect is-ghost" href="/telefono">{{ t('Apri Telefono live') }}</a>
-      </div>
-    </article>
-  </div>
-
-  <nav class="hub-shortcuts reveal" data-reveal aria-label="{{ t('Altre aree') }}">
-    <a href="/anagrafica?edit=1">{{ t('Dati') }}</a>
-    <a href="/cuffia">{{ t('Cuffia') }}</a>
-    <a href="/contesto">{{ t('In ascolto') }}</a>
-    <a href="/telefono-setup">{{ t('Telefono') }}</a>
-    <a href="/inizia">{{ t('Cosa puoi fare') }}</a>
-    <a href="/chatta">{{ t('Chatta con noi') }}</a>
-    <a href="/cambia-password">{{ t('Password') }}</a>
-  </nav>
-
-  <div class="card-grid stats-grid reveal" data-reveal>
-    <div class="panel">
-      <div class="device-label">{{ t('Funzionamento') }}</div>
-      <p class="stat-num">{{ "OK" if profile.calibration_complete else "Setup" }}</p>
-      <p class="muted">{% if profile.calibration_complete %}{{ t('Calibrazione completa') }}{% else %}{{ t('Calibrazione') }} {{ t('da fare') }}{% endif %}</p>
-    </div>
-    <div class="panel">
-      <div class="device-label">{{ t('Attività cerebrale (demo)') }}</div>
-      <p class="meter-label">Alpha {{ '%.0f'|format((usage.alpha_avg or 0.4) * 100) }}%</p>
-      <div class="meter-track"><div class="meter-fill" style="width: {{ ((usage.alpha_avg or 0.4) * 100)|int }}%"></div></div>
-      <p class="meter-label">Beta {{ '%.0f'|format((usage.beta_avg or 0.4) * 100) }}%</p>
-      <div class="meter-track"><div class="meter-fill" style="width: {{ ((usage.beta_avg or 0.4) * 100)|int }}%"></div></div>
-    </div>
-    <div class="panel">
-      <div class="device-label">{{ t('Utilizzo') }}</div>
-      <ul class="detail-list compact">
-        <li><span>{{ t('Intenti') }}</span><strong>{{ usage.intents_fired or 0 }}</strong></li>
-        <li><span>{{ t('Sessioni') }}</span><strong>{{ usage.sessions or 0 }}</strong></li>
-        <li><span>{{ t('Minuti') }}</span><strong>{{ usage.minutes_active or 0 }}</strong></li>
-        <li><span>{{ t('Ultima attività') }}</span><strong>{{ usage.last_activity or "—" }}</strong></li>
-      </ul>
-    </div>
-  </div>
+    </li>
+  </ol>
 </section>
 {% endblock %}

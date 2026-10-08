@@ -577,9 +577,7 @@ def create_app(
             return "/attendi-conferma-email"
         if profile.needs_anagrafica:
             return "/anagrafica"
-        if profile.needs_calibration:
-            return "/inizia"
-        return "/dashboard"
+        return "/ecosistema"
 
     def _send_signup_mail(request: Request, profile: UserProfile):
         profile, code = store.issue_signup_confirmation(profile.username)
@@ -1223,10 +1221,9 @@ def create_app(
             ),
             kind="ok",
         )
-        next_url = "/dashboard" if profile.calibration_complete else "/inizia"
         return _continue(
             request,
-            next_url=next_url,
+            next_url="/ecosistema",
             message="Dati salvati...",
         )
     @app.post("/logout")
@@ -2191,11 +2188,10 @@ def create_app(
         _flash(request, "Messaggio inviato. Ti rispondiamo qui e, se serve, via email.", kind="ok")
         return _continue(request, next_url="/chatta", message="Messaggio inviato...")
 
-    @app.get("/dashboard", response_class=HTMLResponse)
-    def dashboard(
+    def _render_ecosistema(
         request: Request,
-        profiles: ProfileStore = Depends(_store),
-    ) -> HTMLResponse:
+        profiles: ProfileStore,
+    ) -> HTMLResponse | RedirectResponse:
         loaded = _require_profile(request, profiles)
         if isinstance(loaded, RedirectResponse):
             return loaded
@@ -2220,6 +2216,20 @@ def create_app(
                 ),
             ),
         )
+
+    @app.get("/ecosistema", response_class=HTMLResponse)
+    def ecosistema(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> HTMLResponse:
+        return _render_ecosistema(request, profiles)
+
+    @app.get("/dashboard", response_class=HTMLResponse)
+    def dashboard(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> HTMLResponse:
+        return _render_ecosistema(request, profiles)
 
     @app.get("/cambia-password", response_class=HTMLResponse)
     def change_password_page(
@@ -2269,7 +2279,7 @@ def create_app(
             return RedirectResponse("/cambia-password", status_code=303)
         _flash(request, "Password aggiornata.", kind="ok")
         return RedirectResponse(
-            "/accessi" if loaded.is_admin else "/dashboard",
+            "/accessi" if loaded.is_admin else "/anagrafica?edit=1",
             status_code=303,
         )
 

@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.46",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Menu minimale e Ecosistema a step",
+                "La tendina a destra aveva troppe voci (cuffia, telefono, password, chatta…): difficile capire dove andare.",
+                "Ora solo: I miei dati, Ecosistema, Le mie chat, Esci. Password in I miei dati; dopo l’anagrafica si apre Ecosistema con cuffia → telefono/app → canali (Spotify, Alexa e Google in arrivo).",
+            ),
+        ),
+    },
+    {
         "version": "0.4.45",
         "intro": WHATS_NEW_INTRO,
         "entries": (

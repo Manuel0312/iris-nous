@@ -5692,4 +5692,203 @@ body.page-chat .shell.wide,
   }
 }
 
+/* —— Ecosistema minimal (steps) —— */
+.eco-hub {
+  gap: 1.25rem;
+  max-width: 40rem;
+}
+
+.eco-welcome .lede {
+  max-width: 36rem;
+}
+
+.anag-password-block {
+  margin-top: 1.5rem;
+  padding: 1.1rem 1.2rem;
+  border-radius: 16px;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.38));
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  box-shadow: 0 10px 28px rgba(26, 42, 58, 0.06);
+}
+
+.anag-password-block h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+}
+
+.anag-password-block .muted {
+  margin: 0 0 0.85rem;
+}
+
+.eco-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.eco-step {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.85rem;
+  padding: 1.1rem 1.15rem 1.2rem;
+  border-radius: 16px;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.4));
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  box-shadow: 0 12px 30px rgba(26, 42, 58, 0.07);
+  opacity: 0.72;
+}
+
+.eco-step.is-active,
+.eco-step.is-done {
+  opacity: 1;
+}
+
+.eco-step-mark {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.eco-step.is-done .eco-step-mark {
+  color: #1a7a4c;
+  background: color-mix(in srgb, #1a7a4c 14%, transparent);
+  border-color: color-mix(in srgb, #1a7a4c 28%, transparent);
+}
+
+.eco-step-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.eco-step-head h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+}
+
+.eco-pill {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(26, 42, 58, 0.06);
+}
+
+.eco-pill.is-on {
+  color: #1a7a4c;
+  background: color-mix(in srgb, #1a7a4c 14%, transparent);
+}
+
+.eco-step-body > p {
+  margin: 0 0 0.9rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.eco-step-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.eco-channels {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.65rem;
+}
+
+.eco-channel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  text-align: center;
+  padding: 0.85rem 0.6rem;
+  border-radius: 14px;
+  text-decoration: none;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(26, 42, 58, 0.08);
+  min-height: 6.5rem;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+a.eco-channel:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.eco-channel.is-on {
+  border-color: color-mix(in srgb, #1a7a4c 35%, transparent);
+  background: color-mix(in srgb, #1a7a4c 8%, white);
+}
+
+.eco-channel.is-soon {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.eco-channel-icon {
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+}
+
+.eco-channel-name {
+  font-weight: 650;
+  font-size: 0.9rem;
+}
+
+.eco-channel-meta {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.eco-disconnect {
+  margin-top: 0.85rem;
+}
+
+html[data-theme-resolved="dark"] .eco-step,
+html[data-theme-resolved="dark"] .anag-password-block {
+  background: linear-gradient(165deg, rgba(40, 48, 58, 0.85), rgba(28, 34, 42, 0.72));
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme-resolved="dark"] .eco-channel {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 560px) {
+  .eco-step {
+    grid-template-columns: 1fr;
+  }
+  .eco-step-mark {
+    width: 1.9rem;
+    height: 1.9rem;
+  }
+  .eco-step-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 

@@ -141,9 +141,6 @@
           </label>
         </div>
         <p class="form-hint anag-feel-hint">{{ t('Scegli come preferisci essere chiamata/o qui.') }}</p>
-        {% if profile.anagrafica_complete %}
-        <a class="btn primary anag-btn-password" href="/cambia-password">{{ t('Cambia password') }}</a>
-        {% endif %}
       </div>
     </div>
   </form>
@@ -151,6 +148,14 @@
   <div class="anag-footer-actions">
     <button class="btn anag-btn-continue" type="submit" form="anagrafica-form">{% if profile.anagrafica_complete %}{{ t('Salva') }}{% else %}{{ t('Continua') }}{% endif %}</button>
   </div>
+
+  {% if profile.anagrafica_complete %}
+  <section class="anag-password-block" aria-labelledby="anag-pwd-title">
+    <h2 id="anag-pwd-title">{{ t('Password') }}</h2>
+    <p class="muted">{{ t('Il cambio password sta qui, nei tuoi dati — non nel menu.') }}</p>
+    <a class="btn primary anag-btn-password" href="/cambia-password">{{ t('Cambia password') }}</a>
+  </section>
+  {% endif %}
 
   {% if profile.anagrafica_complete and not profile.is_admin %}
   <form method="post" action="/elimina-account" class="danger-zone" onsubmit="return confirm('{{ t('Eliminare definitivamente l’account?') }}');">
