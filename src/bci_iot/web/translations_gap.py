@@ -4862,6 +4862,34 @@ EXTRA_RAW: dict[str, dict[str, str]] = {
         "ja": "エラー",
         "es": "Error",
     },
+    # --- v0.4.52 primary buttons + bg blue ---
+    "Bottoni e atmosfera finalmente blu": {
+        "en": "Buttons and atmosphere finally blue",
+        "fr": "Boutons et ambiance enfin bleus",
+        "de": "Buttons und Atmosphäre endlich blau",
+        "pt": "Botões e atmosfera finalmente azuis",
+        "zh": "按钮与氛围终于是蓝色",
+        "ja": "ボタンと雰囲気がやっと青に",
+        "es": "Botones y atmósfera por fin azules",
+    },
+    "L’accento era blu ma i bottoni primari restavano neri e lo sfondo 3D aveva ancora riflessi verdi: il sito sembrava spento.": {
+        "en": "The accent was blue but primary buttons stayed black and the 3D background still had green tints: the site looked dull.",
+        "fr": "L’accent était bleu mais les boutons primaires restaient noirs et le fond 3D avait encore des reflets verts : site terne.",
+        "de": "Akzent war blau, Primärbuttons aber schwarz und 3D-Hintergrund noch grünlich: die Seite wirkte stumpf.",
+        "pt": "O acento era azul mas os botões primários ficavam pretos e o fundo 3D ainda tinha verdes: o site parecia apagado.",
+        "zh": "强调色已是蓝，但主按钮仍是黑、3D 背景还有绿调：站点显得闷。",
+        "ja": "アクセントは青でも主ボタンは黒、3D背景に緑が残りくすんで見えました。",
+        "es": "El acento era azul pero los botones primarios seguían negros y el fondo 3D aún verdeaba: el sitio se veía apagado.",
+    },
+    "Ora Continua/Salva/CTA usano blu vivo con alone, «Iris» in header è colorato, lo sfondo 3D è tutto azzurro — non più nero/verde soft.": {
+        "en": "Now Continue/Save/CTAs use vivid blue with glow, “Iris” in the header is colored, and the 3D background is all azure — no more soft black/green.",
+        "fr": "Continuer/Enregistrer/CTA en bleu vif avec halo, « Iris » coloré dans l’en-tête, fond 3D tout azur — plus de noir/vert soft.",
+        "de": "Weiter/Speichern/CTAs jetzt in leuchtendem Blau mit Glow, „Iris“ in der Kopfzeile farbig, 3D-Hintergrund ganz azur — kein weiches Schwarz/Grün mehr.",
+        "pt": "Continuar/Guardar/CTA em azul vivo com brilho, «Iris» colorido no cabeçalho, fundo 3D todo azul — sem preto/verde suave.",
+        "zh": "继续/保存/CTA 现为带光晕的鲜蓝，页眉「Iris」上色，3D 背景全为天蓝——不再是柔和的黑/绿。",
+        "ja": "続行/保存/CTA は光る青、「Iris」も色付き、3D背景は水色のみ。黒／緑のソフト調はやめ。",
+        "es": "Continuar/Guardar/CTA en azul vivo con halo, «Iris» de color en la cabecera, fondo 3D todo azul — adiós al negro/verde suave.",
+    },
     # --- v0.4.51 electric blue ---
     "Blu elettrico, più saturo": {
         "en": "Electric blue, more saturated",
