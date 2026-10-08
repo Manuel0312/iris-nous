@@ -36,9 +36,10 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     _refresh();
     _beat = Timer.periodic(const Duration(seconds: 20), (_) => _refresh());
-    _calls.start().then((_) {
+    _calls.onChanged = () {
       if (mounted) setState(() {});
-    });
+    };
+    _calls.start();
   }
 
   @override
@@ -284,15 +285,31 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 8),
+          if (_calls.lastSent != null)
+            Text('Ultimo invio: ${_calls.lastSent}',
+                style: TextStyle(color: accent, fontWeight: FontWeight.w600)),
+          if (_calls.lastError != null)
+            Text(_calls.lastError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          const SizedBox(height: 6),
           Text(
             _calls.listening
-                ? 'Rilevamento chiamate nativo attivo: lo squillo aggiorna Iris automaticamente. '
-                    'I tasti «Simula» restano per prova. Rispondi/rifiuta restano sul telefono o su In ascolto (SÌ/NO).'
+                ? 'Rilevamento nativo attivo. Tieni l’APK aperta (o in background); sul PC apri In ascolto — si aggiorna da sola. '
+                    'Rispondi/rifiuta restano sul telefono o con SÌ/NO su In ascolto.'
                 : (!_calls.permitted
-                    ? 'Concedi «Stato telefono» in Permessi per il rilevamento automatico. '
-                        'Intanto puoi usare «Simula squillo».'
-                    : 'I tasti «Simula» sono per test. Rispondi/rifiuta restano sul telefono o su In ascolto (SÌ/NO).'),
+                    ? 'Concedi «Stato telefono» in Permessi, poi tocca Aggiorna. '
+                        'Senza permesso lo squillo non arriva al PC.'
+                    : 'Listener non attivo — tocca Aggiorna o riapri i Permessi.'),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
+          ),
+          TextButton(
+            onPressed: _busy
+                ? null
+                : () async {
+                    await _calls.start();
+                    await _refresh();
+                  },
+            child: const Text('Riavvia rilevamento chiamate'),
           ),
           const SizedBox(height: 20),
           _LinkTile(

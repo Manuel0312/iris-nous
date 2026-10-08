@@ -51,7 +51,7 @@ def test_phone_setup_hub_stages(tmp_path: Path) -> None:
     assert "Collega questo telefono ora" in stage1.text
     assert "Credenziale" in stage1.text or "credenziale" in stage1.text
     assert "associa-telefono/questo-dispositivo" in stage1.text
-    assert 'href="/app"' in stage1.text
+    assert 'href="/app/android"' in stage1.text
     assert "Cosa è reale" in stage1.text
     assert "telefono-alexa-stub" not in stage1.text
 

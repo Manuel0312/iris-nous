@@ -11,7 +11,8 @@
     <p class="lede">{{ t('La cuffia riconosce solo SÌ o NO. Iris lo applica a ciò che conta ora: prima le chiamate, poi i messaggi, poi la musica.') }}</p>
   </header>
 
-  <p class="cuffia-mobile-hint muted">{{ t('Funziona dal browser dello smartphone: non serve il PC come intermediario.') }}</p>
+  <p class="cuffia-mobile-hint muted">{{ t('Lascia questa pagina aperta sul PC: aggiorna da sola quando l’APK Iris sul telefono rileva una chiamata.') }}</p>
+  <p class="form-hint" id="live-bridge-hint" aria-live="polite"></p>
 
   <article class="panel contesto-focus" id="focus-panel" aria-live="polite">
     <p class="hub-kicker">{{ t('Ora') }}</p>
@@ -209,6 +210,35 @@
   }
   document.getElementById("decide-si").addEventListener("click", function () { decide("SI"); });
   document.getElementById("decide-no").addEventListener("click", function () { decide("NO"); });
+
+  async function pollStatus() {
+    try {
+      const res = await fetch("/api/context/status", {
+        headers: { Accept: "application/json" },
+        credentials: "same-origin",
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      applyStatus(data);
+      const hint = document.getElementById("live-bridge-hint");
+      const active = data.active_contexts || {};
+      const world = data.world || {};
+      if (hint) {
+        if (active.call) {
+          hint.textContent = {{ t('Chiamata dal telefono rilevata — puoi rispondere con Pensa SÌ / NO.')|tojson }};
+          hint.classList.remove("muted");
+        } else if (world.music_playing || active.music) {
+          hint.textContent = {{ t('Musica attiva — In ascolto aggiornato.')|tojson }};
+          hint.classList.add("muted");
+        } else {
+          hint.textContent = {{ t('In attesa di eventi dall’APK Iris…')|tojson }};
+          hint.classList.add("muted");
+        }
+      }
+    } catch (_) {}
+  }
+  pollStatus();
+  setInterval(pollStatus, 1500);
 })();
 </script>
 {% endblock %}

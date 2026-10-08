@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.56",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Chiamate APK → In ascolto sul PC, una sola app",
+                "Lo squillo dall’APK non compariva su In ascolto (nessun aggiornamento live) e restavano CTA anche dopo i passi già fatti; APK e /app nel browser confondevano.",
+                "In ascolto si aggiorna da sola ogni 1,5s e salva lo stato chiamata; Ecosistema nasconde i tasti «da fare» se già fatto; su Android conta solo l’APK (/app/android), il browser non sostituisce il rilevamento.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.55",
         "intro": WHATS_NEW_INTRO,
         "entries": (

@@ -37,8 +37,9 @@
       <li><span>{{ t('Chiamate') }}</span><strong>{{ t('Rilevamento = APK Android; sul browser solo segnalazione manuale') }}</strong></li>
     </ul>
     <div class="private-actions">
-      <a class="btn primary" href="/app">{{ t('Apri l’app Iris') }}</a>
+      <a class="btn primary" href="/app/android">{{ t('APK Android (chiamate)') }}</a>
       <a class="btn" href="/contesto">{{ t('In ascolto') }}</a>
+      <a class="btn ghost" href="/app">{{ t('App browser (solo iPhone)') }}</a>
       <form method="post" action="/associa-telefono/unpair" class="inline-unpair">
         <button class="btn ghost" type="submit">{{ t('Scollega dispositivo') }}</button>
       </form>
@@ -48,10 +49,11 @@
 
   {% if not profile.phone_paired and stage != 2 %}
   <article class="form-block panel phone-pair-primary">
-    <h2>1 · {{ t('Modo consigliato: app sul telefono') }}</h2>
-    <p class="form-hint">{{ t('Sul telefono apri l’app Iris, accedi e digita il PIN qui sotto. Iris crea una credenziale permanente per quel dispositivo.') }}</p>
+    <h2>1 · {{ t('Modo consigliato: APK Android') }}</h2>
+    <p class="form-hint">{{ t('Su Android installa l’APK Iris (non il browser), apri l’app, accedi e digita il PIN. Solo l’APK rileva le chiamate verso In ascolto.') }}</p>
     <div class="private-actions">
-      <a class="btn primary" href="/app">{{ t('Apri l’app Iris') }}</a>
+      <a class="btn primary" href="/app/android">{{ t('Guida APK Android') }}</a>
+      <a class="btn ghost" href="/app/installa">{{ t('Sei su iPhone?') }}</a>
     </div>
     <div class="pair-box phone-pin-box">
       <span>{{ t('PIN di associazione') }}</span>

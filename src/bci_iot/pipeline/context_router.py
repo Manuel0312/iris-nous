@@ -167,22 +167,30 @@ class ContextRouter:
         return self.status(message="Musica ferma.")
 
     def end_call(self) -> dict[str, Any]:
-        """Clear incoming-call focus (cellular call ended / dismissed)."""
+        """Clear incoming-call focus (cellular / companion telephony ended)."""
 
-        who = self.world.caller_name or ""
+        who = (self.world.caller_name or "").strip()
         self.world.incoming_call = False
         self.world.caller_name = ""
         if who:
             return self.status(message=f"Chiamata di {who} terminata.")
         return self.status(message="Chiamata terminata.")
 
-    def end_call(self) -> dict[str, Any]:
-        """Clear incoming-call focus (companion CallObserver / telephony ended)."""
+    def world_to_dict(self) -> dict[str, Any]:
+        return asdict(self.world)
 
-        who = self.world.caller_name or "chiamata"
-        self.world.incoming_call = False
-        self.world.caller_name = ""
-        return self.status(message=f"Chiamata terminata ({who}).")
+    def apply_world_dict(self, data: dict[str, Any] | None) -> None:
+        """Hydrate world flags from a persisted snapshot (cross-request / restart)."""
+
+        if not isinstance(data, dict):
+            return
+        self.world.incoming_call = bool(data.get("incoming_call"))
+        self.world.caller_name = str(data.get("caller_name") or "")
+        self.world.unread_message = bool(data.get("unread_message"))
+        self.world.message_from = str(data.get("message_from") or "")
+        self.world.message_app = str(data.get("message_app") or "")
+        self.world.music_playing = bool(data.get("music_playing"))
+        self.world.track_hint = str(data.get("track_hint") or "")
 
     def clear_events(self) -> dict[str, Any]:
         self.world = ContextWorld()

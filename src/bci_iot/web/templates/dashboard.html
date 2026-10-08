@@ -10,7 +10,7 @@
   </header>
 
   <ol class="eco-steps">
-    <li class="eco-step {% if profile.calibration_complete %}is-done{% elif profile.headset_id %}is-active{% else %}is-active{% endif %}">
+    <li class="eco-step {% if profile.calibration_complete %}is-done{% else %}is-active{% endif %}">
       <div class="eco-step-mark" aria-hidden="true"><span>1</span></div>
       <div class="eco-step-body">
         <div class="eco-step-head">
@@ -20,7 +20,11 @@
           </span>
         </div>
         <p>{{ t('Associa la cuffia al tuo account e completa la calibrazione SÌ/NO. È il primo passo per far capire a Iris i tuoi intenti.') }}</p>
-        <a class="btn primary" href="/cuffia">{% if profile.calibration_complete %}{{ t('Apri la cuffia') }}{% else %}{{ t('Associa e configura') }}{% endif %}</a>
+        {% if profile.calibration_complete %}
+        <a class="btn ghost" href="/cuffia">{{ t('Gestisci cuffia') }}</a>
+        {% else %}
+        <a class="btn primary" href="/cuffia">{{ t('Associa e configura') }}</a>
+        {% endif %}
       </div>
     </li>
 
@@ -33,10 +37,15 @@
             {% if profile.phone_paired %}{{ t('Collegato') }}{% else %}{{ t('Da collegare') }}{% endif %}
           </span>
         </div>
-        <p>{{ t('Scarica l’app Iris sul telefono e completa l’associazione con PIN e account. Così Iris può sapere quando arriva una chiamata.') }}</p>
+        <p>{{ t('Su Android usa solo l’APK Iris (non il browser): rileva le chiamate e le manda a In ascolto sul PC. iPhone: per ora /app in Home.') }}</p>
         <div class="eco-step-actions">
-          <a class="btn primary" href="/app/installa">{{ t('Scarica / installa l’app') }}</a>
-          <a class="btn" href="/telefono-setup">{% if profile.phone_paired %}{{ t('Stato telefono') }}{% else %}{{ t('Codice e collegamento') }}{% endif %}</a>
+          {% if profile.phone_paired %}
+          <a class="btn ghost" href="/telefono-setup">{{ t('Stato telefono') }}</a>
+          <a class="btn ghost" href="/app/android">{{ t('APK Android') }}</a>
+          {% else %}
+          <a class="btn primary" href="/app/android">{{ t('Installa APK Android') }}</a>
+          <a class="btn" href="/telefono-setup">{{ t('Codice e collegamento') }}</a>
+          {% endif %}
         </div>
       </div>
     </li>
@@ -92,7 +101,7 @@
         </ul>
         {% if profile.spotify_linked %}
         <form method="post" action="/auth/spotify/disconnect" class="eco-disconnect">
-          <button class="btn" type="submit">{{ t('Scollega Spotify') }}</button>
+          <button class="btn ghost" type="submit">{{ t('Scollega Spotify') }}</button>
         </form>
         {% endif %}
       </div>

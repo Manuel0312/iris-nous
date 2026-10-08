@@ -1,7 +1,7 @@
 name: iris_nous_mobile
 description: App companion Iris Nous (Android + iPhone) — configura e invia eventi chiamata/musica.
 publish_to: "none"
-version: 0.4.55+2
+version: 0.4.56+3
 
 environment:
   sdk: ">=3.3.0 <4.0.0"

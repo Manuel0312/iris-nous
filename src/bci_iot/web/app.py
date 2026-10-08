@@ -2741,7 +2741,7 @@ def create_app(
         username = _session_username(request)
         if not username:
             raise HTTPException(status_code=401, detail="Login required")
-        from bci_iot.pipeline.context_router import get_context_router, normalize_yes_no
+        from bci_iot.pipeline.context_router import normalize_yes_no
         from bci_iot.pipeline.headset_agent import get_headset_agent
 
         profile = profiles.ensure_headset_pairing(username)
@@ -2751,7 +2751,7 @@ def create_app(
             data_root=profiles.data_root,
         )
 
-        router = get_context_router(username)
+        router = _hydrate_context_router(profiles, username)
         yn_hint = normalize_yes_no(body.kind)
         # Always-on after calibration: classify + apply to current focus.
         # Before calibration complete (/cuffia): store SI/NO as templates.
@@ -2968,6 +2968,12 @@ def create_app(
 
         return TEMPLATES.TemplateResponse(request, "app_installa.html", {"request": request})
 
+    @app.get("/app/android", response_class=HTMLResponse)
+    def companion_app_android_page(request: Request) -> HTMLResponse:
+        """Android: APK is the only app that detects cellular calls."""
+
+        return TEMPLATES.TemplateResponse(request, "app_android.html", {"request": request})
+
     @app.get("/app/apple", response_class=HTMLResponse)
     def companion_app_apple_page(request: Request) -> HTMLResponse:
         """Checklist: Apple Developer Program → TestFlight (user enrollment)."""
@@ -3115,8 +3121,6 @@ def create_app(
         request: Request,
         profiles: ProfileStore = Depends(_store),
     ) -> dict:
-        from bci_iot.pipeline.context_router import get_context_router
-
         username = _session_username(request)
         if not username:
             raise HTTPException(status_code=401, detail="Login required")
@@ -3127,7 +3131,7 @@ def create_app(
             return {"status": "error", "detail": "Telefono non associato", "events": []}
         profiles.touch_phone(username)
         events = list(app.state.phone_queues.get(username) or [])
-        router = get_context_router(username)
+        router = _hydrate_context_router(profiles, username)
         world = router.world
         return {
             "status": "ok",
@@ -3142,6 +3146,33 @@ def create_app(
                 "focus": router.focus_snapshot().to_dict(),
             },
         }
+
+    def _hydrate_context_router(profiles: ProfileStore, username: str):
+        """Load per-user context from SQLite so APK events reach In ascolto on PC."""
+
+        from bci_iot.pipeline.context_router import get_context_router
+
+        router = get_context_router(username)
+        profile = profiles.get(username)
+        if profile is None:
+            return router
+        snap = (profile.usage_stats or {}).get("context_world")
+        if isinstance(snap, dict):
+            router.apply_world_dict(snap)
+        router.live_mode = True
+        return router
+
+    def _persist_context_router(profiles: ProfileStore, username: str, router) -> None:
+        profile = profiles.get(username)
+        if profile is None:
+            return
+        stats = dict(profile.usage_stats or {})
+        stats["context_world"] = router.world_to_dict()
+        from datetime import datetime, timezone
+
+        stats["context_world_at"] = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+        profile.usage_stats = stats
+        profiles.save(profile)
 
     def _companion_token_from_request(request: Request) -> str:
         auth = (request.headers.get("authorization") or "").strip()
@@ -3191,10 +3222,10 @@ def create_app(
         *,
         device_token: str = "",
     ) -> dict:
-        from bci_iot.pipeline.context_router import get_context_router
-
         profiles.touch_phone(profile.username)
-        router = get_context_router(profile.username)
+        # Re-read profile after touch (stats may have changed).
+        profile = profiles.get(profile.username) or profile
+        router = _hydrate_context_router(profiles, profile.username)
         world = router.world
         events = list(app.state.phone_queues.get(profile.username) or [])
         stats = profile.usage_stats or {}
@@ -3306,15 +3337,14 @@ def create_app(
     ) -> dict:
         """Ingest call/music signals from the companion into context_router."""
 
-        from bci_iot.pipeline.context_router import get_context_router
-
         profile = _resolve_companion_user(request, profiles)
-        router = get_context_router(profile.username)
+        router = _hydrate_context_router(profiles, profile.username)
         ev = body.event.strip().lower().replace("-", "_")
         caller = (body.caller or "").strip() or "sconosciuto"
 
         if ev in {"call_incoming", "call_ringing", "incoming_call"}:
             payload = router.simulate_call(caller=caller)
+            _persist_context_router(profiles, profile.username, router)
             event = _push_phone_bridge_event(
                 profile.username,
                 action="context.incoming_call",
@@ -3329,6 +3359,7 @@ def create_app(
 
         if ev in {"call_ended", "call_end", "ended"}:
             payload = router.end_call()
+            _persist_context_router(profiles, profile.username, router)
             event = _push_phone_bridge_event(
                 profile.username,
                 action="context.call_ended",
@@ -3342,6 +3373,7 @@ def create_app(
 
         if ev in {"music_playing", "music_on", "music"}:
             payload = router.set_music(True, track=body.track)
+            _persist_context_router(profiles, profile.username, router)
             event = _push_phone_bridge_event(
                 profile.username,
                 action="context.music_on",
@@ -3355,6 +3387,7 @@ def create_app(
 
         if ev in {"music_stopped", "music_off"}:
             payload = router.set_music(False)
+            _persist_context_router(profiles, profile.username, router)
             event = _push_phone_bridge_event(
                 profile.username,
                 action="context.music_off",
@@ -3379,13 +3412,14 @@ def create_app(
         """Next track via Iris Spotify OAuth (no headset impulse — companion button)."""
 
         from bci_iot.integrations.music_control import run_spotify_action
-        from bci_iot.pipeline.context_router import get_context_router
 
         profile = _resolve_companion_user(request, profiles)
         queue = app.state.phone_queues.setdefault(profile.username, [])
         music = run_spotify_action(profiles, profile, "next_track", queue=queue)
         if music.get("status") == "ok":
-            get_context_router(profile.username).set_music(True)
+            router = _hydrate_context_router(profiles, profile.username)
+            router.set_music(True)
+            _persist_context_router(profiles, profile.username, router)
         return {**music, "via": "companion_app"}
 
     @app.get("/auth/spotify/start")
@@ -3536,9 +3570,9 @@ def create_app(
         """Map SÌ/NO through ContextRouter; Spotify for next_track; phone queue for call/msg."""
 
         from bci_iot.integrations.music_control import run_spotify_action
-        from bci_iot.pipeline.context_router import get_context_router, phone_queue_event
+        from bci_iot.pipeline.context_router import phone_queue_event
 
-        router = get_context_router(username)
+        router = _hydrate_context_router(profiles, username)
         focus_before = router.active_focus()
         # Side-effects (close call/msg) happen inside decide — capture labels first.
         snap = router.focus_snapshot()
@@ -3620,6 +3654,7 @@ def create_app(
             ):
                 if key in impulse_payload and impulse_payload[key] is not None:
                     base[key] = impulse_payload[key]
+        _persist_context_router(profiles, username, router)
         return base
 
     @app.get("/contesto", response_class=HTMLResponse)
@@ -3627,7 +3662,6 @@ def create_app(
         request: Request,
         profiles: ProfileStore = Depends(_store),
     ) -> HTMLResponse:
-        from bci_iot.pipeline.context_router import get_context_router
         from bci_iot.pipeline.headset_agent import get_headset_agent
 
         loaded = _require_profile(request, profiles)
@@ -3639,8 +3673,7 @@ def create_app(
             headset_id=profile.headset_id,
             data_root=profiles.data_root,
         )
-        router = get_context_router(profile.username)
-        router.live_mode = True  # always on — no user toggle
+        router = _hydrate_context_router(profiles, profile.username)
         return TEMPLATES.TemplateResponse(
             request,
             "contesto.html",
@@ -3658,12 +3691,10 @@ def create_app(
         request: Request,
         profiles: ProfileStore = Depends(_store),
     ) -> dict:
-        from bci_iot.pipeline.context_router import get_context_router
-
         username = _session_username(request)
         if not username:
             raise HTTPException(status_code=401, detail="Login required")
-        return get_context_router(username).status()
+        return _hydrate_context_router(profiles, username).status()
 
     @app.post("/api/context/live")
     def api_context_live(
@@ -3671,13 +3702,11 @@ def create_app(
         body: ContextLiveRequest,
         profiles: ProfileStore = Depends(_store),
     ) -> dict:
-        from bci_iot.pipeline.context_router import get_context_router
-
         username = _session_username(request)
         if not username:
             raise HTTPException(status_code=401, detail="Login required")
         # API kept for compatibility; live cannot be turned off.
-        return get_context_router(username).set_live_mode(True)
+        return _hydrate_context_router(profiles, username).set_live_mode(True)
 
     def _push_phone_bridge_event(username: str, *, action: str, label: str, **extra: object) -> dict:
         """Append a Telefono-live queue event (call bridge / demo — not cellular OS)."""
@@ -3702,12 +3731,10 @@ def create_app(
         body: ContextEventRequest,
         profiles: ProfileStore = Depends(_store),
     ) -> dict:
-        from bci_iot.pipeline.context_router import get_context_router
-
         username = _session_username(request)
         if not username:
             raise HTTPException(status_code=401, detail="Login required")
-        router = get_context_router(username)
+        router = _hydrate_context_router(profiles, username)
         ev = body.event.strip().lower()
         if ev == "call":
             payload = router.simulate_call(caller=body.caller)
@@ -3720,8 +3747,7 @@ def create_app(
                 caller=caller,
             )
             payload["phone_event"] = event
-            return payload
-        if ev in {"message", "msg"}:
+        elif ev in {"message", "msg"}:
             payload = router.simulate_message(sender=body.sender, app=body.app)
             who = router.world.message_from or body.sender or "nuovo messaggio"
             app_name = router.world.message_app or body.app or "Messaggi"
@@ -3733,8 +3759,7 @@ def create_app(
                 sender=who,
             )
             payload["phone_event"] = event
-            return payload
-        if ev in {"music_on", "music"}:
+        elif ev in {"music_on", "music"}:
             payload = router.set_music(True, track=body.track)
             event = _push_phone_bridge_event(
                 username,
@@ -3743,8 +3768,7 @@ def create_app(
                 kind="music_on",
             )
             payload["phone_event"] = event
-            return payload
-        if ev == "music_off":
+        elif ev == "music_off":
             payload = router.set_music(False)
             event = _push_phone_bridge_event(
                 username,
@@ -3753,8 +3777,7 @@ def create_app(
                 kind="music_off",
             )
             payload["phone_event"] = event
-            return payload
-        if ev == "clear":
+        elif ev == "clear":
             payload = router.clear_events()
             event = _push_phone_bridge_event(
                 username,
@@ -3763,8 +3786,10 @@ def create_app(
                 kind="clear",
             )
             payload["phone_event"] = event
-            return payload
-        raise HTTPException(status_code=400, detail=f"Unknown event: {body.event}")
+        else:
+            raise HTTPException(status_code=400, detail=f"Unknown event: {body.event}")
+        _persist_context_router(profiles, username, router)
+        return payload
 
     @app.post("/api/context/decide")
     async def api_context_decide(

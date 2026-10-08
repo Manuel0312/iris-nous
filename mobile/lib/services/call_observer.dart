@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/services.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'iris_api.dart';
 
@@ -18,6 +19,9 @@ class CallObserverService {
   bool _running = false;
   bool listening = false;
   bool permitted = true;
+  String? lastError;
+  String? lastSent;
+  VoidCallback? onChanged;
 
   bool get supported {
     if (kIsWeb) return false;
@@ -31,20 +35,40 @@ class CallObserverService {
   }
 
   Future<void> start() async {
-    if (!supported || _running) return;
+    if (!supported) return;
+    await stop();
     _running = true;
+    lastError = null;
     _channel.setMethodCallHandler(_onNative);
+
+    if (Platform.isAndroid) {
+      final status = await Permission.phone.request();
+      permitted = status.isGranted || status.isLimited;
+      if (!permitted) {
+        listening = false;
+        lastError = 'Permesso stato telefono mancante';
+        onChanged?.call();
+        return;
+      }
+    }
+
     try {
       final ok = await _channel.invokeMethod<bool>('start');
       listening = ok == true;
-      if (ok == false) permitted = false;
+      if (ok == false) {
+        permitted = false;
+        lastError = 'Listener nativo non avviato';
+      }
     } on MissingPluginException {
       _running = false;
       listening = false;
-    } on PlatformException {
+      lastError = 'Plugin chiamate assente';
+    } on PlatformException catch (e) {
       _running = false;
       listening = false;
+      lastError = e.message ?? 'Errore plugin chiamate';
     }
+    onChanged?.call();
   }
 
   Future<void> stop() async {
@@ -68,12 +92,22 @@ class CallObserverService {
     if (ringing && !_wasRinging) {
       try {
         await api.sendEvent('call_incoming', caller: _callerLabel);
-      } catch (_) {}
+        lastSent = 'call_incoming → Iris';
+        lastError = null;
+      } catch (e) {
+        lastError = 'Invio squillo fallito: $e';
+      }
+      onChanged?.call();
     }
     if (_wasActive && !active && !ringing) {
       try {
         await api.sendEvent('call_ended');
-      } catch (_) {}
+        lastSent = 'call_ended → Iris';
+        lastError = null;
+      } catch (e) {
+        lastError = 'Invio fine chiamata fallito: $e';
+      }
+      onChanged?.call();
     }
     _wasRinging = ringing;
     _wasActive = active;

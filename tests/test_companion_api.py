@@ -110,8 +110,51 @@ def test_telefono_setup_mentions_companion_app(tmp_path: Path) -> None:
     _register(client)
     page = client.get("/telefono-setup?stage=1")
     assert page.status_code == 200
-    assert 'href="/app"' in page.text
+    assert 'href="/app/android"' in page.text
     assert "PIN di associazione" in page.text or "Collega il telefono" in page.text
+
+
+def test_companion_call_reaches_context_status(tmp_path: Path) -> None:
+    """APK event must persist so /api/context/status (PC In ascolto) sees the call."""
+
+    app = create_app(data_dir=tmp_path, session_secret="bridge-call")
+    client = TestClient(app)
+    _register(client)
+    reset_context_router("maria")
+
+    profile = app.state.store.ensure_headset_pairing("maria")
+    code = profile.pairing_code
+    client.post("/api/auth/logout")
+    pair = client.post(
+        "/api/companion/pair",
+        json={"username": "maria", "password": "Segreta123", "code": code},
+    )
+    token = pair.json()["device_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    incoming = client.post(
+        "/api/companion/event",
+        headers=headers,
+        json={"event": "call_incoming", "caller": "Luca"},
+    )
+    assert incoming.status_code == 200
+
+    # Fresh session as website user on PC
+    client.post(
+        "/api/auth/login",
+        json={"username": "maria", "password": "Segreta123"},
+    )
+    # HTML form login if JSON login unavailable
+    client.post(
+        "/login",
+        data={"username": "maria", "password": "Segreta123"},
+        follow_redirects=False,
+    )
+    status = client.get("/api/context/status")
+    assert status.status_code == 200, status.text
+    body = status.json()
+    assert body["active_contexts"]["call"] is True
+    assert body["world"]["incoming_call"] is True
 
 
 def test_companion_pwa_routes(tmp_path: Path) -> None:
@@ -125,6 +168,11 @@ def test_companion_pwa_routes(tmp_path: Path) -> None:
     assert "apple-mobile-web-app-capable" in app_page.text
     assert "/static/app/manifest.webmanifest" in app_page.text
     assert "/static/app/app.js" in app_page.text
+
+    android = client.get("/app/android")
+    assert android.status_code == 200
+    assert "APK" in android.text
+    assert "Una sola app" in android.text
     assert "liquid-mesh" in app_page.text
     assert "data-liquid-title" in app_page.text
     assert "irisGlass" in app_page.text or "Outfit" in app_page.text
