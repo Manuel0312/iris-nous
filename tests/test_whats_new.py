@@ -32,6 +32,7 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
         or "Hub «La tua cuffia»" in page.text
         or "Privacy e chiarezza demo" in page.text
     )
+    assert "Blu elettrico, più saturo" in page.text
     assert "Cache /app non blocca più i colori nuovi" in page.text
     assert "Blu più vivace" in page.text
     assert "Accento azzurro leggero (niente più verde)" in page.text

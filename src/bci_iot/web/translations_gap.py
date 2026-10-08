@@ -4862,6 +4862,34 @@ EXTRA_RAW: dict[str, dict[str, str]] = {
         "ja": "エラー",
         "es": "Error",
     },
+    # --- v0.4.51 electric blue ---
+    "Blu elettrico, più saturo": {
+        "en": "Electric blue, more saturated",
+        "fr": "Bleu électrique, plus saturé",
+        "de": "Elektrisches Blau, satter",
+        "pt": "Azul elétrico, mais saturado",
+        "zh": "更饱和的电光蓝",
+        "ja": "より鮮やかなエレクトリックブルー",
+        "es": "Azul eléctrico, más saturado",
+    },
+    "Anche il blu vivace precedente restava un po’ spento sullo schermo.": {
+        "en": "Even the previous vivid blue still looked a bit dull on screen.",
+        "fr": "Même le bleu vif précédent restait un peu terne à l’écran.",
+        "de": "Auch das vorherige lebhafte Blau wirkte auf dem Bildschirm noch etwas stumpf.",
+        "pt": "Mesmo o azul vivo anterior ainda parecia um pouco apagado no ecrã.",
+        "zh": "之前的鲜蓝在屏幕上仍显得有些闷。",
+        "ja": "前の鮮やかな青でも画面では少しくすんで見えました。",
+        "es": "Incluso el azul vivo anterior seguía viéndose un poco apagado en pantalla.",
+    },
+    "Accento elettrico #0066ff (chiaro) e #5ad0ff (scuro), con alone più forte: link e bottoni devono saltare subito all’occhio.": {
+        "en": "Electric accent #0066ff (light) and #5ad0ff (dark), with a stronger glow: links and buttons should pop immediately.",
+        "fr": "Accent électrique #0066ff (clair) et #5ad0ff (sombre), halo plus fort : liens et boutons doivent sauter aux yeux.",
+        "de": "Elektrischer Akzent #0066ff (hell) und #5ad0ff (dunkel), stärkerer Schein: Links und Buttons sollen sofort auffallen.",
+        "pt": "Acento elétrico #0066ff (claro) e #5ad0ff (escuro), com brilho mais forte: links e botões devem saltar à vista.",
+        "zh": "电光强调色浅 #0066ff、深 #5ad0ff，光晕更强：链接和按钮应一眼跳出。",
+        "ja": "エレクトリック #0066ff（明）と #5ad0ff（暗）、グロー強め。リンクやボタンがすぐ目立つように。",
+        "es": "Acento eléctrico #0066ff (claro) y #5ad0ff (oscuro), con halo más fuerte: enlaces y botones deben saltar a la vista.",
+    },
     # --- v0.4.50 cache bust PWA ---
     "Cache /app non blocca più i colori nuovi": {
         "en": "/app cache no longer blocks new colors",

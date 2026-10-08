@@ -6,12 +6,12 @@
     </linearGradient>
   </defs>
   <rect width="640" height="400" fill="url(#bg2)"/>
-  <rect x="48" y="120" width="150" height="160" rx="18" fill="#1c242c" stroke="#47a6ff" stroke-width="2"/>
+  <rect x="48" y="120" width="150" height="160" rx="18" fill="#1c242c" stroke="#1a88ff" stroke-width="2"/>
   <text x="123" y="205" text-anchor="middle" fill="#eaf3ee" font-family="Segoe UI, sans-serif" font-size="20" font-weight="700">CASA</text>
-  <text x="123" y="235" text-anchor="middle" fill="#47a6ff" font-family="Segoe UI, sans-serif" font-size="13">sempre</text>
-  <rect x="245" y="120" width="150" height="160" rx="18" fill="#1c242c" stroke="#7ab8ff" stroke-width="2"/>
+  <text x="123" y="235" text-anchor="middle" fill="#1a88ff" font-family="Segoe UI, sans-serif" font-size="13">sempre</text>
+  <rect x="245" y="120" width="150" height="160" rx="18" fill="#1c242c" stroke="#66b0ff" stroke-width="2"/>
   <text x="320" y="205" text-anchor="middle" fill="#eaf3ee" font-family="Segoe UI, sans-serif" font-size="20" font-weight="700">MUSICA</text>
-  <text x="320" y="235" text-anchor="middle" fill="#7ab8ff" font-family="Segoe UI, sans-serif" font-size="13">se in play</text>
+  <text x="320" y="235" text-anchor="middle" fill="#66b0ff" font-family="Segoe UI, sans-serif" font-size="13">se in play</text>
   <rect x="442" y="120" width="150" height="160" rx="18" fill="#1c242c" stroke="#9bb0a4" stroke-width="2" stroke-dasharray="6 5"/>
   <text x="517" y="205" text-anchor="middle" fill="#eaf3ee" font-family="Segoe UI, sans-serif" font-size="20" font-weight="700">CHIAMATA</text>
   <text x="517" y="235" text-anchor="middle" fill="#9bb0a4" font-family="Segoe UI, sans-serif" font-size="13">solo se arriva</text>
