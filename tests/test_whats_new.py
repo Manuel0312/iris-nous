@@ -32,6 +32,7 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
         or "Hub «La tua cuffia»" in page.text
         or "Privacy e chiarezza demo" in page.text
     )
+    assert "Tendina con foto e icone animate" in page.text
     assert "Menu minimale e Ecosistema a step" in page.text
     assert "Ban: fuori subito, non al prossimo login" in page.text
     assert "Collegamento telefono vero (credenziale)" in page.text

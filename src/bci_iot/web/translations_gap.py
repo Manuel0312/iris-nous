@@ -4862,6 +4862,34 @@ EXTRA_RAW: dict[str, dict[str, str]] = {
         "ja": "エラー",
         "es": "Error",
     },
+    # --- v0.4.47 nav icons + profile photo ---
+    "Tendina con foto e icone animate": {
+        "en": "Menu with photo and animated icons",
+        "fr": "Menu avec photo et icônes animées",
+        "de": "Menü mit Foto und animierten Icons",
+        "pt": "Menu com foto e ícones animados",
+        "zh": "带照片与动画图标的菜单",
+        "ja": "写真とアニメーションアイコンのメニュー",
+        "es": "Menú con foto e iconos animados",
+    },
+    "Il menu account era solo testo: niente foto profilo e niente segnali visivi sulle voci.": {
+        "en": "The account menu was text-only: no profile photo and no visual cues on items.",
+        "fr": "Le menu compte n’était que du texte : pas de photo ni d’indices visuels.",
+        "de": "Das Kontomenü war nur Text: kein Profilfoto, keine visuellen Hinweise.",
+        "pt": "O menu da conta era só texto: sem foto nem sinais visuais.",
+        "zh": "账户菜单只有文字：没有头像，也没有视觉提示。",
+        "ja": "アカウントメニューは文字のみで、写真も視覚的な手がかりもありませんでした。",
+        "es": "El menú de cuenta era solo texto: sin foto ni señales visuales.",
+    },
+    "Accanto a «I miei dati» compare la foto profilo; ogni voce ha un’icona minimale (freccia di uscita su Esci) con animazione al passaggio e al click.": {
+        "en": "Next to “My data” you see your profile photo; each item has a minimal icon (exit arrow on Sign out) that animates on hover and click.",
+        "fr": "À côté de « Mes données », la photo de profil ; chaque entrée a une icône minimale (flèche de sortie sur Quitter) animée au survol et au clic.",
+        "de": "Neben „Meine Daten“ erscheint das Profilfoto; jeder Eintrag hat ein schlichtes Icon (Pfeil bei Abmelden) mit Hover- und Klick-Animation.",
+        "pt": "Junto a «Os meus dados» aparece a foto; cada opção tem ícone mínimo (seta de saída em Sair) com animação ao passar e ao clicar.",
+        "zh": "「我的资料」旁显示头像；每项都有简洁图标（退出旁为箭头），悬停与点击有动画。",
+        "ja": "「マイデータ」の横に写真。各項目にミニマルなアイコン（退出は矢印）、ホバー／クリックでアニメ。",
+        "es": "Junto a «Mis datos» sale la foto; cada opción tiene un icono mínimo (flecha en Salir) con animación al pasar y al clic.",
+    },
     # --- v0.4.46 minimal menu + ecosistema steps ---
     "Menu minimale e Ecosistema a step": {
         "en": "Minimal menu and step-by-step Ecosystem",

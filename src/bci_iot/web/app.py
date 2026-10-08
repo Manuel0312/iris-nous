@@ -508,9 +508,12 @@ def create_app(
     def _template_ctx(request: Request, profiles: ProfileStore, **extra: object) -> dict:
         username = _session_username(request)
         is_admin = False
+        nav_photo = ""
         if username:
             profile = profiles.get(username)
             is_admin = bool(profile and profile.is_admin)
+            if profile is not None:
+                nav_photo = str(profile.photo_filename or "").strip()
         lang = get_request_language(request)
         t = make_translator(lang)
         flash = _pop_flash(request)
@@ -532,6 +535,7 @@ def create_app(
         return {
             "username": username,
             "is_admin": is_admin,
+            "nav_photo": nav_photo,
             "flash": flash,
             "phone_countries": PHONE_COUNTRIES,
             "lang": lang,
