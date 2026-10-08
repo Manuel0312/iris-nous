@@ -4862,6 +4862,34 @@ EXTRA_RAW: dict[str, dict[str, str]] = {
         "ja": "エラー",
         "es": "Error",
     },
+    # --- v0.4.48 accent azure ---
+    "Accento azzurro leggero (niente più verde)": {
+        "en": "Light azure accent (no more green)",
+        "fr": "Accent bleu clair (plus de vert)",
+        "de": "Leichtes Azur-Akzent (kein Grün mehr)",
+        "pt": "Acento azul claro (já sem verde)",
+        "zh": "浅天蓝强调色（不再用绿）",
+        "ja": "薄い水色アクセント（緑はやめ）",
+        "es": "Acento azul claro (ya no verde)",
+    },
+    "Su nero e sul resto del sito l’accento era un verde/salvia: stancava e non era la palette che volevi.": {
+        "en": "On black and across the site the accent was sage green: tiring, not the palette you wanted.",
+        "fr": "Sur le noir et tout le site, l’accent était un vert sauge : fatigant, pas ta palette.",
+        "de": "Auf Schwarz und der ganzen Seite war der Akzent Salbeigrün: anstrengend, nicht deine Palette.",
+        "pt": "No preto e no site o acento era verde sálvia: cansava e não era a tua paleta.",
+        "zh": "黑底和全站强调色是鼠尾草绿：刺眼，也不是你想要的色板。",
+        "ja": "黒やサイト全体のアクセントがセージ緑で、目が疲れ、望む色ではなかった。",
+        "es": "Sobre negro y en todo el sitio el acento era verde salvia: cansaba y no era tu paleta.",
+    },
+    "Ora tutto ciò che era verde (bottoni, link, icone, stati ok, bolle chat, /app) usa un azzurro leggero, chiaro e scuro.": {
+        "en": "Everything that was green (buttons, links, icons, ok states, chat bubbles, /app) now uses a light azure in light and dark mode.",
+        "fr": "Tout ce qui était vert (boutons, liens, icônes, états ok, bulles, /app) est en bleu clair, thèmes clair et sombre.",
+        "de": "Alles Grüne (Buttons, Links, Icons, OK-Status, Chatblasen, /app) ist jetzt leichtes Azur in Hell und Dunkel.",
+        "pt": "Tudo o que era verde (botões, links, ícones, estados ok, bolhas, /app) usa agora azul claro, claro e escuro.",
+        "zh": "原先绿色的部分（按钮、链接、图标、完成态、聊天气泡、/app）现为浅天蓝，支持浅色与深色。",
+        "ja": "緑だった要素（ボタン・リンク・アイコン・OK・吹き出し・/app）は薄い水色に、明暗両対応。",
+        "es": "Todo lo verde (botones, enlaces, iconos, estados ok, burbujas, /app) usa ahora un azul claro, en claro y oscuro.",
+    },
     # --- v0.4.47 nav icons + profile photo ---
     "Tendina con foto e icone animate": {
         "en": "Menu with photo and animated icons",

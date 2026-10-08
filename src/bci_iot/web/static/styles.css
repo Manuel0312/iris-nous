@@ -3,7 +3,7 @@
   --bg-elev: #ffffff;
   --ink: #1d1d1f;
   --muted: #6e6e73;
-  --accent: #1a7a5c;
+  --accent: #3d8ec9;
   --accent-ink: #ffffff;
   --danger: #b42318;
   --line: rgba(29, 29, 31, 0.12);
@@ -15,7 +15,7 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --nav-bg: rgba(255, 255, 255, 0.96);
   --toggle-bg: rgba(255, 255, 255, 0.72);
-  --hero-glow: rgba(26, 122, 92, 0.08);
+  --hero-glow: rgba(61, 142, 201, 0.08);
 }
 
 html[data-theme-resolved="dark"] {
@@ -23,13 +23,13 @@ html[data-theme-resolved="dark"] {
   --bg-elev: #16161a;
   --ink: #f5f5f7;
   --muted: #a1a1a6;
-  --accent: #3dd6a5;
+  --accent: #7ec4ef;
   --accent-ink: #0b0b0d;
   --danger: #ff6b5a;
   --line: rgba(245, 245, 247, 0.12);
   --nav-bg: rgba(22, 22, 26, 0.96);
   --toggle-bg: rgba(40, 40, 46, 0.85);
-  --hero-glow: rgba(61, 214, 165, 0.12);
+  --hero-glow: rgba(126, 196, 239, 0.12);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -1411,7 +1411,7 @@ html[data-theme-resolved="dark"] .hero-verb-3 { color: #f5f5f7; }
   margin: 2rem 0;
   padding: 4.5rem 1rem 0;
   background:
-    radial-gradient(800px 400px at 20% 0%, rgba(26, 122, 92, 0.25), transparent 50%),
+    radial-gradient(800px 400px at 20% 0%, rgba(61, 142, 201, 0.25), transparent 50%),
     #111113;
   color: #f5f5f7;
   perspective: 1200px;
@@ -1746,8 +1746,8 @@ h2 {
 }
 
 .gender-option:has(input:checked) {
-  border-color: rgba(26, 122, 92, 0.55);
-  box-shadow: 0 0 0 3px rgba(26, 122, 92, 0.12);
+  border-color: rgba(61, 142, 201, 0.55);
+  box-shadow: 0 0 0 3px rgba(61, 142, 201, 0.12);
 }
 
 .stack { display: grid; gap: 0.9rem; }
@@ -1772,7 +1772,7 @@ input, textarea, select {
 textarea { min-height: 5.5rem; resize: vertical; }
 
 input:focus, textarea:focus, select:focus {
-  outline: 2px solid rgba(26, 122, 92, 0.35);
+  outline: 2px solid rgba(61, 142, 201, 0.35);
   border-color: transparent;
 }
 
@@ -2513,13 +2513,13 @@ html[data-theme-resolved="dark"] .discover-cta {
 }
 
 .app-list li.is-cursor {
-  border-color: rgba(26, 122, 92, 0.55);
-  box-shadow: 0 0 0 3px rgba(26, 122, 92, 0.12);
+  border-color: rgba(61, 142, 201, 0.55);
+  box-shadow: 0 0 0 3px rgba(61, 142, 201, 0.12);
   font-weight: 700;
 }
 
 .app-list li.is-pending {
-  background: rgba(26, 122, 92, 0.08);
+  background: rgba(61, 142, 201, 0.08);
 }
 
 .folder-controls {
@@ -2810,7 +2810,7 @@ html[data-theme-resolved="dark"] .discover-cta {
 }
 
 .assoc-pill.is-on {
-  background: rgba(26, 122, 92, 0.14);
+  background: rgba(61, 142, 201, 0.14);
   color: var(--accent);
 }
 
@@ -2973,7 +2973,7 @@ html[data-theme-resolved="dark"] .discover-cta {
 }
 
 .hub-status.is-on {
-  background: rgba(26, 122, 92, 0.14);
+  background: rgba(61, 142, 201, 0.14);
   color: var(--accent);
 }
 
@@ -3081,8 +3081,8 @@ html[data-theme-resolved="dark"] .discover-cta {
   text-decoration: none;
   cursor: pointer;
   color: #fff;
-  background: linear-gradient(180deg, #2d9574, var(--accent));
-  box-shadow: 0 8px 18px rgba(26, 122, 92, 0.26);
+  background: linear-gradient(180deg, #4a9fd4, var(--accent));
+  box-shadow: 0 8px 18px rgba(61, 142, 201, 0.26);
   transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
 }
 
@@ -3091,7 +3091,7 @@ html[data-theme-resolved="dark"] .discover-cta {
   color: #fff;
   transform: translateY(-1px);
   filter: brightness(1.05);
-  box-shadow: 0 12px 22px rgba(26, 122, 92, 0.32);
+  box-shadow: 0 12px 22px rgba(61, 142, 201, 0.32);
 }
 
 .hub-connect.is-ghost {
@@ -3145,8 +3145,8 @@ html[data-theme-resolved="dark"] .hub-iot li {
 
 html[data-theme-resolved="dark"] .hub-connect {
   color: var(--accent-ink);
-  background: linear-gradient(180deg, #4ae0b0, var(--accent));
-  box-shadow: 0 8px 20px rgba(61, 214, 165, 0.22);
+  background: linear-gradient(180deg, #8ecbf5, var(--accent));
+  box-shadow: 0 8px 20px rgba(126, 196, 239, 0.22);
 }
 
 html[data-theme-resolved="dark"] .hub-connect.is-ghost {
@@ -3726,8 +3726,8 @@ html[data-theme-resolved="dark"] .password-toggle:hover {
   padding: 1rem 1.1rem;
   text-align: center;
   border-radius: 14px;
-  border: 1px dashed color-mix(in srgb, var(--accent, #3dba8a) 45%, transparent);
-  background: color-mix(in srgb, var(--accent, #3dba8a) 8%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--accent, #5baad8) 45%, transparent);
+  background: color-mix(in srgb, var(--accent, #5baad8) 8%, transparent);
 }
 
 .page-telefono-setup .phone-pin-box .pair-code {
@@ -3750,12 +3750,12 @@ html[data-theme-resolved="dark"] .password-toggle:hover {
 }
 
 .page-telefono-setup .detail-list .ok {
-  color: var(--ok, #2a9d6a);
+  color: var(--ok, #3d8ec9);
 }
 
 .page-telefono-live .telefono-call-panel {
-  border-color: color-mix(in srgb, var(--accent, #2a6) 35%, var(--border, #ccc));
-  background: color-mix(in srgb, var(--accent, #2a6) 8%, var(--panel, #fff));
+  border-color: color-mix(in srgb, var(--accent, #3d8) 35%, var(--border, #ccc));
+  background: color-mix(in srgb, var(--accent, #3d8) 8%, var(--panel, #fff));
 }
 .page-telefono-live .telefono-call-panel[hidden] {
   display: none;
@@ -3886,7 +3886,7 @@ html[data-theme-resolved="dark"] .page-cuffia .cuffia-phone-stub .btn.ghost {
 }
 
 .page-contesto .contesto-focus {
-  border-left: 3px solid var(--accent, #2a6f6a);
+  border-left: 3px solid var(--accent, #3d7a9e);
   padding: 1.1rem 1.15rem;
 }
 
@@ -4260,7 +4260,7 @@ html[data-theme-resolved="dark"] .page-contesto .contesto-focus {
 
 .verify-ok {
   margin: 0.35rem 0 0.75rem;
-  color: #1f7a3f;
+  color: #3d8ec9;
   font-size: 0.9rem;
   font-weight: 600;
 }
@@ -4319,7 +4319,7 @@ html[data-theme-resolved="dark"] .page-contesto .contesto-focus {
 
 .status-dot.status-unread { background: #e23d3d; color: #e23d3d; }
 .status-dot.status-viewed { background: #e0b400; color: #e0b400; }
-.status-dot.status-replied { background: #2f9e5e; color: #2f9e5e; }
+.status-dot.status-replied { background: #4a9fd4; color: #4a9fd4; }
 
 .notice-lede {
   margin-bottom: 0.65rem;
@@ -4438,17 +4438,17 @@ body.page-chat .chat-fab {
   margin-left: auto;
 }
 
-/* Messaggi utente (tuoi): verde WhatsApp-like */
+/* Messaggi utente (tuoi): azzurro leggero */
 .chat-bubble.chat-user.chat-mine {
-  background: #25d366 !important;
+  background: #5eb0e0 !important;
   border-color: transparent;
-  color: #0b1a10 !important;
+  color: #0b1520 !important;
 }
 
 .chat-bubble.chat-user.chat-mine .chat-who,
 .chat-bubble.chat-user.chat-mine time,
 .chat-bubble.chat-user.chat-mine p {
-  color: #0b1a10 !important;
+  color: #0b1520 !important;
 }
 
 /* Messaggi cliente in admin / team: sfondo scuro + testo chiaro (mai bianco su bianco) */
@@ -4985,8 +4985,8 @@ html[data-theme-resolved="light"] .chat-bubble.chat-admin time {
 }
 
 .presence-dot.is-online {
-  background: #2f9e5e;
-  color: #2f9e5e;
+  background: #4a9fd4;
+  color: #4a9fd4;
 }
 
 .presence-dot.is-offline {
@@ -5016,13 +5016,13 @@ html[data-theme-resolved="light"] .chat-bubble.chat-admin time {
   font-size: 0.7rem;
 }
 
-/* Facoltativi/consigliati: giallo finché non ok, poi verde */
+/* Facoltativi/consigliati: giallo finché non ok, poi azzurro */
 .pwd-reqs li.is-optional:not(.is-ok) {
   color: #d4a017;
 }
 
 .pwd-reqs li.is-ok {
-  color: #1f7a45;
+  color: #3d8ec9;
 }
 
 .pwd-reqs li.is-ok::before {
@@ -5896,9 +5896,9 @@ body.page-chat .shell.wide,
 }
 
 .eco-step.is-done .eco-step-mark {
-  color: #1a7a4c;
-  background: color-mix(in srgb, #1a7a4c 14%, transparent);
-  border-color: color-mix(in srgb, #1a7a4c 28%, transparent);
+  color: #3d8ec9;
+  background: color-mix(in srgb, #3d8ec9 14%, transparent);
+  border-color: color-mix(in srgb, #3d8ec9 28%, transparent);
 }
 
 .eco-step-head {
@@ -5925,8 +5925,8 @@ body.page-chat .shell.wide,
 }
 
 .eco-pill.is-on {
-  color: #1a7a4c;
-  background: color-mix(in srgb, #1a7a4c 14%, transparent);
+  color: #3d8ec9;
+  background: color-mix(in srgb, #3d8ec9 14%, transparent);
 }
 
 .eco-step-body > p {
@@ -5973,8 +5973,8 @@ a.eco-channel:hover {
 }
 
 .eco-channel.is-on {
-  border-color: color-mix(in srgb, #1a7a4c 35%, transparent);
-  background: color-mix(in srgb, #1a7a4c 8%, white);
+  border-color: color-mix(in srgb, #3d8ec9 35%, transparent);
+  background: color-mix(in srgb, #3d8ec9 8%, white);
 }
 
 .eco-channel.is-soon {
