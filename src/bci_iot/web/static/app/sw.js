@@ -1,9 +1,7 @@
-/* Iris Nous companion PWA — cache shell only (API always network). */
-const CACHE = "iris-app-v3-glass";
+/* Iris Nous companion PWA — shell cache; CSS/JS always prefer network. */
+const CACHE = "iris-app-v7-azure";
 const SHELL = [
   "/app",
-  "/static/app/app.css?v=irisGlass3",
-  "/static/app/app.js?v=irisGlass3",
   "/static/app/manifest.webmanifest",
   "/static/app/icon-180.png",
   "/static/app/icon-192.png",
@@ -29,6 +27,29 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.pathname.startsWith("/api/")) return;
+
+  const isAsset =
+    url.pathname.startsWith("/static/app/app.css") ||
+    url.pathname.startsWith("/static/app/app.js") ||
+    url.pathname.endsWith(".css") ||
+    url.pathname.endsWith(".js");
+
+  // CSS/JS: network first so accent/palette updates are visible after deploy.
+  if (isAsset) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(req, copy));
+          }
+          return res;
+        })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(req).then((cached) => {
       const net = fetch(req)

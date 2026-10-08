@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.50",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Cache /app non blocca più i colori nuovi",
+                "Dopo il deploy il blu nuovo c’era sul server, ma browser o PWA potevano tenere CSS vecchi in cache.",
+                "Il service worker di /app ora prende CSS/JS dalla rete per primi e svuota le cache vecchie; sul sito normale basta un aggiornamento forzato (Ctrl+F5).",
+            ),
+        ),
+    },
+    {
         "version": "0.4.49",
         "intro": WHATS_NEW_INTRO,
         "entries": (

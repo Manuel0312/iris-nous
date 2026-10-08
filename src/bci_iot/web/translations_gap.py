@@ -4862,6 +4862,34 @@ EXTRA_RAW: dict[str, dict[str, str]] = {
         "ja": "エラー",
         "es": "Error",
     },
+    # --- v0.4.50 cache bust PWA ---
+    "Cache /app non blocca più i colori nuovi": {
+        "en": "/app cache no longer blocks new colors",
+        "fr": "Le cache /app ne bloque plus les nouvelles couleurs",
+        "de": "/app-Cache blockiert neue Farben nicht mehr",
+        "pt": "A cache /app já não bloqueia as cores novas",
+        "zh": "/app 缓存不再挡住新颜色",
+        "ja": "/app のキャッシュが新色を妨げない",
+        "es": "La caché de /app ya no bloquea los colores nuevos",
+    },
+    "Dopo il deploy il blu nuovo c’era sul server, ma browser o PWA potevano tenere CSS vecchi in cache.": {
+        "en": "After deploy the new blue was on the server, but browser or PWA could keep old CSS cached.",
+        "fr": "Après le déploiement le nouveau bleu était sur le serveur, mais navigateur ou PWA pouvaient garder l’ancien CSS.",
+        "de": "Nach dem Deploy war das neue Blau auf dem Server, Browser/PWA konnten aber altes CSS behalten.",
+        "pt": "Após o deploy o azul novo estava no servidor, mas browser ou PWA podiam manter CSS antigo.",
+        "zh": "部署后服务器已是新蓝，但浏览器或 PWA 仍可能缓存旧 CSS。",
+        "ja": "デプロイ後サーバーは新ブルーでも、ブラウザや PWA が古い CSS を残すことがありました。",
+        "es": "Tras el deploy el azul nuevo estaba en el servidor, pero el navegador o la PWA podían guardar CSS viejo.",
+    },
+    "Il service worker di /app ora prende CSS/JS dalla rete per primi e svuota le cache vecchie; sul sito normale basta un aggiornamento forzato (Ctrl+F5).": {
+        "en": "The /app service worker now prefers network for CSS/JS and clears old caches; on the normal site a hard refresh (Ctrl+F5) is enough.",
+        "fr": "Le service worker /app préfère le réseau pour CSS/JS et vide les vieux caches ; sur le site normal, Ctrl+F5 suffit.",
+        "de": "Der /app-Service-Worker holt CSS/JS zuerst aus dem Netz und löscht alte Caches; auf der normalen Seite reicht Ctrl+F5.",
+        "pt": "O service worker de /app agora prefere a rede para CSS/JS e limpa caches antigas; no site normal basta Ctrl+F5.",
+        "zh": "/app 的 service worker 现优先从网络取 CSS/JS 并清除旧缓存；普通站点强制刷新（Ctrl+F5）即可。",
+        "ja": "/app の SW は CSS/JS をネット優先にし古いキャッシュを削除。通常サイトは Ctrl+F5 で十分。",
+        "es": "El service worker de /app prioriza la red para CSS/JS y limpia cachés viejas; en el sitio normal basta Ctrl+F5.",
+    },
     # --- v0.4.49 vivid blue ---
     "Blu più vivace": {
         "en": "More vivid blue",
