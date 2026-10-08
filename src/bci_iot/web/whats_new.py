@@ -10,6 +10,22 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.44",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Collegamento telefono vero (credenziale)",
+                "«Associa telefono» era confuso: tanti modi, poco chiaro se fosse un collegamento reale.",
+                "Ora /telefono-setup spiega un solo modello: PIN + app (o un tocco sul cellulare) crea una credenziale dispositivo. Scheda chiara: nome, in linea, cosa è reale (chiamate / Spotify).",
+            ),
+            (
+                "Pagine telefono più chiare",
+                "Setup e app mescolavano browser, QR, Apple e Spotify senza gerarchia.",
+                "Flusso ripulito: collega dispositivo → stato fidato → Spotify opzionale; /app chiede PIN e nome dispositivo.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.43",
         "intro": WHATS_NEW_INTRO,
         "entries": (

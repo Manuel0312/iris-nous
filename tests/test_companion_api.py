@@ -103,9 +103,8 @@ def test_telefono_setup_mentions_companion_app(tmp_path: Path) -> None:
     _register(client)
     page = client.get("/telefono-setup?stage=1")
     assert page.status_code == 200
-    assert "App companion" in page.text
     assert 'href="/app"' in page.text
-    assert "/app/installa" in page.text
+    assert "PIN di associazione" in page.text or "Collega il telefono" in page.text
 
 
 def test_companion_pwa_routes(tmp_path: Path) -> None:
@@ -114,7 +113,8 @@ def test_companion_pwa_routes(tmp_path: Path) -> None:
 
     app_page = client.get("/app")
     assert app_page.status_code == 200
-    assert "Associa questo telefono" in app_page.text
+    assert "Collega questo dispositivo" in app_page.text
+    assert "PIN di associazione" in app_page.text
     assert "apple-mobile-web-app-capable" in app_page.text
     assert "/static/app/manifest.webmanifest" in app_page.text
     assert "/static/app/app.js" in app_page.text

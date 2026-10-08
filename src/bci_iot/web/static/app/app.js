@@ -111,21 +111,22 @@
     const username = ($("#f-user").value || "").trim();
     const password = $("#f-pass").value || "";
     const code = ($("#f-code").value || "").trim();
+    const device_name = ($("#f-device")?.value || "").trim();
     const btn = $("#btn-pair");
     btn.disabled = true;
-    showMsg("Associazione…", "");
+    showMsg("Collegamento dispositivo…", "");
     try {
       const data = await api("/api/companion/pair", {
         method: "POST",
         auth: false,
-        body: { username, password, code },
+        body: { username, password, code, device_name },
       });
       setToken(data.device_token, data.username);
       renderStatus(data);
-      showMsg("Telefono associato.", "ok");
+      showMsg("Dispositivo collegato. Credenziale attiva.", "ok");
       showTab("home");
     } catch (e) {
-      showMsg(e.message || "Associazione fallita", "err");
+      showMsg(e.message || "Collegamento fallito", "err");
     } finally {
       btn.disabled = false;
     }

@@ -195,11 +195,12 @@ class ContextDecideRequest(BaseModel):
 
 
 class CompanionPairRequest(BaseModel):
-    """Pair the Flutter companion: code (+ optional username/password if no session)."""
+    """Pair the companion: PIN (+ optional username/password if no session)."""
 
     code: str = Field(min_length=4, max_length=12)
     username: str = Field(default="", max_length=64)
     password: str = Field(default="", max_length=128)
+    device_name: str = Field(default="", max_length=64)
 
 
 class CompanionEventRequest(BaseModel):
@@ -214,6 +215,25 @@ def _session_username(request: Request) -> str | None:
 
     value = request.session.get("username")
     return str(value) if value else None
+
+
+def _device_label_from_ua(user_agent: str) -> str:
+    """Short human label for the paired device (not a hardware ID)."""
+
+    ua = (user_agent or "").lower()
+    if "iphone" in ua:
+        return "iPhone (browser)"
+    if "ipad" in ua:
+        return "iPad (browser)"
+    if "android" in ua:
+        return "Android (browser)"
+    if "windows" in ua:
+        return "PC Windows"
+    if "mac os" in ua or "macintosh" in ua:
+        return "Mac"
+    if "linux" in ua:
+        return "Linux"
+    return "Dispositivo web"
 
 def _require_username(request: Request) -> str:
 
@@ -2837,7 +2857,8 @@ def create_app(
 
         base = str(request.base_url)
         public = public_site_url(base)
-        pair_link = f"{public}/telefono-setup"
+        pair_link = f"{public}/app"
+        stats = profile.usage_stats or {}
         return TEMPLATES.TemplateResponse(
             request,
             "telefono_setup.html",
@@ -2848,8 +2869,16 @@ def create_app(
                 done=done_view,
                 stage=stage_view,
                 public_url=public,
+                app_url=f"{public}/app",
                 qr_url=pairing_qr_url(pair_link),
                 spotify_ready=spotify_configured(),
+                companion_linked=profiles.companion_linked(profile.username),
+                phone_paired_at=str(stats.get("phone_paired_at") or ""),
+                device_label=(
+                    profile.phone_label
+                    or str(stats.get("phone_device_label") or "")
+                    or ""
+                ),
             ),
         )
 
@@ -2917,16 +2946,19 @@ def create_app(
         loaded = _require_profile(request, profiles)
         if isinstance(loaded, RedirectResponse):
             return loaded
+        ua = request.headers.get("user-agent", "")
         try:
-            profiles.confirm_phone_pairing(loaded.username, code)
+            profiles.bind_phone_device(
+                loaded.username, code, device_label=_device_label_from_ua(ua)
+            )
         except ValueError as exc:
             _flash(request, str(exc), kind="error")
             return RedirectResponse("/telefono-setup?stage=1", status_code=303)
-        _flash(request, "Telefono associato. Passo successivo: collega Spotify.", kind="ok")
+        _flash(request, "Telefono collegato con credenziale dispositivo. Passo 2: Spotify.", kind="ok")
         return _continue(
             request,
             next_url="/telefono-setup?stage=2",
-            message="Associazione riuscita...",
+            message="Collegamento riuscito...",
         )
 
     @app.post("/associa-telefono/questo-dispositivo")
@@ -2940,16 +2972,23 @@ def create_app(
         if isinstance(loaded, RedirectResponse):
             return loaded
         profile = profiles.ensure_headset_pairing(loaded.username)
-        if profile.phone_paired:
-            _flash(request, "Questo dispositivo è già associato.", kind="ok")
+        ua = request.headers.get("user-agent", "")
+        label = _device_label_from_ua(ua)
+        if profile.phone_paired and profiles.companion_linked(profile.username):
+            _flash(request, "Questo account ha già un telefono collegato.", kind="ok")
             return RedirectResponse("/telefono-setup?stage=2", status_code=303)
         try:
-            profiles.confirm_phone_pairing(profile.username, profile.pairing_code)
+            profiles.bind_phone_device(
+                profile.username, profile.pairing_code, device_label=label
+            )
         except ValueError as exc:
             _flash(request, str(exc), kind="error")
             return RedirectResponse("/telefono-setup?stage=1", status_code=303)
-        profiles.touch_phone(profile.username)
-        _flash(request, "Dispositivo associato. Collega Spotify se vuoi la musica vera.", kind="ok")
+        _flash(
+            request,
+            f"Telefono collegato come «{label}». Credenziale dispositivo attiva.",
+            kind="ok",
+        )
         return RedirectResponse("/telefono-setup?stage=2", status_code=303)
 
     @app.post("/associa-telefono/unpair")
@@ -3074,10 +3113,15 @@ def create_app(
         router = get_context_router(profile.username)
         world = router.world
         events = list(app.state.phone_queues.get(profile.username) or [])
+        stats = profile.usage_stats or {}
         payload = {
             "status": "ok",
             "username": profile.username,
             "phone_paired": bool(profile.phone_paired),
+            "companion_linked": bool(stats.get("companion_device_token")),
+            "device_label": profile.phone_label
+            or str(stats.get("phone_device_label") or "")
+            or "",
             "spotify_linked": bool(profile.spotify_linked),
             "events": events,
             "context": {
@@ -3125,11 +3169,14 @@ def create_app(
             username = auth_profile.username
             request.session["username"] = username
         profiles.ensure_headset_pairing(username)
+        ua = request.headers.get("user-agent", "")
+        label = (body.device_name or "").strip() or _device_label_from_ua(ua)
         try:
-            profiles.confirm_phone_pairing(username, body.code)
+            profile, token = profiles.bind_phone_device(
+                username, body.code, device_label=label
+            )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        profile, token = profiles.issue_companion_token(username)
         return _companion_status_payload(profiles, profile, device_token=token)
 
     @app.post("/api/companion/heartbeat")

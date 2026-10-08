@@ -3570,6 +3570,53 @@ html[data-theme-resolved="dark"] .password-toggle:hover {
   margin-bottom: 0.5rem;
 }
 
+.page-telefono-setup .phone-device-card,
+.page-telefono-setup .phone-pair-primary,
+.page-telefono-setup .phone-pair-secondary,
+.page-telefono-setup .phone-honesty {
+  border-radius: 16px;
+  padding: 1.15rem 1.2rem;
+}
+
+.page-telefono-setup .phone-device-name {
+  margin: 0.15rem 0 0.85rem;
+  font-size: clamp(1.35rem, 4.5vw, 1.75rem);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.page-telefono-setup .phone-pin-box {
+  margin: 1rem 0;
+  padding: 1rem 1.1rem;
+  text-align: center;
+  border-radius: 14px;
+  border: 1px dashed color-mix(in srgb, var(--accent, #3dba8a) 45%, transparent);
+  background: color-mix(in srgb, var(--accent, #3dba8a) 8%, transparent);
+}
+
+.page-telefono-setup .phone-pin-box .pair-code {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: clamp(1.8rem, 7vw, 2.4rem);
+  letter-spacing: 0.18em;
+  font-variant-numeric: tabular-nums;
+}
+
+.page-telefono-setup .inline-unpair {
+  display: inline;
+  margin: 0;
+}
+
+.page-telefono-setup .telefono-fineprint {
+  margin-top: 1.25rem;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.page-telefono-setup .detail-list .ok {
+  color: var(--ok, #2a9d6a);
+}
+
 .page-telefono-live .telefono-call-panel {
   border-color: color-mix(in srgb, var(--accent, #2a6) 35%, var(--border, #ccc));
   background: color-mix(in srgb, var(--accent, #2a6) 8%, var(--panel, #fff));

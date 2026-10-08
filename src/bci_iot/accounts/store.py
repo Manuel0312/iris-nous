@@ -957,7 +957,13 @@ class ProfileStore:
         self.save(profile)
         return profile
 
-    def confirm_phone_pairing(self, username: str, code: str) -> UserProfile:
+    def confirm_phone_pairing(
+        self,
+        username: str,
+        code: str,
+        *,
+        device_label: str = "",
+    ) -> UserProfile:
         profile = self.get(username)
         if profile is None:
             raise KeyError(f"unknown user: {username}")
@@ -965,8 +971,28 @@ class ProfileStore:
             raise ValueError("Codice di associazione non valido.")
         profile.phone_paired = True
         profile.phone_last_seen_at = _utc_now()
+        label = (device_label or "").strip()[:64]
+        if label:
+            profile.phone_label = label
+        stats = dict(profile.usage_stats or {})
+        stats["phone_paired_at"] = _utc_now()
+        if label:
+            stats["phone_device_label"] = label
+        profile.usage_stats = stats
         self.save(profile)
         return profile
+
+    def bind_phone_device(
+        self,
+        username: str,
+        code: str,
+        *,
+        device_label: str = "",
+    ) -> tuple[UserProfile, str]:
+        """Real device link: validate PIN, mark paired, mint companion device token."""
+
+        self.confirm_phone_pairing(username, code, device_label=device_label)
+        return self.issue_companion_token(username)
 
     def unpair_phone(self, username: str) -> UserProfile:
         from bci_iot.pipeline.calibration_wizard import new_pairing_code
@@ -980,6 +1006,8 @@ class ProfileStore:
         stats = dict(profile.usage_stats or {})
         stats.pop("companion_device_token", None)
         stats.pop("companion_issued_at", None)
+        stats.pop("phone_paired_at", None)
+        stats.pop("phone_device_label", None)
         profile.usage_stats = stats
         self.save(profile)
         return profile
@@ -992,8 +1020,14 @@ class ProfileStore:
         self.save(profile)
         return profile
 
+    def companion_linked(self, username: str) -> bool:
+        profile = self.get(username)
+        if profile is None:
+            return False
+        return bool((profile.usage_stats or {}).get("companion_device_token"))
+
     def issue_companion_token(self, username: str) -> tuple[UserProfile, str]:
-        """Mint a long-lived device token for the Iris Nous Flutter companion app."""
+        """Mint a long-lived device token for the Iris Nous companion (app / PWA)."""
 
         import secrets as _secrets
 
@@ -1006,6 +1040,7 @@ class ProfileStore:
         stats["companion_issued_at"] = _utc_now()
         profile.usage_stats = stats
         profile.phone_last_seen_at = _utc_now()
+        profile.phone_paired = True
         self.save(profile)
         return profile, token
 

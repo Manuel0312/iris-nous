@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@360;400;500;600;650&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/app/app.css?v=irisGlass3" />
+  <link rel="stylesheet" href="/static/app/app.css?v=irisGlass4" />
 </head>
 <body class="app-body">
   <div class="liquid-mesh" aria-hidden="true"></div>
@@ -44,16 +44,17 @@
     <p class="msg" id="app-msg" aria-live="polite"></p>
 
     <section class="screen on" id="screen-login">
-      <p class="eyebrow">Configurazione</p>
-      <h1 class="title" data-liquid-title>Accedi e associa</h1>
-      <p class="lede" data-liquid-lede>Stesso account del sito. Il codice a 6 cifre è in «Il tuo telefono» sul web.</p>
+      <p class="eyebrow">Collegamento dispositivo</p>
+      <h1 class="title" data-liquid-title>Collega a Iris</h1>
+      <p class="lede" data-liquid-lede>Account Iris + PIN da «Il tuo telefono». Iris crea una credenziale permanente per questo dispositivo.</p>
       <form id="pair-form" autocomplete="on">
         <input class="field" id="f-user" name="username" autocomplete="username" placeholder="Username" required />
         <input class="field" id="f-pass" name="password" type="password" autocomplete="current-password" placeholder="Password" required />
-        <input class="field" id="f-code" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="12" placeholder="Codice 6 cifre" required />
-        <button class="btn primary" type="submit" id="btn-pair">Associa questo telefono</button>
+        <input class="field" id="f-code" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="12" placeholder="PIN di associazione" required />
+        <input class="field" id="f-device" name="device_name" maxlength="64" placeholder="Nome dispositivo (es. Pixel di Maria)" />
+        <button class="btn primary" type="submit" id="btn-pair">Collega questo dispositivo</button>
       </form>
-      <a class="btn ghost" href="/telefono-setup">Apri setup sul sito</a>
+      <a class="btn ghost" href="/telefono-setup">Dove trovo il PIN</a>
     </section>
 
     <section class="screen" id="screen-home">
@@ -110,6 +111,6 @@
       Iris Nous · <a href="/">sito</a> · <a href="/telefono-setup">telefono</a>
     </p>
   </div>
-  <script src="/static/app/app.js?v=irisGlass3" defer></script>
+  <script src="/static/app/app.js?v=irisGlass4" defer></script>
 </body>
 </html>
