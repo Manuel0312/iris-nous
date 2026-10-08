@@ -2592,7 +2592,25 @@ html[data-theme-resolved="dark"] .btn.primary {
 }
 
 .flash.error { color: var(--danger); }
-.flash.ok { color: var(--accent); }
+
+/* Bentornato / messaggi ok: centrati, senza riquadro scuro */
+.flash.ok {
+  color: color-mix(in srgb, var(--ink) 78%, #e8c9a0);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  text-align: center;
+  padding: 0.55rem 0.75rem 0.85rem;
+  margin: 0.15rem auto 0.85rem;
+  font-size: clamp(1.15rem, 3.2vw, 1.45rem);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+}
+
+html[data-theme-resolved="dark"] .flash.ok {
+  color: #f0e6d8;
+}
 
 .footer { display: none; }
 
@@ -3202,7 +3220,7 @@ html[data-theme-resolved="dark"] .hub-connect.is-ghost {
 
 .strength-meter[data-level="weak"] { color: var(--danger); }
 .strength-meter[data-level="medium"] { color: #c47b1a; }
-.strength-meter[data-level="strong"] { color: var(--accent); }
+.strength-meter[data-level="strong"] { color: #1a9a4a; }
 
 .btn.danger,
 .danger-zone .btn {
@@ -5053,7 +5071,7 @@ html[data-theme-resolved="light"] .chat-bubble.chat-admin time {
 }
 
 .pwd-reqs li.is-ok {
-  color: #0088ff;
+  color: #1a9a4a;
 }
 
 .pwd-reqs li.is-ok::before {

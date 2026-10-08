@@ -4862,6 +4862,34 @@ EXTRA_RAW: dict[str, dict[str, str]] = {
         "ja": "エラー",
         "es": "Error",
     },
+    # --- v0.4.57 welcome + green pwd reqs ---
+    "Bentornato più caldo e requisiti password di nuovo verdi": {
+        "en": "Warmer welcome back and green password requirements again",
+        "fr": "Accueil plus chaleureux et exigences mot de passe de nouveau vertes",
+        "de": "Wärmerer Willkommensgruß und Passwort-Anforderungen wieder grün",
+        "pt": "Boas-vindas mais calorosas e requisitos de palavra-passe outra vez verdes",
+        "zh": "更温暖的欢迎回来，密码要求恢复为绿色",
+        "ja": "温かいおかえりと、パスワード要件を再び緑に",
+        "es": "Bienvenida más cálida y requisitos de contraseña otra vez verdes",
+    },
+    "Il messaggio di bentornato stava a sinistra in un rettangolo scuro e i requisiti password (ok) erano diventati blu.": {
+        "en": "The welcome-back message sat left in a dark rectangle and the ok password requirements had turned blue.",
+        "fr": "Le message de bienvenue était à gauche dans un rectangle sombre et les exigences ok du mot de passe étaient devenues bleues.",
+        "de": "Die Willkommensnachricht saß links in einem dunklen Rechteck und ok-Passwort-Anforderungen waren blau geworden.",
+        "pt": "A mensagem de boas-vindas ficava à esquerda num retângulo escuro e os requisitos ok da palavra-passe tinham ficado azuis.",
+        "zh": "欢迎回来信息靠左在深色矩形里，已满足的密码要求变成了蓝色。",
+        "ja": "おかえりの文言が暗い枠の左にあり、満たしたパスワード要件が青になっていました。",
+        "es": "El mensaje de bienvenida estaba a la izquierda en un rectángulo oscuro y los requisitos ok de la contraseña se habían vuelto azules.",
+    },
+    "Ora «Che bello rivederti…» è centrato senza riquadro; i requisiti soddisfatti e lo stato «password forte» tornano verdi.": {
+        "en": "Now “Nice to see you again…” is centered with no box; satisfied requirements and “strong password” are green again.",
+        "fr": "Désormais « Content de te revoir… » est centré sans cadre ; exigences satisfaites et « mot de passe fort » sont verts à nouveau.",
+        "de": "Jetzt ist „Schön, dich wiederzusehen…“ zentriert ohne Kasten; erfüllte Anforderungen und „starkes Passwort“ sind wieder grün.",
+        "pt": "Agora «Que bom ver-te…» está centrado sem caixa; requisitos cumpridos e «palavra-passe forte» voltam a verde.",
+        "zh": "现在「很高兴再见到你…」居中无框；已满足的要求与「强密码」恢复为绿色。",
+        "ja": "いま「また会えてうれしい…」は枠なし中央。満たした要件と「強いパスワード」は再び緑。",
+        "es": "Ahora «Qué bien verte…» va centrado sin recuadro; requisitos cumplidos y «contraseña fuerte» vuelven a verde.",
+    },
     # --- v0.4.56 call bridge + one app ---
     "Chiamate APK → In ascolto sul PC, una sola app": {
         "en": "APK calls → In ascolto on PC, one app",

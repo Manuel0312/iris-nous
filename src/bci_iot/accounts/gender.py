@@ -45,16 +45,16 @@ def display_name(*, first_name: str, username: str) -> str:
 
 
 def welcome_back(*, first_name: str, username: str, gender: str) -> str:
-    """Login flash after credentials are accepted."""
+    """Login flash after credentials are accepted — warm, short greeting."""
 
     name = display_name(first_name=first_name, username=username)
     if gender == "female":
-        return f"Bentornata, {name}."
+        return f"Che bello rivederti, {name}."
     if gender == "male":
-        return f"Bentornato, {name}."
+        return f"Che bello rivederti, {name}."
     if gender == "non_binary":
-        return f"Bentornatə, {name}."
-    return f"Ciao, {name}."
+        return f"Che bello rivederti, {name}."
+    return f"Che bello rivederti, {name}."
 
 
 def welcome_new(*, first_name: str, username: str, gender: str) -> str:

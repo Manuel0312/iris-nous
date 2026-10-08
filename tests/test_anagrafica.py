@@ -19,14 +19,14 @@ def test_normalize_gender_and_greetings() -> None:
     with pytest.raises(ValueError):
         normalize_gender("altro")
 
-    assert "Bentornata, Maria" in welcome_back(
-        first_name="Maria", username="m", gender="female"
+    assert welcome_back(first_name="Maria", username="m", gender="female") == (
+        "Che bello rivederti, Maria."
     )
-    assert "Bentornato, Luca" in welcome_back(
-        first_name="Luca", username="l", gender="male"
+    assert welcome_back(first_name="Luca", username="l", gender="male") == (
+        "Che bello rivederti, Luca."
     )
-    assert "Bentornatə, Alex" in welcome_back(
-        first_name="Alex", username="a", gender="non_binary"
+    assert welcome_back(first_name="Alex", username="a", gender="non_binary") == (
+        "Che bello rivederti, Alex."
     )
     assert "Benvenuta" in welcome_new(
         first_name="Maria", username="m", gender="female"
