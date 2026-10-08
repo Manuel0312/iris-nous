@@ -256,6 +256,31 @@ def _flash(request: Request, message: str, kind: str = "ok") -> None:
 
     request.session["flash"] = {"message": message, "kind": kind}
 
+
+def _ban_user_message(ban: dict) -> str:
+    label = str(ban.get("ban_label") or "").strip()
+    return (
+        f"Account sospeso{(' (' + label + ')') if label else ''}."
+        " Riprova più tardi o contatta il supporto."
+    )
+
+
+def _request_wants_document(request: Request) -> bool:
+    """True for full page navigations (redirect to login); False for XHR/API."""
+
+    mode = (request.headers.get("sec-fetch-mode") or "").strip().lower()
+    if mode == "navigate":
+        return True
+    if mode in {"cors", "no-cors", "same-origin", "websocket"}:
+        return False
+    accept = (request.headers.get("accept") or "").lower()
+    if "application/json" in accept:
+        return False
+    path = request.url.path or "/"
+    if path.startswith("/api/"):
+        return False
+    return "text/html" in accept or accept in {"", "*/*"}
+
 def _pop_flash(request: Request) -> dict[str, str] | None:
 
     flash = request.session.pop("flash", None)
@@ -411,6 +436,36 @@ def create_app(
                     request.session.pop("support_chat_sticky", None)
             except Exception:
                 pass
+        # Ban while online: clear session on the next request (no wait for logout).
+        ban_allow = (
+            path.startswith(("/static", "/flags", "/media", "/lingua"))
+            or path.startswith("/login")
+            or path.startswith("/registr")
+            or path.startswith("/password")
+            or path.startswith("/recupera")
+            or path in {"/health", "/favicon.ico", "/logout"}
+        )
+        if not ban_allow:
+            try:
+                session_user = request.session.get("username")
+            except Exception:
+                session_user = None
+            if session_user:
+                ban = store.ban_status(str(session_user))
+                if ban.get("active"):
+                    msg = _ban_user_message(ban)
+                    request.session.clear()
+                    request.session["flash"] = {"message": msg, "kind": "error"}
+                    if _request_wants_document(request):
+                        return RedirectResponse("/login", status_code=303)
+                    return JSONResponse(
+                        {
+                            "detail": msg,
+                            "banned": True,
+                            "error": "account_suspended",
+                        },
+                        status_code=403,
+                    )
         response = await call_next(request)
         # Persist auto-detected language so the next visit stays consistent.
         # Skip assets; only set when the visitor had no explicit cookie yet.
@@ -624,6 +679,11 @@ def create_app(
     ) -> UserProfile | RedirectResponse:
         username = _session_username(request)
         if not username:
+            return RedirectResponse("/login", status_code=303)
+        ban = profiles.ban_status(username)
+        if ban.get("active"):
+            request.session.clear()
+            _flash(request, _ban_user_message(ban), kind="error")
             return RedirectResponse("/login", status_code=303)
         profile = profiles.get(username)
         if profile is None:
@@ -3088,12 +3148,22 @@ def create_app(
             profile = profiles.find_by_companion_token(token)
             if profile is None:
                 raise HTTPException(status_code=401, detail="Token companion non valido")
+            ban = profiles.ban_status(profile.username)
+            if ban.get("active"):
+                raise HTTPException(
+                    status_code=403,
+                    detail=_ban_user_message(ban),
+                )
             if require_paired and not profile.phone_paired:
                 raise HTTPException(status_code=403, detail="Telefono non associato")
             return profile
         username = _session_username(request)
         if not username:
             raise HTTPException(status_code=401, detail="Login required")
+        ban = profiles.ban_status(username)
+        if ban.get("active"):
+            request.session.clear()
+            raise HTTPException(status_code=403, detail=_ban_user_message(ban))
         profile = profiles.get(username)
         if profile is None:
             raise HTTPException(status_code=404, detail="Profile not found")
@@ -3168,6 +3238,10 @@ def create_app(
                 raise HTTPException(status_code=401, detail="Credenziali non valide")
             username = auth_profile.username
             request.session["username"] = username
+        ban = profiles.ban_status(username)
+        if ban.get("active"):
+            request.session.clear()
+            raise HTTPException(status_code=403, detail=_ban_user_message(ban))
         profiles.ensure_headset_pairing(username)
         ua = request.headers.get("user-agent", "")
         label = (body.device_name or "").strip() or _device_label_from_ua(ua)

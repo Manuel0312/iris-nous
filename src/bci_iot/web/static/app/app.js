@@ -99,9 +99,15 @@
       showMsg("", "");
     } catch (e) {
       setLive(false);
-      if (e.status === 401) {
+      if (e.status === 401 || e.status === 403) {
         setToken("", null);
-        showMsg("Sessione scaduta: associa di nuovo.", "err");
+        showMsg(
+          e.message ||
+            (e.status === 403
+              ? "Account sospeso: collegamento chiuso."
+              : "Sessione scaduta: associa di nuovo."),
+          "err"
+        );
         showTab("login");
       }
     }

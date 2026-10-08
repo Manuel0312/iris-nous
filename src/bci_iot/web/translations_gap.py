@@ -4862,6 +4862,34 @@ EXTRA_RAW: dict[str, dict[str, str]] = {
         "ja": "エラー",
         "es": "Error",
     },
+    # --- v0.4.45 ban kicks active session ---
+    "Ban: fuori subito, non al prossimo login": {
+        "en": "Ban: kicked out immediately, not at next login",
+        "fr": "Ban : expulsion immédiate, pas au prochain login",
+        "de": "Ban: sofort raus, nicht erst beim nächsten Login",
+        "pt": "Ban: fora de imediato, não no próximo login",
+        "zh": "封禁：立即踢出，不必等下次登录",
+        "ja": "Ban：次回ログインではなく即座に退出",
+        "es": "Ban: fuera al momento, no en el próximo login",
+    },
+    "Se un account veniva sospeso mentre era già dentro, restava in sessione fino a logout/login.": {
+        "en": "If an account was suspended while already signed in, the session stayed until logout/login.",
+        "fr": "Si un compte était suspendu déjà connecté, la session restait jusqu’au logout/login.",
+        "de": "Bei Sperre während aktiver Sitzung blieb man bis Logout/Login drin.",
+        "pt": "Se a conta era suspensa já ligada, a sessão ficava até logout/login.",
+        "zh": "若账号在已登录时被暂停，会话会一直保持到退出/重新登录。",
+        "ja": "ログイン中に停止されると、ログアウト／再ログインまで残っていました。",
+        "es": "Si se suspendía una cuenta ya dentro, la sesión seguía hasta logout/login.",
+    },
+    "Ora il ban chiude la sessione al primo click o heartbeat: web, /app e companion tornano al login con messaggio di sospensione; anche il token dispositivo viene invalidato.": {
+        "en": "Now a ban closes the session on the first click or heartbeat: web, /app and companion return to login with a suspension message; the device token is revoked too.",
+        "fr": "Désormais le ban ferme la session au premier clic ou heartbeat : web, /app et companion reviennent au login avec message ; le token appareil est aussi révoqué.",
+        "de": "Jetzt beendet der Ban die Sitzung beim ersten Klick oder Heartbeat: Web, /app und Companion zurück zum Login; Geräte-Token wird widerrufen.",
+        "pt": "Agora o ban fecha a sessão no primeiro clique ou heartbeat: web, /app e companion voltam ao login; o token do dispositivo também é revogado.",
+        "zh": "现在封禁会在首次点击或心跳时关闭会话：网站、/app 与 companion 回到登录并提示暂停；设备令牌一并作废。",
+        "ja": "Ban で最初のクリック／heartbeat でセッション終了。web・/app・companion はログインへ；端末トークンも無効化。",
+        "es": "Ahora el ban cierra la sesión al primer clic o heartbeat: web, /app y companion vuelven al login; también se invalida el token del dispositivo.",
+    },
     # --- v0.4.44 real phone device binding ---
     "Collegamento telefono vero (credenziale)": {
         "en": "Real phone link (device credential)",

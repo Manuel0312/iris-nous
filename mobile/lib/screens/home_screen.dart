@@ -58,6 +58,14 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     } on IrisApiException catch (e) {
       if (!mounted) return;
+      if (e.statusCode == 401 || e.statusCode == 403) {
+        await widget.store.clear();
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(builder: (_) => LoginScreen(store: widget.store)),
+        );
+        return;
+      }
       setState(() => _error = e.message);
     } catch (e) {
       if (!mounted) return;

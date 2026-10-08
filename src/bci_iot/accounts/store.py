@@ -796,6 +796,11 @@ class ProfileStore:
         labels = {"1d": "1 giorno", "3d": "3 giorni", "7d": "7 giorni", "30d": "1 mese"}
         label = labels[duration_key]
         self.db.set_ban(username, banned_until=until, ban_label=label)
+        # Drop companion device credential so the app cannot stay online after ban.
+        try:
+            self.clear_companion_token(username)
+        except KeyError:
+            pass
         return until
 
     def unban_user(self, username: str) -> None:

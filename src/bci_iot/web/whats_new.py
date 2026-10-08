@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.45",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Ban: fuori subito, non al prossimo login",
+                "Se un account veniva sospeso mentre era già dentro, restava in sessione fino a logout/login.",
+                "Ora il ban chiude la sessione al primo click o heartbeat: web, /app e companion tornano al login con messaggio di sospensione; anche il token dispositivo viene invalidato.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.44",
         "intro": WHATS_NEW_INTRO,
         "entries": (

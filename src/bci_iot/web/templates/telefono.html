@@ -97,7 +97,11 @@
   async function beat() {
     try {
       var res = await fetch("/api/phone/heartbeat", { method: "POST", headers: { "Accept": "application/json" } });
-      var data = await res.json();
+      var data = await res.json().catch(function () { return {}; });
+      if (res.status === 401 || res.status === 403 || data.banned) {
+        window.location.href = "/login";
+        return;
+      }
       if (data.status === "ok") {
         live.textContent = L.inLinea;
         live.className = "assoc-pill is-on";
