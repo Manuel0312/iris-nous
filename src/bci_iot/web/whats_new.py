@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.53",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Continua e chat: niente più nero",
+                "Il bottone grande «Continua», il fab chat e l’header della chat AI restavano neri anche con l’accento blu: sembrava ancora spento.",
+                "Ora quei pezzi usano lo stesso blu vivo dei bottoni primari, con alone — il contrasto nero è tolto dalle CTA principali.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.52",
         "intro": WHATS_NEW_INTRO,
         "entries": (

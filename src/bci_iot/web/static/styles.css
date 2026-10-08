@@ -2229,19 +2229,30 @@ html[data-theme-resolved="dark"] .setup-step {
   min-height: 3.2rem;
   padding: 0.85rem 1.8rem;
   border-radius: 980px;
-  background: var(--ink);
-  color: var(--bg) !important;
+  background: linear-gradient(180deg, #33a0ff 0%, var(--accent) 55%, #0066ee 100%);
+  color: #fff !important;
   font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: -0.03em;
   text-decoration: none;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.22);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent),
+    0 16px 36px color-mix(in srgb, var(--accent) 48%, transparent);
 }
 
 .discover-cta:hover {
   filter: brightness(1.08);
   text-decoration: none;
-  color: var(--bg) !important;
+  color: #fff !important;
+}
+
+html[data-theme-resolved="dark"] .discover-cta {
+  background: linear-gradient(180deg, #7ae0ff 0%, var(--accent) 55%, #00a8e6 100%);
+  color: #041018 !important;
+}
+
+html[data-theme-resolved="dark"] .discover-cta:hover {
+  color: #041018 !important;
 }
 
 .wizard-dots {
@@ -4392,18 +4403,25 @@ html[data-theme-resolved="dark"] .page-contesto .contesto-focus {
   gap: 0.45rem;
   padding: 0.8rem 1.05rem;
   border-radius: 999px;
-  background: var(--ink);
-  color: var(--bg) !important;
+  background: linear-gradient(180deg, #33a0ff 0%, var(--accent) 55%, #0066ee 100%);
+  color: #fff !important;
   font-weight: 700;
   font-size: 0.92rem;
   letter-spacing: -0.02em;
   text-decoration: none;
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.28);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent),
+    0 14px 36px color-mix(in srgb, var(--accent) 50%, transparent);
   pointer-events: auto;
 }
 
 .chat-fab:hover {
   filter: brightness(1.08);
+}
+
+html[data-theme-resolved="dark"] .chat-fab {
+  background: linear-gradient(180deg, #7ae0ff 0%, var(--accent) 55%, #00a8e6 100%);
+  color: #041018 !important;
 }
 
 .chat-fab svg {
@@ -5268,9 +5286,14 @@ body.page-chat .shell.wide,
 
 .ai-chat-header {
   padding: 1.05rem 1.15rem 1.1rem;
-  background: var(--ink);
-  color: var(--bg);
+  background: linear-gradient(180deg, #33a0ff 0%, var(--accent) 60%, #0066ee 100%);
+  color: #fff;
   border-radius: 18px 18px 0 0;
+}
+
+html[data-theme-resolved="dark"] .ai-chat-header {
+  background: linear-gradient(180deg, #7ae0ff 0%, var(--accent) 60%, #00a8e6 100%);
+  color: #041018;
 }
 
 .ai-chat-composer {
@@ -5299,8 +5322,13 @@ body.page-chat .shell.wide,
 
 .ai-chat-header {
   padding: 1.05rem 1.15rem 1.1rem;
-  background: var(--ink);
-  color: var(--bg);
+  background: linear-gradient(180deg, #33a0ff 0%, var(--accent) 60%, #0066ee 100%);
+  color: #fff;
+}
+
+html[data-theme-resolved="dark"] .ai-chat-header {
+  background: linear-gradient(180deg, #7ae0ff 0%, var(--accent) 60%, #00a8e6 100%);
+  color: #041018;
 }
 
 .ai-chat-kicker {

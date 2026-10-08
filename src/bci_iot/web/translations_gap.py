@@ -4862,6 +4862,34 @@ EXTRA_RAW: dict[str, dict[str, str]] = {
         "ja": "エラー",
         "es": "Error",
     },
+    # --- v0.4.53 remaining black CTAs ---
+    "Continua e chat: niente più nero": {
+        "en": "Continue and chat: no more black",
+        "fr": "Continuer et chat : plus de noir",
+        "de": "Weiter und Chat: kein Schwarz mehr",
+        "pt": "Continuar e chat: sem preto",
+        "zh": "继续与聊天：不再用黑",
+        "ja": "続行とチャット：黒はやめ",
+        "es": "Continuar y chat: adiós al negro",
+    },
+    "Il bottone grande «Continua», il fab chat e l’header della chat AI restavano neri anche con l’accento blu: sembrava ancora spento.": {
+        "en": "The big Continue button, chat FAB and AI chat header stayed black even with a blue accent: it still looked dull.",
+        "fr": "Le gros bouton Continuer, le FAB chat et l’en-tête de la chat IA restaient noirs malgré l’accent bleu : encore terne.",
+        "de": "Großer Weiter-Button, Chat-FAB und KI-Chat-Kopf blieben trotz blauem Akzent schwarz: wirkte noch stumpf.",
+        "pt": "O botão Continuar, o FAB do chat e o cabeçalho da chat IA ficavam pretos mesmo com acento azul: ainda apagado.",
+        "zh": "大号「继续」、聊天悬浮钮和 AI 聊天顶栏在蓝色强调下仍是黑的：还是显得闷。",
+        "ja": "大きな「続行」、チャットFAB、AIチャットヘッダーが青アクセントでも黒のまま：まだくすんで見えました。",
+        "es": "El botón Continuar, el FAB del chat y la cabecera del chat IA seguían negros con acento azul: aún apagado.",
+    },
+    "Ora quei pezzi usano lo stesso blu vivo dei bottoni primari, con alone — il contrasto nero è tolto dalle CTA principali.": {
+        "en": "Those pieces now use the same vivid blue as primary buttons, with glow — black contrast is gone from the main CTAs.",
+        "fr": "Ces éléments utilisent le même bleu vif que les boutons primaires, avec halo — plus de contraste noir sur les CTA.",
+        "de": "Diese Teile nutzen jetzt dasselbe leuchtende Blau wie Primärbuttons, mit Glow — kein schwarzer Kontrast mehr bei den Haupt-CTAs.",
+        "pt": "Esses elementos usam o mesmo azul vivo dos botões primários, com brilho — o preto saiu das CTA principais.",
+        "zh": "这些元素现与主按钮同用带光晕的鲜蓝——主 CTA 不再用黑对比。",
+        "ja": "主ボタンと同じ鮮やかな青＋光彩に統一。主なCTAから黒コントラストを外しました。",
+        "es": "Esas piezas usan el mismo azul vivo que los botones primarios, con halo — adiós al contraste negro en las CTA principales.",
+    },
     # --- v0.4.52 primary buttons + bg blue ---
     "Bottoni e atmosfera finalmente blu": {
         "en": "Buttons and atmosphere finally blue",
