@@ -4862,6 +4862,34 @@ EXTRA_RAW: dict[str, dict[str, str]] = {
         "ja": "エラー",
         "es": "Error",
     },
+    # --- v0.4.55 ecosistema triangle + android parity ---
+    "Ecosistema a triangolo + app Android allineata": {
+        "en": "Triangle Ecosistema + Android app aligned",
+        "fr": "Ecosistema en triangle + app Android alignée",
+        "de": "Ecosistema als Dreieck + Android-App angeglichen",
+        "pt": "Ecosistema em triângulo + app Android alinhada",
+        "zh": "三角生态系统 + Android 应用对齐",
+        "ja": "三角エコシステム＋Androidアプリを揃えました",
+        "es": "Ecosistema en triángulo + app Android alineada",
+    },
+    "Le tre fasi erano in colonna stretta e l’app companion non mostrava lo stesso hub del sito.": {
+        "en": "The three phases were in a narrow column and the companion app did not show the same hub as the site.",
+        "fr": "Les trois phases étaient en colonne étroite et l’app companion ne montrait pas le même hub que le site.",
+        "de": "Die drei Phasen standen in einer schmalen Spalte und die Companion-App zeigte nicht denselben Hub wie die Website.",
+        "pt": "As três fases estavam numa coluna estreita e a app companion não mostrava o mesmo hub do site.",
+        "zh": "三步挤在窄列里，companion 应用也未展示与网站相同的中心。",
+        "ja": "3段階が細い列で、コンパニオンアプリもサイトと同じハブを出していませんでした。",
+        "es": "Las tres fases iban en una columna estrecha y la app companion no mostraba el mismo hub que el sitio.",
+    },
+    "In Ecosistema le fasi 1 e 2 stanno affiancate e la 3 (Canali) è centrata sotto; l’app Android ripete lo stesso schema, colori blu vivi e stato cuffia/telefono/Spotify dal heartbeat.": {
+        "en": "In Ecosistema phases 1 and 2 sit side by side and phase 3 (Channels) is centered below; the Android app mirrors that layout, vivid blue colors, and cuffia/phone/Spotify status from heartbeat.",
+        "fr": "Dans Ecosistema les phases 1 et 2 sont côte à côte et la 3 (Canaux) est centrée en dessous ; l’app Android reprend ce schéma, le bleu vif et l’état casque/téléphone/Spotify via heartbeat.",
+        "de": "In Ecosistema stehen Phase 1 und 2 nebeneinander, Phase 3 (Kanäle) mittig darunter; die Android-App spiegelt Layout, leuchtendes Blau und Headset/Telefon/Spotify-Status per Heartbeat.",
+        "pt": "No Ecosistema as fases 1 e 2 ficam lado a lado e a 3 (Canais) centrada abaixo; a app Android repete o esquema, azul vivo e estado auscultadores/telefone/Spotify no heartbeat.",
+        "zh": "Ecosistema 中第 1、2 步并排，第 3 步（渠道）居中在下；Android 应用同步该布局、鲜蓝配色，以及心跳中的耳机/手机/Spotify 状态。",
+        "ja": "Ecosistema で段階1・2を横並び、3（チャンネル）を下中央に。Androidアプリも同レイアウト・鮮やかな青・心拍でのヘッドセット/電話/Spotify状態に揃えました。",
+        "es": "En Ecosistema las fases 1 y 2 van lado a lado y la 3 (Canales) centrada abajo; la app Android replica el esquema, el azul vivo y el estado auriculares/teléfono/Spotify del heartbeat.",
+    },
     # --- v0.4.54 brighter accent ---
     "Blu più acceso": {
         "en": "Brighter blue",

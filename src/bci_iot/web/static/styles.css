@@ -5871,12 +5871,19 @@ html[data-theme-resolved="dark"] .ai-chat-header {
 
 /* —— Ecosistema minimal (steps) —— */
 .eco-hub {
-  gap: 1.25rem;
-  max-width: 40rem;
+  gap: 1.35rem;
+  max-width: 52rem;
+  margin-inline: auto;
+  width: 100%;
+}
+
+.eco-welcome {
+  text-align: center;
 }
 
 .eco-welcome .lede {
   max-width: 36rem;
+  margin-inline: auto;
 }
 
 .anag-password-block {
@@ -5901,9 +5908,10 @@ html[data-theme-resolved="dark"] .ai-chat-header {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.1rem;
+  align-items: stretch;
 }
 
 .eco-step {
@@ -5916,6 +5924,15 @@ html[data-theme-resolved="dark"] .ai-chat-header {
   border: 1px solid rgba(255, 255, 255, 0.52);
   box-shadow: 0 12px 30px rgba(26, 42, 58, 0.07);
   opacity: 0.72;
+  min-width: 0;
+}
+
+/* Fase 3: stessa larghezza di una colonna, centrata sotto 1 e 2 */
+.eco-step:nth-child(3) {
+  grid-column: 1 / -1;
+  width: 100%;
+  max-width: calc((100% - 1.1rem) / 2);
+  justify-self: center;
 }
 
 .eco-step.is-active,
@@ -5937,9 +5954,9 @@ html[data-theme-resolved="dark"] .ai-chat-header {
 }
 
 .eco-step.is-done .eco-step-mark {
-  color: #0088ff;
-  background: color-mix(in srgb, #0088ff 14%, transparent);
-  border-color: color-mix(in srgb, #0088ff 28%, transparent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 .eco-step-head {
@@ -5966,8 +5983,8 @@ html[data-theme-resolved="dark"] .ai-chat-header {
 }
 
 .eco-pill.is-on {
-  color: #0088ff;
-  background: color-mix(in srgb, #0088ff 14%, transparent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .eco-step-body > p {
@@ -6014,8 +6031,8 @@ a.eco-channel:hover {
 }
 
 .eco-channel.is-on {
-  border-color: color-mix(in srgb, #0088ff 35%, transparent);
-  background: color-mix(in srgb, #0088ff 8%, white);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, white);
 }
 
 .eco-channel.is-soon {
@@ -6054,7 +6071,14 @@ html[data-theme-resolved="dark"] .eco-channel {
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-@media (max-width: 560px) {
+@media (max-width: 720px) {
+  .eco-steps {
+    grid-template-columns: 1fr;
+  }
+  .eco-step:nth-child(3) {
+    max-width: none;
+    justify-self: stretch;
+  }
   .eco-step {
     grid-template-columns: 1fr;
   }

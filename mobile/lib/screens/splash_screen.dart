@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../config.dart';
 import '../services/auth_store.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
@@ -35,19 +36,29 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    const accent = Color(IrisConfig.accentBlue);
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F7),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               'Iris Nous',
-              style: TextStyle(fontSize: 32, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+              style: TextStyle(
+                fontSize: 34,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.6,
+                color: accent,
+              ),
             ),
-            SizedBox(height: 12),
-            Text('App companion', style: TextStyle(color: Colors.black54)),
-            SizedBox(height: 28),
-            CircularProgressIndicator(),
+            const SizedBox(height: 10),
+            const Text(
+              'App companion · Ecosistema',
+              style: TextStyle(color: Colors.black54),
+            ),
+            const SizedBox(height: 28),
+            CircularProgressIndicator(color: accent),
           ],
         ),
       ),

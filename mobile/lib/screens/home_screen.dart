@@ -55,6 +55,8 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _status = body;
         _error = null;
+        final u = body['username'] as String?;
+        if (u != null && u.isNotEmpty) _username = u;
       });
     } on IrisApiException catch (e) {
       if (!mounted) return;
@@ -122,6 +124,22 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Map<String, dynamic> _eco() {
+    final raw = _status?['ecosystem'];
+    if (raw is Map) return raw.cast<String, dynamic>();
+    return {
+      'cuffia': {
+        'done': _status?['calibration_complete'] == true,
+        'linked': _status?['headset_linked'] == true,
+      },
+      'telefono': {'done': _status?['phone_paired'] == true},
+      'canali': {
+        'done': _status?['spotify_linked'] == true,
+        'spotify': _status?['spotify_linked'] == true,
+      },
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final ctx = (_status?['context'] as Map?)?.cast<String, dynamic>() ?? {};
@@ -131,10 +149,15 @@ class _HomeScreenState extends State<HomeScreen> {
     final caller = (ctx['caller_name'] as String?) ?? '';
     final track = (ctx['track_hint'] as String?) ?? '';
     final spotify = _status?['spotify_linked'] == true;
+    final eco = _eco();
+    final cuffiaDone = (eco['cuffia'] as Map?)?['done'] == true;
+    final telefonoDone = (eco['telefono'] as Map?)?['done'] == true;
+    final canaliDone = (eco['canali'] as Map?)?['done'] == true;
+    final accent = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Stato'),
+        title: const Text('Iris · Ecosistema'),
         actions: [
           IconButton(
             tooltip: 'Aggiorna',
@@ -144,20 +167,84 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
         children: [
           Text(
             _username == null ? 'Associato a Iris' : 'Ciao, $_username',
-            style: Theme.of(context).textTheme.titleLarge,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.4,
+                ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Stesso ecosistema del sito: cuffia, telefono e canali.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.black54,
+                ),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 10),
+            Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          ],
+          const SizedBox(height: 18),
+          Text('Ecosistema', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 10),
+          // Fasi 1 | 2 sopra, fase 3 centrata sotto (pari al sito)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _EcoStepCard(
+                  mark: '1',
+                  title: 'Cuffia',
+                  done: cuffiaDone,
+                  subtitle: cuffiaDone ? 'Pronta' : 'Da configurare',
+                  onTap: () => _openWeb(IrisConfig.webCuffia),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _EcoStepCard(
+                  mark: '2',
+                  title: 'Telefono',
+                  done: telefonoDone,
+                  subtitle: telefonoDone ? 'Collegato' : 'Da collegare',
+                  onTap: () => _openWeb(IrisConfig.webTelefonoSetup),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.center,
+            child: FractionallySizedBox(
+              widthFactor: 0.5,
+              child: _EcoStepCard(
+                mark: '3',
+                title: 'Canali',
+                done: canaliDone,
+                subtitle: canaliDone ? 'Spotify attivo' : 'Collega i servizi',
+                onTap: () => _openWeb(
+                  canaliDone ? IrisConfig.webEcosistema : IrisConfig.webSpotify,
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 8),
-          if (_error != null)
-            Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-          const SizedBox(height: 12),
+          TextButton.icon(
+            onPressed: () => _openWeb(IrisConfig.webEcosistema),
+            icon: Icon(Icons.open_in_browser, size: 18, color: accent),
+            label: Text('Apri Ecosistema sul sito', style: TextStyle(color: accent)),
+          ),
+          const SizedBox(height: 16),
+          Text('Stato live', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 10),
           _StatusCard(
             title: 'Chiamata',
             value: call ? 'In arrivo${caller.isNotEmpty ? ' · $caller' : ''}' : 'Nessuna',
-            tone: call ? Colors.orange.shade100 : Colors.grey.shade100,
+            tone: call ? const Color(0xFFFFE8CC) : const Color(0xFFF0F0F2),
+            accent: accent,
           ),
           const SizedBox(height: 10),
           _StatusCard(
@@ -165,16 +252,18 @@ class _HomeScreenState extends State<HomeScreen> {
             value: music
                 ? 'In riproduzione${track.isNotEmpty ? ' · $track' : ''}'
                 : (spotify ? 'Spotify collegato (ferma)' : 'Spotify non collegato'),
-            tone: music ? Colors.teal.shade50 : Colors.grey.shade100,
+            tone: music ? const Color(0xFFE0F7FF) : const Color(0xFFF0F0F2),
+            accent: accent,
           ),
           const SizedBox(height: 10),
           _StatusCard(
             title: 'Focus Iris',
             value: (focus?['title'] as String?) ?? '—',
-            tone: Colors.blueGrey.shade50,
+            tone: const Color(0xFFE8F6FF),
+            accent: accent,
           ),
           const SizedBox(height: 20),
-          Text('Azioni', style: Theme.of(context).textTheme.titleMedium),
+          Text('Azioni', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -205,12 +294,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     : 'I tasti «Simula» sono per test. Rispondi/rifiuta restano sul telefono o su In ascolto (SÌ/NO).'),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
           ),
-          const SizedBox(height: 24),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.security),
-            title: const Text('Permessi'),
-            subtitle: const Text('Spiegazione e richiesta graduale'),
+          const SizedBox(height: 20),
+          _LinkTile(
+            icon: Icons.security,
+            title: 'Permessi',
+            subtitle: 'Spiegazione e richiesta graduale',
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
@@ -219,27 +307,103 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.open_in_browser),
-            title: const Text('Apri In ascolto (Safari / Chrome)'),
+          _LinkTile(
+            icon: Icons.hearing,
+            title: 'In ascolto (sito)',
+            subtitle: 'Contesto e risposte SÌ/NO',
             onTap: () => _openWeb(IrisConfig.webContesto),
           ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.headphones),
-            title: const Text('Apri La tua cuffia'),
-            onTap: () => _openWeb(IrisConfig.webCuffia),
+          _LinkTile(
+            icon: Icons.person_outline,
+            title: 'I miei dati',
+            subtitle: 'Anagrafica sul sito',
+            onTap: () => _openWeb(IrisConfig.webAnagrafica),
           ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.phone_android),
-            title: const Text('Apri Il tuo telefono (sito)'),
-            onTap: () => _openWeb(IrisConfig.webTelefonoSetup),
+          _LinkTile(
+            icon: Icons.chat_bubble_outline,
+            title: 'Le mie chat',
+            subtitle: 'Apri sul sito',
+            onTap: () => _openWeb(IrisConfig.webChat),
           ),
-          const SizedBox(height: 12),
-          TextButton(onPressed: _logout, child: const Text('Scollega questo telefono')),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: _logout,
+            child: Text(
+              'Scollega questo telefono',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _EcoStepCard extends StatelessWidget {
+  const _EcoStepCard({
+    required this.mark,
+    required this.title,
+    required this.subtitle,
+    required this.done,
+    required this.onTap,
+  });
+
+  final String mark;
+  final String title;
+  final String subtitle;
+  final bool done;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    return Material(
+      color: Colors.white,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: accent.withOpacity(done ? 0.45 : 0.18)),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: accent.withOpacity(0.14),
+                      border: Border.all(color: accent.withOpacity(0.35)),
+                    ),
+                    child: Text(
+                      mark,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: accent,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  if (done)
+                    Icon(Icons.check_circle, size: 18, color: accent),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+              const SizedBox(height: 2),
+              Text(subtitle, style: const TextStyle(color: Colors.black54, fontSize: 12.5)),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -250,11 +414,13 @@ class _StatusCard extends StatelessWidget {
     required this.title,
     required this.value,
     required this.tone,
+    required this.accent,
   });
 
   final String title;
   final String value;
   final Color tone;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
@@ -263,16 +429,42 @@ class _StatusCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: tone,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: accent.withOpacity(0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: accent)),
           const SizedBox(height: 4),
           Text(value, style: const TextStyle(height: 1.3)),
         ],
       ),
+    );
+  }
+}
+
+class _LinkTile extends StatelessWidget {
+  const _LinkTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
+      title: Text(title),
+      subtitle: Text(subtitle),
+      onTap: onTap,
     );
   }
 }

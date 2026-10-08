@@ -75,7 +75,8 @@ class _LoginScreenState extends State<LoginScreen> {
         padding: const EdgeInsets.all(20),
         children: [
           const Text(
-            'Usa lo stesso account del sito Iris e il codice a 6 cifre da Il tuo telefono.',
+            'Stesso account del sito Iris. Il codice a 6 cifre lo trovi in Ecosistema → Telefono '
+            '(oppure Il tuo telefono).',
             style: TextStyle(height: 1.35),
           ),
           const SizedBox(height: 16),

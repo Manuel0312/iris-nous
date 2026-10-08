@@ -3207,6 +3207,21 @@ def create_app(
             or str(stats.get("phone_device_label") or "")
             or "",
             "spotify_linked": bool(profile.spotify_linked),
+            "headset_linked": bool(profile.headset_id),
+            "calibration_complete": bool(profile.calibration_complete),
+            "ecosystem": {
+                "cuffia": {
+                    "done": bool(profile.calibration_complete),
+                    "linked": bool(profile.headset_id),
+                },
+                "telefono": {
+                    "done": bool(profile.phone_paired),
+                },
+                "canali": {
+                    "done": bool(profile.spotify_linked),
+                    "spotify": bool(profile.spotify_linked),
+                },
+            },
             "events": events,
             "context": {
                 "incoming_call": bool(world.incoming_call),

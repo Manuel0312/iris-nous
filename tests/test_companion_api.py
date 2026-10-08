@@ -66,7 +66,14 @@ def test_companion_pair_and_call_events(tmp_path: Path) -> None:
     headers = {"Authorization": f"Bearer {token}"}
     beat = client.post("/api/companion/heartbeat", headers=headers)
     assert beat.status_code == 200
-    assert beat.json()["status"] == "ok"
+    beat_body = beat.json()
+    assert beat_body["status"] == "ok"
+    assert "ecosystem" in beat_body
+    assert beat_body["ecosystem"]["telefono"]["done"] is True
+    assert "cuffia" in beat_body["ecosystem"]
+    assert "canali" in beat_body["ecosystem"]
+    assert "calibration_complete" in beat_body
+    assert "headset_linked" in beat_body
 
     incoming = client.post(
         "/api/companion/event",
