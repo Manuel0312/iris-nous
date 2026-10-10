@@ -3,7 +3,24 @@
 Percorso per avere Iris **come app nativa al 100%** sull’iPhone (CallKit, notifiche, TestFlight, App Store).
 
 > **Cosa può fare solo tu:** iscriverti e pagare l’Apple Developer Program con il tuo Apple Account e i tuoi documenti.  
-> **Cosa è già pronto nel repo:** codice Flutter, API companion, PWA `/app`, bridge CallKit (bozza), metadata App Store, pipeline Codemagic.
+> **Cosa è già pronto nel repo:** codice Flutter, API companion, PWA `/app`, bridge CallKit (bozza), metadata App Store, pipeline Codemagic / GitHub Actions IPA.
+
+---
+
+## Percorso gratis (Windows, senza €99): app nativa + Sideloadly
+
+Per **prova dimostrativa sul tuo iPhone** (permessi, chiamate, non PWA) **non** serve il Program a pagamento e **non** serve un Mac a casa.
+
+1. Su GitHub → Actions → **iOS IPA (Sideloadly)** → **Run workflow** (workflow: `.github/workflows/ios-ipa-sideload.yml`).
+2. A fine build scarica l’artifact `iris-nous-ios-ipa-unsigned` → file `IrisNous-unsigned.ipa`.
+3. Sul PC Windows: installa **iTunes + iCloud** dal sito Apple (non dallo Store), poi **Sideloadly**.
+4. Collega l’iPhone (sblocca, “Considera attendibile”), apri Sideloadly, metti il tuo **Apple ID** gratis, trascina l’`.ipa` → **Start**.
+5. Su iPhone: Impostazioni → Generali → VPN e gestione dispositivo → autorizza il tuo Apple ID.
+6. Apri **Iris Nous** (icona vera, non Safari): concedi i permessi e fai la prova chiamata.
+
+**Limiti free Apple:** la firma scade ~**7 giorni**; ricolleghi il telefono e ripeti Start su Sideloadly (i dati restano). Non è App Store / TestFlight: va bene per tesi/demo personale.
+
+Quando vorrai stabilità senza rinnovi settimanali: iscrizione Developer (~99 €/anno) → sezione sotto → TestFlight.
 
 ---
 
@@ -12,12 +29,12 @@ Percorso per avere Iris **come app nativa al 100%** sull’iPhone (CallKit, noti
 | Cosa vuoi | Serve |
 |-----------|--------|
 | Icona in Home subito (PWA) | No — già su https://iris-nous.onrender.com/app |
-| Installare su *il tuo* iPhone via cavo (7 giorni) | Apple Account gratis + Xcode su Mac |
+| App nativa sul *tuo* iPhone per prova (7 giorni) | Apple ID gratis + IPA (Actions) + Sideloadly — vedi sopra |
 | **TestFlight** (link di installazione stabile) | **Apple Developer Program (~99 USD/anno)** |
 | **App Store** pubblico | Stesso Program + review Apple |
-| Rilevare chiamate con `CXCallObserver` in app firmata | Team ID del Program |
+| Rilevare chiamate in demo personale | App nativa firmata (anche free/Sideloadly); la PWA non basta |
 
-Senza Program **non** si può pubblicare né dare un IPA “ufficiale” ad altri tester.
+Senza Program **non** si può pubblicare né dare un IPA “ufficiale” ad altri tester; per **te stessa** sul tuo telefono il percorso Sideloadly è sufficiente.
 
 ---
 
