@@ -126,7 +126,7 @@
 
     ctx.beginPath();
     ctx.arc(STAGE / 2, STAGE / 2, STAGE * 0.36, 0, Math.PI * 2);
-    ctx.strokeStyle = faceBox ? "rgba(61, 214, 165, 0.85)" : "rgba(255, 255, 255, 0.55)";
+    ctx.strokeStyle = faceBox ? "rgba(90, 208, 255, 0.85)" : "rgba(255, 255, 255, 0.55)";
     ctx.lineWidth = 2;
     ctx.setLineDash(faceBox ? [] : [6, 5]);
     ctx.stroke();
@@ -407,19 +407,31 @@
     });
   }
 
+  function pickAnotherPhoto() {
+    try {
+      file.value = "";
+    } catch (_e) {}
+    file.click();
+  }
+
+  const btnChange = document.getElementById("photo-change-btn");
+  if (btnChange) {
+    btnChange.addEventListener("click", (e) => {
+      e.preventDefault();
+      pickAnotherPhoto();
+    });
+  }
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!bitmap) {
-      if (file.files && file.files[0]) {
-        HTMLFormElement.prototype.submit.call(form);
-      } else {
-        showFacePopup(
-          msg(
-            "pick-first",
-            "Scegli prima una foto dal tuo dispositivo, poi salvala qui."
-          )
-        );
-      }
+      showFacePopup(
+        msg(
+          "pick-first",
+          "Scegli prima una foto dal tuo dispositivo, poi salvala qui."
+        )
+      );
       return;
     }
     const ok = faceBox ? true : await detectFace({ popupIfMissing: true });
@@ -436,11 +448,17 @@
         method: "POST",
         body: fd,
         credentials: "same-origin",
-        redirect: "follow",
+        headers: { Accept: "application/json" },
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.status === "error") {
+        throw new Error((data && data.detail) || "save failed");
+      }
       if (previewImg) {
-        const url = URL.createObjectURL(blob);
-        previewImg.src = url;
+        const serverUrl = data.url
+          ? data.url + (data.url.indexOf("?") >= 0 ? "&" : "?") + "t=" + Date.now()
+          : URL.createObjectURL(blob);
+        previewImg.src = serverUrl;
         previewImg.hidden = false;
         previewImg.removeAttribute("hidden");
       }
@@ -448,7 +466,18 @@
         fallback.hidden = true;
         fallback.setAttribute("hidden", "");
       }
-      window.location.href = res.url || "/anagrafica";
+      setStatus(
+        "ok",
+        (data && data.message) || msg("face-ok", "Foto salvata. Puoi continuare a compilare i dati.")
+      );
+      const saveOk = document.getElementById("photo-save-ok");
+      if (saveOk) {
+        saveOk.hidden = false;
+        saveOk.removeAttribute("hidden");
+      }
+      // Keep form fields (name, email, …): do NOT reload the page.
+      closeEditor();
+      if (btn) btn.disabled = false;
     } catch (_err) {
       setStatus("warn", msg("save-fail", "Salvataggio non riuscito. Riprova."));
       if (btn) btn.disabled = false;

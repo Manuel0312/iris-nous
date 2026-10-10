@@ -1,6 +1,61 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.60 anagrafica photo ajax + navbar fade + eco/chat polish ---
+    "Foto profilo senza ricaricare la pagina": {
+        "en": "Profile photo without reloading the page",
+        "fr": "Photo de profil sans recharger la page",
+        "de": "Profilfoto ohne Seitenneuladen",
+        "pt": "Foto de perfil sem recarregar a página",
+        "zh": "保存头像不刷新页面",
+        "ja": "ページ再読み込みなしでプロフィール写真",
+        "es": "Foto de perfil sin recargar la página",
+    },
+    "Salvando la foto sotto i tuoi dati la pagina si ricaricava e cancellava nome, email e altri campi già scritti; cambiare foto dal telefono era difficile.": {
+        "en": "Saving the photo under your details reloaded the page and wiped name, email and other fields you had typed; changing the photo on a phone was hard.",
+        "fr": "Enregistrer la photo sous vos données rechargeait la page et effaçait nom, e-mail et autres champs déjà saisis ; changer de photo sur téléphone était difficile.",
+        "de": "Beim Speichern des Fotos unter deinen Daten lud die Seite neu und löschte Name, E-Mail und andere Felder; Foto wechseln am Handy war schwer.",
+        "pt": "Ao guardar a foto nos teus dados a página recarregava e apagava nome, email e outros campos; mudar a foto no telemóvel era difícil.",
+        "zh": "在资料下保存照片会刷新页面并清空已填姓名、邮箱等；手机上换照片也很难。",
+        "ja": "データの下で写真を保存すると再読み込みされ、入力済みの名前やメールなどが消え、スマホでの写真変更も難しい状態でした。",
+        "es": "Al guardar la foto bajo tus datos la página se recargaba y borraba nombre, email y otros campos; cambiar la foto en el móvil era difícil.",
+    },
+    "Ora la foto si salva al volo senza ricaricare; puoi cambiarla quando vuoi; la navbar in scroll sfuma il testo sotto; Ecosistema su smartphone ha tasti allineati; Chatta con noi non disturba più durante iscrizione e anagrafica.": {
+        "en": "Now the photo saves instantly without reload; you can change it anytime; the navbar fades text underneath as you scroll; Ecosistema on phones has aligned buttons; Chat with us no longer interrupts signup and profile.",
+        "fr": "La photo s’enregistre sans recharger ; vous pouvez la changer à tout moment ; la barre du haut estompe le texte en scrollant ; Ecosistema sur téléphone a des boutons alignés ; Discuter avec nous ne gêne plus l’inscription ni l’anagrafica.",
+        "de": "Das Foto speichert sofort ohne Neuladen; du kannst es jederzeit wechseln; die Navbar blendet Text beim Scrollen aus; Ecosistema am Smartphone hat ausgerichtete Tasten; Chat stört Anmeldung und Profil nicht mehr.",
+        "pt": "Agora a foto guarda-se sem recarregar; podes mudá-la quando quiseres; a barra superior esbate o texto ao deslocar; Ecosistema no telemóvel tem botões alinhados; Chat já não incomoda no registo nem nos dados.",
+        "zh": "现在保存头像不刷新；随时可更换；滚动时顶栏淡化下方文字；手机上 Ecosistema 按钮对齐；注册与填写资料时不再被「和我们聊天」打扰。",
+        "ja": "写真は再読み込みなしで保存、いつでも変更可能。スクロールでナビが下の文字をぼかし、スマホのEcosistemaはボタン揃え、「チャット」は登録・プロフィール入力を邪魔しません。",
+        "es": "Ahora la foto se guarda al instante sin recargar; puedes cambiarla cuando quieras; la barra superior difumina el texto al hacer scroll; Ecosistema en el móvil tiene botones alineados; Chat no molesta en el registro ni en los datos.",
+    },
+    "Cambia foto": {
+        "en": "Change photo",
+        "fr": "Changer la photo",
+        "de": "Foto ändern",
+        "pt": "Mudar foto",
+        "zh": "更换照片",
+        "ja": "写真を変更",
+        "es": "Cambiar foto",
+    },
+    "Foto salvata.": {
+        "en": "Photo saved.",
+        "fr": "Photo enregistrée.",
+        "de": "Foto gespeichert.",
+        "pt": "Foto guardada.",
+        "zh": "照片已保存。",
+        "ja": "写真を保存しました。",
+        "es": "Foto guardada.",
+    },
+    "Scegli una foto": {
+        "en": "Choose a photo",
+        "fr": "Choisir une photo",
+        "de": "Foto wählen",
+        "pt": "Escolher uma foto",
+        "zh": "选择照片",
+        "ja": "写真を選ぶ",
+        "es": "Elegir una foto",
+    },
     # --- v0.4.59 cuffia daily + pair modal + spotify + glass app ---
     "Cuffia senza riconfigurare, associazione pulita, Spotify unico": {
         "en": "Headset without redoing setup, clean pairing, one Spotify link",

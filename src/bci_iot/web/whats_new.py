@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.60",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Foto profilo senza ricaricare la pagina",
+                "Salvando la foto sotto i tuoi dati la pagina si ricaricava e cancellava nome, email e altri campi già scritti; cambiare foto dal telefono era difficile.",
+                "Ora la foto si salva al volo senza ricaricare; puoi cambiarla quando vuoi; la navbar in scroll sfuma il testo sotto; Ecosistema su smartphone ha tasti allineati; Chatta con noi non disturba più durante iscrizione e anagrafica.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.59",
         "intro": WHATS_NEW_INTRO,
         "entries": (

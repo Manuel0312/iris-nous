@@ -2287,25 +2287,31 @@ def create_app(
             status_code=303,
         )
 
-    @app.post("/anagrafica/foto")
+    @app.post("/anagrafica/foto", response_model=None)
     async def upload_photo(
         request: Request,
         photo: UploadFile = File(...),
         profiles: ProfileStore = Depends(_store),
         access: AccessDatabase = Depends(_access),
-    ) -> RedirectResponse:
+    ) -> Response:
         loaded = _require_profile(request, profiles)
         if isinstance(loaded, RedirectResponse):
             return loaded
         back = "/anagrafica?edit=1" if loaded.anagrafica_complete else "/anagrafica"
+        wants_json = "application/json" in (request.headers.get("accept") or "").lower()
+
+        def _err(msg: str, code: int = 400) -> RedirectResponse | JSONResponse:
+            if wants_json:
+                return JSONResponse({"status": "error", "detail": msg}, status_code=code)
+            _flash(request, msg, kind="error")
+            return RedirectResponse(back, status_code=303)
+
         content_type = (photo.content_type or "").lower()
         if content_type not in {"image/jpeg", "image/png", "image/webp"}:
-            _flash(request, "Formato foto non supportato (usa JPG, PNG o WebP).", kind="error")
-            return RedirectResponse(back, status_code=303)
+            return _err("Formato foto non supportato (usa JPG, PNG o WebP).")
         raw = await photo.read()
         if len(raw) > 2_500_000:
-            _flash(request, "Foto troppo grande (max 2.5 MB).", kind="error")
-            return RedirectResponse(back, status_code=303)
+            return _err("Foto troppo grande (max 2.5 MB).")
         ext = ".jpg" if "jpeg" in content_type else ".png" if "png" in content_type else ".webp"
         filename = f"{loaded.user_id}{ext}"
         dest = Path(app.state.photos_dir) / filename
@@ -2314,6 +2320,15 @@ def create_app(
         updated = profiles.get(loaded.username)
         if updated:
             _sync_anagrafica_db(updated, access)
+        if wants_json:
+            return JSONResponse(
+                {
+                    "status": "ok",
+                    "filename": filename,
+                    "url": f"/media/photos/{filename}",
+                    "message": "Foto profilo aggiornata.",
+                }
+            )
         _flash(request, "Foto profilo aggiornata.", kind="ok")
         return RedirectResponse(back, status_code=303)
 

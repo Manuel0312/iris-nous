@@ -55,15 +55,20 @@
         </label>
         <p class="muted photo-crop-hint">{{ t('Trascina: il cerchio è quello del profilo.') }}</p>
         <div class="private-actions photo-crop-actions">
+          <button class="btn" type="button" id="photo-change-btn">{{ t('Cambia foto') }}</button>
           <button class="btn" type="button" id="photo-crop-cancel">{{ t('Annulla') }}</button>
         </div>
       </div>
 
       <form method="post" action="/anagrafica/foto" enctype="multipart/form-data" class="photo-form" id="photo-form">
-        <label class="photo-file-label sr-only" for="photo-input">{{ t('Scegli una foto') }}</label>
-        <input type="file" name="photo" id="photo-input" accept="image/jpeg,image/png,image/webp" />
+        <label class="photo-file-label" for="photo-input">{{ t('Scegli una foto') }}</label>
+        <input type="file" name="photo" id="photo-input" accept="image/jpeg,image/png,image/webp,image/*" />
         <p class="muted photo-file-meta">{{ t('JPG · PNG · WebP') }}</p>
-        <button class="btn anag-btn-soft" type="submit">{{ t('Salva') }}</button>
+        <div class="photo-form-actions">
+          <button class="btn anag-btn-soft" type="button" id="photo-change-btn-outer">{{ t('Cambia foto') }}</button>
+          <button class="btn anag-btn-soft" type="submit">{{ t('Salva') }}</button>
+        </div>
+        <p class="flash ok" id="photo-save-ok" hidden>{{ t('Foto salvata.') }}</p>
       </form>
     </div>
   </div>
@@ -160,7 +165,7 @@
   </form>
   {% endif %}
 </section>
-<script src="/static/photo_crop.js?v=irisPhoto4" defer></script>
+<script src="/static/photo_crop.js?v=irisPhoto5" defer></script>
 {% include "_phone_row_js.html" %}
 <script>
 (function () {
@@ -169,6 +174,15 @@
       this.value = this.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 6);
     });
   });
+  var outerChange = document.getElementById("photo-change-btn-outer");
+  var photoInput = document.getElementById("photo-input");
+  if (outerChange && photoInput) {
+    outerChange.addEventListener("click", function (e) {
+      e.preventDefault();
+      try { photoInput.value = ""; } catch (_e) {}
+      photoInput.click();
+    });
+  }
 })();
 </script>
 {% endblock %}
