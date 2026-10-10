@@ -1,7 +1,7 @@
 name: iris_nous_mobile
 description: App companion Iris Nous (Android + iPhone) — configura e invia eventi chiamata/musica.
 publish_to: "none"
-version: 0.4.58+4
+version: 0.4.59+5
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -15,6 +15,7 @@ dependencies:
   permission_handler: ^11.3.1
   url_launcher: ^6.3.0
   flutter_secure_storage: ^9.2.2
+  mobile_scanner: ^5.2.3
 
 dev_dependencies:
   flutter_test:

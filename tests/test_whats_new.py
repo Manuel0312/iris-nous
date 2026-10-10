@@ -32,6 +32,8 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
         or "Hub «La tua cuffia»" in page.text
         or "Privacy e chiarezza demo" in page.text
     )
+    assert "Cuffia senza riconfigurare, associazione pulita, Spotify unico" in page.text
+    assert "App liquid glass + QR" in page.text
     assert "Sito e app anche su tablet e telefono" in page.text
     assert "Bentornato più caldo e requisiti password di nuovo verdi" in page.text
     assert "Chiamate APK → In ascolto sul PC, una sola app" in page.text

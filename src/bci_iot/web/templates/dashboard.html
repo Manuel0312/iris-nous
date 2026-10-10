@@ -19,9 +19,9 @@
             {% if profile.calibration_complete %}{{ t('Pronta') }}{% else %}{{ t('Da configurare') }}{% endif %}
           </span>
         </div>
-        <p>{{ t('Associa la cuffia al tuo account e completa la calibrazione SÌ/NO. È il primo passo per far capire a Iris i tuoi intenti.') }}</p>
+        <p>{% if profile.calibration_complete %}{{ t('Accendi e indossa per usarla. La riconfigurazione serve solo se premi Ripristina.') }}{% else %}{{ t('Associa la cuffia al tuo account e completa la calibrazione SÌ/NO. È il primo passo per far capire a Iris i tuoi intenti.') }}{% endif %}</p>
         {% if profile.calibration_complete %}
-        <a class="btn ghost" href="/cuffia">{{ t('Gestisci cuffia') }}</a>
+        <a class="btn ghost" href="/cuffia">{{ t('Apri cuffia') }}</a>
         {% else %}
         <a class="btn primary" href="/cuffia">{{ t('Associa e configura') }}</a>
         {% endif %}
@@ -37,15 +37,13 @@
             {% if profile.phone_paired %}{{ t('Collegato') }}{% else %}{{ t('Da collegare') }}{% endif %}
           </span>
         </div>
-        <p>{{ t('Su Android usa solo l’APK Iris (non il browser): rileva le chiamate e le manda a In ascolto sul PC. iPhone: per ora /app in Home.') }}</p>
+        <p>{{ t('Installa l’app Iris e associa con codice o QR. Solo l’app nativa rileva le chiamate verso In ascolto.') }}</p>
         <div class="eco-step-actions">
+          <button type="button" class="btn primary" id="eco-pair-open">{{ t('Associazione') }}</button>
           {% if profile.phone_paired %}
           <a class="btn ghost" href="/telefono-setup">{{ t('Stato telefono') }}</a>
-          <a class="btn ghost" href="/app/android">{{ t('APK Android') }}</a>
-          {% else %}
-          <a class="btn primary" href="/app/android">{{ t('Installa APK Android') }}</a>
-          <a class="btn" href="/telefono-setup">{{ t('Codice e collegamento') }}</a>
           {% endif %}
+          <a class="btn ghost" href="/app/android">{{ t('APK Android') }}</a>
         </div>
       </div>
     </li>
@@ -59,17 +57,17 @@
             {% if profile.spotify_linked %}{{ t('Spotify attivo') }}{% else %}{{ t('Collega i servizi') }}{% endif %}
           </span>
         </div>
-        <p>{{ t('Qui trovi i canali da cui Iris può agire: musica, assistenti vocali e altro. Oggi Spotify è disponibile; gli altri arrivano dopo.') }}</p>
+        <p>{{ t('Login una sola volta sul sito. Poi l’app vede già Spotify collegato — niente autorizzazioni ripetute.') }}</p>
         <ul class="eco-channels" aria-label="{{ t('Canali') }}">
           <li>
             {% if profile.spotify_linked %}
-            <a class="eco-channel is-on" href="/auth/spotify/start" title="Spotify">
+            <span class="eco-channel is-on" title="Spotify">
               <span class="eco-channel-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.6 14.4a.75.75 0 0 1-1.03.25c-2.82-1.73-6.37-2.12-10.55-1.16a.75.75 0 1 1-.33-1.46c4.56-1.04 8.5-.59 11.66 1.34a.75.75 0 0 1 .25 1.03Zm1.23-2.74a.9.9 0 0 1-1.24.3c-3.23-1.98-8.15-2.56-11.96-1.4a.9.9 0 1 1-.52-1.72c4.3-1.3 9.7-.65 13.42 1.63a.9.9 0 0 1 .3 1.19Zm.1-2.86c-3.87-2.3-10.26-2.51-13.96-1.39a1.05 1.05 0 1 1-.6-2.01c4.24-1.27 11.2-1.02 15.64 1.61a1.05 1.05 0 0 1-1.08 1.79Z"/></svg>
               </span>
               <span class="eco-channel-name">Spotify</span>
-              <span class="eco-channel-meta">{{ t('Collegato') }}</span>
-            </a>
+              <span class="eco-channel-meta">{% if profile.spotify_display_name %}{{ profile.spotify_display_name }}{% else %}{{ t('Collegato') }}{% endif %}</span>
+            </span>
             {% else %}
             <a class="eco-channel" href="/auth/spotify/start" title="Spotify">
               <span class="eco-channel-icon" aria-hidden="true">
@@ -107,5 +105,81 @@
       </div>
     </li>
   </ol>
+
+  <nav class="hub-shortcuts" aria-label="{{ t('Altre aree') }}">
+    <a href="/contesto">{{ t('In ascolto') }}</a>
+    <a href="/anagrafica">{{ t('I miei dati') }}</a>
+    <a href="/chatta">{{ t('Le mie chat') }}</a>
+  </nav>
 </section>
+
+<dialog class="eco-pair-dialog" id="eco-pair-dialog" aria-labelledby="eco-pair-title">
+  <div class="eco-pair-inner">
+    <h2 id="eco-pair-title">{{ t('Associazione telefono') }}</h2>
+    <p class="form-hint">{{ t('Usa il codice nell’app oppure inquadra il QR. Vale solo per questa richiesta.') }}</p>
+    <p class="eco-pair-code" id="eco-pair-code">······</p>
+    <p class="eco-pair-qr-wrap">
+      <img id="eco-pair-qr" width="180" height="180" alt="{{ t('QR codice associazione') }}" hidden />
+    </p>
+    <p class="flash error" id="eco-pair-err" hidden></p>
+    <div class="private-actions">
+      <button type="button" class="btn" id="eco-pair-refresh">{{ t('Nuovo codice') }}</button>
+      <button type="button" class="btn ghost" id="eco-pair-close">{{ t('Chiudi') }}</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  const dlg = document.getElementById("eco-pair-dialog");
+  const codeEl = document.getElementById("eco-pair-code");
+  const qrEl = document.getElementById("eco-pair-qr");
+  const errEl = document.getElementById("eco-pair-err");
+  const openBtn = document.getElementById("eco-pair-open");
+  const closeBtn = document.getElementById("eco-pair-close");
+  const refreshBtn = document.getElementById("eco-pair-refresh");
+  if (!dlg || !openBtn) return;
+
+  async function loadSession() {
+    errEl.hidden = true;
+    codeEl.textContent = "······";
+    qrEl.hidden = true;
+    try {
+      const res = await fetch("/api/telefono/pairing-session", {
+        method: "POST",
+        headers: { "Accept": "application/json", "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: "{}",
+      });
+      const data = await res.json().catch(function () { return {}; });
+      if (!res.ok) throw new Error((data && data.detail) || "Errore");
+      codeEl.textContent = data.code || "——";
+      if (data.qr_url) {
+        qrEl.src = data.qr_url;
+        qrEl.hidden = false;
+      }
+    } catch (ex) {
+      errEl.hidden = false;
+      errEl.textContent = String(ex.message || ex);
+    }
+  }
+
+  openBtn.addEventListener("click", function () {
+    if (typeof dlg.showModal === "function") dlg.showModal();
+    else dlg.setAttribute("open", "");
+    loadSession();
+  });
+  closeBtn.addEventListener("click", function () {
+    if (typeof dlg.close === "function") dlg.close();
+    else dlg.removeAttribute("open");
+  });
+  refreshBtn.addEventListener("click", loadSession);
+  dlg.addEventListener("click", function (e) {
+    if (e.target === dlg) {
+      if (typeof dlg.close === "function") dlg.close();
+      else dlg.removeAttribute("open");
+    }
+  });
+})();
+</script>
 {% endblock %}

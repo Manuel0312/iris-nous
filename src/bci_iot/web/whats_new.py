@@ -10,6 +10,22 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.59",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Cuffia senza riconfigurare, associazione pulita, Spotify unico",
+                "Dopo la prima calibrazione la cuffia chiedeva di rifare tutto; il PIN era su una pagina pesante; Spotify sul sito e sull’app si contraddicevano e la musica del telefono non era quella di Iris.",
+                "Ora cuffia pronta = solo Accendi/Indossa + Ripristina se vuoi; Ecosistema → Associazione apre codice+QR on-demand; Spotify si collega una volta sul sito e l’app lo vede; la musica attiva arriva dall’API Spotify (non dal player locale).",
+            ),
+            (
+                "App liquid glass + QR",
+                "L’app companion aveva una grafica piatta e poco coerente tra dispositivi.",
+                "Tema glass adattivo telefono/tablet; in associazione puoi digitare il codice o inquadrare il QR generato da Ecosistema.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.58",
         "intro": WHATS_NEW_INTRO,
         "entries": (

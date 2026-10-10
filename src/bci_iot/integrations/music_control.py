@@ -72,16 +72,10 @@ def run_spotify_action(
         queue.append(event)
         del queue[:-20]
 
-    if not profile.phone_paired:
-        return {
-            "status": "error",
-            "detail": "Telefono non associato. Completa Il tuo telefono (passo 1).",
-            "event": event,
-        }
     if not profile.spotify_linked:
         return {
             "status": "error",
-            "detail": "Spotify non collegato. Collega Spotify da Il tuo telefono (passo 2).",
+            "detail": "Spotify non collegato. Collegalo una volta da Ecosistema → Canali.",
             "event": event,
         }
     if not spotify_configured():

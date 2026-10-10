@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../config.dart';
 import '../services/auth_store.dart';
+import '../theme/iris_theme.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 
@@ -36,30 +36,31 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const accent = Color(IrisConfig.accentBlue);
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F7),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Iris Nous',
-              style: TextStyle(
-                fontSize: 34,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.6,
-                color: accent,
+    return IrisGlassScaffold(
+      child: Center(
+        child: GlassPane(
+          padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Iris Nous',
+                style: TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.6,
+                  color: IrisTheme.accent,
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'App companion · Ecosistema',
-              style: TextStyle(color: Colors.black54),
-            ),
-            const SizedBox(height: 28),
-            CircularProgressIndicator(color: accent),
-          ],
+              const SizedBox(height: 10),
+              Text(
+                'App companion · Ecosistema',
+                style: TextStyle(color: IrisTheme.deep.withValues(alpha: 0.55)),
+              ),
+              const SizedBox(height: 28),
+              const CircularProgressIndicator(color: IrisTheme.accent),
+            ],
+          ),
         ),
       ),
     );

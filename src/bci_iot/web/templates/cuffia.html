@@ -11,24 +11,35 @@
   <header class="setup-hero calib-hero cuffia-hero">
     <p class="eyebrow">{{ t('La tua cuffia') }}</p>
     <h1>{{ t('Cuffia pronta.') }}</h1>
-    <p class="lede">{{ t('Associazione e calibrazione SÌ/NO completate. Gli impulsi EEG (finestre pubbliche o sintetiche) sono in memoria. Non è ancora una cuffia fisica né un dispositivo medico.') }}</p>
+    <p class="lede">{{ t('Calibrazione già fatta. Per usarla oggi: accendi e indossa (simulazione). Con la cuffia reale, Iris la rileverà da sola quando è accesa.') }}</p>
   </header>
-  <div class="setup-done calib-done">
-    <p class="lede muted">{{ t('Calibrazione avvenuta') }} · {{ t('segnale da corpus EEG pubblico o prior documentati finché non colleghi una cuffia reale') }}</p>
-    <div class="private-actions cuffia-done-actions">
-      <a class="btn primary" href="/dashboard">{{ t('Apri l’ecosistema') }}</a>
-      <a class="btn" href="/inizia">{{ t('Cosa puoi fare') }}</a>
-    </div>
-    <aside class="cuffia-phone-stub">
-      <p class="hub-kicker">{{ t('Telefono') }}</p>
-      <h2>{{ t('Il tuo telefono') }}</h2>
-      <p class="form-hint">{{ t('Dopo la cuffia: associa il telefono per chiamate, notifiche e musica. Funziona dal browser dello smartphone, senza PC obbligatorio.') }}</p>
-      <div class="private-actions">
-        <a class="btn primary" href="/telefono-setup">{{ t('Il tuo telefono') }}</a>
-        <a class="btn" href="/contesto">{{ t('In ascolto') }}</a>
-        <span class="assoc-pill">{{ t('prima chiamate, poi messaggi, poi musica') }}</span>
+  <div class="setup-done calib-done cuffia-daily">
+    <div class="headset-device panel" id="agent-panel"
+         data-ready="{{ '1' if agent and agent.ready_for_impulses else '0' }}">
+      <p class="device-label">{{ t('Uso quotidiano') }}</p>
+      <p><strong id="agent-label">{% if agent %}{{ agent.label }}{% else %}{{ t('Spenta') }}{% endif %}</strong></p>
+      <p class="muted" id="agent-detail">{% if agent %}{{ agent.detail }}{% else %}{{ t('Accendi la cuffia simulata come se l’avessi in mano.') }}{% endif %}</p>
+      <ul class="detail-list" id="agent-stats">
+        <li><span>{{ t('Alimentazione') }}</span><strong id="agent-power">{% if agent %}{{ agent.power }}{% else %}off{% endif %}</strong></li>
+        <li><span>{{ t('In testa') }}</span><strong id="agent-wear">{% if agent and agent.wear == 'on_head' %}{{ t('sì') }}{% else %}{{ t('no') }}{% endif %}</strong></li>
+        <li><span>{{ t('Contatto') }}</span><strong id="agent-contact-val">{% if agent and agent.contact_ok %}{{ t('ok') }}{% elif agent %}{{ t('da verificare') }}{% else %}—{% endif %}</strong></li>
+      </ul>
+      <div class="private-actions headset-actions" id="cuffia-sim-actions">
+        <button class="btn primary" type="button" id="agent-power-on">{{ t('Accendi') }}</button>
+        <button class="btn" type="button" id="agent-wear-on">{{ t('Indossa (in testa)') }}</button>
+        <button class="btn" type="button" id="agent-contact-btn">{{ t('Controlla contatto') }}</button>
+        <button class="btn ghost" type="button" id="agent-power-off">{{ t('Spegni') }}</button>
       </div>
-    </aside>
+      <p class="form-hint muted">{{ t('Questi tasti spariranno quando la cuffia reale sarà collegata e rilevata automaticamente.') }}</p>
+    </div>
+    <div class="private-actions cuffia-done-actions">
+      <a class="btn primary" href="/contesto">{{ t('In ascolto') }}</a>
+      <a class="btn" href="/dashboard">{{ t('Ecosistema') }}</a>
+      <button class="btn ghost" type="button" id="cuffia-reset-btn">{{ t('Ripristina') }}</button>
+    </div>
+    <p class="form-hint">{{ t('Ripristina cancella calibrazione e configurazione: solo se vuoi rifarle da zero.') }}</p>
+    <p class="flash error" id="headset-error" hidden></p>
+    <p class="flash ok" id="headset-ok" hidden></p>
   </div>
   {% else %}
   <header class="setup-hero calib-hero cuffia-hero">
@@ -143,6 +154,75 @@
   {% endif %}
   {% endif %}
 </section>
+
+{% if done %}
+<script>
+(function () {
+  const err = document.getElementById("headset-error");
+  const ok = document.getElementById("headset-ok");
+  const L = {
+    errore: {{ t('Errore')|tojson }},
+    si: {{ t('sì')|tojson }},
+    no: {{ t('no')|tojson }},
+    ok: {{ t('ok')|tojson }},
+    daVerificare: {{ t('da verificare')|tojson }},
+    pronto: {{ t('Cuffia pronta per In ascolto.')|tojson }},
+    resetConfirm: {{ t('Ripristinare cuffia e calibrazione? Dovrai rifare Associazione e Calibrazione.')|tojson }},
+  };
+  function applyAgent(a) {
+    if (!a) return;
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set("agent-label", a.label || "");
+    set("agent-detail", a.detail || "");
+    set("agent-power", a.power || "off");
+    set("agent-wear", a.wear === "on_head" ? L.si : L.no);
+    set("agent-contact-val", a.contact_ok ? L.ok : L.daVerificare);
+  }
+  async function postJson(url, body) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify(body || {}),
+    });
+    const data = await res.json().catch(function () { return {}; });
+    if (!res.ok) throw new Error((data && data.detail) || L.errore);
+    return data;
+  }
+  function wire(id, url, body) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("click", async function () {
+      if (err) err.hidden = true;
+      if (ok) ok.hidden = true;
+      try {
+        const data = await postJson(url, body);
+        applyAgent(data.agent);
+        if (ok) { ok.hidden = false; ok.textContent = (data.agent && data.agent.detail) || L.pronto; }
+      } catch (ex) {
+        if (err) { err.hidden = false; err.textContent = String(ex.message || ex); }
+      }
+    });
+  }
+  wire("agent-power-on", "/api/headset/power", { on: true });
+  wire("agent-power-off", "/api/headset/power", { on: false });
+  wire("agent-wear-on", "/api/headset/wear", { on_head: true });
+  wire("agent-contact-btn", "/api/headset/contact", {});
+  const resetBtn = document.getElementById("cuffia-reset-btn");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", async function () {
+      if (!window.confirm(L.resetConfirm)) return;
+      try {
+        await postJson("/api/cuffia/reset", {});
+        location.href = "/cuffia?stage=1";
+      } catch (ex) {
+        if (err) { err.hidden = false; err.textContent = String(ex.message || ex); }
+      }
+    });
+  }
+})();
+</script>
+{% endif %}
 
 {% if not done and stage == 1 %}
 <script>

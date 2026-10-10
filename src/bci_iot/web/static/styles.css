@@ -6369,4 +6369,52 @@ html[data-theme-resolved="dark"] .eco-channel {
   }
 }
 
+/* Ecosistema: modal Associazione (codice + QR on-demand) */
+.eco-pair-dialog {
+  border: none;
+  border-radius: 18px;
+  padding: 0;
+  max-width: min(92vw, 380px);
+  background: transparent;
+  color: inherit;
+}
+.eco-pair-dialog::backdrop {
+  background: rgba(8, 16, 32, 0.45);
+  backdrop-filter: blur(6px);
+}
+.eco-pair-inner {
+  padding: 1.25rem 1.35rem 1.4rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 18px 48px rgba(10, 30, 60, 0.18);
+}
+.eco-pair-inner h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.2rem;
+}
+.eco-pair-code {
+  margin: 1rem 0 0.75rem;
+  text-align: center;
+  font-size: clamp(1.75rem, 6vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  font-variant-numeric: tabular-nums;
+}
+.eco-pair-qr-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 0.5rem 0 1rem;
+}
+.eco-pair-qr-wrap img {
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.35rem;
+}
+
+.cuffia-daily .headset-actions {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 

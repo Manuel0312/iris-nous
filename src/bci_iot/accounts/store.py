@@ -942,6 +942,29 @@ class ProfileStore:
         self.save(profile)
         return profile
 
+    def reset_calibration(self, username: str) -> UserProfile:
+        """Clear calibration flag so the user can redo setup on purpose."""
+        profile = self.get(username)
+        if profile is None:
+            raise KeyError(f"unknown user: {username}")
+        profile.calibration_complete = False
+        stats = dict(profile.usage_stats or {})
+        stats["calibration_reset_at"] = _utc_now()
+        profile.usage_stats = stats
+        self.save(profile)
+        return profile
+
+    def mint_pairing_code(self, username: str) -> UserProfile:
+        """Issue a fresh one-time PIN for phone association (unique per request)."""
+        from bci_iot.pipeline.calibration_wizard import new_pairing_code
+
+        profile = self.get(username)
+        if profile is None:
+            raise KeyError(f"unknown user: {username}")
+        profile.pairing_code = new_pairing_code()
+        self.save(profile)
+        return profile
+
     def get_headset_mode(self, username: str) -> str:
         profile = self.get(username)
         if profile is None:

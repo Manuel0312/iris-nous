@@ -7,6 +7,7 @@ import '../config.dart';
 import '../services/auth_store.dart';
 import '../services/call_observer.dart';
 import '../services/iris_api.dart';
+import '../theme/iris_theme.dart';
 import 'login_screen.dart';
 import 'permissions_screen.dart';
 
@@ -179,7 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
         mark: '3',
         title: 'Canali',
         done: canaliDone,
-        subtitle: canaliDone ? 'Spotify attivo' : 'Collega i servizi',
+        subtitle: canaliDone ? 'Spotify attivo (sito)' : 'Collega una volta sul sito',
         onTap: () => _openWeb(
           canaliDone ? IrisConfig.webEcosistema : IrisConfig.webSpotify,
         ),
@@ -214,7 +215,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    return Scaffold(
+    return IrisGlassScaffold(
       appBar: AppBar(
         title: const Text('Iris · Ecosistema'),
         actions: [
@@ -225,8 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: SafeArea(
-        child: Center(
+      child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720),
             child: ListView(
@@ -278,10 +278,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 10),
           _StatusCard(
-            title: 'Musica',
+            title: 'Musica (Spotify sito)',
             value: music
                 ? 'In riproduzione${track.isNotEmpty ? ' · $track' : ''}'
-                : (spotify ? 'Spotify collegato (ferma)' : 'Spotify non collegato'),
+                : (spotify
+                    ? 'Collegato — apri Spotify e metti play (rileva via API)'
+                    : 'Non collegato — una volta da Ecosistema sul sito'),
             tone: music ? const Color(0xFFE0F7FF) : const Color(0xFFF0F0F2),
             accent: accent,
           ),
@@ -383,7 +385,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-      ),
     );
   }
 }
@@ -406,51 +407,48 @@ class _EcoStepCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = Theme.of(context).colorScheme.primary;
-    return Material(
-      color: Colors.white,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: accent.withOpacity(done ? 0.45 : 0.18)),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: accent.withOpacity(0.14),
-                      border: Border.all(color: accent.withOpacity(0.35)),
-                    ),
-                    child: Text(
-                      mark,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: accent,
-                        fontSize: 13,
+    return GlassPane(
+      padding: EdgeInsets.zero,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(22),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: accent.withValues(alpha: 0.14),
+                        border: Border.all(color: accent.withValues(alpha: 0.35)),
+                      ),
+                      child: Text(
+                        mark,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: accent,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
-                  ),
-                  const Spacer(),
-                  if (done)
-                    Icon(Icons.check_circle, size: 18, color: accent),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-              const SizedBox(height: 2),
-              Text(subtitle, style: const TextStyle(color: Colors.black54, fontSize: 12.5)),
-            ],
+                    const Spacer(),
+                    if (done) Icon(Icons.check_circle, size: 18, color: accent),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                const SizedBox(height: 2),
+                Text(subtitle, style: const TextStyle(color: Colors.black54, fontSize: 12.5)),
+              ],
+            ),
           ),
         ),
       ),
@@ -473,14 +471,7 @@ class _StatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: tone,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: accent.withOpacity(0.12)),
-      ),
+    return GlassPane(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

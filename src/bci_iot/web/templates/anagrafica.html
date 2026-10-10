@@ -33,7 +33,6 @@
 
     <div class="photo-side">
       <h2>{{ t('Foto') }} <span class="muted">{{ t('(opzionale)') }}</span></h2>
-      <p class="form-hint">{{ t('Va bene anche dopo, se preferisci.') }}</p>
 
       <div class="photo-crop-editor" id="photo-crop-editor" hidden>
         <p
@@ -140,7 +139,6 @@
             <span>{{ t('Non binario') }}</span>
           </label>
         </div>
-        <p class="form-hint anag-feel-hint">{{ t('Scegli come preferisci essere chiamata/o qui.') }}</p>
       </div>
     </div>
   </form>
@@ -152,7 +150,6 @@
   {% if profile.anagrafica_complete %}
   <section class="anag-password-block" aria-labelledby="anag-pwd-title">
     <h2 id="anag-pwd-title">{{ t('Password') }}</h2>
-    <p class="muted">{{ t('Il cambio password sta qui, nei tuoi dati — non nel menu.') }}</p>
     <a class="btn primary anag-btn-password" href="/cambia-password">{{ t('Cambia password') }}</a>
   </section>
   {% endif %}

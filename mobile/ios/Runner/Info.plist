@@ -38,6 +38,8 @@
 	<!-- Notifiche: testo mostrato dal sistema (EN richiesto da Apple; IT in README) -->
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>Iris Nous uses notifications to tell you when a call or music event was sent to your Iris account. / Iris usa le notifiche per avvisarti quando un evento chiamata o musica è stato inviato al tuo account.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Iris Nous uses the camera only to scan the pairing QR code from Ecosistema. / Iris usa la fotocamera solo per leggere il QR di associazione da Ecosistema.</string>
 	<!-- Microfono: NON richiesto in questa versione (evitare se non serve). -->
 	<!-- NSMicrophoneUsageDescription omesso di proposito. -->
 	<!-- Tracking: NON usato. -->

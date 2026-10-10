@@ -2887,6 +2887,51 @@ def create_app(
             "signal_note": "impulsi EEG (PhysioNet / BrainFlow / prior) salvati in memoria",
         }
 
+    @app.post("/api/cuffia/reset")
+    def api_cuffia_reset(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        """User-initiated wipe of calibration + simulated headset memory."""
+
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
+        profile = profiles.reset_calibration(username)
+        profile = profiles.ensure_headset_pairing(profile.username)
+        agent = get_headset_agent(
+            username=profile.username,
+            headset_id=profile.headset_id,
+            data_root=profiles.data_root,
+        )
+        status = agent.reset_session(keep_id=True)
+        app.state.calib_sessions.pop(username, None)
+        return {"status": "ok", "agent": status, "redirect": "/cuffia?stage=1"}
+
+    @app.post("/api/telefono/pairing-session")
+    def api_telefono_pairing_session(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        """Mint a fresh PIN + QR payload for Ecosistema Associazione (one-shot)."""
+
+        from bci_iot.integrations.spotify_oauth import pairing_qr_url
+
+        loaded = _require_profile(request, profiles)
+        if isinstance(loaded, RedirectResponse):
+            raise HTTPException(status_code=401, detail="Login required")
+        profile = profiles.mint_pairing_code(loaded.username)
+        code = profile.pairing_code
+        payload = f"IRISNOUS:{code}"
+        return {
+            "status": "ok",
+            "code": code,
+            "qr_payload": payload,
+            "qr_url": pairing_qr_url(payload),
+        }
+
     def _telefono_setup_page_response(
         request: Request,
         profiles: ProfileStore,
@@ -3174,6 +3219,35 @@ def create_app(
         profile.usage_stats = stats
         profiles.save(profile)
 
+    def _sync_spotify_playback(profiles: ProfileStore, username: str, router):
+        """Mirror Spotify Web API «currently playing» into context (site OAuth, not phone media)."""
+
+        profile = profiles.get(username)
+        if profile is None or not profile.spotify_linked:
+            return router
+        try:
+            from bci_iot.integrations.music_control import ensure_fresh_spotify_token
+            from bci_iot.integrations.spotify import SpotifyClient
+
+            fresh = ensure_fresh_spotify_token(profiles, profile)
+            if not fresh.spotify_access_token:
+                return router
+            snap = SpotifyClient(
+                access_token=fresh.spotify_access_token, dry_run=False
+            ).currently_playing()
+            playing = bool(snap.get("playing"))
+            parts = [str(snap.get("track") or "").strip(), str(snap.get("artist") or "").strip()]
+            track = " — ".join(p for p in parts if p)
+            changed = playing != bool(router.world.music_playing)
+            if playing and track and track != (router.world.track_hint or ""):
+                changed = True
+            if changed:
+                router.set_music(playing, track=track if playing else "")
+                _persist_context_router(profiles, username, router)
+        except Exception:
+            return router
+        return router
+
     def _companion_token_from_request(request: Request) -> str:
         auth = (request.headers.get("authorization") or "").strip()
         if auth.lower().startswith("bearer "):
@@ -3226,6 +3300,7 @@ def create_app(
         # Re-read profile after touch (stats may have changed).
         profile = profiles.get(profile.username) or profile
         router = _hydrate_context_router(profiles, profile.username)
+        router = _sync_spotify_playback(profiles, profile.username, router)
         world = router.world
         events = list(app.state.phone_queues.get(profile.username) or [])
         stats = profile.usage_stats or {}
@@ -3238,6 +3313,7 @@ def create_app(
             or str(stats.get("phone_device_label") or "")
             or "",
             "spotify_linked": bool(profile.spotify_linked),
+            "spotify_display_name": profile.spotify_display_name or "",
             "headset_linked": bool(profile.headset_id),
             "calibration_complete": bool(profile.calibration_complete),
             "ecosystem": {
@@ -3268,7 +3344,8 @@ def create_app(
                 "sms_read": False,
                 "note": (
                     "L’app può rilevare lo stato chiamata (ingresso/fine) e aggiornare Iris; "
-                    "non può rispondere o rifiutare la tipica chiamata cellulare del sistema."
+                    "non può rispondere o rifiutare la tipica chiamata cellulare del sistema. "
+                    "La musica attiva arriva da Spotify collegato sul sito (API), non dal player locale del telefono."
                 ),
             },
         }
@@ -3694,7 +3771,9 @@ def create_app(
         username = _session_username(request)
         if not username:
             raise HTTPException(status_code=401, detail="Login required")
-        return _hydrate_context_router(profiles, username).status()
+        router = _hydrate_context_router(profiles, username)
+        router = _sync_spotify_playback(profiles, username, router)
+        return router.status()
 
     @app.post("/api/context/live")
     def api_context_live(
