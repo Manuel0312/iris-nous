@@ -243,9 +243,13 @@ def test_dashboard_links_contesto(tmp_path: Path) -> None:
     _register(client)
     page = client.get("/dashboard")
     assert page.status_code == 200
-    assert 'href="/contesto"' in page.text
-    assert "In ascolto" in page.text
+    assert "Ecosistema" in page.text or "ecosistema" in page.text.lower()
     assert "Contesto live" not in page.text
+    assert "hub-shortcuts" not in page.text
+    eco = client.get("/ecosistema")
+    assert eco.status_code == 200
+    assert "hub-shortcuts" not in eco.text
+    assert "I miei dati" not in eco.text or 'href="/anagrafica"' not in eco.text
 
 
 def test_get_context_router_cached() -> None:
