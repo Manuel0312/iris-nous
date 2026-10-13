@@ -6,13 +6,15 @@
 (function () {
   const STAGE = 320;
   const OUT = 512;
+  /* Relative to cover scale: 1 = whole circle filled, 2.4 = close-up (not extreme). */
   const MIN_Z = 1;
-  const MAX_Z = 3;
+  const MAX_Z = 2.4;
   const FACE_API_JS =
     "https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js";
   const FACE_API_MODELS =
     "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights";
 
+  const root = document.getElementById("anag-photo");
   const file = document.getElementById("photo-input");
   const form = document.getElementById("photo-form");
   const editor = document.getElementById("photo-crop-editor");
@@ -25,7 +27,31 @@
   const faceDialog = document.getElementById("photo-face-dialog");
   const faceDialogText = document.getElementById("photo-face-dialog-text");
   const faceDialogOk = document.getElementById("photo-face-dialog-ok");
+  const saveOk = document.getElementById("photo-save-ok");
   if (!file || !form || !editor || !canvas) return;
+
+  function hasSavedPhoto() {
+    if (root && root.dataset.hasPhoto === "1") return true;
+    if (previewImg && !previewImg.hidden && previewImg.getAttribute("src")) return true;
+    return false;
+  }
+
+  function syncUi() {
+    if (!root) return;
+    const editing = !editor.hidden;
+    const has = hasSavedPhoto();
+    root.dataset.hasPhoto = has ? "1" : "0";
+    root.dataset.mode = editing ? "editing" : has ? "idle-has" : "idle-empty";
+  }
+
+  function syncZoomControl() {
+    if (!zoom || !bitmap) return;
+    zoom.min = String(MIN_Z);
+    zoom.max = String(MAX_Z);
+    zoom.step = "0.02";
+    const rel = scale / minScale;
+    zoom.value = String(Math.min(MAX_Z, Math.max(MIN_Z, rel)));
+  }
 
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   canvas.width = STAGE;
@@ -239,15 +265,12 @@
       const faceCx = box.x + box.width / 2;
       const faceCy = box.y + box.height / 2;
       const faceSize = Math.max(box.width, box.height) * 1.55;
-      scale = Math.max(minScale, Math.min(MAX_Z * minScale, STAGE / faceSize));
+      /* Prefer face in frame, but stay within a useful zoom band (not maxed out). */
+      const ideal = STAGE / faceSize;
+      scale = Math.max(minScale, Math.min(MAX_Z * minScale, ideal));
       ox = STAGE / 2 - faceCx * scale;
       oy = STAGE / 2 - faceCy * scale;
-      if (zoom) {
-        zoom.min = String(MIN_Z);
-        zoom.max = String(MAX_Z);
-        zoom.step = "0.01";
-        zoom.value = String(Math.min(MAX_Z, Math.max(MIN_Z, scale / minScale)));
-      }
+      syncZoomControl();
     }
     setStatus(
       "ok",
@@ -260,6 +283,11 @@
   function openEditor() {
     editor.hidden = false;
     editor.removeAttribute("hidden");
+    if (saveOk) {
+      saveOk.hidden = true;
+      saveOk.setAttribute("hidden", "");
+    }
+    syncUi();
   }
 
   function closeEditor() {
@@ -276,8 +304,11 @@
       URL.revokeObjectURL(objectUrl);
       objectUrl = null;
     }
-    file.value = "";
+    try {
+      file.value = "";
+    } catch (_e) {}
     setStatus("", "");
+    syncUi();
   }
 
   async function loadFile(f) {
@@ -294,15 +325,12 @@
     scale = minScale;
     ox = (STAGE - bitmap.width * scale) / 2;
     oy = (STAGE - bitmap.height * scale) / 2;
-    if (zoom) {
-      zoom.min = String(MIN_Z);
-      zoom.max = String(MAX_Z);
-      zoom.value = "1";
-    }
+    syncZoomControl();
     openEditor();
     draw();
     const ok = await detectFace({ popupIfMissing: true });
     draw();
+    syncZoomControl();
     if (!ok) {
       // Keep editor open so they can try another file from the popup.
     }
@@ -355,9 +383,11 @@
   if (zoom) {
     zoom.addEventListener("input", () => {
       if (!bitmap) return;
-      const z = Number(zoom.value) || 1;
-      const prev = scale;
-      const next = minScale * Math.min(MAX_Z, Math.max(MIN_Z, z));
+      const z = Number(zoom.value);
+      const clamped = Math.min(MAX_Z, Math.max(MIN_Z, Number.isFinite(z) ? z : MIN_Z));
+      const prev = scale || minScale;
+      const next = minScale * clamped;
+      if (Math.abs(next - prev) < 1e-6) return;
       const cx = STAGE / 2;
       const cy = STAGE / 2;
       const imgX = (cx - ox) / prev;
@@ -421,6 +451,13 @@
       pickAnotherPhoto();
     });
   }
+  const btnChangeOuter = document.getElementById("photo-change-btn-outer");
+  if (btnChangeOuter) {
+    btnChangeOuter.addEventListener("click", (e) => {
+      e.preventDefault();
+      pickAnotherPhoto();
+    });
+  }
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -438,7 +475,7 @@
     if (!ok) {
       return;
     }
-    const btn = form.querySelector('button[type="submit"]');
+    const btn = document.getElementById("photo-save-btn");
     if (btn) btn.disabled = true;
     try {
       const blob = await exportBlob();
@@ -466,21 +503,25 @@
         fallback.hidden = true;
         fallback.setAttribute("hidden", "");
       }
-      setStatus(
-        "ok",
-        (data && data.message) || msg("face-ok", "Foto salvata. Puoi continuare a compilare i dati.")
-      );
-      const saveOk = document.getElementById("photo-save-ok");
+      if (root) root.dataset.hasPhoto = "1";
+      // Keep form fields (name, email, …): do NOT reload the page.
+      closeEditor();
       if (saveOk) {
+        saveOk.textContent =
+          (data && data.message) ||
+          msg("face-ok", "Foto salvata.") ||
+          "Foto salvata.";
+        if (!saveOk.textContent.trim()) saveOk.textContent = "Foto salvata.";
         saveOk.hidden = false;
         saveOk.removeAttribute("hidden");
       }
-      // Keep form fields (name, email, …): do NOT reload the page.
-      closeEditor();
+      syncUi();
       if (btn) btn.disabled = false;
     } catch (_err) {
       setStatus("warn", msg("save-fail", "Salvataggio non riuscito. Riprova."));
       if (btn) btn.disabled = false;
     }
   });
+
+  syncUi();
 })();

@@ -3437,6 +3437,7 @@ html[data-theme-resolved="dark"] .password-toggle:hover {
 }
 
 .page-anagrafica .photo-form {
+  position: relative;
   display: grid;
   gap: 0.45rem;
   justify-items: stretch;
@@ -3444,11 +3445,22 @@ html[data-theme-resolved="dark"] .password-toggle:hover {
   width: 100%;
 }
 
-.page-anagrafica .photo-form input[type="file"] {
-  max-width: 100%;
+.page-anagrafica .photo-file-native {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.page-anagrafica .photo-idle {
+  display: grid;
+  gap: 0.45rem;
   width: 100%;
-  color: var(--muted);
-  font-size: 0.88rem;
 }
 
 .page-anagrafica .photo-file-label:not(.sr-only) {
@@ -3466,21 +3478,69 @@ html[data-theme-resolved="dark"] .password-toggle:hover {
   box-sizing: border-box;
 }
 
-.page-anagrafica .photo-form-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.55rem;
+.page-anagrafica .photo-change-idle {
   width: 100%;
 }
 
-.page-anagrafica .photo-form-actions .btn {
+/* Idle empty: only “Scegli una foto”. Idle has: only “Cambia foto”. Editing: hide idle. */
+.page-anagrafica .anag-photo[data-mode="idle-empty"] .photo-change-idle,
+.page-anagrafica .anag-photo[data-mode="idle-has"] #photo-pick-label,
+.page-anagrafica .anag-photo[data-mode="editing"] #photo-idle {
+  display: none !important;
+}
+
+.page-anagrafica .anag-photo[data-mode="idle-has"] #photo-save-ok:not([hidden]) {
+  display: block;
+}
+
+.page-anagrafica .photo-zoom-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.45rem;
+  align-items: end;
+  width: 100%;
+}
+
+.page-anagrafica .photo-zoom-label {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.page-anagrafica .photo-zoom-label input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent, #3b82f6);
+}
+
+.page-anagrafica .photo-zoom-edge {
+  font-size: 0.72rem;
+  padding-bottom: 0.35rem;
+  white-space: nowrap;
+}
+
+.page-anagrafica .photo-crop-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.page-anagrafica .photo-crop-actions .btn {
   width: 100%;
   min-height: 44px;
 }
 
 @media (max-width: 420px) {
-  .page-anagrafica .photo-form-actions {
+  .page-anagrafica .photo-crop-actions {
     grid-template-columns: 1fr;
+  }
+  .page-anagrafica .photo-zoom-row {
+    grid-template-columns: 1fr;
+  }
+  .page-anagrafica .photo-zoom-edge {
+    display: none;
   }
 }
 
@@ -3718,9 +3778,6 @@ html[data-theme-resolved="dark"] .password-toggle:hover {
   .page-anagrafica .photo-form {
     justify-items: center;
     max-width: 22rem;
-  }
-  .page-anagrafica .photo-form input[type="file"] {
-    font-size: 0.84rem;
   }
   .page-anagrafica .anag-grid {
     grid-template-columns: 1fr;

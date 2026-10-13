@@ -1,6 +1,52 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+        "Foto profilo: tasti chiari e zoom utile": {
+        "en": "Profile photo: clear buttons and useful zoom",
+        "fr": "Photo de profil : boutons clairs et zoom utile",
+        "de": "Profilfoto: klare Tasten und sinnvoller Zoom",
+        "pt": "Foto de perfil: botões claros e zoom útil",
+        "zh": "??:?????????",
+        "ja": "????????:???????????????",
+        "es": "Foto de perfil: botones claros y zoom útil",
+    },
+    "Con la foto già salvata restavano «Scegli una foto», il selettore file e più «Cambia foto»; lo zoom andava su estremi poco utili.": {
+        "en": "With a photo already saved, “Choose a photo”, the file picker and several “Change photo” buttons stayed; zoom went to extremes that were not useful.",
+        "fr": "Avec une photo déjà enregistrée, « Choisir une photo », le sélecteur et plusieurs « Changer » restaient ; le zoom allait vers des extrêmes peu utiles.",
+        "de": "Mit gespeichertem Foto blieben „Foto wählen“, Dateiauswahl und mehrere „Foto ändern“; Zoom ging in wenig sinnvolle Extreme.",
+        "pt": "Com foto já guardada ficavam «Escolher foto», o seletor e vários «Mudar foto»; o zoom ia a extremos pouco úteis.",
+        "zh": "????????“????”?????????“??”;????????",
+        "ja": "??????????????????????????????????????????????",
+        "es": "Con foto ya guardada seguían «Elegir foto», el selector y varios «Cambiar»; el zoom iba a extremos poco útiles.",
+    },
+    "Ora: senza foto solo Scegli; con foto solo Cambia; in ritaglio Cambia/Annulla/Salva; ingrandimento da Lontano a Vicino senza doppioni.": {
+        "en": "Now: no photo ? only Choose; with photo ? only Change; while cropping Change/Cancel/Save; zoom from Far to Close without duplicates.",
+        "fr": "Désormais : sans photo ? seulement Choisir ; avec photo ? seulement Changer ; en recadrage Changer/Annuler/Enregistrer ; zoom de Loin à Près sans doublons.",
+        "de": "Jetzt: ohne Foto nur Wählen; mit Foto nur Ändern; beim Zuschneiden Ändern/Abbrechen/Speichern; Zoom von Weit bis Nah ohne Doppelungen.",
+        "pt": "Agora: sem foto só Escolher; com foto só Mudar; no recorte Mudar/Cancelar/Guardar; zoom de Longe a Perto sem duplicados.",
+        "zh": "??:???“??”;???“??”;?????/??/??;??????,??????",
+        "ja": "??????????????????????????/??/??????????????????",
+        "es": "Ahora: sin foto solo Elegir; con foto solo Cambiar; al recortar Cambiar/Cancelar/Guardar; zoom de Lejos a Cerca sin duplicados.",
+    },
+    # --- anagrafica photo UI modes ---
+    "Lontano": {
+        "en": "Far",
+        "fr": "Loin",
+        "de": "Weit",
+        "pt": "Longe",
+        "zh": "è¿œ",
+        "ja": "é ã„",
+        "es": "Lejos",
+    },
+    "Vicino": {
+        "en": "Close",
+        "fr": "PrÃ¨s",
+        "de": "Nah",
+        "pt": "Perto",
+        "zh": "è¿‘",
+        "ja": "è¿‘ã„",
+        "es": "Cerca",
+    },
     # --- v0.4.61 virtual cuffia + phone FGS ---
     "Cuffia virtuale in un tap + telefono piÃ¹ solido": {
         "en": "Virtual headset in one tap + solid phone bridge",
