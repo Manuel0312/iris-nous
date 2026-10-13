@@ -50,6 +50,9 @@ def test_ecosistema_shows_centered_download_qrs(tmp_path: Path) -> None:
     assert "/app/apple" in page.text
     assert "Associazione" in page.text
     assert "eco-download-qr" in page.text
+    assert "google-play-badge.svg" in page.text
+    assert "app-store-badge.svg" in page.text
+    assert "Prossimamente" in page.text
     assert "Stato telefono" not in page.text  # not paired yet
 
 

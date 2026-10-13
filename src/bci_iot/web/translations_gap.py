@@ -1,6 +1,52 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.66 ecosistema store badges ---
+    "Ecosistema: store Google Play / App Store e layout ampio": {
+        "en": "Ecosistema: Google Play / App Store badges and wider layout",
+        "fr": "Ecosistema : badges Google Play / App Store et mise en page large",
+        "de": "Ecosistema: Google Play-/App-Store-Badges und breites Layout",
+        "pt": "Ecosistema: badges Google Play / App Store e layout largo",
+        "zh": "Ecosistema：Google Play / App Store 徽章与更宽布局",
+        "ja": "Ecosistema：Google Play / App Storeバッジと広いレイアウト",
+        "es": "Ecosistema: insignias Google Play / App Store y diseño ancho",
+    },
+    "I download erano QR semplici e la pagina restava stretta e lunga.": {
+        "en": "Downloads were plain QR codes and the page stayed narrow and tall.",
+        "fr": "Les téléchargements étaient de simples QR et la page restait étroite et longue.",
+        "de": "Downloads waren schlichte QR-Codes und die Seite blieb schmal und hoch.",
+        "pt": "Os downloads eram QR simples e a página ficava estreita e comprida.",
+        "zh": "下载区只有简单二维码，页面又窄又长。",
+        "ja": "ダウンロードは単純なQRで、ページが細長く見えていました。",
+        "es": "Las descargas eran QR simples y la página quedaba estrecha y larga.",
+    },
+    "Ora Telefono mostra badge Google Play e App Store con QR e «Prossimamente»; Ecosistema è a tre colonne su desktop.": {
+        "en": "Phone now shows Google Play and App Store badges with QR and Coming soon; Ecosistema is three columns on desktop.",
+        "fr": "Téléphone affiche les badges Google Play et App Store avec QR et Bientôt ; Ecosistema est en trois colonnes sur bureau.",
+        "de": "Telefon zeigt Google-Play- und App-Store-Badges mit QR und Demnächst; Ecosistema ist auf dem Desktop dreispaltig.",
+        "pt": "Telefone mostra badges Google Play e App Store com QR e Em breve; Ecosistema tem três colunas no desktop.",
+        "zh": "电话区现有 Google Play / App Store 徽章、二维码和「即将推出」；桌面端 Ecosistema 为三列。",
+        "ja": "電話にGoogle Play/App Storeバッジ＋QR＋近日公開。Ecosistemaはデスクトップで3列。",
+        "es": "Teléfono muestra insignias Google Play y App Store con QR y Próximamente; Ecosistema tiene tres columnas en escritorio.",
+    },
+    "Installa l’app Iris (store o QR), poi Associazione con codice. L’app tiene il ponte attivo anche in background.": {
+        "en": "Install the Iris app (store or QR), then Pair with a code. The app keeps the bridge alive in the background.",
+        "fr": "Installez l’app Iris (store ou QR), puis Associez avec un code. L’app maintient le pont en arrière-plan.",
+        "de": "Iris-App installieren (Store oder QR), dann mit Code koppeln. Die App hält die Brücke auch im Hintergrund.",
+        "pt": "Instale a app Iris (loja ou QR) e associe com código. A app mantém a ponte ativa em segundo plano.",
+        "zh": "安装 Iris 应用（商店或二维码），再用代码关联。应用在后台保持桥接。",
+        "ja": "Irisアプリ（ストアまたはQR）を入れ、コードで連携。バックグラウンドでも橋を維持。",
+        "es": "Instala la app Iris (tienda o QR) y asocia con código. La app mantiene el puente en segundo plano.",
+    },
+    "Tocca o inquadra il QR": {
+        "en": "Tap or scan the QR",
+        "fr": "Touchez ou scannez le QR",
+        "de": "Tippen oder QR scannen",
+        "pt": "Toque ou leia o QR",
+        "zh": "点按或扫描二维码",
+        "ja": "タップまたはQRを読み取り",
+        "es": "Toca o escanea el QR",
+    },
     # --- v0.4.65 iOS CallKit answer/reject ---
     "iPhone: SÌ/NO risponde con CallKit": {
         "en": "iPhone: YES/NO answers with CallKit",

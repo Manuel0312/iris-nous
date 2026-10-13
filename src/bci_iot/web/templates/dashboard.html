@@ -37,21 +37,27 @@
             {% if profile.phone_paired %}{{ t('Collegato') }}{% else %}{{ t('Da collegare') }}{% endif %}
           </span>
         </div>
-        <p>{{ t('Installa l’app Iris (QR sotto), poi Associazione con codice o QR. L’app tiene il ponte attivo anche in background: non serve restare su questa pagina.') }}</p>
+        <p>{{ t('Installa l’app Iris (store o QR), poi Associazione con codice. L’app tiene il ponte attivo anche in background.') }}</p>
         <div class="eco-download-qrs" aria-label="{{ t('Scarica l’app') }}">
-          <a class="eco-download-qr" href="/app/android" title="{{ t('Download Android') }}">
+          <a class="eco-download-qr eco-store-card eco-store-android" href="{{ android_download_url or '/app/android' }}" title="{{ t('Download Android') }}">
+            <span class="eco-store-soon">{{ t('Prossimamente') }}</span>
+            <img class="eco-store-badge" src="/static/product/google-play-badge.svg" width="168" height="50" alt="Google Play" />
             {% if android_qr_url %}
-            <img src="{{ android_qr_url }}" width="112" height="112" alt="{{ t('QR download Android') }}" />
+            <span class="eco-store-qr">
+              <img src="{{ android_qr_url }}" width="108" height="108" alt="{{ t('QR download Android') }}" />
+            </span>
             {% endif %}
-            <strong>Android</strong>
-            <span>{{ t('Inquadra per scaricare l’APK (store in arrivo).') }}</span>
+            <span class="eco-store-hint">{{ t('Tocca o inquadra il QR') }}</span>
           </a>
-          <a class="eco-download-qr" href="/app/apple" title="{{ t('Download iPhone') }}">
+          <a class="eco-download-qr eco-store-card eco-store-ios" href="{{ ios_download_url or '/app/apple' }}" title="{{ t('Download iPhone') }}">
+            <span class="eco-store-soon">{{ t('Prossimamente') }}</span>
+            <img class="eco-store-badge" src="/static/product/app-store-badge.svg" width="168" height="50" alt="App Store" />
             {% if ios_qr_url %}
-            <img src="{{ ios_qr_url }}" width="112" height="112" alt="{{ t('QR download iPhone') }}" />
+            <span class="eco-store-qr">
+              <img src="{{ ios_qr_url }}" width="108" height="108" alt="{{ t('QR download iPhone') }}" />
+            </span>
             {% endif %}
-            <strong>iPhone</strong>
-            <span>{{ t('Inquadra per la guida iOS (App Store in arrivo).') }}</span>
+            <span class="eco-store-hint">{{ t('Tocca o inquadra il QR') }}</span>
           </a>
         </div>
         <div class="eco-step-actions">

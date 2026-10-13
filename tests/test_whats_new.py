@@ -32,6 +32,7 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
         or "Hub «La tua cuffia»" in page.text
         or "Privacy e chiarezza demo" in page.text
     )
+    assert "Ecosistema: store Google Play / App Store e layout ampio" in page.text
     assert "iPhone: SÌ/NO risponde con CallKit" in page.text
     assert "SÌ/NO può rispondere o rifiutare su Android" in page.text
     assert "Ecosistema centrato, QR download e SÌ/NO dall’app" in page.text
