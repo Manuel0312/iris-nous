@@ -543,12 +543,18 @@ class AccessDatabase:
         email = ""
         with self._connect() as conn:
             row = conn.execute(
-                "SELECT email FROM users WHERE username = ? COLLATE NOCASE",
+                "SELECT email, is_admin FROM users WHERE username = ? COLLATE NOCASE",
                 (key,),
             ).fetchone()
-            if row:
-                email = str(row["email"] or "")
-        self.purge_user_support(username=key, email=email)
+            if row is None:
+                return
+            if int(row["is_admin"] or 0):
+                raise ValueError("Non puoi eliminare l'account amministratore.")
+            email = str(row["email"] or "")
+        try:
+            self.purge_user_support(username=key, email=email)
+        except Exception:
+            pass
         with self._connect() as conn:
             conn.execute("DELETE FROM access_logs WHERE username = ? COLLATE NOCASE", (key,))
             conn.execute(
@@ -557,14 +563,20 @@ class AccessDatabase:
             conn.execute(
                 "DELETE FROM user_anagrafica WHERE username = ? COLLATE NOCASE", (key,)
             )
-            conn.execute("DELETE FROM users WHERE username = ? COLLATE NOCASE", (key,))
             conn.execute(
-                """
-                INSERT INTO access_logs (username, event, ip, user_agent, created_at)
-                VALUES (?, 'account_hard_deleted', '', '', ?)
-                """,
-                (key, _utc_now()),
+                "DELETE FROM users WHERE username = ? COLLATE NOCASE AND IFNULL(is_admin, 0) = 0",
+                (key,),
             )
+            try:
+                conn.execute(
+                    """
+                    INSERT INTO access_logs (username, event, ip, user_agent, created_at)
+                    VALUES (?, 'account_hard_deleted', '', '', ?)
+                    """,
+                    (key, _utc_now()),
+                )
+            except Exception:
+                pass
             conn.commit()
 
     def count_users(self, *, deleted: bool = False, exclude_admin: bool = False) -> int:

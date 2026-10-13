@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.71 wipe fix ---
+    "Fix: cancella tutti gli account non va più in errore": {
+        "en": "Fix: delete-all accounts no longer errors",
+        "fr": "Correctif : supprimer tous les comptes ne plante plus",
+        "de": "Fix: Alle-Konten-loeschen stuerzt nicht mehr ab",
+        "pt": "Correcao: apagar todas as contas ja nao falha",
+        "zh": "修复：删除全部账户不再报错",
+        "ja": "修正：全アカウント削除でエラーにならない",
+        "es": "Correccion: borrar todas las cuentas ya no falla",
+    },
+    "Il tasto Database a volte mostrava Internal Server Error durante la cancellazione.": {
+        "en": "The Database button sometimes showed Internal Server Error while deleting.",
+        "fr": "Le bouton Database affichait parfois Internal Server Error pendant la suppression.",
+        "de": "Der Database-Button zeigte manchmal Internal Server Error beim Loeschen.",
+        "pt": "O botao Database por vezes mostrava Internal Server Error ao apagar.",
+        "zh": "数据库按钮删除时有时出现 Internal Server Error。",
+        "ja": "Databaseボタン削除時にInternal Server Errorが出ることがありました。",
+        "es": "El boton Database a veces mostraba Internal Server Error al borrar.",
+    },
+    "Ora la pulizia gestisce errori parziali e porta Iris allo stato vergine senza bloccare la pagina.": {
+        "en": "Cleanup now handles partial errors and resets Iris without breaking the page.",
+        "fr": "Le nettoyage gere les erreurs partielles et remet Iris a zero sans bloquer la page.",
+        "de": "Die Bereinigung verkraftet Teilfehler und setzt Iris zurueck ohne Seitenabsturz.",
+        "pt": "A limpeza trata erros parciais e repoe a Iris sem bloquear a pagina.",
+        "zh": "清理会处理部分错误，并将 Iris 重置为干净状态且不卡页面。",
+        "ja": "部分エラーを処理し、ページを止めずにIrisを初期化します。",
+        "es": "La limpieza maneja errores parciales y deja Iris virgen sin bloquear la pagina.",
+    },
     # --- v0.4.70 admin wipe UI ---
     "Admin: cancella tutti gli account dal Database": {
         "en": "Admin: delete all accounts from Database",

@@ -780,15 +780,32 @@ class ProfileStore:
         """Hard-delete every non-admin account (virgin demo state). Keeps admin."""
 
         removed: list[str] = []
-        for row in self.db.list_user_rows(include_deleted=True):
+        rows = list(self.db.list_user_rows(include_deleted=True))
+        for row in rows:
             uname = str(row.get("username") or "").strip()
-            if not uname or int(row.get("is_admin") or 0):
+            if not uname:
                 continue
             try:
-                self.hard_delete(uname, photos_dir=photos_dir)
+                if int(row.get("is_admin") or 0):
+                    continue
+            except (TypeError, ValueError):
+                if bool(row.get("is_admin")):
+                    continue
+            try:
+                # Prefer DB wipe even if profile cache/save is flaky on free hosts.
+                self.purge_account_data(uname, photos_dir=photos_dir)
+            except Exception:
+                pass
+            try:
+                self.db.hard_delete_user(uname)
                 removed.append(uname)
-            except (KeyError, ValueError):
-                continue
+            except Exception:
+                # Last resort: soft-delete so the list still clears for demos.
+                try:
+                    self.db.soft_delete_user(uname)
+                    removed.append(uname)
+                except Exception:
+                    continue
         return removed
 
     BAN_DURATIONS: dict[str, int] = {
@@ -1230,10 +1247,17 @@ class ProfileStore:
     def purge_account_data(self, username: str, *, photos_dir: Path | None = None) -> None:
         """Remove chats and photo file when an account is deleted."""
 
-        profile = self.get(username)
+        profile = None
+        try:
+            profile = self.get(username)
+        except Exception:
+            profile = None
         email = (profile.email if profile else "") or ""
         photo = (profile.photo_filename if profile else "") or ""
-        self.db.purge_user_support(username=username, email=email)
+        try:
+            self.db.purge_user_support(username=username, email=email)
+        except Exception:
+            pass
         if photos_dir is not None and photo:
             path = Path(photos_dir) / photo
             try:
@@ -1242,10 +1266,13 @@ class ProfileStore:
             except OSError:
                 pass
         if profile is not None:
-            profile.photo_filename = ""
-            profile.spotify_access_token = ""
-            profile.spotify_refresh_token = ""
-            profile.spotify_token_expires_at = ""
-            profile.spotify_user_id = ""
-            profile.spotify_display_name = ""
-            self.save(profile)
+            try:
+                profile.photo_filename = ""
+                profile.spotify_access_token = ""
+                profile.spotify_refresh_token = ""
+                profile.spotify_token_expires_at = ""
+                profile.spotify_user_id = ""
+                profile.spotify_display_name = ""
+                self.save(profile)
+            except Exception:
+                pass

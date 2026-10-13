@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.71",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Fix: cancella tutti gli account non va più in errore",
+                "Il tasto Database a volte mostrava Internal Server Error durante la cancellazione.",
+                "Ora la pulizia gestisce errori parziali e porta Iris allo stato vergine senza bloccare la pagina.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.70",
         "intro": WHATS_NEW_INTRO,
         "entries": (

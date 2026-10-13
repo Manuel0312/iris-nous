@@ -1356,37 +1356,46 @@ def create_app(
                 kind="error",
             )
             return RedirectResponse("/accessi/database", status_code=303)
-        removed = profiles.factory_reset_users(photos_dir=Path(app.state.photos_dir))
-        photos = Path(app.state.photos_dir)
-        if photos.is_dir():
-            for path in photos.iterdir():
-                if path.is_file() and path.name != ".gitkeep":
-                    try:
-                        path.unlink()
-                    except OSError:
-                        pass
-        messaging = Path(profiles.data_root) / "messaging.json"
-        if messaging.is_file():
-            try:
-                messaging.write_text("{}", encoding="utf-8")
-            except OSError:
-                pass
         try:
-            from bci_iot.accounts.data_backup import schedule_backup
+            removed = profiles.factory_reset_users(
+                photos_dir=Path(getattr(app.state, "photos_dir", profiles.data_root / "photos"))
+            )
+            photos = Path(getattr(app.state, "photos_dir", profiles.data_root / "photos"))
+            if photos.is_dir():
+                for path in photos.iterdir():
+                    if path.is_file() and path.name != ".gitkeep":
+                        try:
+                            path.unlink()
+                        except OSError:
+                            pass
+            messaging = Path(profiles.data_root) / "messaging.json"
+            if messaging.is_file():
+                try:
+                    messaging.write_text("{}", encoding="utf-8")
+                except OSError:
+                    pass
+            try:
+                from bci_iot.accounts.data_backup import schedule_backup
 
-            schedule_backup(profiles.data_root, delay_s=0.5, force=True)
-        except Exception:
-            pass
-        n = len(removed)
-        _flash(
-            request,
-            (
-                f"Stato vergine: eliminati {n} account. Resta solo admin."
-                if n
-                else "Nessun account da eliminare: resta solo admin."
-            ),
-            kind="ok",
-        )
+                schedule_backup(profiles.data_root, delay_s=0.5, force=True)
+            except Exception:
+                pass
+            n = len(removed)
+            _flash(
+                request,
+                (
+                    f"Stato vergine: eliminati {n} account. Resta solo admin."
+                    if n
+                    else "Nessun account da eliminare: resta solo admin."
+                ),
+                kind="ok",
+            )
+        except Exception as exc:  # noqa: BLE001
+            _flash(
+                request,
+                f"Cancellazione non riuscita: {exc}. Riprova o contatta il supporto.",
+                kind="error",
+            )
         return RedirectResponse("/accessi/database", status_code=303)
 
     @app.get("/invio-codici", response_class=HTMLResponse)
