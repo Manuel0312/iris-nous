@@ -15,7 +15,7 @@ WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
         "entries": (
             (
                 "Foto profilo: tasti chiari e zoom utile",
-                "Con la foto già salvata restavano «Scegli una foto», il selettore file e più «Cambia foto»; lo zoom andava su estremi poco utili.",
+                "Con la foto giÃ  salvata restavano Â«Scegli una fotoÂ», il selettore file e piÃ¹ Â«Cambia fotoÂ»; lo zoom andava su estremi poco utili.",
                 "Ora: senza foto solo Scegli; con foto solo Cambia; in ritaglio Cambia/Annulla/Salva; ingrandimento da Lontano a Vicino senza doppioni.",
             ),
         ),
