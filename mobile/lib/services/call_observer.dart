@@ -50,6 +50,12 @@ class CallObserverService {
         onChanged?.call();
         return;
       }
+      // Android 13+: notifica sticky del servizio foreground (ponte chiamate).
+      final notif = await Permission.notification.request();
+      if (!(notif.isGranted || notif.isLimited)) {
+        lastError =
+            'Notifiche negate: il rilevamento in background può interrompersi. Attivale in Permessi.';
+      }
     }
 
     try {

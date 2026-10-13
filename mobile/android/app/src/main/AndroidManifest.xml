@@ -49,16 +49,13 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        <!-- Placeholder FGS: implementare servizio heartbeat in fase successiva -->
-        <!--
         <service
-            android:name=".IrisHeartbeatService"
+            android:name=".IrisCallWatchService"
             android:exported="false"
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Heartbeat verso Iris Nous per contesto chiamate/musica" />
+                android:value="Rilevamento chiamate verso Iris Nous In ascolto" />
         </service>
-        -->
     </application>
 </manifest>

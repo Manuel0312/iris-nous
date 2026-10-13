@@ -309,6 +309,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: _busy ? null : () => _demoCall('call_ended'),
                 child: const Text('Fine chiamata → Iris'),
               ),
+              OutlinedButton(
+                onPressed: _busy ? null : () => _demoCall('message_incoming'),
+                child: const Text('Simula messaggio → Iris'),
+              ),
               FilledButton(
                 onPressed: _busy ? null : _musicNext,
                 child: const Text('Prossima canzone'),
@@ -325,10 +329,11 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 6),
           Text(
             _calls.listening
-                ? 'Rilevamento nativo attivo. Tieni l’APK aperta (o in background); sul PC apri In ascolto — si aggiorna da sola. '
-                    'Rispondi/rifiuta restano sul telefono o con SÌ/NO su In ascolto.'
+                ? 'Rilevamento nativo attivo con notifica «Iris in ascolto». '
+                    'Puoi lasciare l’app in background; sul PC apri In ascolto. '
+                    'SÌ/NO su In ascolto aggiornano Iris (non rispondono/rifiutano la radio cellulare).'
                 : (!_calls.permitted
-                    ? 'Concedi «Stato telefono» in Permessi, poi tocca Aggiorna. '
+                    ? 'Concedi «Stato telefono» e notifiche in Permessi, poi tocca Aggiorna. '
                         'Senza permesso lo squillo non arriva al PC.'
                     : 'Listener non attivo — tocca Aggiorna o riapri i Permessi.'),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),

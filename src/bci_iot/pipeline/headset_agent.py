@@ -578,6 +578,20 @@ class SimulatedHeadsetAgent:
 
 
 
+    def ensure_virtual_ready(self) -> dict[str, Any]:
+
+        """One tap: power on, wear, contact — simulated headset as if on your head."""
+
+
+
+        self.power_on()
+
+        return self.wear(on_head=True)
+
+
+
+
+
     def check_contact(self) -> dict[str, Any]:
 
         """Simulate per-channel contact/impedance; good enough when worn."""

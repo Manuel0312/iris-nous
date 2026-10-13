@@ -14,6 +14,28 @@
   <p class="cuffia-mobile-hint muted">{{ t('Lascia questa pagina aperta sul PC: aggiorna da sola quando l’APK Iris sul telefono rileva una chiamata.') }}</p>
   <p class="form-hint" id="live-bridge-hint" aria-live="polite"></p>
 
+  <div class="form-block panel" id="cuffia-ready-panel">
+    <h2>{{ t('Cuffia virtuale') }}</h2>
+    <p class="form-hint" id="cuffia-ready-detail">
+      {% if agent and agent.ready_for_impulses %}
+        {{ t('In testa e pronta: Pensa SÌ / NO funzionano come se la cuffia fosse fisica.') }}
+      {% else %}
+        {{ t('Prima indossa la cuffia virtuale (un tap), poi SÌ/NO agiscono su chiamata, messaggio o musica.') }}
+      {% endif %}
+    </p>
+    <p class="detail-list compact" style="margin:0.5rem 0">
+      <span>{{ t('Stato') }}</span>
+      <strong id="cuffia-ready-label">{% if agent %}{{ agent.label }}{% else %}{{ t('Spenta') }}{% endif %}</strong>
+    </p>
+    <div class="private-actions">
+      <button type="button" class="btn primary" id="cuffia-virtual-ready"
+        {% if agent and agent.ready_for_impulses %}hidden{% endif %}>
+        {{ t('Indossa cuffia virtuale') }}
+      </button>
+      <a class="btn ghost" href="/cuffia">{{ t('La tua cuffia') }}</a>
+    </div>
+  </div>
+
   <article class="panel contesto-focus" id="focus-panel" aria-live="polite">
     <p class="hub-kicker">{{ t('Ora') }}</p>
     <h2 id="focus-prompt">{{ ctx.focus.prompt }}</h2>
@@ -44,11 +66,9 @@
   <div class="form-block panel">
     <h2>{{ t('Pensa SÌ o NO') }}</h2>
     <p class="form-hint">{{ t('Il tasto chiede alla cuffia un nuovo pensiero SÌ/NO vicino ai modelli della calibrazione; Iris confronta per similarità e lo applica a ciò che sta succedendo.') }}</p>
-    {% if not agent or not agent.ready_for_impulses %}
-    <p class="form-hint warn">{{ t('Prepara prima la cuffia (accendi, indossa, contatto) su /cuffia.') }}
-      <a href="/cuffia?stage=1">{{ t('La tua cuffia') }}</a>
+    <p class="form-hint warn" id="cuffia-yn-warn" {% if agent and agent.ready_for_impulses %}hidden{% endif %}>
+      {{ t('Prepara prima la cuffia virtuale (un tap sopra), poi Pensa SÌ / NO.') }}
     </p>
-    {% endif %}
     <div class="cuffia-yn-actions contesto-yn">
       <button class="btn primary" type="button" id="decide-si" {% if not agent or not agent.ready_for_impulses %}disabled{% endif %}>{{ t('Pensa SÌ') }}</button>
       <button class="btn" type="button" id="decide-no" {% if not agent or not agent.ready_for_impulses %}disabled{% endif %}>{{ t('Pensa NO') }}</button>
@@ -101,7 +121,27 @@
     recogAs: {{ t('Riconosciuto come')|tojson }},
     simSi: {{ t('sim SÌ')|tojson }},
     simNo: {{ t('sim NO')|tojson }},
+    cuffiaReady: {{ t('In testa e pronta: Pensa SÌ / NO funzionano come se la cuffia fosse fisica.')|tojson }},
+    cuffiaNeed: {{ t('Prima indossa la cuffia virtuale (un tap), poi SÌ/NO agiscono su chiamata, messaggio o musica.')|tojson }},
   };
+
+  function setCuffiaUi(hs) {
+    if (!hs) return;
+    const ready = !!hs.ready_for_impulses;
+    const label = document.getElementById("cuffia-ready-label");
+    const detail = document.getElementById("cuffia-ready-detail");
+    const btn = document.getElementById("cuffia-virtual-ready");
+    const warn = document.getElementById("cuffia-yn-warn");
+    const si = document.getElementById("decide-si");
+    const no = document.getElementById("decide-no");
+    if (label) label.textContent = hs.label || (ready ? "—" : L.err);
+    if (detail) detail.textContent = ready ? L.cuffiaReady : (hs.detail || L.cuffiaNeed);
+    if (btn) btn.hidden = ready;
+    if (warn) warn.hidden = ready;
+    if (si) si.disabled = !ready;
+    if (no) no.disabled = !ready;
+    document.getElementById("contesto-root").dataset.ready = ready ? "1" : "0";
+  }
 
   async function postJson(url, body) {
     const res = await fetch(url, {
@@ -211,6 +251,19 @@
   document.getElementById("decide-si").addEventListener("click", function () { decide("SI"); });
   document.getElementById("decide-no").addEventListener("click", function () { decide("NO"); });
 
+  const virtualBtn = document.getElementById("cuffia-virtual-ready");
+  if (virtualBtn) {
+    virtualBtn.addEventListener("click", async function () {
+      try {
+        const data = await postJson("/api/headset/virtual-ready", {});
+        setCuffiaUi(data.agent || {});
+        document.getElementById("status-msg").textContent = L.cuffiaReady;
+      } catch (e) {
+        document.getElementById("status-msg").textContent = String(e.message || e);
+      }
+    });
+  }
+
   async function pollStatus() {
     try {
       const res = await fetch("/api/context/status", {
@@ -220,12 +273,16 @@
       if (!res.ok) return;
       const data = await res.json();
       applyStatus(data);
+      if (data.headset) setCuffiaUi(data.headset);
       const hint = document.getElementById("live-bridge-hint");
       const active = data.active_contexts || {};
       const world = data.world || {};
       if (hint) {
         if (active.call) {
           hint.textContent = {{ t('Chiamata dal telefono rilevata — puoi rispondere con Pensa SÌ / NO.')|tojson }};
+          hint.classList.remove("muted");
+        } else if (active.message) {
+          hint.textContent = {{ t('Messaggio in arrivo — puoi aprirlo o ignorarlo con Pensa SÌ / NO.')|tojson }};
           hint.classList.remove("muted");
         } else if (world.music_playing || active.music) {
           hint.textContent = {{ t('Musica attiva — In ascolto aggiornato.')|tojson }};

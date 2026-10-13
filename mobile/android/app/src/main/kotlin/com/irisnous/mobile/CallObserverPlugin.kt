@@ -95,6 +95,13 @@ class CallObserverPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
             tm.listen(listener, PhoneStateListener.LISTEN_CALL_STATE)
         }
         listening = true
+        // Keep process alive in background so rings still reach Flutter → Iris.
+        appContext?.let { ctx ->
+            try {
+                IrisCallWatchService.start(ctx)
+            } catch (_: Exception) {
+            }
+        }
         // Stato iniziale non sempre notificato: emetti idle.
         emit(TelephonyManager.CALL_STATE_IDLE, force = true)
         return true
@@ -116,6 +123,12 @@ class CallObserverPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
             legacyListener = null
         }
         listening = false
+        appContext?.let { ctx ->
+            try {
+                IrisCallWatchService.stop(ctx)
+            } catch (_: Exception) {
+            }
+        }
     }
 
     private fun snapshotMap(state: Int, permitted: Boolean = true): Map<String, Any> {

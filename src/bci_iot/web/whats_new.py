@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.61",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Cuffia virtuale in un tap + telefono più solido",
+                "Per la demo senza cuffia fisica bisognava Accendi/Indossa/Contatto a mano; l’APK perdeva lo squillo in background e i messaggi non arrivavano al contesto.",
+                "Ora «Indossa cuffia virtuale» prepara la cuffia simulata come se fosse in testa; In ascolto mostra lo stato e sblocca SÌ/NO; l’APK tiene una notifica foreground per le chiamate; puoi simulare anche un messaggio verso Iris.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.60",
         "intro": WHATS_NEW_INTRO,
         "entries": (

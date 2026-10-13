@@ -11,7 +11,7 @@
   <header class="setup-hero calib-hero cuffia-hero">
     <p class="eyebrow">{{ t('La tua cuffia') }}</p>
     <h1>{{ t('Cuffia pronta.') }}</h1>
-    <p class="lede">{{ t('Calibrazione già fatta. Per usarla oggi: accendi e indossa (simulazione). Con la cuffia reale, Iris la rileverà da sola quando è accesa.') }}</p>
+    <p class="lede">{{ t('Calibrazione già fatta. Un tap indossa la cuffia virtuale come se fosse in testa; poi In ascolto applica SÌ/NO a chiamate, messaggi e musica. Con la cuffia reale, Iris la rileverà da sola.') }}</p>
   </header>
   <div class="setup-done calib-done cuffia-daily">
     <div class="headset-device panel" id="agent-panel"
@@ -25,12 +25,13 @@
         <li><span>{{ t('Contatto') }}</span><strong id="agent-contact-val">{% if agent and agent.contact_ok %}{{ t('ok') }}{% elif agent %}{{ t('da verificare') }}{% else %}—{% endif %}</strong></li>
       </ul>
       <div class="private-actions headset-actions" id="cuffia-sim-actions">
-        <button class="btn primary" type="button" id="agent-power-on">{{ t('Accendi') }}</button>
+        <button class="btn primary" type="button" id="agent-virtual-ready">{{ t('Indossa cuffia virtuale') }}</button>
+        <button class="btn" type="button" id="agent-power-on">{{ t('Accendi') }}</button>
         <button class="btn" type="button" id="agent-wear-on">{{ t('Indossa (in testa)') }}</button>
         <button class="btn" type="button" id="agent-contact-btn">{{ t('Controlla contatto') }}</button>
         <button class="btn ghost" type="button" id="agent-power-off">{{ t('Spegni') }}</button>
       </div>
-      <p class="form-hint muted">{{ t('Questi tasti spariranno quando la cuffia reale sarà collegata e rilevata automaticamente.') }}</p>
+      <p class="form-hint muted">{{ t('«Indossa cuffia virtuale» accende, mette in testa e conferma il contatto in un colpo solo — come avere la cuffia fisica per la demo.') }}</p>
     </div>
     <div class="private-actions cuffia-done-actions">
       <a class="btn primary" href="/contesto">{{ t('In ascolto') }}</a>
@@ -167,6 +168,7 @@
     ok: {{ t('ok')|tojson }},
     daVerificare: {{ t('da verificare')|tojson }},
     pronto: {{ t('Cuffia pronta per In ascolto.')|tojson }},
+    virtualOk: {{ t('Cuffia virtuale in testa — vai su In ascolto.')|tojson }},
     resetConfirm: {{ t('Ripristinare cuffia e calibrazione? Dovrai rifare Associazione e Calibrazione.')|tojson }},
   };
   function applyAgent(a) {
@@ -177,6 +179,8 @@
     set("agent-power", a.power || "off");
     set("agent-wear", a.wear === "on_head" ? L.si : L.no);
     set("agent-contact-val", a.contact_ok ? L.ok : L.daVerificare);
+    const panel = document.getElementById("agent-panel");
+    if (panel) panel.dataset.ready = a.ready_for_impulses ? "1" : "0";
   }
   async function postJson(url, body) {
     const res = await fetch(url, {
@@ -208,6 +212,24 @@
   wire("agent-power-off", "/api/headset/power", { on: false });
   wire("agent-wear-on", "/api/headset/wear", { on_head: true });
   wire("agent-contact-btn", "/api/headset/contact", {});
+  (function () {
+    const el = document.getElementById("agent-virtual-ready");
+    if (!el) return;
+    el.addEventListener("click", async function () {
+      if (err) err.hidden = true;
+      if (ok) ok.hidden = true;
+      try {
+        const data = await postJson("/api/headset/virtual-ready", {});
+        applyAgent(data.agent);
+        if (ok) {
+          ok.hidden = false;
+          ok.textContent = (data.agent && data.agent.ready_for_impulses) ? L.virtualOk : ((data.agent && data.agent.detail) || L.pronto);
+        }
+      } catch (ex) {
+        if (err) { err.hidden = false; err.textContent = String(ex.message || ex); }
+      }
+    });
+  })();
   const resetBtn = document.getElementById("cuffia-reset-btn");
   if (resetBtn) {
     resetBtn.addEventListener("click", async function () {

@@ -2747,6 +2747,31 @@ def create_app(
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return {"status": "ok", "agent": status}
 
+    @app.post("/api/headset/virtual-ready")
+    def api_headset_virtual_ready(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        """Demo: one tap to power on + wear + contact (virtual headset on head)."""
+
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
+        profile = profiles.ensure_headset_pairing(username)
+        profiles.set_headset_mode(username, "simulated")
+        agent = get_headset_agent(
+            username=username,
+            headset_id=profile.headset_id,
+            data_root=profiles.data_root,
+        )
+        try:
+            status = agent.ensure_virtual_ready()
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"status": "ok", "agent": status}
+
     @app.post("/api/headset/impulse")
     async def api_headset_impulse(
         request: Request,
@@ -3491,9 +3516,28 @@ def create_app(
             payload["companion"] = _companion_status_payload(profiles, profile)
             return payload
 
+        if ev in {"message_incoming", "message", "sms_incoming", "notification_message"}:
+            sender = caller if caller != "sconosciuto" else "Marco"
+            payload = router.simulate_message(sender=sender)
+            _persist_context_router(profiles, profile.username, router)
+            event = _push_phone_bridge_event(
+                profile.username,
+                action="context.incoming_message",
+                label=f"Messaggio in arrivo (app): {sender}",
+                kind="incoming_message",
+                caller=sender,
+                source="companion_app",
+            )
+            payload["phone_event"] = event
+            payload["companion"] = _companion_status_payload(profiles, profile)
+            return payload
+
         raise HTTPException(
             status_code=400,
-            detail="Evento sconosciuto. Usa: call_incoming, call_ended, music_playing, music_stopped.",
+            detail=(
+                "Evento sconosciuto. Usa: call_incoming, call_ended, "
+                "message_incoming, music_playing, music_stopped."
+            ),
         )
 
     @app.post("/api/companion/music/next")
@@ -3786,9 +3830,28 @@ def create_app(
         username = _session_username(request)
         if not username:
             raise HTTPException(status_code=401, detail="Login required")
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
         router = _hydrate_context_router(profiles, username)
         router = _sync_spotify_playback(profiles, username, router)
-        return router.status()
+        payload = router.status()
+        profile = profiles.ensure_headset_pairing(username)
+        agent = get_headset_agent(
+            username=username,
+            headset_id=profile.headset_id,
+            data_root=profiles.data_root,
+        )
+        st = agent.status()
+        payload["headset"] = {
+            "ready_for_impulses": bool(st.get("ready_for_impulses")),
+            "label": st.get("label"),
+            "detail": st.get("detail"),
+            "power": st.get("power"),
+            "wear": st.get("wear"),
+            "contact_ok": bool(st.get("contact_ok")),
+            "calibration_complete": bool(st.get("calibration_complete")),
+        }
+        return payload
 
     @app.post("/api/context/live")
     def api_context_live(
