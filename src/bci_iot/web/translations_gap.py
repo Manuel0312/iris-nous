@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.67 ecosistema proportions + light badges ---
+    "Ecosistema: layout cuffia+telefono e store chiari": {
+        "en": "Ecosistema: headset+phone layout and light store badges",
+        "fr": "Ecosistema : disposition casque+telephone et badges store clairs",
+        "de": "Ecosistema: Headset+Telefon-Layout und helle Store-Badges",
+        "pt": "Ecosistema: layout auscultadores+telemovel e badges claros",
+        "zh": "Ecosistema：耳机+手机布局与浅色商店徽章",
+        "ja": "Ecosistema：ヘッドセット+電話レイアウトと明るいストアバッジ",
+        "es": "Ecosistema: diseno auriculares+telefono e insignias claras",
+    },
+    "Le tre card in fila spezzavano le proporzioni e gli store non seguivano lo stile badge chiaro.": {
+        "en": "Three cards in a row broke proportions and the stores did not match the light badge style.",
+        "fr": "Trois cartes en ligne cassaient les proportions et les stores ne suivaient pas le style badge clair.",
+        "de": "Drei Karten in einer Reihe stoerten die Proportionen und die Stores passten nicht zum hellen Badge-Stil.",
+        "pt": "Tres cartoes em fila quebravam as proporcoes e as lojas nao seguiam o estilo de badge claro.",
+        "zh": "三张横排卡片破坏比例，商店徽章也不是浅色风格。",
+        "ja": "3枚横並びが比率を崩し、ストアが明るいバッジ風と一致しませんでした。",
+        "es": "Tres tarjetas en fila rompian las proporciones y las tiendas no seguian el estilo de insignia clara.",
+    },
+    "Ora cuffia e telefono sono affiancati, Spotify sotto a tutta larghezza; badge Google Play/App Store chiari con QR, Prossimamente ed emoji.": {
+        "en": "Now headset and phone sit side by side, Spotify full-width below; light Google Play/App Store badges with QR, Coming soon and emojis.",
+        "fr": "Casque et telephone cote a cote, Spotify en pleine largeur dessous ; badges Google Play/App Store clairs avec QR, Bientot et emojis.",
+        "de": "Headset und Telefon nebeneinander, Spotify darunter in voller Breite; helle Google-Play-/App-Store-Badges mit QR, Demnaechst und Emojis.",
+        "pt": "Auscultadores e telemovel lado a lado, Spotify em baixo a largura total; badges claros Google Play/App Store com QR, Em breve e emojis.",
+        "zh": "耳机与手机并排，Spotify 全宽在下；浅色 Google Play/App Store 徽章配二维码、「即将推出」和表情。",
+        "ja": "ヘッドセットと電話を横並び、Spotifyは下に全幅。明るいPlay/App Storeバッジ＋QR＋近日公開＋絵文字。",
+        "es": "Auriculares y telefono lado a lado, Spotify abajo a todo el ancho; insignias claras Google Play/App Store con QR, Proximamente y emojis.",
+    },
     # --- v0.4.66 ecosistema store badges ---
     "Ecosistema: store Google Play / App Store e layout ampio": {
         "en": "Ecosistema: Google Play / App Store badges and wider layout",

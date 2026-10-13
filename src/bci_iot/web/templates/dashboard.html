@@ -5,13 +5,14 @@
 {% block content %}
 <section class="private-area eco-hub">
   <header class="private-welcome eco-welcome">
+    <p class="eco-welcome-emoji" aria-hidden="true">✨</p>
     <h1>{{ t('Ecosistema') }}</h1>
     <p class="lede">{{ t('Dopo i tuoi dati, qui colleghi cuffia, telefono e i canali che userai con Iris — un passo alla volta.') }}</p>
   </header>
 
   <ol class="eco-steps">
-    <li class="eco-step {% if profile.calibration_complete %}is-done{% else %}is-active{% endif %}">
-      <div class="eco-step-mark" aria-hidden="true"><span>1</span></div>
+    <li class="eco-step eco-step-cuffia {% if profile.calibration_complete %}is-done{% else %}is-active{% endif %}">
+      <div class="eco-step-mark" aria-hidden="true"><span>🎧</span></div>
       <div class="eco-step-body">
         <div class="eco-step-head">
           <h2>{{ t('Cuffia') }}</h2>
@@ -28,8 +29,8 @@
       </div>
     </li>
 
-    <li class="eco-step {% if profile.phone_paired %}is-done{% elif profile.calibration_complete %}is-active{% endif %}">
-      <div class="eco-step-mark" aria-hidden="true"><span>2</span></div>
+    <li class="eco-step eco-step-phone {% if profile.phone_paired %}is-done{% elif profile.calibration_complete %}is-active{% endif %}">
+      <div class="eco-step-mark" aria-hidden="true"><span>📱</span></div>
       <div class="eco-step-body">
         <div class="eco-step-head">
           <h2>{{ t('Telefono') }}</h2>
@@ -41,20 +42,20 @@
         <div class="eco-download-qrs" aria-label="{{ t('Scarica l’app') }}">
           <a class="eco-download-qr eco-store-card eco-store-android" href="{{ android_download_url or '/app/android' }}" title="{{ t('Download Android') }}">
             <span class="eco-store-soon">{{ t('Prossimamente') }}</span>
-            <img class="eco-store-badge" src="/static/product/google-play-badge.svg" width="168" height="50" alt="Google Play" />
+            <img class="eco-store-badge" src="/static/product/google-play-badge.svg?v=2" width="180" height="54" alt="Google Play" />
             {% if android_qr_url %}
             <span class="eco-store-qr">
-              <img src="{{ android_qr_url }}" width="108" height="108" alt="{{ t('QR download Android') }}" />
+              <img src="{{ android_qr_url }}" width="96" height="96" alt="{{ t('QR download Android') }}" />
             </span>
             {% endif %}
             <span class="eco-store-hint">{{ t('Tocca o inquadra il QR') }}</span>
           </a>
           <a class="eco-download-qr eco-store-card eco-store-ios" href="{{ ios_download_url or '/app/apple' }}" title="{{ t('Download iPhone') }}">
             <span class="eco-store-soon">{{ t('Prossimamente') }}</span>
-            <img class="eco-store-badge" src="/static/product/app-store-badge.svg" width="168" height="50" alt="App Store" />
+            <img class="eco-store-badge" src="/static/product/app-store-badge.svg?v=2" width="180" height="54" alt="App Store" />
             {% if ios_qr_url %}
             <span class="eco-store-qr">
-              <img src="{{ ios_qr_url }}" width="108" height="108" alt="{{ t('QR download iPhone') }}" />
+              <img src="{{ ios_qr_url }}" width="96" height="96" alt="{{ t('QR download iPhone') }}" />
             </span>
             {% endif %}
             <span class="eco-store-hint">{{ t('Tocca o inquadra il QR') }}</span>
@@ -69,8 +70,8 @@
       </div>
     </li>
 
-    <li class="eco-step {% if profile.spotify_linked %}is-done{% elif profile.phone_paired or profile.calibration_complete %}is-active{% endif %}">
-      <div class="eco-step-mark" aria-hidden="true"><span>3</span></div>
+    <li class="eco-step eco-step-channels {% if profile.spotify_linked %}is-done{% elif profile.phone_paired or profile.calibration_complete %}is-active{% endif %}">
+      <div class="eco-step-mark" aria-hidden="true"><span>🎵</span></div>
       <div class="eco-step-body">
         <div class="eco-step-head">
           <h2>{{ t('Canali') }}</h2>
@@ -83,17 +84,13 @@
           <li>
             {% if profile.spotify_linked %}
             <span class="eco-channel is-on" title="Spotify">
-              <span class="eco-channel-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.6 14.4a.75.75 0 0 1-1.03.25c-2.82-1.73-6.37-2.12-10.55-1.16a.75.75 0 1 1-.33-1.46c4.56-1.04 8.5-.59 11.66 1.34a.75.75 0 0 1 .25 1.03Zm1.23-2.74a.9.9 0 0 1-1.24.3c-3.23-1.98-8.15-2.56-11.96-1.4a.9.9 0 1 1-.52-1.72c4.3-1.3 9.7-.65 13.42 1.63a.9.9 0 0 1 .3 1.19Zm.1-2.86c-3.87-2.3-10.26-2.51-13.96-1.39a1.05 1.05 0 1 1-.6-2.01c4.24-1.27 11.2-1.02 15.64 1.61a1.05 1.05 0 0 1-1.08 1.79Z"/></svg>
-              </span>
+              <span class="eco-channel-icon" aria-hidden="true">💚</span>
               <span class="eco-channel-name">Spotify</span>
               <span class="eco-channel-meta">{% if profile.spotify_display_name %}{{ profile.spotify_display_name }}{% else %}{{ t('Collegato') }}{% endif %}</span>
             </span>
             {% else %}
             <a class="eco-channel" href="/auth/spotify/start" title="Spotify">
-              <span class="eco-channel-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.6 14.4a.75.75 0 0 1-1.03.25c-2.82-1.73-6.37-2.12-10.55-1.16a.75.75 0 1 1-.33-1.46c4.56-1.04 8.5-.59 11.66 1.34a.75.75 0 0 1 .25 1.03Zm1.23-2.74a.9.9 0 0 1-1.24.3c-3.23-1.98-8.15-2.56-11.96-1.4a.9.9 0 1 1-.52-1.72c4.3-1.3 9.7-.65 13.42 1.63a.9.9 0 0 1 .3 1.19Zm.1-2.86c-3.87-2.3-10.26-2.51-13.96-1.39a1.05 1.05 0 1 1-.6-2.01c4.24-1.27 11.2-1.02 15.64 1.61a1.05 1.05 0 0 1-1.08 1.79Z"/></svg>
-              </span>
+              <span class="eco-channel-icon" aria-hidden="true">💚</span>
               <span class="eco-channel-name">Spotify</span>
               <span class="eco-channel-meta">{{ t('Collega') }}</span>
             </a>
@@ -101,18 +98,14 @@
           </li>
           <li>
             <span class="eco-channel is-soon" title="Alexa">
-              <span class="eco-channel-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M8 13.5c1.2 1.4 2.6 2.1 4 2.1s2.8-.7 4-2.1"/></svg>
-              </span>
+              <span class="eco-channel-icon" aria-hidden="true">🔊</span>
               <span class="eco-channel-name">Alexa</span>
               <span class="eco-channel-meta">{{ t('In arrivo') }}</span>
             </span>
           </li>
           <li>
             <span class="eco-channel is-soon" title="Google Assistant">
-              <span class="eco-channel-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="10" r="3.2"/><circle cx="16" cy="8" r="2.2"/><circle cx="16.5" cy="14.5" r="2.6"/><circle cx="10.5" cy="16.5" r="1.8"/></svg>
-              </span>
+              <span class="eco-channel-icon" aria-hidden="true">💬</span>
               <span class="eco-channel-name">Google Assistant</span>
               <span class="eco-channel-meta">{{ t('In arrivo') }}</span>
             </span>

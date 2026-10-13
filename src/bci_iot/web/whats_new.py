@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.67",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Ecosistema: layout cuffia+telefono e store chiari",
+                "Le tre card in fila spezzavano le proporzioni e gli store non seguivano lo stile badge chiaro.",
+                "Ora cuffia e telefono sono affiancati, Spotify sotto a tutta larghezza; badge Google Play/App Store chiari con QR, Prossimamente ed emoji.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.66",
         "intro": WHATS_NEW_INTRO,
         "entries": (
