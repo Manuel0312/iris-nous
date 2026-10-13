@@ -3274,6 +3274,61 @@ html[data-theme-resolved="dark"] .hub-connect.is-ghost {
   border-top: 1px solid var(--line);
 }
 
+.admin-wipe-panel {
+  margin: 1.1rem 0 1.35rem;
+  padding: 1.1rem 1.15rem 1.2rem;
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--line));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--danger) 6%, var(--bg-elev));
+}
+
+.admin-wipe-panel h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+}
+
+.admin-wipe-panel .lede {
+  margin: 0 0 0.85rem;
+  font-size: 0.92rem;
+  max-width: 40rem;
+}
+
+.admin-wipe-form .form-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.admin-wipe-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: stretch;
+}
+
+.admin-wipe-row .field {
+  flex: 1 1 12rem;
+  min-width: 10rem;
+  max-width: 18rem;
+}
+
+.admin-wipe-row .btn.danger {
+  min-height: 2.75rem;
+}
+
+@media (max-width: 720px) {
+  .admin-wipe-row {
+    flex-direction: column;
+  }
+
+  .admin-wipe-row .field,
+  .admin-wipe-row .btn.danger {
+    max-width: none;
+    width: 100%;
+  }
+}
+
 .panel,
 .private-form,
 .auth-panel {

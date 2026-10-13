@@ -21,6 +21,36 @@
     </div>
   </div>
 
+  <div class="panel admin-wipe-panel reveal" data-reveal>
+    <h2>{{ t('Cancella tutti gli account') }}</h2>
+    <p class="lede">
+      {{ t('Elimina definitivamente tutti gli utenti (foto e chat incluse). L’account admin resta. Utile per riportare Iris allo stato vergine prima di una demo.') }}
+    </p>
+    <form
+      method="post"
+      action="/accessi/database/cancella-tutti"
+      class="admin-wipe-form"
+      onsubmit="return confirm({{ t('Eliminare TUTTI gli account tranne admin? Operazione irreversibile.')|tojson }});"
+    >
+      <label class="form-label" for="wipe-confirm">
+        {{ t('Digita CANCELLA per confermare') }}
+      </label>
+      <div class="admin-wipe-row">
+        <input
+          id="wipe-confirm"
+          class="field"
+          type="text"
+          name="confirm"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="CANCELLA"
+          required
+        />
+        <button type="submit" class="btn danger">{{ t('Cancella tutti gli account') }}</button>
+      </div>
+    </form>
+  </div>
+
   <div class="panel table-wrap reveal" data-reveal>
     <h2>{{ t('Tutti gli account') }}</h2>
     {% if accounts %}

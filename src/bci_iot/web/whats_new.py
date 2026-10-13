@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.70",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Admin: cancella tutti gli account dal Database",
+                "Per azzerare Iris serviva uno script o chiamate API.",
+                "Nella sezione Database persone c’è un tasto con conferma: elimina tutti gli utenti e lascia solo admin.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.69",
         "intro": WHATS_NEW_INTRO,
         "entries": (

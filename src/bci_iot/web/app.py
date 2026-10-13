@@ -1340,6 +1340,55 @@ def create_app(
             ),
         )
 
+    @app.post("/accessi/database/cancella-tutti")
+    def accessi_database_wipe_all(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        confirm: str = Form(""),
+    ) -> RedirectResponse:
+        admin = _admin_or_redirect(request, profiles)
+        if isinstance(admin, RedirectResponse):
+            return admin
+        if (confirm or "").strip().upper() != "CANCELLA":
+            _flash(
+                request,
+                "Per sicurezza digita CANCELLA nel campo di conferma, poi riprova.",
+                kind="error",
+            )
+            return RedirectResponse("/accessi/database", status_code=303)
+        removed = profiles.factory_reset_users(photos_dir=Path(app.state.photos_dir))
+        photos = Path(app.state.photos_dir)
+        if photos.is_dir():
+            for path in photos.iterdir():
+                if path.is_file() and path.name != ".gitkeep":
+                    try:
+                        path.unlink()
+                    except OSError:
+                        pass
+        messaging = Path(profiles.data_root) / "messaging.json"
+        if messaging.is_file():
+            try:
+                messaging.write_text("{}", encoding="utf-8")
+            except OSError:
+                pass
+        try:
+            from bci_iot.accounts.data_backup import schedule_backup
+
+            schedule_backup(profiles.data_root, delay_s=0.5, force=True)
+        except Exception:
+            pass
+        n = len(removed)
+        _flash(
+            request,
+            (
+                f"Stato vergine: eliminati {n} account. Resta solo admin."
+                if n
+                else "Nessun account da eliminare: resta solo admin."
+            ),
+            kind="ok",
+        )
+        return RedirectResponse("/accessi/database", status_code=303)
+
     @app.get("/invio-codici", response_class=HTMLResponse)
     def messaging_settings_page(
         request: Request,

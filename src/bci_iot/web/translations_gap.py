@@ -1,6 +1,70 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.70 admin wipe UI ---
+    "Admin: cancella tutti gli account dal Database": {
+        "en": "Admin: delete all accounts from Database",
+        "fr": "Admin : supprimer tous les comptes depuis Database",
+        "de": "Admin: alle Konten in Database loeschen",
+        "pt": "Admin: apagar todas as contas no Database",
+        "zh": "管理员：在数据库中删除全部账户",
+        "ja": "管理：Databaseですべてのアカウント削除",
+        "es": "Admin: borrar todas las cuentas en Database",
+    },
+    "Per azzerare Iris serviva uno script o chiamate API.": {
+        "en": "Resetting Iris required a script or API calls.",
+        "fr": "Remettre Iris a zero demandait un script ou des appels API.",
+        "de": "Iris zurueckzusetzen brauchte ein Skript oder API-Aufrufe.",
+        "pt": "Para reiniciar a Iris era preciso um script ou chamadas API.",
+        "zh": "清空 Iris 以前需要脚本或 API。",
+        "ja": "Irisの初期化にはスクリプトかAPIが必要でした。",
+        "es": "Para poner Iris a cero hacia falta un script o llamadas API.",
+    },
+    "Nella sezione Database persone c’è un tasto con conferma: elimina tutti gli utenti e lascia solo admin.": {
+        "en": "In People Database there is a confirm button: it deletes all users and keeps only admin.",
+        "fr": "Dans Database personnes, un bouton avec confirmation efface tous les utilisateurs et garde seulement admin.",
+        "de": "Unter Database Personen gibt es einen Bestaetigungs-Button: loescht alle Nutzer, behält nur admin.",
+        "pt": "Em Database pessoas ha um botao com confirmacao: apaga todos e deixa so admin.",
+        "zh": "「人员数据库」有确认按钮：删除全部用户，仅保留 admin。",
+        "ja": "Databaseに確認付きボタン。全ユーザー削除、adminのみ残す。",
+        "es": "En Database personas hay un boton con confirmacion: borra todos y deja solo admin.",
+    },
+    "Cancella tutti gli account": {
+        "en": "Delete all accounts",
+        "fr": "Supprimer tous les comptes",
+        "de": "Alle Konten loeschen",
+        "pt": "Apagar todas as contas",
+        "zh": "删除全部账户",
+        "ja": "すべてのアカウントを削除",
+        "es": "Borrar todas las cuentas",
+    },
+    "Elimina definitivamente tutti gli utenti (foto e chat incluse). L’account admin resta. Utile per riportare Iris allo stato vergine prima di una demo.": {
+        "en": "Permanently deletes all users (including photos and chats). Admin stays. Useful to reset Iris before a demo.",
+        "fr": "Supprime definitivement tous les utilisateurs (photos et chats inclus). Admin reste. Utile avant une demo.",
+        "de": "Loescht dauerhaft alle Nutzer (inkl. Fotos und Chats). Admin bleibt. Nuetzlich vor einer Demo.",
+        "pt": "Apaga em definitivo todos os utilizadores (fotos e chats). Admin fica. Util antes de uma demo.",
+        "zh": "永久删除全部用户（含照片与聊天）。保留 admin。演示前重置很方便。",
+        "ja": "全ユーザーを完全削除（写真・チャット含む）。adminは残る。デモ前の初期化に便利。",
+        "es": "Elimina definitivamente todos los usuarios (fotos y chats). Admin se queda. Util antes de una demo.",
+    },
+    "Digita CANCELLA per confermare": {
+        "en": "Type DELETE to confirm",
+        "fr": "Tapez CANCELLA pour confirmer",
+        "de": "Tippe CANCELLA zur Bestaetigung",
+        "pt": "Escreve CANCELLA para confirmar",
+        "zh": "输入 CANCELLA 以确认",
+        "ja": "確認のため CANCELLA と入力",
+        "es": "Escribe CANCELLA para confirmar",
+    },
+    "Eliminare TUTTI gli account tranne admin? Operazione irreversibile.": {
+        "en": "Delete ALL accounts except admin? This cannot be undone.",
+        "fr": "Supprimer TOUS les comptes sauf admin ? Irreversible.",
+        "de": "ALLE Konten ausser admin loeschen? Unwiderruflich.",
+        "pt": "Apagar TODAS as contas excepto admin? Irreversivel.",
+        "zh": "删除除 admin 外的全部账户？不可撤销。",
+        "ja": "admin以外をすべて削除しますか？元に戻せません。",
+        "es": "Borrar TODAS las cuentas excepto admin? Irreversible.",
+    },
     # --- v0.4.69 responsive + factory reset ---
     "Ecosistema su iPad e iPhone + reset account demo": {
         "en": "Ecosistema on iPad and iPhone + demo account reset",

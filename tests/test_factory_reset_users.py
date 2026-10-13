@@ -29,3 +29,37 @@ def test_factory_reset_keeps_admin_only(tmp_path: Path) -> None:
     assert "wipe_me" in body["removed"]
     assert store.get("wipe_me") is None
     assert store.get("admin") is not None
+
+
+def test_database_page_wipe_form(tmp_path: Path) -> None:
+    app = create_app(data_dir=tmp_path, session_secret="wipe-ui")
+    client = TestClient(app)
+    store = app.state.store
+    store.create_account("wipe_ui", "Segreta123", email="wipeui@gmail.com")
+
+    client.post(
+        "/login",
+        data={"username": "admin", "password": "admin123"},
+        follow_redirects=False,
+    )
+    page = client.get("/accessi/database")
+    assert page.status_code == 200
+    assert "Cancella tutti gli account" in page.text
+    assert 'action="/accessi/database/cancella-tutti"' in page.text
+
+    bad = client.post(
+        "/accessi/database/cancella-tutti",
+        data={"confirm": "no"},
+        follow_redirects=False,
+    )
+    assert bad.status_code in {302, 303}
+    assert store.get("wipe_ui") is not None
+
+    ok = client.post(
+        "/accessi/database/cancella-tutti",
+        data={"confirm": "CANCELLA"},
+        follow_redirects=False,
+    )
+    assert ok.status_code in {302, 303}
+    assert store.get("wipe_ui") is None
+    assert store.get("admin") is not None
