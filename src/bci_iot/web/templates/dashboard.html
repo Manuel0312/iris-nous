@@ -7,7 +7,7 @@
   <header class="private-welcome eco-welcome">
     <p class="eco-welcome-emoji" aria-hidden="true">✨</p>
     <h1>{{ t('Ecosistema') }}</h1>
-    <p class="lede">{{ t('Dopo i tuoi dati, qui colleghi cuffia, telefono e i canali che userai con Iris — un passo alla volta.') }}</p>
+    <p class="lede">{{ t('Qui colleghi cuffia, telefono e musica: tre passi semplici per far lavorare Iris con te.') }}</p>
   </header>
 
   <ol class="eco-steps">
@@ -20,11 +20,48 @@
             {% if profile.calibration_complete %}{{ t('Pronta') }}{% else %}{{ t('Da configurare') }}{% endif %}
           </span>
         </div>
-        <p>{% if profile.calibration_complete %}{{ t('Accendi e indossa per usarla. La riconfigurazione serve solo se premi Ripristina.') }}{% else %}{{ t('Associa la cuffia al tuo account e completa la calibrazione SÌ/NO. È il primo passo per far capire a Iris i tuoi intenti.') }}{% endif %}</p>
+        <div class="eco-headset-stage" aria-hidden="true">
+          <div class="eco-headset-glow"></div>
+          <div class="eco-headset-orbit">
+            <svg class="eco-headset-svg" viewBox="0 0 200 160" width="200" height="160">
+              <defs>
+                <linearGradient id="ecoHsBand" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#e8eef8"/>
+                  <stop offset="55%" stop-color="#b8c6dc"/>
+                  <stop offset="100%" stop-color="#8ea0bc"/>
+                </linearGradient>
+                <linearGradient id="ecoHsCup" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#f5f8ff"/>
+                  <stop offset="100%" stop-color="#9aabc4"/>
+                </linearGradient>
+                <filter id="ecoHsSoft" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#1a2a3a" flood-opacity="0.28"/>
+                </filter>
+              </defs>
+              <ellipse class="eco-hs-shadow" cx="100" cy="148" rx="46" ry="7" fill="rgba(10,16,28,0.35)"/>
+              <g class="eco-hs-rig" filter="url(#ecoHsSoft)">
+                <path d="M42 78c4-34 28-54 58-54s54 20 58 54" fill="none" stroke="url(#ecoHsBand)" stroke-width="14" stroke-linecap="round"/>
+                <path d="M42 78c4-34 28-54 58-54s54 20 58 54" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="4" stroke-linecap="round" transform="translate(0,-3)"/>
+                <g class="eco-hs-cup eco-hs-cup-l">
+                  <rect x="22" y="68" width="36" height="52" rx="16" fill="url(#ecoHsCup)"/>
+                  <rect x="28" y="76" width="24" height="36" rx="11" fill="#6d7f9a"/>
+                  <rect x="31" y="80" width="18" height="28" rx="8" fill="#1c2a3d" opacity="0.55"/>
+                </g>
+                <g class="eco-hs-cup eco-hs-cup-r">
+                  <rect x="142" y="68" width="36" height="52" rx="16" fill="url(#ecoHsCup)"/>
+                  <rect x="148" y="76" width="24" height="36" rx="11" fill="#6d7f9a"/>
+                  <rect x="151" y="80" width="18" height="28" rx="8" fill="#1c2a3d" opacity="0.55"/>
+                </g>
+              </g>
+            </svg>
+          </div>
+          <p class="eco-headset-caption">{{ t('Indossa e ascolta Iris') }}</p>
+        </div>
+        <p class="eco-step-copy">{% if profile.calibration_complete %}{{ t('Tutto pronto: accendi la cuffia, indossala e Iris ti ascolta. Ripristina solo se vuoi rifare la calibrazione.') }}{% else %}{{ t('Collega la cuffia e fai la breve calibrazione SÌ/NO: così Iris impara a riconoscerti.') }}{% endif %}</p>
         {% if profile.calibration_complete %}
         <a class="btn ghost" href="/cuffia">{{ t('Apri cuffia') }}</a>
         {% else %}
-        <a class="btn primary" href="/cuffia">{{ t('Associa e configura') }}</a>
+        <a class="btn primary" href="/cuffia">{{ t('Configura la cuffia') }}</a>
         {% endif %}
       </div>
     </li>
@@ -38,9 +75,9 @@
             {% if profile.phone_paired %}{{ t('Collegato') }}{% else %}{{ t('Da collegare') }}{% endif %}
           </span>
         </div>
-        <p>{{ t('Installa l’app Iris (store o QR), poi Associazione con codice. L’app tiene il ponte attivo anche in background.') }}</p>
+        <p class="eco-step-copy">{{ t('Scarica l’app (o inquadra il QR), poi associala con il codice. Iris resta collegata anche con lo schermo spento.') }}</p>
         <div class="eco-download-qrs" aria-label="{{ t('Scarica l’app') }}">
-          <a class="eco-download-qr eco-store-card eco-store-android" href="{{ android_download_url or '/app/android' }}" title="{{ t('Download Android') }}">
+          <a class="eco-download-qr eco-store-card eco-store-android" href="{{ android_download_url or '/app/store/android' }}" title="{{ t('Download Android') }}">
             <span class="eco-store-soon">{{ t('Prossimamente') }}</span>
             <img class="eco-store-badge" src="/static/product/google-play-badge.svg?v=2" width="180" height="54" alt="Google Play" />
             {% if android_qr_url %}
@@ -48,9 +85,9 @@
               <img src="{{ android_qr_url }}" width="96" height="96" alt="{{ t('QR download Android') }}" />
             </span>
             {% endif %}
-            <span class="eco-store-hint">{{ t('Tocca o inquadra il QR') }}</span>
+            <span class="eco-store-hint">{{ t('Tocca o inquadra · store in arrivo') }}</span>
           </a>
-          <a class="eco-download-qr eco-store-card eco-store-ios" href="{{ ios_download_url or '/app/apple' }}" title="{{ t('Download iPhone') }}">
+          <a class="eco-download-qr eco-store-card eco-store-ios" href="{{ ios_download_url or '/app/store/ios' }}" title="{{ t('Download iPhone') }}">
             <span class="eco-store-soon">{{ t('Prossimamente') }}</span>
             <img class="eco-store-badge" src="/static/product/app-store-badge.svg?v=2" width="180" height="54" alt="App Store" />
             {% if ios_qr_url %}
@@ -58,7 +95,7 @@
               <img src="{{ ios_qr_url }}" width="96" height="96" alt="{{ t('QR download iPhone') }}" />
             </span>
             {% endif %}
-            <span class="eco-store-hint">{{ t('Tocca o inquadra il QR') }}</span>
+            <span class="eco-store-hint">{{ t('Tocca o inquadra · store in arrivo') }}</span>
           </a>
         </div>
         <div class="eco-step-actions">
@@ -79,33 +116,41 @@
             {% if profile.spotify_linked %}{{ t('Spotify attivo') }}{% else %}{{ t('Collega i servizi') }}{% endif %}
           </span>
         </div>
-        <p>{{ t('Login una sola volta sul sito. Poi l’app vede già Spotify collegato — niente autorizzazioni ripetute.') }}</p>
+        <p class="eco-step-copy">{{ t('Collega Spotify una sola volta qui: poi Iris e l’app lo usano senza chiederti di nuovo l’accesso.') }}</p>
         <ul class="eco-channels" aria-label="{{ t('Canali') }}">
           <li>
             {% if profile.spotify_linked %}
             <span class="eco-channel is-on" title="Spotify">
-              <span class="eco-channel-icon" aria-hidden="true">💚</span>
+              <span class="eco-channel-icon" aria-hidden="true">
+                <img src="/static/product/logo-spotify.svg" width="32" height="32" alt="" />
+              </span>
               <span class="eco-channel-name">Spotify</span>
               <span class="eco-channel-meta">{% if profile.spotify_display_name %}{{ profile.spotify_display_name }}{% else %}{{ t('Collegato') }}{% endif %}</span>
             </span>
             {% else %}
             <a class="eco-channel" href="/auth/spotify/start" title="Spotify">
-              <span class="eco-channel-icon" aria-hidden="true">💚</span>
+              <span class="eco-channel-icon" aria-hidden="true">
+                <img src="/static/product/logo-spotify.svg" width="32" height="32" alt="" />
+              </span>
               <span class="eco-channel-name">Spotify</span>
-              <span class="eco-channel-meta">{{ t('Collega') }}</span>
+              <span class="eco-channel-meta">{{ t('Collega ora') }}</span>
             </a>
             {% endif %}
           </li>
           <li>
             <span class="eco-channel is-soon" title="Alexa">
-              <span class="eco-channel-icon" aria-hidden="true">🔊</span>
+              <span class="eco-channel-icon" aria-hidden="true">
+                <img src="/static/product/logo-alexa.svg" width="32" height="32" alt="" />
+              </span>
               <span class="eco-channel-name">Alexa</span>
               <span class="eco-channel-meta">{{ t('In arrivo') }}</span>
             </span>
           </li>
           <li>
             <span class="eco-channel is-soon" title="Google Assistant">
-              <span class="eco-channel-icon" aria-hidden="true">💬</span>
+              <span class="eco-channel-icon" aria-hidden="true">
+                <img src="/static/product/logo-google-assistant.svg" width="32" height="32" alt="" />
+              </span>
               <span class="eco-channel-name">Google Assistant</span>
               <span class="eco-channel-meta">{{ t('In arrivo') }}</span>
             </span>
@@ -125,7 +170,7 @@
 <dialog class="eco-pair-dialog" id="eco-pair-dialog" aria-labelledby="eco-pair-title">
   <div class="eco-pair-inner">
     <h2 id="eco-pair-title">{{ t('Associazione telefono') }}</h2>
-    <p class="form-hint">{{ t('Usa il codice nell’app oppure inquadra il QR. Vale solo per questa richiesta.') }}</p>
+    <p class="form-hint">{{ t('Inserisci il codice nell’app oppure inquadra il QR. Vale solo per questa volta.') }}</p>
     <p class="eco-pair-code" id="eco-pair-code">······</p>
     <p class="eco-pair-qr-wrap">
       <img id="eco-pair-qr" width="180" height="180" alt="{{ t('QR codice associazione') }}" hidden />

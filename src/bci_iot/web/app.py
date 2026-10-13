@@ -2221,8 +2221,9 @@ def create_app(
         from bci_iot.integrations.spotify_oauth import pairing_qr_url
 
         base = str(request.base_url).rstrip("/")
-        android_dl = f"{base}/app/android"
-        ios_dl = f"{base}/app/apple"
+        # QR / click → landing «Prossimamente in store» (non guide APK/Apple).
+        android_dl = f"{base}/app/store/android"
+        ios_dl = f"{base}/app/store/ios"
         return TEMPLATES.TemplateResponse(
             request,
             "dashboard.html",
@@ -3086,6 +3087,21 @@ def create_app(
         """Checklist: Apple Developer Program → TestFlight (user enrollment)."""
 
         return TEMPLATES.TemplateResponse(request, "app_apple.html", {"request": request})
+
+    @app.get("/app/store/{platform}", response_class=HTMLResponse)
+    def companion_app_store_soon(request: Request, platform: str) -> HTMLResponse:
+        """Landing QR/store: Iris-themed «Prossimamente in store»."""
+
+        plat = (platform or "").strip().lower()
+        if plat not in {"android", "ios", "apple"}:
+            plat = "android"
+        if plat == "apple":
+            plat = "ios"
+        return TEMPLATES.TemplateResponse(
+            request,
+            "app_store_soon.html",
+            {"request": request, "platform": plat},
+        )
 
     @app.get("/app/sw.js")
     def companion_app_service_worker() -> FileResponse:

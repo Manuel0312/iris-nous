@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#07080c" />
+  <title>Prossimamente in store · Iris Nous</title>
+  <link rel="icon" href="/static/app/icon-192.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@360;500;650&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/app/app.css?v=irisGlass12" />
+  <style>
+    .soon-hero {
+      text-align: center;
+      max-width: 28rem;
+      margin: 0 auto;
+      padding: 1.5rem 0 0.5rem;
+    }
+    .soon-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.45rem 0.85rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.14);
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    .soon-badge img { width: 22px; height: 22px; }
+    .soon-hero .title { font-size: clamp(1.6rem, 5vw, 2.1rem); margin: 0 0 0.65rem; }
+    .soon-hero .lede { margin: 0 auto 1.25rem; max-width: 24rem; }
+    .soon-emoji { font-size: 2.4rem; line-height: 1; margin: 0 0 0.75rem; }
+  </style>
+</head>
+<body class="app-body">
+  <div class="liquid-mesh" aria-hidden="true"></div>
+  <div class="liquid-shine" aria-hidden="true"></div>
+  <div class="guide soon-hero">
+    <p class="soon-emoji" aria-hidden="true">{% if platform == 'ios' %}🍎{% else %}🤖{% endif %}</p>
+    <p class="soon-badge">
+      {% if platform == 'ios' %}
+      <img src="/static/product/app-store-badge.svg?v=2" alt="" width="22" height="22" style="width:auto;height:22px;border-radius:4px;object-fit:cover;object-position:left" />
+      App Store
+      {% else %}
+      <img src="/static/product/google-play-badge.svg?v=2" alt="" width="22" height="22" style="width:auto;height:22px;border-radius:4px;object-fit:cover;object-position:left" />
+      Google Play
+      {% endif %}
+    </p>
+    <p class="eyebrow">Iris Nous</p>
+    <h1 class="title">Prossimamente in store</h1>
+    <p class="lede">
+      Stiamo preparando Iris per {% if platform == 'ios' %}l’App Store{% else %}Google Play{% endif %}.
+      Intanto puoi già usare l’app companion e collegare il telefono da Ecosistema.
+    </p>
+    <div class="card" style="text-align:left">
+      <p class="eyebrow">Cosa puoi fare ora</p>
+      <ol>
+        <li>Apri <strong>Ecosistema</strong> e tocca <strong>Associazione</strong>.</li>
+        <li>Installa Iris (APK / IPA) se te l’abbiamo già passato.</li>
+        <li>Torna qui quando lo store sarà online — stesso QR, stessa Iris.</li>
+      </ol>
+    </div>
+    <a class="btn primary" href="/ecosistema">Torna a Ecosistema</a>
+    <a class="btn ghost" href="/{% if platform == 'ios' %}app/installa{% else %}app/android{% endif %}">
+      {% if platform == 'ios' %}Guida iPhone{% else %}Guida Android APK{% endif %}
+    </a>
+  </div>
+</body>
+</html>

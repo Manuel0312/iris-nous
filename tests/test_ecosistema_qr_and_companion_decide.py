@@ -46,14 +46,28 @@ def test_ecosistema_shows_centered_download_qrs(tmp_path: Path) -> None:
     assert page.status_code == 200
     assert "eco-download-qrs" in page.text
     assert "api.qrserver.com" in page.text
-    assert "/app/android" in page.text
-    assert "/app/apple" in page.text
+    assert "/app/store/android" in page.text
+    assert "/app/store/ios" in page.text
     assert "Associazione" in page.text
     assert "eco-download-qr" in page.text
     assert "google-play-badge.svg" in page.text
     assert "app-store-badge.svg" in page.text
     assert "Prossimamente" in page.text
+    assert "eco-headset-stage" in page.text
+    assert "logo-spotify.svg" in page.text
     assert "Stato telefono" not in page.text  # not paired yet
+
+
+def test_store_soon_landing(tmp_path: Path) -> None:
+    app = create_app(data_dir=tmp_path, session_secret="store-soon")
+    client = TestClient(app)
+    android = client.get("/app/store/android")
+    assert android.status_code == 200
+    assert "Prossimamente in store" in android.text
+    ios = client.get("/app/store/ios")
+    assert ios.status_code == 200
+    assert "Prossimamente in store" in ios.text
+    assert "App Store" in ios.text
 
 
 def test_pairing_session_qr_payload(tmp_path: Path) -> None:
