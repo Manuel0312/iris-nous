@@ -37,13 +37,28 @@
             {% if profile.phone_paired %}{{ t('Collegato') }}{% else %}{{ t('Da collegare') }}{% endif %}
           </span>
         </div>
-        <p>{{ t('Installa l’app Iris e associa con codice o QR. Solo l’app nativa rileva le chiamate verso In ascolto.') }}</p>
+        <p>{{ t('Installa l’app Iris (QR sotto), poi Associazione con codice o QR. L’app tiene il ponte attivo anche in background: non serve restare su questa pagina.') }}</p>
+        <div class="eco-download-qrs" aria-label="{{ t('Scarica l’app') }}">
+          <a class="eco-download-qr" href="/app/android" title="{{ t('Download Android') }}">
+            {% if android_qr_url %}
+            <img src="{{ android_qr_url }}" width="112" height="112" alt="{{ t('QR download Android') }}" />
+            {% endif %}
+            <strong>Android</strong>
+            <span>{{ t('Inquadra per scaricare l’APK (store in arrivo).') }}</span>
+          </a>
+          <a class="eco-download-qr" href="/app/apple" title="{{ t('Download iPhone') }}">
+            {% if ios_qr_url %}
+            <img src="{{ ios_qr_url }}" width="112" height="112" alt="{{ t('QR download iPhone') }}" />
+            {% endif %}
+            <strong>iPhone</strong>
+            <span>{{ t('Inquadra per la guida iOS (App Store in arrivo).') }}</span>
+          </a>
+        </div>
         <div class="eco-step-actions">
           <button type="button" class="btn primary" id="eco-pair-open">{{ t('Associazione') }}</button>
           {% if profile.phone_paired %}
           <a class="btn ghost" href="/telefono-setup">{{ t('Stato telefono') }}</a>
           {% endif %}
-          <a class="btn ghost" href="/app/android">{{ t('APK Android') }}</a>
         </div>
       </div>
     </li>

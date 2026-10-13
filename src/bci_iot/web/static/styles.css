@@ -6033,11 +6033,13 @@ html[data-theme-resolved="dark"] .ai-chat-header {
 
 .eco-welcome {
   text-align: center;
+  justify-items: center;
 }
 
 .eco-welcome .lede {
   max-width: 36rem;
   margin-inline: auto;
+  text-align: center;
 }
 
 .anag-password-block {
@@ -6079,6 +6081,16 @@ html[data-theme-resolved="dark"] .ai-chat-header {
   box-shadow: 0 12px 30px rgba(26, 42, 58, 0.07);
   opacity: 0.72;
   min-width: 0;
+  text-align: center;
+  justify-items: center;
+}
+
+.eco-step-body {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  min-width: 0;
+  width: 100%;
 }
 
 /* Fase 3: stessa larghezza di una colonna, centrata sotto 1 e 2 */
@@ -6117,8 +6129,10 @@ html[data-theme-resolved="dark"] .ai-chat-header {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem 0.75rem;
   margin-bottom: 0.35rem;
+  width: 100%;
 }
 
 .eco-step-head h2 {
@@ -6146,12 +6160,60 @@ html[data-theme-resolved="dark"] .ai-chat-header {
   color: var(--muted);
   font-size: 0.95rem;
   line-height: 1.45;
+  text-align: center;
+  max-width: 28rem;
 }
 
 .eco-step-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.55rem;
+  justify-content: center;
+  width: 100%;
+}
+
+.eco-download-qrs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  width: 100%;
+  margin: 0 0 0.85rem;
+}
+
+.eco-download-qr {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  padding: 0.65rem 0.5rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(26, 42, 58, 0.08);
+  text-decoration: none;
+  color: inherit;
+}
+
+.eco-download-qr img {
+  width: 112px;
+  height: 112px;
+  border-radius: 10px;
+  background: #fff;
+  padding: 0.25rem;
+}
+
+.eco-download-qr strong {
+  font-size: 0.88rem;
+}
+
+.eco-download-qr span {
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.35;
+}
+
+html[data-theme-resolved="dark"] .eco-download-qr {
+  background: rgba(20, 28, 40, 0.55);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .eco-channels {
@@ -6538,10 +6600,20 @@ html[data-theme-resolved="dark"] .eco-channel {
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.65);
   box-shadow: 0 18px 48px rgba(10, 30, 60, 0.18);
+  text-align: center;
 }
 .eco-pair-inner h2 {
   margin: 0 0 0.35rem;
   font-size: 1.2rem;
+  text-align: center;
+}
+.eco-pair-inner .form-hint {
+  text-align: center;
+  margin-inline: auto;
+  max-width: 28rem;
+}
+.eco-pair-inner .private-actions {
+  justify-content: center;
 }
 .eco-pair-code {
   margin: 1rem 0 0.75rem;

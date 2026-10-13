@@ -211,6 +211,12 @@ class CompanionEventRequest(BaseModel):
     track: str = Field(default="", max_length=128)
 
 
+class CompanionDecideRequest(BaseModel):
+    """SÌ/NO from the companion app (virtual headset thought)."""
+
+    answer: str = Field(min_length=1, max_length=32)
+
+
 def _session_username(request: Request) -> str | None:
 
     value = request.session.get("username")
@@ -2205,6 +2211,11 @@ def create_app(
         if profile.needs_anagrafica:
             return RedirectResponse("/anagrafica", status_code=303)
         stats = dict(profile.usage_stats or {})
+        from bci_iot.integrations.spotify_oauth import pairing_qr_url
+
+        base = str(request.base_url).rstrip("/")
+        android_dl = f"{base}/app/android"
+        ios_dl = f"{base}/app/apple"
         return TEMPLATES.TemplateResponse(
             request,
             "dashboard.html",
@@ -2218,6 +2229,10 @@ def create_app(
                     username=profile.username,
                     gender=profile.gender,
                 ),
+                android_qr_url=pairing_qr_url(android_dl),
+                ios_qr_url=pairing_qr_url(ios_dl),
+                android_download_url=android_dl,
+                ios_download_url=ios_dl,
             ),
         )
 
@@ -3330,6 +3345,30 @@ def create_app(
             raise HTTPException(status_code=403, detail="Telefono non associato")
         return profile
 
+    def _ensure_virtual_headset_ready(profiles: ProfileStore, username: str) -> dict:
+        """If calibrated, power/wear/contact the simulated headset (always-on bridge)."""
+
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
+        profile = profiles.ensure_headset_pairing(username)
+        agent = get_headset_agent(
+            username=username,
+            headset_id=profile.headset_id,
+            data_root=profiles.data_root,
+        )
+        st = agent.status()
+        if not bool(getattr(agent.memory, "calibration_complete", False)) and not bool(
+            profile.calibration_complete
+        ):
+            return st
+        if not st.get("ready_for_impulses"):
+            profiles.set_headset_mode(username, "simulated")
+            try:
+                st = agent.ensure_virtual_ready()
+            except ValueError:
+                st = agent.status()
+        return st
+
     def _companion_status_payload(
         profiles: ProfileStore,
         profile: UserProfile,
@@ -3339,11 +3378,13 @@ def create_app(
         profiles.touch_phone(profile.username)
         # Re-read profile after touch (stats may have changed).
         profile = profiles.get(profile.username) or profile
+        headset = _ensure_virtual_headset_ready(profiles, profile.username)
         router = _hydrate_context_router(profiles, profile.username)
         router = _sync_spotify_playback(profiles, profile.username, router)
         world = router.world
         events = list(app.state.phone_queues.get(profile.username) or [])
         stats = profile.usage_stats or {}
+        focus = router.focus_snapshot().to_dict()
         payload = {
             "status": "ok",
             "username": profile.username,
@@ -3356,10 +3397,19 @@ def create_app(
             "spotify_display_name": profile.spotify_display_name or "",
             "headset_linked": bool(profile.headset_id),
             "calibration_complete": bool(profile.calibration_complete),
+            "headset": {
+                "ready_for_impulses": bool(headset.get("ready_for_impulses")),
+                "label": headset.get("label"),
+                "detail": headset.get("detail"),
+                "power": headset.get("power"),
+                "wear": headset.get("wear"),
+                "contact_ok": bool(headset.get("contact_ok")),
+            },
             "ecosystem": {
                 "cuffia": {
                     "done": bool(profile.calibration_complete),
                     "linked": bool(profile.headset_id),
+                    "ready": bool(headset.get("ready_for_impulses")),
                 },
                 "telefono": {
                     "done": bool(profile.phone_paired),
@@ -3377,15 +3427,16 @@ def create_app(
                 "message_from": world.message_from or "",
                 "music_playing": bool(world.music_playing),
                 "track_hint": world.track_hint or "",
-                "focus": router.focus_snapshot().to_dict(),
+                "focus": focus,
             },
             "limits": {
                 "cellular_answer_reject": False,
+                "iris_yes_no_actions": True,
                 "sms_read": False,
                 "note": (
-                    "L’app può rilevare lo stato chiamata (ingresso/fine) e aggiornare Iris; "
-                    "non può rispondere o rifiutare la tipica chiamata cellulare del sistema. "
-                    "La musica attiva arriva da Spotify collegato sul sito (API), non dal player locale del telefono."
+                    "Con SÌ/NO (app o PC) Iris aggiorna il contesto: risposta/rifiuto simulati, "
+                    "apri/ignora messaggio, prossima canzone Spotify. "
+                    "Non può premere i tasti nativi del telefono sulla radio cellulare."
                 ),
             },
         }
@@ -3539,6 +3590,62 @@ def create_app(
                 "message_incoming, music_playing, music_stopped."
             ),
         )
+
+    @app.post("/api/companion/decide")
+    async def api_companion_decide(
+        request: Request,
+        body: CompanionDecideRequest,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        """SÌ/NO from the phone app — same path as In ascolto, without keeping the PC page open."""
+
+        from bci_iot.pipeline.context_router import normalize_yes_no
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
+        profile = _resolve_companion_user(request, profiles)
+        yn_hint = normalize_yes_no(body.answer)
+        if yn_hint is None:
+            raise HTTPException(status_code=400, detail="Serve SÌ o NO")
+        _ensure_virtual_headset_ready(profiles, profile.username)
+        agent = get_headset_agent(
+            username=profile.username,
+            headset_id=profiles.ensure_headset_pairing(profile.username).headset_id,
+            data_root=profiles.data_root,
+        )
+
+        def _recv() -> dict:
+            return agent.receive_impulse(yn_hint, classify_yn=True)
+
+        try:
+            impulse_payload = await run_in_threadpool(_recv)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        classified = normalize_yes_no(
+            str(
+                impulse_payload.get("classified_answer")
+                or (impulse_payload.get("impulse") or {}).get("kind")
+                or yn_hint
+            )
+        ) or yn_hint
+        routed = await _apply_context_decision(
+            request,
+            profiles,
+            username=profile.username,
+            answer=classified,
+            impulse_kind=classified,
+            impulse_payload=impulse_payload,
+            via="companion_decide",
+        )
+        return {
+            "status": "ok",
+            **routed,
+            "classified_answer": classified,
+            "intended_kind": yn_hint,
+            "similarity_si": impulse_payload.get("similarity_si"),
+            "similarity_no": impulse_payload.get("similarity_no"),
+            "companion": _companion_status_payload(profiles, profile),
+        }
 
     @app.post("/api/companion/music/next")
     def api_companion_music_next(
@@ -3967,6 +4074,7 @@ def create_app(
             raise HTTPException(status_code=400, detail="Serve SÌ o NO")
 
         profile = profiles.ensure_headset_pairing(username)
+        _ensure_virtual_headset_ready(profiles, username)
         agent = get_headset_agent(
             username=username,
             headset_id=profile.headset_id,

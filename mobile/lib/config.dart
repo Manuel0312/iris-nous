@@ -10,6 +10,7 @@ class IrisConfig {
   static const String statusPath = '/api/companion/status';
   static const String eventPath = '/api/companion/event';
   static const String musicNextPath = '/api/companion/music/next';
+  static const String decidePath = '/api/companion/decide';
 
   static const String webEcosistema = '/ecosistema';
   static const String webTelefonoSetup = '/telefono-setup';

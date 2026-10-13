@@ -32,6 +32,7 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
         or "Hub «La tua cuffia»" in page.text
         or "Privacy e chiarezza demo" in page.text
     )
+    assert "Ecosistema centrato, QR download e SÌ/NO dall’app" in page.text
     assert "Foto profilo: tasti chiari e zoom utile" in page.text
     assert "Cuffia virtuale in un tap + telefono più solido" in page.text
     assert "Foto profilo senza ricaricare la pagina" in page.text

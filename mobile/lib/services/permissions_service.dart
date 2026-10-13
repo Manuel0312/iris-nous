@@ -35,46 +35,53 @@ class PermissionsService {
         id: 'phone',
         title: 'Stato telefono / chiamate',
         why:
-            'Per capire se arriva una chiamata cellulare e aggiornare Iris (In ascolto), senza rispondere al posto tuo.',
+            'Per rilevare lo squillo e aggiornare Iris. Poi SÌ/NO (cuffia virtuale) rispondono o rifiutano nel contesto Iris.',
         permission: Permission.phone,
         androidOnly: true,
         note:
-            'Android: READ_PHONE_STATE (+ su alcuni OEM READ_CALL_LOG). Da Android 12+ il numero chiamante può essere limitato. Non implementa risposta/rifiuto OS.',
+            'Android: READ_PHONE_STATE. Iris non preme i tasti nativi della radio cellulare; SÌ/NO aggiornano In ascolto / coda telefono.',
       ),
       const IrisPermissionItem(
         id: 'notification',
         title: 'Notifiche',
         why:
-            'Per avvisarti quando Iris riceve un evento (chiamata rilevata, heartbeat in background).',
+            'Obbligatorie per tenere attivo «Iris in ascolto» in background (chiamate anche con schermo spento).',
         permission: Permission.notification,
-        note: 'Android 13+: POST_NOTIFICATIONS. iOS: permesso notifiche al primo invio.',
+        note: 'Android 13+: POST_NOTIFICATIONS. iOS: permesso notifiche.',
+      ),
+      const IrisPermissionItem(
+        id: 'camera',
+        title: 'Fotocamera',
+        why: 'Per inquadrare il QR di Associazione da Ecosistema.',
+        permission: Permission.camera,
+        note: 'Solo lettura QR; nessuna foto inviata a Iris senza tua azione.',
       ),
       const IrisPermissionItem(
         id: 'ignore_battery',
         title: 'Esecuzione in background (batteria)',
         why:
-            'Per tenere il heartbeat verso Iris anche con lo schermo spento (servizio in primo piano su Android).',
+            'Consigliato: altrimenti Android può sospendere il ponte chiamate con lo schermo spento.',
         permission: Permission.ignoreBatteryOptimizations,
         androidOnly: true,
-        note: 'Collegato a FOREGROUND_SERVICE; non è obbligatorio al primo avvio.',
+        note: 'Collegato al servizio foreground IrisCallWatchService.',
       ),
       const IrisPermissionItem(
         id: 'ios_callkit',
         title: 'Osservazione chiamate (iOS)',
         why:
-            'Per rilevare squillo / connessa / terminata con CXCallObserver (CallKit) e dirlo a Iris.',
+            'CXCallObserver rileva squillo / fine chiamata e lo manda a Iris. SÌ/NO nell’app simulano la cuffia sul contesto.',
         permission: null,
         iosOnly: true,
         note:
-            'Nessuna stringa privacy obbligatoria solo per osservare. Non può rispondere/rifiutare la tipica chiamata cellulare. VoIP CallKit provider = fase successiva.',
+            'iOS non permette alle app di rispondere/rifiutare la tipica chiamata cellulare. Iris aggiorna il contesto demo.',
       ),
       const IrisPermissionItem(
         id: 'sms',
         title: 'SMS / messaggi',
-        why: 'In futuro, solo se Iris leggerà notifiche messaggio — oggi non serve.',
+        why: 'In futuro per notifiche messaggio — oggi puoi simulare il messaggio dall’app.',
         permission: null,
         planned: true,
-        note: 'Non richiesto. Niente READ_SMS / accesso iMessage.',
+        note: 'Non richiesto ora.',
       ),
     ];
 

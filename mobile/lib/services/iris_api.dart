@@ -128,6 +128,20 @@ class IrisApi {
     return body;
   }
 
+  /// Virtual-headset SÌ/NO → same context router as In ascolto on PC.
+  Future<Map<String, dynamic>> decide(String answer) async {
+    final res = await _client.post(
+      await _uri(IrisConfig.decidePath),
+      headers: await _authHeaders(),
+      body: jsonEncode({'answer': answer}),
+    );
+    final body = _decode(res);
+    if (res.statusCode >= 400) {
+      throw IrisApiException(_detail(body), statusCode: res.statusCode);
+    }
+    return body;
+  }
+
   Map<String, dynamic> _decode(http.Response res) {
     if (res.body.isEmpty) return <String, dynamic>{};
     final decoded = jsonDecode(res.body);

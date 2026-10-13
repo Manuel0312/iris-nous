@@ -36,11 +36,19 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) setState(() => _username = u);
     });
     _refresh();
-    _beat = Timer.periodic(const Duration(seconds: 20), (_) => _refresh());
+    _armHeartbeat();
     _calls.onChanged = () {
       if (mounted) setState(() {});
     };
     _calls.start();
+  }
+
+  void _armHeartbeat({bool fast = false}) {
+    _beat?.cancel();
+    _beat = Timer.periodic(
+      Duration(seconds: fast ? 4 : 15),
+      (_) => _refresh(),
+    );
   }
 
   @override
@@ -60,6 +68,15 @@ class _HomeScreenState extends State<HomeScreen> {
         final u = body['username'] as String?;
         if (u != null && u.isNotEmpty) _username = u;
       });
+      final focus = body['context'] is Map
+          ? (body['context'] as Map)['focus']
+          : null;
+      final kind = focus is Map ? focus['kind']?.toString() : null;
+      final active = kind != null && kind != 'idle' && kind.isNotEmpty;
+      _armHeartbeat(fast: active || (_status?['context'] is Map &&
+          (((_status!['context'] as Map)['incoming_call'] == true) ||
+              ((_status!['context'] as Map)['unread_message'] == true) ||
+              ((_status!['context'] as Map)['music_playing'] == true))));
     } on IrisApiException catch (e) {
       if (!mounted) return;
       if (e.statusCode == 401 || e.statusCode == 403) {
@@ -104,6 +121,23 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       );
+      await _refresh();
+    } on IrisApiException catch (e) {
+      setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _decide(String answer) async {
+    setState(() => _busy = true);
+    try {
+      final r = await _api.decide(answer);
+      if (!mounted) return;
+      final fb = r['feedback']?.toString() ??
+          r['message']?.toString() ??
+          (answer == 'SI' ? 'SÌ inviato a Iris' : 'NO inviato a Iris');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(fb)));
       await _refresh();
     } on IrisApiException catch (e) {
       setState(() => _error = e.message);
@@ -293,6 +327,34 @@ class _HomeScreenState extends State<HomeScreen> {
             value: (focus?['title'] as String?) ?? '—',
             tone: const Color(0xFFE8F6FF),
             accent: accent,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Cuffia virtuale (SÌ / NO)',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Come se pensassi con la cuffia: risponde/rifiuta la chiamata in Iris, apre/ignora messaggio, o cambia canzone su Spotify. Non serve tenere aperta In ascolto sul PC.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton(
+                  onPressed: _busy ? null : () => _decide('SI'),
+                  child: Text((focus?['yes_label'] as String?) ?? 'Pensa SÌ'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _busy ? null : () => _decide('NO'),
+                  child: Text((focus?['no_label'] as String?) ?? 'Pensa NO'),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
           Text('Azioni', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
