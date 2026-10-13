@@ -7,16 +7,13 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <!--
-      Chiamate (solo stato, non risposta/rifiuto):
-      - READ_PHONE_STATE: PhoneStateListener / TelephonyCallback (Android 12+)
-      - READ_PHONE_NUMBERS: opzionale, numeri associati al dispositivo (API 26+)
-      - READ_CALL_LOG: alcuni OEM / log; su Android 10+ è sensibile — chiedere solo se serve il chiamante
-      Non dichiarare READ_SMS finché i messaggi non sono implementati.
+      Chiamate:
+      - READ_PHONE_STATE: rileva squillo
+      - ANSWER_PHONE_CALLS: risponde / rifiuta via TelecomManager (SÌ/NO Iris)
     -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.READ_PHONE_NUMBERS" />
-    <!-- Opzionale / fase call-observer: decommentare solo se serve il log chiamate -->
-    <!-- <uses-permission android:name="android.permission.READ_CALL_LOG" /> -->
+    <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
 
     <!-- Heartbeat / rilevamento in background -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />

@@ -142,6 +142,20 @@ class IrisApi {
     return body;
   }
 
+  Future<Map<String, dynamic>> ackCommands(List<String> ids) async {
+    if (ids.isEmpty) return {'status': 'ok', 'acked': 0};
+    final res = await _client.post(
+      await _uri(IrisConfig.commandsAckPath),
+      headers: await _authHeaders(),
+      body: jsonEncode({'ids': ids}),
+    );
+    final body = _decode(res);
+    if (res.statusCode >= 400) {
+      throw IrisApiException(_detail(body), statusCode: res.statusCode);
+    }
+    return body;
+  }
+
   Map<String, dynamic> _decode(http.Response res) {
     if (res.body.isEmpty) return <String, dynamic>{};
     final decoded = jsonDecode(res.body);

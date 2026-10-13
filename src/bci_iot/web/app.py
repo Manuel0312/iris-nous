@@ -217,6 +217,10 @@ class CompanionDecideRequest(BaseModel):
     answer: str = Field(min_length=1, max_length=32)
 
 
+class CompanionCommandsAckRequest(BaseModel):
+    ids: list[str] = Field(default_factory=list)
+
+
 def _session_username(request: Request) -> str | None:
 
     value = request.session.get("username")
@@ -506,7 +510,10 @@ def create_app(
     app.state.photos_dir = photos_dir
     app.state.data_root = store.data_root
     app.state.phone_queues: dict[str, list] = {}
+    # OS call actions for the companion (Android answer/reject). Consumed via heartbeat + ack.
+    app.state.companion_commands: dict[str, list] = {}
     app.state.calib_sessions = {}
+    app.state._companion_cmd_seq = 0
     def _store() -> ProfileStore:
         return store
     def _access() -> AccessDatabase:
@@ -3369,6 +3376,26 @@ def create_app(
                 st = agent.status()
         return st
 
+    def _enqueue_companion_os_call(username: str, action: str) -> dict:
+        """Queue an OS-level answer/reject for the paired companion (Android)."""
+
+        from datetime import datetime, timezone
+
+        app.state._companion_cmd_seq = int(getattr(app.state, "_companion_cmd_seq", 0) or 0) + 1
+        cmd = {
+            "id": f"cmd-{app.state._companion_cmd_seq}",
+            "action": action,
+            "at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+            "platform": "android",
+        }
+        q = app.state.companion_commands.setdefault(username, [])
+        q.append(cmd)
+        del q[:-10]
+        return cmd
+
+    def _pending_companion_commands(username: str) -> list:
+        return list(app.state.companion_commands.get(username) or [])
+
     def _companion_status_payload(
         profiles: ProfileStore,
         profile: UserProfile,
@@ -3420,6 +3447,7 @@ def create_app(
                 },
             },
             "events": events,
+            "pending_commands": _pending_companion_commands(profile.username),
             "context": {
                 "incoming_call": bool(world.incoming_call),
                 "caller_name": world.caller_name or "",
@@ -3430,13 +3458,14 @@ def create_app(
                 "focus": focus,
             },
             "limits": {
-                "cellular_answer_reject": False,
+                "cellular_answer_reject_android": True,
+                "cellular_answer_reject_ios": False,
                 "iris_yes_no_actions": True,
                 "sms_read": False,
                 "note": (
-                    "Con SÌ/NO (app o PC) Iris aggiorna il contesto: risposta/rifiuto simulati, "
-                    "apri/ignora messaggio, prossima canzone Spotify. "
-                    "Non può premere i tasti nativi del telefono sulla radio cellulare."
+                    "SÌ/NO: su Android l’app prova a rispondere/rifiutare la chiamata cellulare "
+                    "(permesso Rispondi alle chiamate). Su iPhone non è permesso dal sistema: "
+                    "resta il contesto Iris + Spotify/messaggi simulati."
                 ),
             },
         }
@@ -3590,6 +3619,29 @@ def create_app(
                 "message_incoming, music_playing, music_stopped."
             ),
         )
+
+    @app.post("/api/companion/commands/ack")
+    def api_companion_commands_ack(
+        request: Request,
+        body: CompanionCommandsAckRequest,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        """Companion reports OS call commands as handled (drop from pending queue)."""
+
+        profile = _resolve_companion_user(request, profiles)
+        want = {str(x) for x in (body.ids or []) if str(x).strip()}
+        q = app.state.companion_commands.setdefault(profile.username, [])
+        before = len(q)
+        if want:
+            app.state.companion_commands[profile.username] = [
+                c for c in q if str(c.get("id") or "") not in want
+            ]
+        acked = before - len(app.state.companion_commands.get(profile.username) or [])
+        return {
+            "status": "ok",
+            "acked": acked,
+            "pending_commands": _pending_companion_commands(profile.username),
+        }
 
     @app.post("/api/companion/decide")
     async def api_companion_decide(
@@ -3839,13 +3891,25 @@ def create_app(
             event = phone_queue_event(action, label=label)  # type: ignore[arg-type]
             queue.append(event)
             del queue[:-20]
+            os_cmd = None
+            if action in {"answer_call", "reject_call"}:
+                os_cmd = _enqueue_companion_os_call(
+                    username,
+                    "os_answer_call" if action == "answer_call" else "os_reject_call",
+                )
             execution = {
                 "kind": action,
-                "mode": "phone_bridge",
+                "mode": "phone_bridge_os" if os_cmd else "phone_bridge",
                 "event": event,
+                "os_command": os_cmd,
                 "note": (
-                    "Decisione inviata a Telefono live (ponte browser). "
-                    "Non controlla la tipica chiamata cellulare del sistema operativo."
+                    "Decisione inviata all’app: su Android prova a rispondere/rifiutare "
+                    "la chiamata cellulare (permesso ANSWER_PHONE_CALLS). "
+                    "Su iPhone il sistema non lo consente — resta solo il contesto Iris."
+                    if os_cmd
+                    else (
+                        "Decisione inviata a Telefono live (ponte browser)."
+                    )
                 ),
             }
         elif action == "next_track":

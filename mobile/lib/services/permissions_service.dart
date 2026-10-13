@@ -33,13 +33,13 @@ class PermissionsService {
     final items = <IrisPermissionItem>[
       const IrisPermissionItem(
         id: 'phone',
-        title: 'Stato telefono / chiamate',
+        title: 'Stato telefono + rispondi/rifiuta',
         why:
-            'Per rilevare lo squillo e aggiornare Iris. Poi SÌ/NO (cuffia virtuale) rispondono o rifiutano nel contesto Iris.',
+            'Rileva lo squillo e, con SÌ/NO, prova a rispondere o rifiutare la chiamata cellulare su Android.',
         permission: Permission.phone,
         androidOnly: true,
         note:
-            'Android: READ_PHONE_STATE. Iris non preme i tasti nativi della radio cellulare; SÌ/NO aggiornano In ascolto / coda telefono.',
+            'Include READ_PHONE_STATE e ANSWER_PHONE_CALLS. Su alcuni OEM può servire Iris come app telefono predefinita per il rifiuto.',
       ),
       const IrisPermissionItem(
         id: 'notification',

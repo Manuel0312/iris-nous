@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.64",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "SÌ/NO può rispondere o rifiutare su Android",
+                "Premendo SÌ/NO Iris aggiornava solo il contesto e il telefono continuava a squillare.",
+                "Ora su Android, con il permesso «Rispondi alle chiamate», SÌ/NO prova anche a rispondere o rifiutare la chiamata cellulare; su iPhone resta il limite del sistema.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.63",
         "intro": WHATS_NEW_INTRO,
         "entries": (

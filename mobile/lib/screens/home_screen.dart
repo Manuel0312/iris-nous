@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../config.dart';
 import '../services/auth_store.dart';
+import '../services/call_control.dart';
 import '../services/call_observer.dart';
 import '../services/iris_api.dart';
 import '../theme/iris_theme.dart';
@@ -23,11 +24,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late final IrisApi _api = IrisApi(widget.store);
   late final CallObserverService _calls = CallObserverService(_api);
+  final CallControlService _callControl = CallControlService();
   Timer? _beat;
   Map<String, dynamic>? _status;
   String? _error;
   String? _username;
   bool _busy = false;
+  String? _lastOsAction;
 
   @override
   void initState() {
@@ -68,6 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final u = body['username'] as String?;
         if (u != null && u.isNotEmpty) _username = u;
       });
+      await _drainOsCommands(body);
       final focus = body['context'] is Map
           ? (body['context'] as Map)['focus']
           : null;
@@ -129,15 +133,65 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _drainOsCommands(Map<String, dynamic> body) async {
+    final raw = body['pending_commands'];
+    if (raw is! List || raw.isEmpty) return;
+    final ids = <String>[];
+    for (final item in raw) {
+      if (item is! Map) continue;
+      final id = item['id']?.toString() ?? '';
+      final action = item['action']?.toString() ?? '';
+      if (id.isEmpty || action.isEmpty) continue;
+      final result = await _callControl.runAction(action);
+      ids.add(id);
+      final ok = result['ok'] == true;
+      _lastOsAction = ok
+          ? 'Telefono: ${action.contains('answer') ? 'risposta' : 'rifiuto'} inviato al sistema'
+          : 'Telefono OS: ${result['reason'] ?? 'non riuscito'} (su iPhone non è possibile)';
+      if (mounted) setState(() {});
+    }
+    if (ids.isNotEmpty) {
+      try {
+        await _api.ackCommands(ids);
+      } catch (_) {}
+    }
+  }
+
   Future<void> _decide(String answer) async {
     setState(() => _busy = true);
     try {
       final r = await _api.decide(answer);
       if (!mounted) return;
+      // Immediate OS action if server queued answer/reject (also drained from companion block).
+      final companion = r['companion'];
+      if (companion is Map<String, dynamic>) {
+        await _drainOsCommands(companion);
+      } else if (companion is Map) {
+        await _drainOsCommands(companion.cast<String, dynamic>());
+      }
+      final exec = r['execution'];
+      if (exec is Map && exec['os_command'] is Map) {
+        final cmd = (exec['os_command'] as Map).cast<String, dynamic>();
+        final action = cmd['action']?.toString() ?? '';
+        if (action.isNotEmpty) {
+          final result = await _callControl.runAction(action);
+          final id = cmd['id']?.toString();
+          if (id != null && id.isNotEmpty) {
+            try {
+              await _api.ackCommands([id]);
+            } catch (_) {}
+          }
+          _lastOsAction = result['ok'] == true
+              ? 'Chiamata: comando inviato al telefono'
+              : 'Chiamata OS non eseguita: ${result['reason'] ?? 'blocco sistema'}';
+        }
+      }
       final fb = r['feedback']?.toString() ??
           r['message']?.toString() ??
           (answer == 'SI' ? 'SÌ inviato a Iris' : 'NO inviato a Iris');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(fb)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_lastOsAction == null ? fb : '$fb\n$_lastOsAction')),
+      );
       await _refresh();
     } on IrisApiException catch (e) {
       setState(() => _error = e.message);
@@ -335,9 +389,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Come se pensassi con la cuffia: risponde/rifiuta la chiamata in Iris, apre/ignora messaggio, o cambia canzone su Spotify. Non serve tenere aperta In ascolto sul PC.',
+            'Come se pensassi con la cuffia. Su Android, SÌ/NO prova anche a rispondere o rifiutare la chiamata cellulare (concedi «Rispondi alle chiamate»). Su iPhone il sistema lo blocca: resta il contesto Iris. Spotify e messaggi come prima.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
           ),
+          if (_lastOsAction != null) ...[
+            const SizedBox(height: 6),
+            Text(_lastOsAction!, style: TextStyle(color: accent, fontWeight: FontWeight.w600)),
+          ],
           const SizedBox(height: 8),
           Row(
             children: [

@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.64 android OS answer/reject ---
+    "SÌ/NO può rispondere o rifiutare su Android": {
+        "en": "YES/NO can answer or reject on Android",
+        "fr": "OUI/NON peut répondre ou refuser sur Android",
+        "de": "JA/NEIN kann auf Android annehmen oder ablehnen",
+        "pt": "SIM/NÃO pode atender ou rejeitar no Android",
+        "zh": "是/否可在 Android 上接听或拒接",
+        "ja": "AndroidでYES/NOが応答・拒否可能",
+        "es": "SÍ/NO puede responder o rechazar en Android",
+    },
+    "Premendo SÌ/NO Iris aggiornava solo il contesto e il telefono continuava a squillare.": {
+        "en": "Pressing YES/NO only updated Iris context and the phone kept ringing.",
+        "fr": "OUI/NON ne mettait à jour que le contexte Iris et le téléphone continuait de sonner.",
+        "de": "JA/NEIN aktualisierte nur den Iris-Kontext und das Telefon klingelte weiter.",
+        "pt": "SIM/NÃO só atualizava o contexto Iris e o telemóvel continuava a tocar.",
+        "zh": "按是/否只更新 Iris 情境，手机仍在响铃。",
+        "ja": "YES/NOはIrisの文脈だけ更新し、着信音は止まりませんでした。",
+        "es": "SÍ/NO solo actualizaba el contexto Iris y el teléfono seguía sonando.",
+    },
+    "Ora su Android, con il permesso «Rispondi alle chiamate», SÌ/NO prova anche a rispondere o rifiutare la chiamata cellulare; su iPhone resta il limite del sistema.": {
+        "en": "Now on Android, with Answer phone calls permission, YES/NO also tries to answer or reject the cellular call; on iPhone the system limit remains.",
+        "fr": "Sur Android, avec la permission Répondre aux appels, OUI/NON tente aussi de répondre ou refuser l’appel cellulaire ; sur iPhone la limite système demeure.",
+        "de": "Unter Android versucht JA/NEIN mit der Berechtigung Anrufe annehmen auch, den Mobilfunkanruf anzunehmen/abzulehnen; auf dem iPhone bleibt die Systemgrenze.",
+        "pt": "No Android, com a permissão Atender chamadas, SIM/NÃO também tenta atender ou rejeitar a chamada; no iPhone mantém-se o limite do sistema.",
+        "zh": "在 Android 上，授予接听权限后，是/否也会尝试接听或拒接来电；iPhone 仍受系统限制。",
+        "ja": "Androidでは着信応答権限があればYES/NOが携帯着信の応答/拒否も試行。iPhoneはOS制限のまま。",
+        "es": "En Android, con el permiso Responder llamadas, SÍ/NO también intenta responder o rechazar la llamada; en iPhone sigue el límite del sistema.",
+    },
     # --- v0.4.63 ecosistema QR + companion decide ---
     "Ecosistema centrato, QR download e SÌ/NO dall’app": {
         "en": "Centered Ecosistema, download QR and YES/NO from the app",

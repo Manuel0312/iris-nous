@@ -134,3 +134,17 @@ def test_companion_decide_yes_no_without_pc_page(tmp_path: Path) -> None:
     assert body.get("classified_answer") in {"SI", "NO", "SÌ"}
     # Call focus should clear after reject path
     assert get_context_router("dec63").world.incoming_call is False
+    # OS reject queued for Android companion
+    pending = (body.get("companion") or {}).get("pending_commands") or []
+    assert any(c.get("action") == "os_reject_call" for c in pending)
+    cmd_id = next(c["id"] for c in pending if c.get("action") == "os_reject_call")
+    ack = client.post(
+        "/api/companion/commands/ack",
+        headers=headers,
+        json={"ids": [cmd_id]},
+    )
+    assert ack.status_code == 200
+    assert ack.json()["acked"] >= 1
+    assert not any(
+        c.get("id") == cmd_id for c in (ack.json().get("pending_commands") or [])
+    )
