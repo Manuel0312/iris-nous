@@ -34,20 +34,22 @@
 	<array>
 		<string>fetch</string>
 		<string>processing</string>
+		<string>audio</string>
+		<string>voip</string>
 	</array>
 	<!-- Notifiche: testo mostrato dal sistema (EN richiesto da Apple; IT in README) -->
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>Iris Nous uses notifications to tell you when a call or music event was sent to your Iris account. / Iris usa le notifiche per avvisarti quando un evento chiamata o musica è stato inviato al tuo account.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Iris Nous uses the camera only to scan the pairing QR code from Ecosistema. / Iris usa la fotocamera solo per leggere il QR di associazione da Ecosistema.</string>
-	<!-- Microfono: NON richiesto in questa versione (evitare se non serve). -->
-	<!-- NSMicrophoneUsageDescription omesso di proposito. -->
+	<!-- Microfono: sessione audio CallKit quando SÌ risponde alla chiamata Iris. -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Iris Nous uses the microphone only for CallKit audio when you answer an Iris-presented call with YES. / Iris usa il microfono solo per l’audio CallKit quando rispondi con SÌ a una chiamata presentata da Iris.</string>
 	<!-- Tracking: NON usato. -->
 	<!-- NSUserTrackingUsageDescription omesso di proposito. -->
 	<!--
-	  CallKit / CXCallObserver: osservare lo stato chiamata cellulare non richiede
-	  una privacy string dedicata. Non possiamo rispondere/rifiutare la tipica
-	  chiamata cellulare; un CallKit provider VoIP sarebbe una fase successiva.
+	  CallKit: Iris presenta chiamate con UI nativa (VoIP provider). SÌ/NO rispondono
+	  a quella chiamata Iris. La linea GSM del gestore non è controllabile da terze parti.
 	-->
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>

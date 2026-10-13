@@ -2,10 +2,8 @@ import Flutter
 import Foundation
 import CallKit
 
-/// Osserva lo stato delle chiamate cellulari (squillo / attiva / fine)
-/// e lo inoltra a Flutter → API companion Iris.
-///
-/// Limite Apple: non possiamo rispondere o rifiutare la tipica chiamata cellulare.
+/// Osserva squillo/attiva/fine (cellulare + CallKit) e lo inoltra a Flutter → Iris.
+/// La risposta/rifiuto avviene su CallControlBridge (chiamata Iris CallKit).
 final class CallObserverBridge: NSObject, CXCallObserverDelegate {
   static let channelName = "com.irisnous.mobile/call_observer"
 

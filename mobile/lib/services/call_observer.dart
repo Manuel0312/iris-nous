@@ -9,9 +9,12 @@ import 'iris_api.dart';
 
 /// Bridge verso CXCallObserver (iOS) e TelephonyCallback (Android).
 class CallObserverService {
-  CallObserverService(this.api);
+  CallObserverService(this.api, {this.onIncomingRing, this.onCallIdle});
 
   final IrisApi api;
+  /// iOS: presenta CallKit quando arriva squillo (bypass UI nativa rispondibile).
+  final Future<void> Function(String caller)? onIncomingRing;
+  final Future<void> Function()? onCallIdle;
   static const _channel = MethodChannel('com.irisnous.mobile/call_observer');
 
   bool _wasRinging = false;
@@ -103,6 +106,9 @@ class CallObserverService {
       } catch (e) {
         lastError = 'Invio squillo fallito: $e';
       }
+      try {
+        await onIncomingRing?.call(_callerLabel);
+      } catch (_) {}
       onChanged?.call();
     }
     if (_wasActive && !active && !ringing) {
@@ -113,6 +119,9 @@ class CallObserverService {
       } catch (e) {
         lastError = 'Invio fine chiamata fallito: $e';
       }
+      try {
+        await onCallIdle?.call();
+      } catch (_) {}
       onChanged?.call();
     }
     _wasRinging = ringing;

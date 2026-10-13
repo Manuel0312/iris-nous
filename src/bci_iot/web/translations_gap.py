@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.65 iOS CallKit answer/reject ---
+    "iPhone: SÌ/NO risponde con CallKit": {
+        "en": "iPhone: YES/NO answers with CallKit",
+        "fr": "iPhone : OUI/NON répond avec CallKit",
+        "de": "iPhone: JA/NEIN antwortet mit CallKit",
+        "pt": "iPhone: SIM/NÃO responde com CallKit",
+        "zh": "iPhone：是/否通过 CallKit 接听",
+        "ja": "iPhone：YES/NOがCallKitで応答",
+        "es": "iPhone: SÍ/NO responde con CallKit",
+    },
+    "Su iPhone non si può comandare la linea cellulare del gestore, quindi SÌ/NO restava solo contesto.": {
+        "en": "On iPhone the carrier cellular line cannot be controlled, so YES/NO stayed context-only.",
+        "fr": "Sur iPhone la ligne cellulaire de l’opérateur n’est pas contrôlable, donc OUI/NON restait contexte seul.",
+        "de": "Am iPhone lässt sich die Mobilfunkleitung nicht steuern, daher blieb JA/NEIN nur Kontext.",
+        "pt": "No iPhone a linha celular da operadora não pode ser controlada, por isso SIM/NÃO ficava só no contexto.",
+        "zh": "在 iPhone 上无法控制运营商蜂窝线路，因此是/否此前只更新情境。",
+        "ja": "iPhoneではキャリア回線を制御できないため、YES/NOは文脈更新のみでした。",
+        "es": "En iPhone no se puede controlar la línea celular del operador, así que SÍ/NO solo actualizaba el contexto.",
+    },
+    "Ora Iris presenta una chiamata nativa CallKit: SÌ risponde e NO rifiuta quella schermata (bypass per la demo). Su Android resta il controllo sulla linea cellulare.": {
+        "en": "Now Iris presents a native CallKit call: YES answers and NO rejects that screen (demo bypass). On Android cellular-line control remains.",
+        "fr": "Iris présente maintenant un appel CallKit natif : OUI répond et NON refuse cet écran (contournement démo). Sur Android le contrôle de la ligne cellulaire reste.",
+        "de": "Iris zeigt jetzt einen nativen CallKit-Anruf: JA nimmt an, NEIN lehnt ab (Demo-Bypass). Unter Android bleibt die Mobilfunksteuerung.",
+        "pt": "Agora Iris apresenta uma chamada CallKit nativa: SIM atende e NÃO rejeita esse ecrã (bypass de demo). No Android mantém-se o controlo da linha celular.",
+        "zh": "现在 Iris 会呈现原生 CallKit 来电：是接听、否拒接该界面（演示绕行）。Android 仍控制蜂窝线路。",
+        "ja": "IrisがCallKitの着信UIを提示。YESで応答、NOで拒否（デモ用バイパス）。Androidは従来どおり回線制御。",
+        "es": "Ahora Iris presenta una llamada CallKit nativa: SÍ responde y NO rechaza esa pantalla (bypass de demo). En Android se mantiene el control de la línea celular.",
+    },
     # --- v0.4.64 android OS answer/reject ---
     "SÌ/NO può rispondere o rifiutare su Android": {
         "en": "YES/NO can answer or reject on Android",

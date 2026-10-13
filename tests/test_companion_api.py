@@ -63,6 +63,7 @@ def test_companion_pair_and_call_events(tmp_path: Path) -> None:
     assert body["phone_paired"] is True
     assert body["limits"]["cellular_answer_reject_android"] is True
     assert body["limits"]["cellular_answer_reject_ios"] is False
+    assert body["limits"]["callkit_answer_reject_ios"] is True
 
     headers = {"Authorization": f"Bearer {token}"}
     beat = client.post("/api/companion/heartbeat", headers=headers)

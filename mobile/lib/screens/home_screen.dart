@@ -23,7 +23,11 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late final IrisApi _api = IrisApi(widget.store);
-  late final CallObserverService _calls = CallObserverService(_api);
+  late final CallObserverService _calls = CallObserverService(
+    _api,
+    onIncomingRing: (caller) => _ensureCallKit(caller),
+    onCallIdle: () => _clearCallKitIfRinging(),
+  );
   final CallControlService _callControl = CallControlService();
   Timer? _beat;
   Map<String, dynamic>? _status;
@@ -31,6 +35,8 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _username;
   bool _busy = false;
   String? _lastOsAction;
+  bool _callKitPresented = false;
+  bool _callKitAnswered = false;
 
   @override
   void initState() {
@@ -44,6 +50,30 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) setState(() {});
     };
     _calls.start();
+  }
+
+  Future<void> _ensureCallKit(String caller) async {
+    if (_callKitAnswered) return;
+    final r = await _callControl.presentIncoming(caller: caller);
+    _callKitPresented = r['ok'] == true;
+    if (mounted && _callKitPresented) {
+      setState(() {
+        _lastOsAction =
+            'iPhone: schermata chiamata Iris (CallKit) — SÌ/NO rispondono qui';
+      });
+    }
+  }
+
+  Future<void> _clearCallKitIfRinging() async {
+    // Non chiudere una CallKit già risposta con SÌ.
+    if (_callKitAnswered) {
+      _callKitPresented = false;
+      return;
+    }
+    if (_callKitPresented) {
+      await _callControl.end();
+      _callKitPresented = false;
+    }
   }
 
   void _armHeartbeat({bool fast = false}) {
@@ -72,9 +102,15 @@ class _HomeScreenState extends State<HomeScreen> {
         if (u != null && u.isNotEmpty) _username = u;
       });
       await _drainOsCommands(body);
-      final focus = body['context'] is Map
-          ? (body['context'] as Map)['focus']
-          : null;
+      final ctxMap = body['context'] is Map ? body['context'] as Map : null;
+      final incoming = ctxMap?['incoming_call'] == true;
+      final callerName = (ctxMap?['caller_name']?.toString() ?? '').trim();
+      if (incoming && !_callKitPresented && !_callKitAnswered) {
+        await _ensureCallKit(callerName.isEmpty ? 'Chiamata Iris' : callerName);
+      } else if (!incoming && _callKitPresented) {
+        await _clearCallKitIfRinging();
+      }
+      final focus = ctxMap?['focus'];
       final kind = focus is Map ? focus['kind']?.toString() : null;
       final active = kind != null && kind != 'idle' && kind.isNotEmpty;
       _armHeartbeat(fast: active || (_status?['context'] is Map &&
@@ -102,6 +138,14 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _busy = true);
     try {
       await _api.sendEvent(event, caller: 'Demo');
+      if (event == 'call_incoming') {
+        _callKitAnswered = false;
+        await _ensureCallKit('Demo');
+      } else if (event == 'call_ended') {
+        _callKitAnswered = false;
+        await _callControl.end();
+        _callKitPresented = false;
+      }
       await _refresh();
     } on IrisApiException catch (e) {
       setState(() => _error = e.message);
@@ -145,9 +189,20 @@ class _HomeScreenState extends State<HomeScreen> {
       final result = await _callControl.runAction(action);
       ids.add(id);
       final ok = result['ok'] == true;
+      final mode = result['mode']?.toString() ?? '';
+      if (ok && action.contains('answer')) {
+        _callKitAnswered = true;
+        _callKitPresented = true;
+      }
+      if (ok && action.contains('reject')) {
+        _callKitAnswered = false;
+        _callKitPresented = false;
+      }
       _lastOsAction = ok
-          ? 'Telefono: ${action.contains('answer') ? 'risposta' : 'rifiuto'} inviato al sistema'
-          : 'Telefono OS: ${result['reason'] ?? 'non riuscito'} (su iPhone non è possibile)';
+          ? (mode == 'callkit'
+              ? 'iPhone CallKit: ${action.contains('answer') ? 'risposta' : 'rifiuto'}'
+              : 'Telefono: ${action.contains('answer') ? 'risposta' : 'rifiuto'} inviato al sistema')
+          : 'Telefono OS: ${result['reason'] ?? 'non riuscito'}';
       if (mounted) setState(() {});
     }
     if (ids.isNotEmpty) {
@@ -180,6 +235,14 @@ class _HomeScreenState extends State<HomeScreen> {
             try {
               await _api.ackCommands([id]);
             } catch (_) {}
+          }
+          if (result['ok'] == true && action.contains('answer')) {
+            _callKitAnswered = true;
+            _callKitPresented = true;
+          }
+          if (result['ok'] == true && action.contains('reject')) {
+            _callKitAnswered = false;
+            _callKitPresented = false;
           }
           _lastOsAction = result['ok'] == true
               ? 'Chiamata: comando inviato al telefono'

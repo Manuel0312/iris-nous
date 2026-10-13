@@ -3460,12 +3460,13 @@ def create_app(
             "limits": {
                 "cellular_answer_reject_android": True,
                 "cellular_answer_reject_ios": False,
+                "callkit_answer_reject_ios": True,
                 "iris_yes_no_actions": True,
                 "sms_read": False,
                 "note": (
-                    "SÌ/NO: su Android l’app prova a rispondere/rifiutare la chiamata cellulare "
-                    "(permesso Rispondi alle chiamate). Su iPhone non è permesso dal sistema: "
-                    "resta il contesto Iris + Spotify/messaggi simulati."
+                    "SÌ/NO: su Android risponde/rifiuta la linea cellulare (TelecomManager). "
+                    "Su iPhone Iris presenta una chiamata CallKit (schermata nativa): "
+                    "SÌ/NO rispondono a quella. La linea GSM del gestore resta fuori controllo Apple."
                 ),
             },
         }
@@ -3903,9 +3904,8 @@ def create_app(
                 "event": event,
                 "os_command": os_cmd,
                 "note": (
-                    "Decisione inviata all’app: su Android prova a rispondere/rifiutare "
-                    "la chiamata cellulare (permesso ANSWER_PHONE_CALLS). "
-                    "Su iPhone il sistema non lo consente — resta solo il contesto Iris."
+                    "Decisione inviata all’app: Android → linea cellulare; "
+                    "iPhone → risposta/rifiuto sulla chiamata CallKit presentata da Iris."
                     if os_cmd
                     else (
                         "Decisione inviata a Telefono live (ponte browser)."
