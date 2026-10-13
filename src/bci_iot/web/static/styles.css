@@ -6461,27 +6461,27 @@ html[data-theme-resolved="dark"] .eco-channel {
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* —— Tablet: Ecosistema + In ascolto + bentornato —— */
+/* —— Tablet / iPad: Ecosistema + In ascolto + bentornato —— */
 @media (min-width: 721px) and (max-width: 1024px) {
   .page-ecosistema .shell.private-shell,
   .page-contesto .shell.private-shell,
   .page-telefono-setup .shell.private-shell {
-    width: min(720px, calc(100% - 2rem));
+    width: min(880px, calc(100% - 1.5rem));
   }
 
   .eco-hub {
-    max-width: 48rem;
-    gap: 1.15rem;
-    padding-inline: 0.25rem;
+    max-width: 54rem;
+    gap: 1.1rem;
+    padding-inline: 0.15rem;
   }
 
   .eco-steps {
     grid-template-columns: 1fr 1fr;
-    gap: 0.9rem 1rem;
+    gap: 0.85rem 0.95rem;
   }
 
   .eco-step {
-    padding: 1rem 1.05rem 1.1rem;
+    padding: 1rem 0.95rem 1.05rem;
   }
 
   .eco-step-channels {
@@ -6489,18 +6489,39 @@ html[data-theme-resolved="dark"] .eco-channel {
     max-width: none;
   }
 
-  .eco-download-qrs {
-    grid-template-columns: 1fr;
-    max-width: 14rem;
-    margin-inline: auto;
+  .eco-headset-stage {
+    min-height: 9.5rem;
+    width: min(100%, 13.5rem);
   }
 
+  .eco-headset-svg {
+    width: min(168px, 86%);
+  }
+
+  .eco-download-qrs {
+    grid-template-columns: 1fr 1fr;
+    max-width: none;
+    gap: 0.5rem;
+  }
+
+  .eco-store-badge {
+    width: min(140px, 100%);
+  }
+
+  .eco-store-qr img,
+  .eco-download-qr .eco-store-qr img {
+    width: 84px;
+    height: 84px;
+  }
+
+  .eco-step-copy,
   .eco-step-body > p {
-    font-size: 0.92rem;
+    font-size: 0.84rem;
   }
 
   .eco-channels {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-width: none;
   }
 
   .flash.ok {
@@ -6556,31 +6577,37 @@ html[data-theme-resolved="dark"] .eco-channel {
   .page-ecosistema .shell.private-shell,
   .page-contesto .shell.private-shell,
   .page-telefono-setup .shell.private-shell {
-    width: min(100%, calc(100% - 1rem));
-    padding-inline: max(0.35rem, env(safe-area-inset-left, 0px));
-    padding-right: max(0.35rem, env(safe-area-inset-right, 0px));
+    width: min(100%, calc(100% - 0.75rem));
+    padding-inline: max(0.4rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.4rem, env(safe-area-inset-right, 0px));
   }
 
   .eco-hub {
     max-width: none;
-    gap: 1rem;
+    gap: 0.85rem;
     padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
   }
 
+  .eco-welcome-emoji {
+    font-size: 1.35rem;
+  }
+
   .eco-welcome h1 {
-    font-size: clamp(1.45rem, 7vw, 1.85rem);
+    font-size: clamp(1.35rem, 6.5vw, 1.7rem);
   }
 
   .eco-welcome .lede {
-    font-size: 0.92rem;
-    padding-inline: 0.35rem;
+    font-size: 0.88rem;
+    padding-inline: 0.25rem;
+    line-height: 1.4;
   }
 
   .eco-steps {
     grid-template-columns: 1fr;
-    gap: 0.75rem;
+    gap: 0.7rem;
   }
 
+  .eco-step-channels,
   .eco-step:nth-child(3) {
     max-width: none;
     justify-self: stretch;
@@ -6588,25 +6615,63 @@ html[data-theme-resolved="dark"] .eco-channel {
 
   .eco-step {
     grid-template-columns: 1fr;
-    padding: 1rem 0.95rem 1.05rem;
+    padding: 0.95rem 0.85rem 1rem;
   }
 
   .eco-step-mark {
-    width: 1.9rem;
-    height: 1.9rem;
+    width: 2.15rem;
+    height: 2.15rem;
+    font-size: 1.05rem;
+  }
+
+  .eco-headset-stage {
+    min-height: 8.8rem;
+    width: min(100%, 12.5rem);
+    margin-bottom: 0.55rem;
+  }
+
+  .eco-headset-svg {
+    width: min(152px, 90%);
+  }
+
+  .eco-headset-caption {
+    font-size: 0.72rem;
+  }
+
+  .eco-step-copy,
+  .eco-step-body > p {
+    font-size: 0.84rem;
+    margin-bottom: 0.7rem;
   }
 
   .eco-download-qrs {
-    grid-template-columns: 1fr;
-    gap: 0.65rem;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
   }
 
   .eco-store-card {
-    padding: 0.95rem 0.85rem 0.8rem;
+    padding: 0.95rem 0.4rem 0.7rem;
   }
 
   .eco-store-badge {
-    width: min(180px, 86%);
+    width: min(132px, 100%);
+  }
+
+  .eco-store-qr img,
+  .eco-download-qr .eco-store-qr img {
+    width: 78px;
+    height: 78px;
+  }
+
+  .eco-store-hint {
+    font-size: 0.62rem;
+  }
+
+  .eco-store-soon {
+    font-size: 0.52rem;
+    top: 0.35rem;
+    right: 0.35rem;
+    padding: 0.14rem 0.34rem;
   }
 
   .eco-step-actions {
@@ -6636,25 +6701,40 @@ html[data-theme-resolved="dark"] .eco-channel {
 
   .eco-channels {
     grid-template-columns: 1fr;
-    gap: 0.55rem;
+    gap: 0.5rem;
+    max-width: none;
   }
 
   .eco-channel {
     flex-direction: row;
     justify-content: flex-start;
+    align-items: center;
     text-align: left;
-    min-height: 3.6rem;
-    padding: 0.75rem 0.9rem;
-    gap: 0.75rem;
+    min-height: 3.35rem;
+    padding: 0.7rem 0.85rem;
+    gap: 0.7rem;
   }
 
   .eco-channel-icon {
     flex: 0 0 auto;
   }
 
+  .eco-channel-icon img {
+    width: 28px;
+    height: 28px;
+  }
+
   .eco-channel-name,
   .eco-channel-meta {
     display: block;
+  }
+
+  .eco-channel-name {
+    font-size: 0.88rem;
+  }
+
+  .eco-channel-meta {
+    font-size: 0.72rem;
   }
 
   .eco-disconnect .btn {

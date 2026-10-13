@@ -776,6 +776,21 @@ class ProfileStore:
         self.purge_account_data(username, photos_dir=photos_dir)
         self.db.hard_delete_user(username)
 
+    def factory_reset_users(self, *, photos_dir: Path | None = None) -> list[str]:
+        """Hard-delete every non-admin account (virgin demo state). Keeps admin."""
+
+        removed: list[str] = []
+        for row in self.db.list_user_rows(include_deleted=True):
+            uname = str(row.get("username") or "").strip()
+            if not uname or int(row.get("is_admin") or 0):
+                continue
+            try:
+                self.hard_delete(uname, photos_dir=photos_dir)
+                removed.append(uname)
+            except (KeyError, ValueError):
+                continue
+        return removed
+
     BAN_DURATIONS: dict[str, int] = {
         "1d": 1,
         "3d": 3,

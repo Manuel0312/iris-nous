@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.69 responsive + factory reset ---
+    "Ecosistema su iPad e iPhone + reset account demo": {
+        "en": "Ecosistema on iPad and iPhone + demo account reset",
+        "fr": "Ecosistema sur iPad et iPhone + reset comptes demo",
+        "de": "Ecosistema auf iPad und iPhone + Demo-Konten-Reset",
+        "pt": "Ecosistema em iPad e iPhone + reset de contas demo",
+        "zh": "Ecosistema 适配 iPad/iPhone + 演示账户重置",
+        "ja": "EcosistemaのiPad/iPhone対応＋デモアカウント初期化",
+        "es": "Ecosistema en iPad e iPhone + reset de cuentas demo",
+    },
+    "Su tablet i QR si impilavano male e su telefono proporzioni e animazione cuffia andavano strette.": {
+        "en": "On tablet QR cards stacked poorly; on phone proportions and the headset animation felt tight.",
+        "fr": "Sur tablette les QR s'empilaient mal ; sur telephone proportions et animation casque etaient serrees.",
+        "de": "Auf dem Tablet stapelten sich QR schlecht; am Telefon wirkten Proportionen und Headset-Animation eng.",
+        "pt": "No tablet os QR empilhavam mal; no telemovel proporcoes e animacao da cuffia ficavam apertadas.",
+        "zh": "平板上二维码堆叠不佳；手机上比例和耳机动画偏挤。",
+        "ja": "タブレットでQRが縦積みになり、スマホでは比率とヘッドセットアニメが窮屈でした。",
+        "es": "En tablet los QR se apilaban mal; en telefono proporciones y animacion de auriculares quedaban justas.",
+    },
+    "Ora Ecosistema si adatta meglio a iPad e smartphone; in admin si possono azzerare tutti gli account demo restando solo admin.": {
+        "en": "Ecosistema now fits iPad and phones better; admins can wipe all demo accounts and keep only admin.",
+        "fr": "Ecosistema s'adapte mieux a iPad et smartphones ; l'admin peut effacer les comptes demo et garder seulement admin.",
+        "de": "Ecosistema passt besser auf iPad und Smartphones; Admins koennen Demo-Konten loeschen und nur admin behalten.",
+        "pt": "O Ecosistema adapta-se melhor a iPad e telemoveis; o admin pode apagar contas demo e ficar so com admin.",
+        "zh": "Ecosistema 更适配 iPad 与手机；管理员可清空演示账户，仅保留 admin。",
+        "ja": "EcosistemaがiPad/スマホに適合。管理者がデモ口座を消しadminのみ残せます。",
+        "es": "Ecosistema se adapta mejor a iPad y moviles; el admin puede borrar cuentas demo y dejar solo admin.",
+    },
     # --- v0.4.68 ecosistema headset anim + store soon + logos ---
     "Ecosistema: cuffia animata, store «Prossimamente» e loghi ufficiali": {
         "en": "Ecosistema: animated headset, Coming soon store and official logos",

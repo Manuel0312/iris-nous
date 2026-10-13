@@ -4341,6 +4341,43 @@ def create_app(
                 for p in access.list_people(status="all")
             ],
         }
+
+    @app.post("/api/admin/factory-reset-users")
+    def api_factory_reset_users(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        """Admin only: wipe all non-admin accounts (demo virgin state)."""
+
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        profile = profiles.get(username)
+        if profile is None or not profile.is_admin:
+            raise HTTPException(status_code=403, detail="Admin only")
+        removed = profiles.factory_reset_users(photos_dir=Path(app.state.photos_dir))
+        # Clear leftover photos and messaging demo threads.
+        photos = Path(app.state.photos_dir)
+        if photos.is_dir():
+            for path in photos.iterdir():
+                if path.is_file() and path.name != ".gitkeep":
+                    try:
+                        path.unlink()
+                    except OSError:
+                        pass
+        messaging = Path(profiles.data_root) / "messaging.json"
+        if messaging.is_file():
+            try:
+                messaging.write_text("{}", encoding="utf-8")
+            except OSError:
+                pass
+        try:
+            from bci_iot.accounts.data_backup import schedule_backup
+
+            schedule_backup(profiles.data_root, delay_s=0.5, force=True)
+        except Exception:
+            pass
+        return {"status": "ok", "removed": removed, "kept_admin": True}
     # --- Context demo (channels + Alexa short confirm) + legacy engines ---
     app.state.demo_engine = None
     app.state.dialogue_engine = None
