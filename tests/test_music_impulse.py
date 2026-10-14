@@ -92,14 +92,12 @@ def test_music_next_impulse_persists_then_spotify(tmp_path: Path) -> None:
     assert agent.memory_path.is_file()
 
 
-def test_associa_telefono_shows_impulse_ux(tmp_path: Path) -> None:
+def test_associa_telefono_shows_spotify_stage(tmp_path: Path) -> None:
     app = create_app(data_dir=tmp_path, session_secret="impulse-ux")
     client = TestClient(app)
     _register(client)
     page = client.get("/telefono-setup?stage=2")
     assert page.status_code == 200
-    assert "music-impulse-meter" in page.text
-    assert "Invio impulso alla cuffia" in page.text
     assert "Spotify" in page.text
     assert "telefono-alexa-stub" not in page.text
-    assert "Test rapido musica" in page.text
+    assert "music-impulse-meter" not in page.text

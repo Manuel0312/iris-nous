@@ -32,7 +32,7 @@ def _complete_anagrafica(
         follow_redirects=False,
     )
     assert response.status_code == 200
-    assert "/inizia" in response.text
+    assert "/ecosistema" in response.text
 
 
 def _finish_calibration(client: TestClient) -> None:
@@ -90,7 +90,7 @@ def test_register_login_dashboard_flow(tmp_path: Path) -> None:
 
     dash = client.get("/dashboard")
     assert dash.status_code == 200
-    assert "Ciao, Maria" in dash.text
+    assert "Ecosistema" in dash.text
     assert "Cuffia" in dash.text or "Associata" in dash.text or "associa" in dash.text.lower()
 
     save = client.post(
@@ -125,7 +125,7 @@ def test_register_login_dashboard_flow(tmp_path: Path) -> None:
         follow_redirects=False,
     )
     assert login.status_code == 200
-    assert "/dashboard" in login.text
+    assert "/ecosistema" in login.text
     assert client.get("/api/me").status_code == 200
 
 
@@ -160,9 +160,13 @@ def test_gendered_welcome_male_and_non_binary(tmp_path: Path) -> None:
         follow_redirects=False,
     )
     assert login.status_code == 200
-    assert "/dashboard" in login.text
+    assert "/ecosistema" in login.text
     dash = client.get("/dashboard")
-    assert "Ciao, Luca" in dash.text
+    assert "Ecosistema" in dash.text
+    me = client.get("/api/me")
+    assert me.status_code == 200
+    assert me.json()["first_name"] == "Luca"
+    assert me.json()["gender"] == "male"
 
     client.post("/logout", follow_redirects=False)
     client.post(
@@ -191,9 +195,13 @@ def test_gendered_welcome_male_and_non_binary(tmp_path: Path) -> None:
         data={"username": "alex", "password": "Abcdef12"},
         follow_redirects=False,
     )
-    assert "/dashboard" in login_nb.text
+    assert "/ecosistema" in login_nb.text
     dash_nb = client.get("/dashboard")
-    assert "Ciao, Alex" in dash_nb.text
+    assert "Ecosistema" in dash_nb.text
+    me_nb = client.get("/api/me")
+    assert me_nb.status_code == 200
+    assert me_nb.json()["first_name"] == "Alex"
+    assert me_nb.json()["gender"] == "non_binary"
 
 
 def test_api_auth_register_and_login(tmp_path: Path) -> None:

@@ -101,7 +101,7 @@ def test_register_login_logged_and_admin_sees_accessi(tmp_path: Path) -> None:
         follow_redirects=False,
     )
     assert login.status_code == 200
-    assert "/inizia" in login.text
+    assert "/ecosistema" in login.text
 
     denied = client.get("/accessi", follow_redirects=False)
     assert denied.status_code == 303
