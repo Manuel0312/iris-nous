@@ -32,6 +32,7 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
         or "Hub «La tua cuffia»" in page.text
         or "Privacy e chiarezza demo" in page.text
     )
+    assert "SÌ su messaggio apre WhatsApp + app come il sito" in page.text
     assert "Fix: cancella tutti gli account non va più in errore" in page.text
     assert "Admin: cancella tutti gli account dal Database" in page.text
     assert "Ecosistema su iPad e iPhone + reset account demo" in page.text

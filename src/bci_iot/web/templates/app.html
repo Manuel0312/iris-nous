@@ -3,19 +3,19 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#07080c" />
+  <meta name="theme-color" content="#00b7ff" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Iris" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <title>Iris Nous</title>
+  <title>Iris Nous · App</title>
   <link rel="manifest" href="/static/app/manifest.webmanifest" />
   <link rel="apple-touch-icon" href="/static/app/icon-180.png" />
   <link rel="icon" href="/static/app/icon-192.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@360;400;500;600;650&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/app/app.css?v=irisGlass11" />
+  <link rel="stylesheet" href="/static/app/app.css?v=irisApp72" />
 </head>
 <body class="app-body">
   <div class="liquid-mesh" aria-hidden="true"></div>
@@ -31,86 +31,110 @@
     </header>
 
     <div class="install-banner" id="install-banner" hidden>
-      Su iPhone: apri in <strong>Safari</strong> → <strong>Condividi</strong> → <strong>Aggiungi a Home</strong>.
+      Anteprima app nel browser (stessi flussi della nativa). Su iPhone nativo: Sideloadly.
       <a href="/app/installa">Guida</a>
     </div>
 
     <nav class="tabs" role="tablist">
-      <button type="button" class="on" data-tab="login">Accedi</button>
+      <button type="button" class="on" data-tab="gate">Inizio</button>
+      <button type="button" data-tab="login">Associa</button>
       <button type="button" data-tab="home">Stato</button>
-      <button type="button" data-tab="perm">Info</button>
+      <button type="button" data-tab="perm">Permessi</button>
     </nav>
 
     <p class="msg" id="app-msg" aria-live="polite"></p>
 
-    <section class="screen on" id="screen-login">
+    <section class="screen on" id="screen-gate">
+      <p class="eyebrow">Come vuoi entrare</p>
+      <h1 class="title" data-liquid-title>Iris sul telefono</h1>
+      <p class="lede" data-liquid-lede>Stesso mondo del PC: account e Ecosistema sul sito; qui le autorizzazioni e SÌ → WhatsApp.</p>
+
+      <a class="btn primary" href="/">Scopri / crea account (sito completo)</a>
+      <a class="btn" href="/register">Registrati</a>
+      <a class="btn" href="/login">Accedi al sito</a>
+      <a class="btn" href="/ecosistema">Apri Ecosistema</a>
+      <button type="button" class="btn ghost" data-goto="login">Ho già un account → associa questo telefono</button>
+      <p class="muted" style="margin-top:1rem;font-size:.9rem;line-height:1.35">
+        Da PC o iPad usi il sito come sempre, poi torni qui (o nell’app nativa) per i permessi.
+        Se parti dall’app: sito completo → associa → permessi.
+      </p>
+    </section>
+
+    <section class="screen" id="screen-login">
       <p class="eyebrow">Collegamento dispositivo</p>
       <h1 class="title" data-liquid-title>Collega a Iris</h1>
-      <p class="lede" data-liquid-lede>Account Iris + PIN da «Il tuo telefono». Iris crea una credenziale permanente per questo dispositivo.</p>
+      <p class="lede" data-liquid-lede>Account Iris + PIN da «Il tuo telefono». Credenziale permanente per questo dispositivo.</p>
       <form id="pair-form" autocomplete="on">
         <input class="field" id="f-user" name="username" autocomplete="username" placeholder="Username" required />
         <input class="field" id="f-pass" name="password" type="password" autocomplete="current-password" placeholder="Password" required />
         <input class="field" id="f-code" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="12" placeholder="PIN di associazione" required />
-        <input class="field" id="f-device" name="device_name" maxlength="64" placeholder="Nome dispositivo (es. Pixel di Maria)" />
+        <input class="field" id="f-device" name="device_name" maxlength="64" placeholder="Nome dispositivo (es. iPhone di Maria)" />
         <button class="btn primary" type="submit" id="btn-pair">Collega questo dispositivo</button>
       </form>
       <a class="btn ghost" href="/telefono-setup">Dove trovo il PIN</a>
     </section>
 
     <section class="screen" id="screen-home">
-      <p class="eyebrow">Home</p>
+      <p class="eyebrow">Companion</p>
       <h1 class="title" data-liquid-title>Stato vivo</h1>
-      <p class="lede" data-liquid-lede>Il telefono resta collegato a Iris e può segnalare eventi in tempo reale.</p>
+      <p class="lede" data-liquid-lede>Simula un messaggio WhatsApp, poi SÌ: apre WhatsApp (senza leggere il testo).</p>
       <div class="card">
         <div class="row"><span class="muted">Account</span><span id="st-user">—</span></div>
         <div class="row"><span class="muted">Associato</span><span id="st-paired">—</span></div>
         <div class="row"><span class="muted">Spotify</span><span id="st-spotify">—</span></div>
         <div class="row"><span class="muted">Chiamata</span><span id="st-call">—</span></div>
+        <div class="row"><span class="muted">Messaggio</span><span id="st-msg">—</span></div>
         <div class="row"><span class="muted">Musica</span><span id="st-music">—</span></div>
         <div class="row"><span class="muted">Focus</span><span id="st-focus">—</span></div>
       </div>
+      <div class="row-actions" style="display:flex;gap:.5rem;flex-wrap:wrap;margin:.75rem 0">
+        <button type="button" class="btn primary" id="btn-yes">Pensa SÌ</button>
+        <button type="button" class="btn" id="btn-no">Pensa NO</button>
+      </div>
+      <button type="button" class="btn" id="btn-wa">Simula WhatsApp → poi SÌ</button>
       <button type="button" class="btn" id="btn-call">Segnala chiamata in arrivo</button>
       <button type="button" class="btn" id="btn-end">Chiamata terminata</button>
       <button type="button" class="btn primary" id="btn-next">Prossima canzone (Spotify)</button>
       <button type="button" class="btn ghost" id="btn-refresh">Aggiorna stato</button>
       <button type="button" class="btn ghost" id="btn-unpair">Scollega questa app</button>
+      <a class="btn ghost" href="/">Apri sito completo (3D)</a>
     </section>
 
     <section class="screen" id="screen-perm">
-      <p class="eyebrow">Privacy</p>
-      <h1 class="title" data-liquid-title>Cosa fa Iris</h1>
-      <p class="lede" data-liquid-lede>App sul telefono: associa, stato e eventi. Non legge SMS e non risponde alle chiamate del sistema.</p>
+      <p class="eyebrow">Autorizzazioni</p>
+      <h1 class="title" data-liquid-title>Cosa chiede Iris</h1>
+      <p class="lede" data-liquid-lede>Nell’app nativa: chiamate, notifiche, apertura WhatsApp. Non legge chat né SMS.</p>
       <div class="card">
         <div class="perm">
           <div>
             <strong>Associazione</strong>
-            <span class="muted">Collega l’account Iris con il codice a 6 cifre.</span>
+            <span class="muted">Account + PIN → credenziale dispositivo.</span>
           </div>
           <span class="tag">Ok</span>
         </div>
         <div class="perm">
           <div>
-            <strong>Stato / heartbeat</strong>
-            <span class="muted">Tiene il ponte attivo con Iris.</span>
+            <strong>Aprire WhatsApp</strong>
+            <span class="muted">Al SÌ su messaggio: apre l’app, senza leggere il contenuto.</span>
           </div>
-          <span class="tag">Ok</span>
+          <span class="tag">Nuovo</span>
         </div>
         <div class="perm">
           <div>
-            <strong>Eventi</strong>
-            <span class="muted">Segnala chiamata/musica; su Android il rilevamento nativo è nell’APK.</span>
+            <strong>Chiamate</strong>
+            <span class="muted">Rilevamento / CallKit dove il sistema lo consente.</span>
           </div>
           <span class="tag">Live</span>
         </div>
       </div>
-      <a class="btn primary" href="/app/installa">Come installarla su iPhone</a>
-      <a class="btn ghost" href="/contesto">Apri In ascolto</a>
+      <a class="btn primary" href="/app/installa">Installa app nativa (iPhone)</a>
+      <a class="btn ghost" href="/contesto">In ascolto sul sito</a>
     </section>
 
     <p class="foot">
-      Iris Nous · <a href="/">sito</a> · <a href="/telefono-setup">telefono</a>
+      Iris Nous · <a href="/">sito</a> · <a href="/telefono-setup">telefono</a> · anteprima <strong>/app</strong>
     </p>
   </div>
-  <script src="/static/app/app.js?v=irisGlass11" defer></script>
+  <script src="/static/app/app.js?v=irisApp72" defer></script>
 </body>
 </html>

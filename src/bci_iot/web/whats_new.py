@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.72",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "SÌ su messaggio apre WhatsApp + app come il sito",
+                "Su messaggio il SÌ restava solo simulato e l’app non ripeteva i flussi del sito.",
+                "Ora al SÌ Iris apre WhatsApp (senza leggere i messaggi); /app ha un ingresso chiaro sito→associa→permessi e l’app nativa mostra il sito completo in WebView.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.71",
         "intro": WHATS_NEW_INTRO,
         "entries": (

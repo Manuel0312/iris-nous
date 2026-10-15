@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../services/auth_store.dart';
 import '../theme/iris_theme.dart';
+import 'gateway_screen.dart';
 import 'home_screen.dart';
-import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key, required this.store});
@@ -29,7 +29,7 @@ class _SplashScreenState extends State<SplashScreen> {
       MaterialPageRoute<void>(
         builder: (_) => paired
             ? HomeScreen(store: widget.store)
-            : LoginScreen(store: widget.store),
+            : GatewayScreen(store: widget.store),
       ),
     );
   }
@@ -54,7 +54,7 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
               const SizedBox(height: 10),
               Text(
-                'App companion · Ecosistema',
+                'Sito + autorizzazioni telefono',
                 style: TextStyle(color: IrisTheme.deep.withValues(alpha: 0.55)),
               ),
               const SizedBox(height: 28),

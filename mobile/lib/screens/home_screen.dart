@@ -8,8 +8,9 @@ import '../services/auth_store.dart';
 import '../services/call_control.dart';
 import '../services/call_observer.dart';
 import '../services/iris_api.dart';
+import '../services/whatsapp_open.dart';
 import '../theme/iris_theme.dart';
-import 'login_screen.dart';
+import 'gateway_screen.dart';
 import 'permissions_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -123,7 +124,9 @@ class _HomeScreenState extends State<HomeScreen> {
         await widget.store.clear();
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute<void>(builder: (_) => LoginScreen(store: widget.store)),
+          MaterialPageRoute<void>(
+            builder: (_) => GatewayScreen(store: widget.store),
+          ),
         );
         return;
       }
@@ -186,6 +189,16 @@ class _HomeScreenState extends State<HomeScreen> {
       final id = item['id']?.toString() ?? '';
       final action = item['action']?.toString() ?? '';
       if (id.isEmpty || action.isEmpty) continue;
+      if (action == 'open_whatsapp' || action == 'open_url') {
+        final url = item['url']?.toString() ?? 'whatsapp://';
+        final ok = await openWhatsApp(url: url);
+        ids.add(id);
+        _lastOsAction = ok
+            ? 'WhatsApp aperto (nessuna lettura messaggi)'
+            : 'WhatsApp non disponibile su questo dispositivo';
+        if (mounted) setState(() {});
+        continue;
+      }
       final result = await _callControl.runAction(action);
       ids.add(id);
       final ok = result['ok'] == true;
@@ -228,7 +241,21 @@ class _HomeScreenState extends State<HomeScreen> {
       if (exec is Map && exec['os_command'] is Map) {
         final cmd = (exec['os_command'] as Map).cast<String, dynamic>();
         final action = cmd['action']?.toString() ?? '';
-        if (action.isNotEmpty) {
+        if (action == 'open_whatsapp' || action == 'open_url') {
+          final url = cmd['url']?.toString() ??
+              exec['open_url']?.toString() ??
+              'whatsapp://';
+          final ok = await openWhatsApp(url: url);
+          final id = cmd['id']?.toString();
+          if (id != null && id.isNotEmpty) {
+            try {
+              await _api.ackCommands([id]);
+            } catch (_) {}
+          }
+          _lastOsAction = ok
+              ? 'WhatsApp aperto'
+              : 'Impossibile aprire WhatsApp';
+        } else if (action.isNotEmpty) {
           final result = await _callControl.runAction(action);
           final id = cmd['id']?.toString();
           if (id != null && id.isNotEmpty) {
@@ -273,8 +300,30 @@ class _HomeScreenState extends State<HomeScreen> {
     await widget.store.clear();
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => LoginScreen(store: widget.store)),
+      MaterialPageRoute<void>(
+        builder: (_) => GatewayScreen(store: widget.store),
+      ),
     );
+  }
+
+  Future<void> _demoMessage() async {
+    setState(() => _busy = true);
+    try {
+      await _api.sendEvent('message_incoming', caller: 'Marco');
+      await _refresh();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Messaggio simulato (WhatsApp). SÌ apre WhatsApp sul telefono.',
+          ),
+        ),
+      );
+    } on IrisApiException catch (e) {
+      setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Map<String, dynamic> _eco() {
@@ -452,7 +501,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Come se pensassi con la cuffia. Su Android, SÌ/NO prova anche a rispondere o rifiutare la chiamata cellulare (concedi «Rispondi alle chiamate»). Su iPhone il sistema lo blocca: resta il contesto Iris. Spotify e messaggi come prima.',
+            'Come se pensassi con la cuffia. Su messaggio (anche simulato): SÌ apre WhatsApp senza leggere il testo. '
+            'Su Android, SÌ/NO può anche agire sulla chiamata cellulare. Su iPhone le chiamate restano Simulate/CallKit.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
           ),
           if (_lastOsAction != null) ...[
@@ -493,8 +543,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: const Text('Fine chiamata → Iris'),
               ),
               OutlinedButton(
-                onPressed: _busy ? null : () => _demoCall('message_incoming'),
-                child: const Text('Simula messaggio → Iris'),
+                onPressed: _busy ? null : _demoMessage,
+                child: const Text('Simula WhatsApp → poi SÌ'),
               ),
               FilledButton(
                 onPressed: _busy ? null : _musicNext,

@@ -3450,8 +3450,14 @@ def create_app(
                 st = agent.status()
         return st
 
-    def _enqueue_companion_os_call(username: str, action: str) -> dict:
-        """Queue an OS-level answer/reject for the paired companion (Android)."""
+    def _enqueue_companion_os_call(
+        username: str,
+        action: str,
+        *,
+        url: str = "",
+        platform: str = "android",
+    ) -> dict:
+        """Queue an OS-level command for the paired companion (calls / open app)."""
 
         from datetime import datetime, timezone
 
@@ -3460,8 +3466,10 @@ def create_app(
             "id": f"cmd-{app.state._companion_cmd_seq}",
             "action": action,
             "at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
-            "platform": "android",
+            "platform": platform,
         }
+        if url:
+            cmd["url"] = url
         q = app.state.companion_commands.setdefault(username, [])
         q.append(cmd)
         del q[:-10]
@@ -3972,17 +3980,29 @@ def create_app(
                     username,
                     "os_answer_call" if action == "answer_call" else "os_reject_call",
                 )
+            elif action == "open_message":
+                # Real open: bring WhatsApp to foreground (no message reading).
+                os_cmd = _enqueue_companion_os_call(
+                    username,
+                    "open_whatsapp",
+                    url="whatsapp://",
+                    platform="all",
+                )
             execution = {
                 "kind": action,
                 "mode": "phone_bridge_os" if os_cmd else "phone_bridge",
                 "event": event,
                 "os_command": os_cmd,
+                "open_url": (os_cmd or {}).get("url") or "",
                 "note": (
-                    "Decisione inviata all’app: Android → linea cellulare; "
-                    "iPhone → risposta/rifiuto sulla chiamata CallKit presentata da Iris."
-                    if os_cmd
+                    "Decisione inviata all’app: apre WhatsApp sul telefono "
+                    "(senza leggere il contenuto del messaggio)."
+                    if action == "open_message" and os_cmd
                     else (
-                        "Decisione inviata a Telefono live (ponte browser)."
+                        "Decisione inviata all’app: Android → linea cellulare; "
+                        "iPhone → risposta/rifiuto sulla chiamata CallKit presentata da Iris."
+                        if os_cmd
+                        else "Decisione inviata a Telefono live (ponte browser)."
                     )
                 ),
             }

@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.72 WhatsApp open + app hub ---
+    "SÌ su messaggio apre WhatsApp + app come il sito": {
+        "en": "YES on a message opens WhatsApp + app mirrors the site",
+        "fr": "OUI sur un message ouvre WhatsApp + l’app comme le site",
+        "de": "JA bei Nachricht oeffnet WhatsApp + App wie die Website",
+        "pt": "SIM numa mensagem abre o WhatsApp + app como o site",
+        "zh": "对消息点「是」会打开 WhatsApp，应用与网站一致",
+        "ja": "メッセージで「はい」→WhatsAppを開く＋アプリはサイト同等",
+        "es": "SI en un mensaje abre WhatsApp + la app como el sitio",
+    },
+    "Su messaggio il SÌ restava solo simulato e l’app non ripeteva i flussi del sito.": {
+        "en": "On a message, YES stayed simulated and the app did not mirror site flows.",
+        "fr": "Sur un message, OUI restait simule et l’app ne reprenait pas les flux du site.",
+        "de": "Bei Nachrichten blieb JA nur simuliert und die App spiegelte die Website nicht.",
+        "pt": "Numa mensagem, o SIM ficava so simulado e a app nao repetia o site.",
+        "zh": "对消息点「是」仍只是模拟，应用也未复现网站流程。",
+        "ja": "メッセージの「はい」は模擬のままで、アプリはサイトの流れを再現していませんでした。",
+        "es": "En un mensaje, SI seguia siendo simulado y la app no repetia el sitio.",
+    },
+    "Ora al SÌ Iris apre WhatsApp (senza leggere i messaggi); /app ha un ingresso chiaro sito→associa→permessi e l’app nativa mostra il sito completo in WebView.": {
+        "en": "Now YES opens WhatsApp (without reading messages); /app has a clear site→pair→permissions path and the native app shows the full site in a WebView.",
+        "fr": "Desormais OUI ouvre WhatsApp (sans lire les messages) ; /app a un parcours site→associer→permissions et l’app native montre le site en WebView.",
+        "de": "Jetzt oeffnet JA WhatsApp (ohne Nachrichten zu lesen); /app hat Website→koppeln→Rechte und die native App zeigt die Website in einer WebView.",
+        "pt": "Agora SIM abre o WhatsApp (sem ler mensagens); /app tem site→associar→permissoes e a app nativa mostra o site numa WebView.",
+        "zh": "现在点「是」会打开 WhatsApp（不读内容）；/app 有清晰的 网站→关联→权限，原生应用用 WebView 显示完整网站。",
+        "ja": "「はい」でWhatsAppを開きます（本文は読みません）。/appはサイト→連携→権限、ネイティブはWebViewでサイト全体を表示。",
+        "es": "Ahora SI abre WhatsApp (sin leer mensajes); /app tiene sitio→asociar→permisos y la app nativa muestra el sitio en WebView.",
+    },
     # --- v0.4.71 wipe fix ---
     "Fix: cancella tutti gli account non va più in errore": {
         "en": "Fix: delete-all accounts no longer errors",

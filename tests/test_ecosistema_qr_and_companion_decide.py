@@ -165,3 +165,74 @@ def test_companion_decide_yes_no_without_pc_page(tmp_path: Path) -> None:
     assert not any(
         c.get("id") == cmd_id for c in (ack.json().get("pending_commands") or [])
     )
+
+
+def test_companion_decide_yes_opens_whatsapp_on_message(tmp_path: Path) -> None:
+    app = create_app(data_dir=tmp_path, session_secret="comp-wa")
+    client = TestClient(app)
+    store = app.state.store
+    _user(client, store, "wa72")
+    reset_context_router("wa72")
+    profile = store.ensure_headset_pairing("wa72")
+    store.mark_calibration_complete("wa72")
+    agent = get_headset_agent(
+        username="wa72",
+        headset_id=profile.headset_id,
+        data_root=store.data_root,
+    )
+    agent.memory.impulses = [
+        {
+            "kind": "SI",
+            "features": [1.0, 0.05, 0.1, 0.0],
+            "feature_names": ["a", "b", "c", "d"],
+            "is_calibration_template": True,
+            "signal_source": "prior_fallback",
+            "alpha": 1.0,
+            "beta": 0.05,
+        },
+        {
+            "kind": "NO",
+            "features": [0.05, 1.0, 0.0, 0.1],
+            "feature_names": ["a", "b", "c", "d"],
+            "is_calibration_template": True,
+            "signal_source": "prior_fallback",
+            "alpha": 0.05,
+            "beta": 1.0,
+        },
+    ]
+    agent.mark_calibration_complete()
+
+    code = store.get("wa72").pairing_code
+    client.post("/api/auth/logout")
+    pair = client.post(
+        "/api/companion/pair",
+        json={"username": "wa72", "password": "EcoPass63x", "code": code},
+    )
+    assert pair.status_code == 200, pair.text
+    token = pair.json()["device_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    incoming = client.post(
+        "/api/companion/event",
+        headers=headers,
+        json={"event": "message_incoming", "caller": "Marco"},
+    )
+    assert incoming.status_code == 200
+    assert get_context_router("wa72").world.unread_message is True
+
+    decide = client.post(
+        "/api/companion/decide",
+        headers=headers,
+        json={"answer": "SI"},
+    )
+    assert decide.status_code == 200, decide.text
+    body = decide.json()
+    execu = body.get("execution") or {}
+    assert execu.get("kind") == "open_message"
+    assert execu.get("open_url") == "whatsapp://"
+    os_cmd = execu.get("os_command") or {}
+    assert os_cmd.get("action") == "open_whatsapp"
+    assert os_cmd.get("url") == "whatsapp://"
+    pending = (body.get("companion") or {}).get("pending_commands") or []
+    assert any(c.get("action") == "open_whatsapp" for c in pending)
+    assert get_context_router("wa72").world.unread_message is False

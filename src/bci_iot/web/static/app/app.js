@@ -81,11 +81,87 @@
       : "nessuna";
     $("#st-call").textContent = call;
     $("#st-call").className = ctx.incoming_call ? "warn" : "";
+    const msgElSt = $("#st-msg");
+    if (msgElSt) {
+      msgElSt.textContent = ctx.unread_message
+        ? "in arrivo" +
+          (ctx.message_from ? " · " + ctx.message_from : "") +
+          (ctx.message_app ? " (" + ctx.message_app + ")" : "")
+        : "nessuno";
+      msgElSt.className = ctx.unread_message ? "warn" : "";
+    }
     $("#st-music").textContent = ctx.music_playing
       ? ctx.track_hint || "in riproduzione"
       : "ferma";
     $("#st-focus").textContent = typeof focus === "string" ? focus : JSON.stringify(focus);
     setLive(!!data.phone_paired);
+    drainCommands(data.pending_commands || []);
+  }
+
+  async function openWhatsApp(url) {
+    const candidates = [url || "whatsapp://", "whatsapp://", "https://wa.me/"];
+    for (const u of candidates) {
+      try {
+        window.location.href = u;
+        return true;
+      } catch (_) {
+        /* next */
+      }
+    }
+    return false;
+  }
+
+  async function drainCommands(list) {
+    if (!Array.isArray(list) || !list.length) return;
+    const ids = [];
+    for (const item of list) {
+      if (!item || !item.id || !item.action) continue;
+      if (item.action === "open_whatsapp" || item.action === "open_url") {
+        await openWhatsApp(item.url || "whatsapp://");
+        ids.push(item.id);
+        showMsg("Apertura WhatsApp (nessuna lettura messaggi).", "ok");
+      }
+    }
+    if (ids.length) {
+      try {
+        await api("/api/companion/commands/ack", {
+          method: "POST",
+          body: { ids },
+        });
+      } catch (_) {
+        /* ignore */
+      }
+    }
+  }
+
+  async function decide(answer) {
+    showMsg("", "");
+    try {
+      const data = await api("/api/companion/decide", {
+        method: "POST",
+        body: { answer },
+      });
+      const exec = data.execution || {};
+      const cmd = exec.os_command || {};
+      if (cmd.action === "open_whatsapp" || cmd.action === "open_url" || exec.open_url) {
+        await openWhatsApp(cmd.url || exec.open_url || "whatsapp://");
+        if (cmd.id) {
+          try {
+            await api("/api/companion/commands/ack", {
+              method: "POST",
+              body: { ids: [cmd.id] },
+            });
+          } catch (_) {
+            /* ignore */
+          }
+        }
+      }
+      if (data.companion) renderStatus(data.companion);
+      else await refresh();
+      showMsg(data.feedback || data.message || "Decisione inviata.", "ok");
+    } catch (e) {
+      showMsg(e.message || "Decisione non inviata", "err");
+    }
   }
 
   async function refresh() {
@@ -171,7 +247,7 @@
     setToken("", null);
     setLive(false);
     showMsg("Dispositivo scollegato da questa app.", "ok");
-    showTab("login");
+    showTab("gate");
   }
 
   function wrapWords(el, className) {
@@ -239,6 +315,9 @@
     $$("nav.tabs button").forEach((btn) => {
       btn.addEventListener("click", () => showTab(btn.dataset.tab));
     });
+    $$("[data-goto]").forEach((btn) => {
+      btn.addEventListener("click", () => showTab(btn.getAttribute("data-goto")));
+    });
     $("#pair-form")?.addEventListener("submit", (e) => {
       e.preventDefault();
       pair();
@@ -246,6 +325,11 @@
     $("#btn-call")?.addEventListener("click", () =>
       sendEvent("call_incoming", { caller: "demo" })
     );
+    $("#btn-wa")?.addEventListener("click", () =>
+      sendEvent("message_incoming", { caller: "Marco" })
+    );
+    $("#btn-yes")?.addEventListener("click", () => decide("SI"));
+    $("#btn-no")?.addEventListener("click", () => decide("NO"));
     $("#btn-end")?.addEventListener("click", () => sendEvent("call_ended"));
     $("#btn-next")?.addEventListener("click", () => musicNext());
     $("#btn-refresh")?.addEventListener("click", () => refresh());
@@ -260,7 +344,7 @@
       refresh();
       setInterval(refresh, 12000);
     } else {
-      showTab("login");
+      showTab("gate");
     }
   });
 })();
