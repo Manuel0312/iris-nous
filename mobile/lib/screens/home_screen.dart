@@ -10,8 +10,8 @@ import '../services/call_observer.dart';
 import '../services/iris_api.dart';
 import '../services/whatsapp_open.dart';
 import '../theme/iris_theme.dart';
-import 'gateway_screen.dart';
 import 'permissions_screen.dart';
+import 'site_shell_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.store});
@@ -125,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
           MaterialPageRoute<void>(
-            builder: (_) => GatewayScreen(store: widget.store),
+            builder: (_) => SiteShellScreen(store: widget.store),
           ),
         );
         return;
@@ -301,7 +301,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
-        builder: (_) => GatewayScreen(store: widget.store),
+        builder: (_) => SiteShellScreen(store: widget.store),
       ),
     );
   }

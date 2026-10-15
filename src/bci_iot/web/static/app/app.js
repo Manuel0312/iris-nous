@@ -69,31 +69,37 @@
     el.textContent = on ? "collegato" : "non collegato";
   }
 
+  function setText(sel, text, className) {
+    const el = $(sel);
+    if (!el) return;
+    el.textContent = text;
+    if (className !== undefined) el.className = className;
+  }
+
   function renderStatus(data) {
     const ctx = data.context || {};
     const focus = (ctx.focus && (ctx.focus.label || ctx.focus.kind)) || "—";
-    $("#st-user").textContent = data.username || localStorage.getItem(USER_KEY) || "—";
-    $("#st-paired").textContent = data.phone_paired ? "sì" : "no";
-    $("#st-paired").className = data.phone_paired ? "ok" : "warn";
-    $("#st-spotify").textContent = data.spotify_linked ? "collegato" : "da collegare";
+    setText("#st-user", data.username || localStorage.getItem(USER_KEY) || "—");
+    setText("#st-paired", data.phone_paired ? "sì" : "no", data.phone_paired ? "ok" : "warn");
+    setText("#st-spotify", data.spotify_linked ? "collegato" : "da collegare");
     const call = ctx.incoming_call
       ? "in arrivo" + (ctx.caller_name ? " · " + ctx.caller_name : "")
       : "nessuna";
-    $("#st-call").textContent = call;
-    $("#st-call").className = ctx.incoming_call ? "warn" : "";
-    const msgElSt = $("#st-msg");
-    if (msgElSt) {
-      msgElSt.textContent = ctx.unread_message
+    setText("#st-call", call, ctx.incoming_call ? "warn" : "");
+    setText(
+      "#st-msg",
+      ctx.unread_message
         ? "in arrivo" +
           (ctx.message_from ? " · " + ctx.message_from : "") +
           (ctx.message_app ? " (" + ctx.message_app + ")" : "")
-        : "nessuno";
-      msgElSt.className = ctx.unread_message ? "warn" : "";
-    }
-    $("#st-music").textContent = ctx.music_playing
-      ? ctx.track_hint || "in riproduzione"
-      : "ferma";
-    $("#st-focus").textContent = typeof focus === "string" ? focus : JSON.stringify(focus);
+        : "nessuno",
+      ctx.unread_message ? "warn" : ""
+    );
+    setText(
+      "#st-music",
+      ctx.music_playing ? ctx.track_hint || "in riproduzione" : "ferma"
+    );
+    setText("#st-focus", typeof focus === "string" ? focus : JSON.stringify(focus));
     setLive(!!data.phone_paired);
     drainCommands(data.pending_commands || []);
   }
@@ -339,12 +345,17 @@
     registerSw();
     animateLiquidCopy(document);
 
-    if (token()) {
-      showTab("home");
-      refresh();
-      setInterval(refresh, 12000);
-    } else {
-      showTab("gate");
+    // /app/device has no tabs — wire buttons if present; /app is the full site iframe.
+    if ($("#pair-form") || $("#btn-yes") || $("#btn-wa")) {
+      if (token()) {
+        if (typeof showTab === "function" && $("#screen-home")) showTab("home");
+        refresh();
+        setInterval(refresh, 12000);
+      } else if (typeof showTab === "function" && $("#screen-gate")) {
+        showTab("gate");
+      } else if (typeof showTab === "function" && $("#screen-login")) {
+        showTab("login");
+      }
     }
   });
 })();

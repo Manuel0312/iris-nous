@@ -1,7 +1,7 @@
 {
   "name": "Iris Nous",
   "short_name": "Iris",
-  "description": "App companion Iris Nous — associa il telefono, stato e eventi per In ascolto.",
+  "description": "Iris Nous — lo stesso sito completo: scopri, crea account, Ecosistema, cuffia e telefono.",
   "id": "/app",
   "start_url": "/app",
   "scope": "/app",

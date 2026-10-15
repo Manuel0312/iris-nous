@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../config.dart';
 import '../services/auth_store.dart';
-import '../theme/iris_theme.dart';
+import 'home_screen.dart';
+import 'permissions_screen.dart';
 
-/// Full Iris website inside the app (same UI / 3D as PC).
+/// The whole app = the Iris website (same graphics, 3D, flows as PC).
 class SiteShellScreen extends StatefulWidget {
   const SiteShellScreen({
     super.key,
@@ -23,25 +25,27 @@ class SiteShellScreen extends StatefulWidget {
 class _SiteShellScreenState extends State<SiteShellScreen> {
   late final WebViewController _controller;
   bool _loading = true;
-  String _title = 'Iris Nous';
+  bool _menuOpen = false;
 
   @override
   void initState() {
     super.initState();
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+      ),
+    );
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0xFFF5F5F7))
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (_) {
             if (mounted) setState(() => _loading = true);
           },
-          onPageFinished: (url) async {
-            if (!mounted) return;
-            final t = await _controller.getTitle();
-            setState(() {
-              _loading = false;
-              if (t != null && t.isNotEmpty) _title = t;
-            });
+          onPageFinished: (_) {
+            if (mounted) setState(() => _loading = false);
           },
         ),
       );
@@ -53,44 +57,126 @@ class _SiteShellScreenState extends State<SiteShellScreen> {
     final path = widget.initialPath.startsWith('/')
         ? widget.initialPath
         : '/${widget.initialPath}';
-    final uri = Uri.parse('$base$path');
+    // Mark traffic as native app so the site can tweak chrome if needed.
+    final uri = Uri.parse('$base$path').replace(
+      queryParameters: {
+        ...Uri.parse('$base$path').queryParameters,
+        'from': 'native_app',
+      },
+    );
     await _controller.loadRequest(uri);
+  }
+
+  Future<void> _goHome() async {
+    final base = await widget.store.baseUrl();
+    await _controller.loadRequest(
+      Uri.parse(base).replace(queryParameters: {'from': 'native_app'}),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return IrisGlassScaffold(
-      appBar: AppBar(
-        title: Text(_title, maxLines: 1, overflow: TextOverflow.ellipsis),
-        actions: [
-          IconButton(
-            tooltip: 'Home Iris',
-            onPressed: () async {
-              final base = await widget.store.baseUrl();
-              await _controller.loadRequest(Uri.parse(base));
-            },
-            icon: const Icon(Icons.home_outlined),
+    final bottom = MediaQuery.paddingOf(context).bottom;
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F7),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          SafeArea(
+            top: true,
+            bottom: false,
+            child: WebViewWidget(controller: _controller),
           ),
-          IconButton(
-            tooltip: 'Ecosistema',
-            onPressed: () async {
-              final base = await widget.store.baseUrl();
-              await _controller.loadRequest(
-                Uri.parse('$base${IrisConfig.webEcosistema}'),
-              );
-            },
-            icon: const Icon(Icons.hub_outlined),
+          if (_loading)
+            const ColoredBox(
+              color: Color(0xFFF5F5F7),
+              child: Center(
+                child: CircularProgressIndicator(color: Color(0xFF00B7FF)),
+              ),
+            ),
+          // Tiny overflow menu — site stays full-bleed; permissions stay reachable.
+          Positioned(
+            right: 12,
+            bottom: 12 + bottom,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (_menuOpen) ...[
+                  _MiniAction(
+                    label: 'Home Iris',
+                    onTap: () {
+                      setState(() => _menuOpen = false);
+                      _goHome();
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  _MiniAction(
+                    label: 'Autorizzazioni telefono',
+                    onTap: () {
+                      setState(() => _menuOpen = false);
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) =>
+                              PermissionsScreen(store: widget.store),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  _MiniAction(
+                    label: 'Stato companion',
+                    onTap: () {
+                      setState(() => _menuOpen = false);
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => HomeScreen(store: widget.store),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                FloatingActionButton.small(
+                  heroTag: 'iris-app-menu',
+                  backgroundColor: const Color(0xFF00B7FF),
+                  foregroundColor: Colors.white,
+                  onPressed: () => setState(() => _menuOpen = !_menuOpen),
+                  child: Icon(_menuOpen ? Icons.close : Icons.phone_iphone),
+                ),
+              ],
+            ),
           ),
         ],
       ),
-      child: Stack(
-        children: [
-          WebViewWidget(controller: _controller),
-          if (_loading)
-            const Center(
-              child: CircularProgressIndicator(color: IrisTheme.accent),
+    );
+  }
+}
+
+class _MiniAction extends StatelessWidget {
+  const _MiniAction({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      elevation: 3,
+      borderRadius: BorderRadius.circular(16),
+      color: Colors.white.withValues(alpha: 0.94),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF0B1B33),
+              fontWeight: FontWeight.w600,
             ),
-        ],
+          ),
+        ),
       ),
     );
   }

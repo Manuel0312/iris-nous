@@ -165,19 +165,22 @@ def test_companion_pwa_routes(tmp_path: Path) -> None:
 
     app_page = client.get("/app")
     assert app_page.status_code == 200
-    assert "Collega questo dispositivo" in app_page.text
-    assert "PIN di associazione" in app_page.text
+    # Full site experience for first-time downloaders (iframe of home).
+    assert 'src="/?from=app"' in app_page.text or "from=app" in app_page.text
+    assert "iris-site" in app_page.text
     assert "apple-mobile-web-app-capable" in app_page.text
     assert "/static/app/manifest.webmanifest" in app_page.text
-    assert "/static/app/app.js" in app_page.text
+
+    device = client.get("/app/device")
+    assert device.status_code == 200
+    assert "Collega questo dispositivo" in device.text
+    assert "PIN di associazione" in device.text
+    assert "/static/app/app.js" in device.text
 
     android = client.get("/app/android")
     assert android.status_code == 200
     assert "APK" in android.text
     assert "Una sola app" in android.text
-    assert "liquid-mesh" in app_page.text
-    assert "data-liquid-title" in app_page.text
-    assert "irisGlass" in app_page.text or "Outfit" in app_page.text
 
     guide = client.get("/app/installa")
     assert guide.status_code == 200

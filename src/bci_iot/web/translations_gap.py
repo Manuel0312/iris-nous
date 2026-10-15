@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.73 app = full site ---
+    "App = sito completo (prima scoperta)": {
+        "en": "App = full site (first discovery)",
+        "fr": "App = site complet (premiere decouverte)",
+        "de": "App = volle Website (erste Entdeckung)",
+        "pt": "App = site completo (primeira descoberta)",
+        "zh": "应用 = 完整网站（首次发现）",
+        "ja": "アプリ＝サイト全体（初めての発見）",
+        "es": "App = sitio completo (primer descubrimiento)",
+    },
+    "Chi scaricava l’app vedeva un hub tecnico e non capiva Iris.": {
+        "en": "Downloading the app showed a technical hub and Iris was unclear.",
+        "fr": "En telechargeant l’app on voyait un hub technique et Iris n’etait pas claire.",
+        "de": "Nach dem Download sah man einen Technik-Hub und Iris war unklar.",
+        "pt": "Quem descarregava a app via um hub tecnico e nao entendia a Iris.",
+        "zh": "下载应用后只看到技术入口，看不懂 Iris。",
+        "ja": "アプリを入れると技術ハブだけでIrisが伝わりませんでした。",
+        "es": "Quien descargaba la app veia un hub tecnico y no entendia Iris.",
+    },
+    "Ora /app e l’app nativa aprono subito il sito principale identico (scopri, account, Ecosistema, 3D); associazione telefono resta in /app/device.": {
+        "en": "Now /app and the native app open the identical main site right away (discover, account, Ecosystem, 3D); phone pairing stays at /app/device.",
+        "fr": "Desormais /app et l’app native ouvrent tout de suite le site principal identique (decouvrir, compte, Ecosistema, 3D) ; l’association telephone reste sur /app/device.",
+        "de": "Jetzt oeffnen /app und die native App sofort die identische Hauptseite (entdecken, Konto, Ecosistema, 3D); Telefon-Kopplung bleibt unter /app/device.",
+        "pt": "Agora /app e a app nativa abrem de imediato o site principal identico (descobrir, conta, Ecosistema, 3D); associacao do telefone fica em /app/device.",
+        "zh": "现在 /app 与原生应用一打开就是相同主站（了解、账户、Ecosistema、3D）；手机关联仍在 /app/device。",
+        "ja": "いま /app とネイティブはすぐ同じ本サイト（発見・アカウント・Ecosistema・3D）。電話連携は /app/device。",
+        "es": "Ahora /app y la app nativa abren al instante el sitio principal identico (descubrir, cuenta, Ecosistema, 3D); la asociacion del telefono sigue en /app/device.",
+    },
     # --- v0.4.72 WhatsApp open + app hub ---
     "SÌ su messaggio apre WhatsApp + app come il sito": {
         "en": "YES on a message opens WhatsApp + app mirrors the site",

@@ -3124,9 +3124,15 @@ def create_app(
 
     @app.get("/app", response_class=HTMLResponse)
     def companion_app_page(request: Request) -> HTMLResponse:
-        """Installable companion PWA (Add to Home on iPhone / Android)."""
+        """App shell = full Iris website (same discovery UX as PC)."""
 
         return TEMPLATES.TemplateResponse(request, "app.html", {"request": request})
+
+    @app.get("/app/device", response_class=HTMLResponse)
+    def companion_app_device_page(request: Request) -> HTMLResponse:
+        """Pairing + SÌ/NO / WhatsApp after the user already knows Iris from the site."""
+
+        return TEMPLATES.TemplateResponse(request, "app_device.html", {"request": request})
 
     @app.get("/app/installa", response_class=HTMLResponse)
     def companion_app_install_page(request: Request) -> HTMLResponse:
