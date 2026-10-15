@@ -1,7 +1,6 @@
 /* Iris Nous companion PWA — shell cache; CSS/JS always prefer network. */
-const CACHE = "iris-app-v11-responsive";
+const CACHE = "iris-app-v12-shell78";
 const SHELL = [
-  "/app",
   "/static/app/manifest.webmanifest",
   "/static/app/icon-180.png",
   "/static/app/icon-192.png",
@@ -50,11 +49,21 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // HTML shell (/app, /app/preview): always network-first so deploys are visible.
+  if (url.pathname === "/app" || url.pathname.startsWith("/app/")) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => res)
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(req).then((cached) => {
       const net = fetch(req)
         .then((res) => {
-          if (res.ok && (url.pathname.startsWith("/static/app/") || url.pathname === "/app")) {
+          if (res.ok && url.pathname.startsWith("/static/app/")) {
             const copy = res.clone();
             caches.open(CACHE).then((c) => c.put(req, copy));
           }

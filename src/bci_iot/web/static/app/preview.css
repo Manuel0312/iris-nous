@@ -140,11 +140,14 @@ html, body {
 }
 
 .phone-screen-shell {
-  display: flex;
+  display: block;
   padding: 0;
+  min-height: 0;
 }
 
 .app-frame {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   border: 0;

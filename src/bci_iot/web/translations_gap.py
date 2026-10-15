@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.79 preview visible ---
+    "Anteprima di nuovo visibile": {
+        "en": "Preview visible again",
+        "fr": "Apercu a nouveau visible",
+        "de": "Vorschau wieder sichtbar",
+        "pt": "Pre-visualizacao de novo visivel",
+        "zh": "预览再次可见",
+        "ja": "プレビューが再び見える",
+        "es": "Vista previa visible de nuevo",
+    },
+    "Su Render restava una versione vecchia e l’anteprima poteva risultare vuota.": {
+        "en": "Render was still on an old version and the preview could look empty.",
+        "fr": "Render etait encore sur une ancienne version et l’apercu pouvait paraitre vide.",
+        "de": "Render hing an einer alten Version und die Vorschau konnte leer wirken.",
+        "pt": "O Render estava numa versao antiga e a pre-visualizacao podia parecer vazia.",
+        "zh": "Render 仍停在旧版本，预览可能是空白的。",
+        "ja": "Renderが古い版のままで、プレビューが空に見えることがありました。",
+        "es": "Render seguia en una version vieja y la vista previa podia verse vacia.",
+    },
+    "Ora l’app è disegnata dentro il telefono (niente iframe vuoto) e basta il Manual Deploy per vedere Connessioni, Iris con le foto e Account.": {
+        "en": "Now the app is drawn inside the phone (no empty iframe); Manual Deploy is enough to see Connections, Iris with photos, and Account.",
+        "fr": "Desormais l’app est dessinee dans le telephone (pas d’iframe vide) ; un Manual Deploy suffit pour voir Connexions, Iris avec photos et Compte.",
+        "de": "Jetzt ist die App im Handy gezeichnet (kein leeres iframe); Manual Deploy reicht fuer Verbindungen, Iris mit Fotos und Konto.",
+        "pt": "Agora a app e desenhada dentro do telemovel (sem iframe vazio); basta Manual Deploy para ver Ligacoes, Iris com fotos e Conta.",
+        "zh": "现在应用直接画在手机框内（无空白 iframe）；Manual Deploy 后即可看到连接、带照片的 Iris 与账户。",
+        "ja": "いまアプリはスマホ枠内に描画（空のiframeなし）。Manual Deployで接続・写真付きIris・アカウントが見えます。",
+        "es": "Ahora la app se dibuja dentro del telefono (sin iframe vacio); con Manual Deploy ves Conexiones, Iris con fotos y Cuenta.",
+    },
     # --- v0.4.78 app photos + real account ---
     "App: foto del sito e account reale": {
         "en": "App: site photos and real account",

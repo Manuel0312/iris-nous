@@ -190,9 +190,13 @@ def test_companion_pwa_routes(tmp_path: Path) -> None:
     preview = client.get("/app/preview")
     assert preview.status_code == 200
     assert "Come sarà l’app" in preview.text
-    assert 'src="/app?from=preview"' in preview.text
-    assert "app-frame" in preview.text
+    assert "phone-screen" in preview.text
+    assert "shell-tabs" in preview.text
+    assert "iris-photo" in preview.text
+    assert "form-login" in preview.text
+    assert "/static/app/shell.js" in preview.text
     assert "/static/app/shell.css" in preview.text
+    assert "app-frame" not in preview.text
 
     android = client.get("/app/android")
     assert android.status_code == 200

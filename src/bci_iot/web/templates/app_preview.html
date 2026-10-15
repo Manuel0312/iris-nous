@@ -7,8 +7,8 @@
   <title>Anteprima app · Iris Nous</title>
   <link rel="icon" href="/static/app/icon-192.png" type="image/png" />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/app/preview.css?v=irisPrev78" />
-  <link rel="stylesheet" href="/static/app/shell.css?v=irisShell78" />
+  <link rel="stylesheet" href="/static/app/preview.css?v=irisPrev79" />
+  <link rel="stylesheet" href="/static/app/shell.css?v=irisShell79" />
 </head>
 <body class="preview-body">
   <header class="preview-top">
@@ -27,12 +27,7 @@
     <div class="phone" role="application" aria-label="Anteprima Iris Nous">
       <div class="phone-notch" aria-hidden="true"></div>
       <div class="phone-screen phone-screen-shell">
-        <iframe
-          class="app-frame"
-          title="Iris Nous app"
-          src="/app?from=preview"
-          allow="clipboard-read; clipboard-write"
-        ></iframe>
+        {% include "_app_shell.html" %}
       </div>
       <div class="phone-home" aria-hidden="true"></div>
     </div>
@@ -43,5 +38,7 @@
     <a href="/app">Apri l’app a schermo intero</a> ·
     <a href="/app/device">Collega il telefono</a>
   </p>
+
+  <script src="/static/app/shell.js?v=irisShell79" defer></script>
 </body>
 </html>

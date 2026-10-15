@@ -31,6 +31,14 @@ html, body.shell-body {
     var(--shell-bg);
 }
 
+/* Nested inside the phone chrome on /app/preview */
+.phone-screen .shell {
+  height: 100%;
+  min-height: 100%;
+  border-radius: 28px;
+  overflow: hidden;
+}
+
 .screen {
   display: none;
   flex: 1;
