@@ -1,44 +1,14 @@
 (() => {
-  const SLIDES = [
-    {
-      kicker: "Benvenuto",
-      title: "Iris ti ascolta",
-      body: "Pensi sì o no. Casa, musica e telefono rispondono a te — senza tastiera.",
-      photo: "/static/product/headset.jpg",
-    },
-    {
-      kicker: "Cuffia",
-      title: "Indossa e basta",
-      body: "Metti la cuffia. Quando pensi sì o no, Iris lo sente e agisce.",
-      photo: "/static/product/headset.jpg",
-    },
-    {
-      kicker: "Telefono",
-      title: "Chiamate e messaggi",
-      body: "Arriva una chiamata o un messaggio: rispondi pensando sì o no.",
-      photo: "/static/product/phone.jpg",
-    },
-    {
-      kicker: "Musica",
-      title: "Cambia brano col pensiero",
-      body: "Vuoi la traccia dopo? Un sì basta. Niente di complicato.",
-      photo: "/static/product/music.jpg",
-    },
-    {
-      kicker: "Casa",
-      title: "La casa ti segue",
-      body: "Luci e dispositivi possono seguire i tuoi sì e no, quando li colleghi.",
-      photo: "/static/product/home.jpg",
-    },
-    {
-      kicker: "Privacy",
-      title: "Non legge i messaggi",
-      body: "Iris non apre le chat. Se dici sì a un messaggio, può solo aprire WhatsApp.",
-      photo: "/static/product/connect.jpg",
-    },
+  const PHOTOS = [
+    { src: "/static/product/headset.jpg", alt: "Cuffia" },
+    { src: "/static/product/phone.jpg", alt: "Telefono" },
+    { src: "/static/product/music.jpg", alt: "Musica" },
+    { src: "/static/product/home.jpg", alt: "Casa" },
+    { src: "/static/product/connect.jpg", alt: "Connessione" },
   ];
 
   const INTERVAL_MS = 7000;
+  const THEME_KEY = "iris-app-theme";
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
@@ -46,6 +16,33 @@
   let timer = null;
   let carouselOn = false;
   let profile = null;
+
+  function themeFromHour() {
+    const h = new Date().getHours();
+    return h >= 7 && h < 20 ? "light" : "dark";
+  }
+
+  function getThemeChoice() {
+    try {
+      const v = localStorage.getItem(THEME_KEY);
+      if (v === "light" || v === "dark" || v === "auto") return v;
+    } catch (_) {}
+    return "auto";
+  }
+
+  function applyTheme(choice) {
+    const mode = choice || getThemeChoice();
+    const resolved = mode === "auto" ? themeFromHour() : mode;
+    const root = document.documentElement;
+    root.setAttribute("data-theme", mode);
+    root.setAttribute("data-theme-resolved", resolved);
+    root.style.colorScheme = resolved;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", resolved === "dark" ? "#0b0b0d" : "#f5f5f7");
+    $$(".theme-choice").forEach((btn) => {
+      btn.classList.toggle("on", btn.getAttribute("data-theme-choice") === mode);
+    });
+  }
 
   function show(name) {
     $$(".screen").forEach((el) => el.classList.toggle("on", el.dataset.screen === name));
@@ -58,27 +55,16 @@
   }
 
   function renderSlide(i, animate) {
-    const slide = SLIDES[i];
-    const popup = $("#iris-popup");
+    const slide = PHOTOS[i];
     const img = $("#iris-photo-img");
-    if (!popup || !slide) return;
+    if (!img || !slide) return;
     if (animate) {
-      popup.classList.remove("is-swap");
-      void popup.offsetWidth;
-      popup.classList.add("is-swap");
-      if (img) {
-        img.classList.remove("is-swap");
-        void img.offsetWidth;
-        img.classList.add("is-swap");
-      }
+      img.classList.remove("is-swap");
+      void img.offsetWidth;
+      img.classList.add("is-swap");
     }
-    $("#popup-kicker").textContent = slide.kicker;
-    $("#popup-title").textContent = slide.title;
-    $("#popup-body").textContent = slide.body;
-    if (img) {
-      img.src = slide.photo;
-      img.alt = slide.kicker;
-    }
+    img.src = slide.src;
+    img.alt = slide.alt;
     $$("#popup-dots button").forEach((btn, n) => {
       btn.classList.toggle("on", n === i);
       btn.setAttribute("aria-current", n === i ? "true" : "false");
@@ -86,7 +72,7 @@
   }
 
   function go(i, animate = true) {
-    index = (i + SLIDES.length) % SLIDES.length;
+    index = (i + PHOTOS.length) % PHOTOS.length;
     renderSlide(index, animate);
   }
 
@@ -115,16 +101,54 @@
     const host = $("#popup-dots");
     if (!host) return;
     host.innerHTML = "";
-    SLIDES.forEach((_, n) => {
+    PHOTOS.forEach((_, n) => {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.setAttribute("aria-label", `Passo ${n + 1}`);
+      btn.setAttribute("aria-label", `Foto ${n + 1}`);
       btn.addEventListener("click", () => {
         go(n, true);
         if (carouselOn) startCarousel();
       });
       host.appendChild(btn);
     });
+  }
+
+  function openSettings() {
+    const panel = $("#settings-panel");
+    const backdrop = $("#settings-backdrop");
+    if (!panel) return;
+    panel.hidden = false;
+    if (backdrop) backdrop.hidden = false;
+    document.body.classList.add("settings-open");
+  }
+
+  function closeSettings() {
+    const panel = $("#settings-panel");
+    const backdrop = $("#settings-backdrop");
+    if (panel) panel.hidden = true;
+    if (backdrop) backdrop.hidden = true;
+    document.body.classList.remove("settings-open");
+  }
+
+  function bindSettings() {
+    $("#settings-open")?.addEventListener("click", openSettings);
+    $("#settings-close")?.addEventListener("click", closeSettings);
+    $("#settings-backdrop")?.addEventListener("click", closeSettings);
+
+    $$(".theme-choice").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const choice = btn.getAttribute("data-theme-choice");
+        try {
+          localStorage.setItem(THEME_KEY, choice);
+        } catch (_) {}
+        applyTheme(choice);
+      });
+    });
+
+    // Re-evaluate auto theme every minute (hour boundary).
+    setInterval(() => {
+      if (getThemeChoice() === "auto") applyTheme("auto");
+    }, 60_000);
   }
 
   function setHint(el, text, kind) {
@@ -224,7 +248,7 @@
       });
     });
 
-    $("#form-login").addEventListener("submit", async (e) => {
+    $("#form-login")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const fd = new FormData(e.target);
       setHint($("#auth-hint"), "Accesso in corso…");
@@ -241,10 +265,10 @@
       }
       fillProfile(data);
       showAccountState("account-user");
-      setHint($("#profile-hint"), "Bentornato. Ecco i tuoi dati.", "ok");
+      setHint($("#profile-hint"), "Ok.", "ok");
     });
 
-    $("#form-register").addEventListener("submit", async (e) => {
+    $("#form-register")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const fd = new FormData(e.target);
       setHint($("#auth-hint"), "Creazione account…");
@@ -263,10 +287,10 @@
       }
       fillProfile(data);
       showAccountState("account-user");
-      setHint($("#profile-hint"), "Account creato. Completa i tuoi dati.", "ok");
+      setHint($("#profile-hint"), "Account creato.", "ok");
     });
 
-    $("#form-profile").addEventListener("submit", async (e) => {
+    $("#form-profile")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const fd = new FormData(e.target);
       const gender = fd.get("gender");
@@ -291,17 +315,17 @@
         return;
       }
       fillProfile(data);
-      setHint($("#profile-hint"), "Salvato. Stessi dati anche sul sito.", "ok");
+      setHint($("#profile-hint"), "Salvato.", "ok");
     });
 
-    $("#btn-logout").addEventListener("click", async () => {
+    $("#btn-logout")?.addEventListener("click", async () => {
       await api("/api/auth/logout", { method: "POST" });
       profile = null;
       showAccountState("account-guest");
       setHint($("#auth-hint"), "Sei uscito.", "ok");
     });
 
-    $("#photo-input").addEventListener("change", async (e) => {
+    $("#photo-input")?.addEventListener("change", async (e) => {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
       const body = new FormData();
@@ -324,9 +348,11 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
+    applyTheme();
     buildDots();
+    bindSettings();
     bindAuth();
-    setTimeout(() => show("iris"), 900);
+    setTimeout(() => show("iris"), 700);
 
     $$(".shell-tabs [data-go]").forEach((btn) => {
       btn.addEventListener("click", () => show(btn.getAttribute("data-go")));

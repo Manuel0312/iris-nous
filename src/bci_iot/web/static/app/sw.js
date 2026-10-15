@@ -1,5 +1,5 @@
 /* Iris Nous companion PWA — shell cache; CSS/JS always prefer network. */
-const CACHE = "iris-app-v12-shell78";
+const CACHE = "iris-app-v13-shell80";
 const SHELL = [
   "/static/app/manifest.webmanifest",
   "/static/app/icon-180.png",

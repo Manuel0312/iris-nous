@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="{{ lang|default('it') }}" data-theme="auto" data-theme-resolved="light">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -7,15 +7,27 @@
   <title>Anteprima app · Iris Nous</title>
   <link rel="icon" href="/static/app/icon-192.png" type="image/png" />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/app/preview.css?v=irisPrev79" />
-  <link rel="stylesheet" href="/static/app/shell.css?v=irisShell79" />
+  <link rel="stylesheet" href="/static/app/preview.css?v=irisPrev80" />
+  <link rel="stylesheet" href="/static/app/shell.css?v=irisShell80" />
+  <script>
+    (function () {
+      try {
+        var key = "iris-app-theme";
+        var mode = localStorage.getItem(key) || "auto";
+        var h = new Date().getHours();
+        var resolved = mode === "light" || mode === "dark" ? mode : (h >= 7 && h < 20 ? "light" : "dark");
+        document.documentElement.setAttribute("data-theme", mode === "light" || mode === "dark" || mode === "auto" ? mode : "auto");
+        document.documentElement.setAttribute("data-theme-resolved", resolved);
+        document.documentElement.style.colorScheme = resolved;
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body class="preview-body">
   <header class="preview-top">
     <div>
       <p class="eyebrow">Anteprima</p>
       <h1>Come sarà l’app</h1>
-      <p class="lede">Semplice, senza scorrere. I popup su Iris cambiano da soli.</p>
     </div>
     <div class="preview-top-actions">
       <a class="btn ghost" href="/">Sito</a>
@@ -39,6 +51,6 @@
     <a href="/app/device">Collega il telefono</a>
   </p>
 
-  <script src="/static/app/shell.js?v=irisShell79" defer></script>
+  <script src="/static/app/shell.js?v=irisShell80" defer></script>
 </body>
 </html>

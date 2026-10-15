@@ -1,5 +1,52 @@
-{# Shared app chrome: Iris carousel + Connessioni + Account. #}
+{# Shared app chrome: photo stage + Connessioni + Account + settings. #}
 <div class="shell">
+  <button type="button" class="settings-fab" id="settings-open" aria-label="Impostazioni" title="Impostazioni">
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.1 5.1l1.6 1.6M17.3 17.3l1.6 1.6M18.9 5.1l-1.6 1.6M6.7 17.3l-1.6 1.6"/>
+    </svg>
+  </button>
+
+  <div class="settings-backdrop" id="settings-backdrop" hidden></div>
+  <aside class="settings-panel glass" id="settings-panel" hidden aria-label="Impostazioni">
+    <header class="settings-head">
+      <h2>Impostazioni</h2>
+      <button type="button" class="settings-close" id="settings-close" aria-label="Chiudi">✕</button>
+    </header>
+
+    <section class="settings-block">
+      <h3>Lingua</h3>
+      <ul class="settings-langs">
+        {% for item in languages|default([]) %}
+        <li>
+          <a
+            class="settings-lang {% if item.code == lang %}is-active{% endif %}"
+            href="/lingua/{{ item.code }}"
+            data-lang="{{ item.code }}"
+          >
+            <img class="lang-flag-img" src="{{ item.flag_src }}" alt="" width="22" height="16" loading="lazy" />
+            <span class="lang-code">{{ item.code|upper }}</span>
+            <span class="lang-name">{{ item.name }}</span>
+          </a>
+        </li>
+        {% else %}
+        <li><a class="settings-lang is-active" href="/lingua/it">IT · Italiano</a></li>
+        <li><a class="settings-lang" href="/lingua/en">EN · English</a></li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="settings-block">
+      <h3>Aspetto</h3>
+      <div class="theme-choices" role="radiogroup" aria-label="Aspetto">
+        <button type="button" class="theme-choice" data-theme-choice="light">Chiaro</button>
+        <button type="button" class="theme-choice" data-theme-choice="dark">Scuro</button>
+        <button type="button" class="theme-choice" data-theme-choice="auto">Automatico (ora)</button>
+      </div>
+      <p class="settings-note">Automatico: chiaro di giorno (7–20), scuro di notte.</p>
+    </section>
+  </aside>
+
   <section class="screen on" id="screen-splash" data-screen="splash">
     <div class="splash">
       <p class="brand">Iris Nous</p>
@@ -10,27 +57,23 @@
   <section class="screen" id="screen-links" data-screen="links">
     <div class="panel fit">
       <p class="eyebrow">Connessioni</p>
-      <h2>Tutto collegato</h2>
-      <p class="copy">Tre pezzi. Niente da scorrere.</p>
+      <h2>Collegamenti</h2>
       <ul class="conn-list">
         <li>
           <div>
             <strong>Cuffia</strong>
-            <span>La indossi e pensi sì o no.</span>
           </div>
           <span class="chip soft">Pronta</span>
         </li>
         <li>
           <div>
             <strong>Telefono</strong>
-            <span>Codice e collegamento in un attimo.</span>
           </div>
           <a class="chip" href="/app/device">Collega</a>
         </li>
         <li>
           <div>
             <strong>Musica</strong>
-            <span>Spotify, quando vuoi.</span>
           </div>
           <span class="chip soft">Ok</span>
         </li>
@@ -45,14 +88,10 @@
       </div>
       <div class="iris-shade" aria-hidden="true"></div>
       <div class="iris-fore">
-        <p class="brand-mark">Iris</p>
-        <div class="popup" id="iris-popup" role="status" aria-live="polite">
-          <p class="popup-kicker" id="popup-kicker"></p>
-          <h2 class="popup-title" id="popup-title"></h2>
-          <p class="popup-body" id="popup-body"></p>
+        <div class="glass-pill" aria-hidden="true">
+          <span class="glass-pill-mark">Iris</span>
         </div>
-        <div class="popup-dots" id="popup-dots" aria-label="Passi"></div>
-        <p class="popup-hint">Foto e testo ogni 7 secondi</p>
+        <div class="popup-dots" id="popup-dots" aria-label="Foto"></div>
       </div>
     </div>
   </section>
@@ -63,18 +102,16 @@
 
       <div id="account-loading" class="account-state">
         <div class="spinner" aria-hidden="true"></div>
-        <p class="copy">Controllo accesso…</p>
       </div>
 
       <div id="account-guest" class="account-state" hidden>
-        <h2>Accedi a Iris</h2>
-        <p class="copy">Se hai già un account sul sito, usa le stesse credenziali. Oppure iscriviti qui.</p>
+        <h2>Accedi</h2>
         <div class="auth-toggle" role="tablist">
           <button type="button" class="auth-tab on" data-auth="login">Accedi</button>
           <button type="button" class="auth-tab" data-auth="register">Iscriviti</button>
         </div>
 
-        <form id="form-login" class="auth-form data-card" autocomplete="on">
+        <form id="form-login" class="auth-form data-card glass-card" autocomplete="on">
           <label class="field">Nome utente
             <input name="username" type="text" required maxlength="64" autocomplete="username" />
           </label>
@@ -84,7 +121,7 @@
           <button class="btn primary" type="submit">Entra</button>
         </form>
 
-        <form id="form-register" class="auth-form data-card" hidden autocomplete="on">
+        <form id="form-register" class="auth-form data-card glass-card" hidden autocomplete="on">
           <label class="field">Nome utente
             <input name="username" type="text" required maxlength="64" autocomplete="username" />
           </label>
@@ -101,7 +138,6 @@
 
       <div id="account-user" class="account-state" hidden>
         <h2>I tuoi dati</h2>
-        <p class="copy">Stessi dati del sito. Li cambi qui o lì: restano aggiornati ovunque.</p>
 
         <div class="profile-photo-row">
           <div class="avatar-wrap">
@@ -113,11 +149,10 @@
               Cambia foto
               <input id="photo-input" type="file" accept="image/jpeg,image/png,image/webp,image/*" hidden />
             </label>
-            <p class="muted tiny">Come sul sito · JPG PNG WebP</p>
           </div>
         </div>
 
-        <form id="form-profile" class="data-card">
+        <form id="form-profile" class="data-card glass-card">
           <label class="field">Nome
             <input name="first_name" type="text" required maxlength="64" autocomplete="given-name" />
           </label>

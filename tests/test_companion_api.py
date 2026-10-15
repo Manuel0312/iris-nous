@@ -171,8 +171,11 @@ def test_companion_pwa_routes(tmp_path: Path) -> None:
     assert 'data-go="iris"' in app_page.text
     assert 'data-go="links"' in app_page.text
     assert 'data-go="account"' in app_page.text
-    assert "Foto e testo ogni 7 secondi" in app_page.text
     assert "iris-photo" in app_page.text
+    assert "glass-pill" in app_page.text
+    assert "settings-open" in app_page.text
+    assert "data-theme-choice" in app_page.text
+    assert "/lingua/" in app_page.text
     assert "form-login" in app_page.text
     assert "form-register" in app_page.text
     assert "form-profile" in app_page.text

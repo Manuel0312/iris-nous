@@ -3140,11 +3140,18 @@ def create_app(
             ),
         )
 
+    def _app_shell_ctx(request: Request) -> dict:
+        return {
+            "request": request,
+            "lang": get_request_language(request),
+            "languages": LANGUAGES,
+        }
+
     @app.get("/app", response_class=HTMLResponse)
     def companion_app_page(request: Request) -> HTMLResponse:
-        """Simple explainer app: rotating popups + Connections / Iris / Account."""
+        """App shell: photos, Connections / Iris / Account, settings."""
 
-        return TEMPLATES.TemplateResponse(request, "app.html", {"request": request})
+        return TEMPLATES.TemplateResponse(request, "app.html", _app_shell_ctx(request))
 
     @app.get("/app/device", response_class=HTMLResponse)
     def companion_app_device_page(request: Request) -> HTMLResponse:
@@ -3156,7 +3163,7 @@ def create_app(
     def companion_app_preview_page(request: Request) -> HTMLResponse:
         """Navigable phone mock of the app — try before install."""
 
-        return TEMPLATES.TemplateResponse(request, "app_preview.html", {"request": request})
+        return TEMPLATES.TemplateResponse(request, "app_preview.html", _app_shell_ctx(request))
 
     @app.get("/app/installa", response_class=HTMLResponse)
     def companion_app_install_page(request: Request) -> HTMLResponse:

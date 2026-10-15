@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.80 glass + settings ---
+    "App: glass, foto e impostazioni": {
+        "en": "App: glass, photos and settings",
+        "fr": "App : glass, photos et reglages",
+        "de": "App: Glass, Fotos und Einstellungen",
+        "pt": "App: glass, fotos e definicoes",
+        "zh": "应用：玻璃质感、照片与设置",
+        "ja": "アプリ：ガラス・写真・設定",
+        "es": "App: glass, fotos y ajustes",
+    },
+    "I testi che ruotavano ogni 7 secondi e il popup bianco non servivano.": {
+        "en": "The texts rotating every 7 seconds and the white popup were useless.",
+        "fr": "Les textes qui tournaient toutes les 7 secondes et le popup blanc ne servaient a rien.",
+        "de": "Die alle 7 Sekunden wechselnden Texte und das weisse Popup waren nutzlos.",
+        "pt": "Os textos que mudavam a cada 7 segundos e o popup branco nao serviam.",
+        "zh": "每 7 秒轮换的文字和白色弹窗没有用。",
+        "ja": "7秒ごとに回る文章と白いポップアップは不要でした。",
+        "es": "Los textos que rotaban cada 7 segundos y el popup blanco no servian.",
+    },
+    "Ora su Iris restano le foto con un pill liquid glass; la rotella apre lingua (come sul sito) e aspetto chiaro, scuro o automatico in base all’ora.": {
+        "en": "Now Iris keeps the photos with a liquid-glass pill; the gear opens language (like the site) and light, dark, or automatic appearance by time of day.",
+        "fr": "Desormais Iris garde les photos avec une pastille liquid glass ; la roue ouvre la langue (comme le site) et l’aspect clair, sombre ou automatique selon l’heure.",
+        "de": "Jetzt bleiben bei Iris die Fotos mit einem Liquid-Glass-Pill; das Zahnrad oeffnet Sprache (wie auf der Website) und hell, dunkel oder automatisch nach Uhrzeit.",
+        "pt": "Agora no Iris ficam as fotos com um pill liquid glass; a roda abre lingua (como no site) e aspeto claro, escuro ou automatico conforme a hora.",
+        "zh": "现在 Iris 只保留照片与液态玻璃小标；齿轮打开语言（与网站相同）以及浅色、深色或按时间自动外观。",
+        "ja": "いまIrisは写真とリキッドガラスのピルのみ。歯車で言語（サイト同様）と明・暗・時刻自動の見た目。",
+        "es": "Ahora en Iris quedan las fotos con un pill liquid glass; la rueda abre idioma (como en el sitio) y aspecto claro, oscuro o automatico segun la hora.",
+    },
     # --- v0.4.79 preview visible ---
     "Anteprima di nuovo visibile": {
         "en": "Preview visible again",
