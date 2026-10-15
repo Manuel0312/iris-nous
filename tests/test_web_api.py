@@ -114,10 +114,40 @@ def test_register_login_dashboard_flow(tmp_path: Path) -> None:
     assert body["first_name"] == "Maria"
     assert body["gender"] == "female"
     assert body["headset_id"] == "cuffia-001"
+    assert body["phone_country"] == "IT"
+    assert "phone_national" in body
+    assert "photo_url" in body
     assert "password_hash" not in body
+
+    updated = client.put(
+        "/api/me/anagrafica",
+        json={
+            "first_name": "Maria",
+            "last_name": "Verdi",
+            "gender": "female",
+            "email": "maria@gmail.com",
+            "phone_country": "IT",
+            "phone_national": "3331234567",
+        },
+    )
+    assert updated.status_code == 200
+    assert updated.json()["last_name"] == "Verdi"
+    assert client.get("/api/me").json()["last_name"] == "Verdi"
 
     client.post("/logout", follow_redirects=False)
     assert client.get("/api/me").status_code == 401
+    assert (
+        client.put(
+            "/api/me/anagrafica",
+            json={
+                "first_name": "X",
+                "last_name": "",
+                "gender": "female",
+                "email": "x@gmail.com",
+            },
+        ).status_code
+        == 401
+    )
 
     login = client.post(
         "/login",

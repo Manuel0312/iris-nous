@@ -119,11 +119,15 @@ class ProfileResponse(BaseModel):
     email: str = ""
     phone_label: str = ""
     phone_display: str = ""
+    phone_country: str = ""
+    phone_national: str = ""
+    photo_url: str = ""
     email_verified: bool = False
     phone_verified: bool = False
     anagrafica_complete: bool = False
     @classmethod
     def from_profile(cls, profile: UserProfile) -> ProfileResponse:
+        photo = str(profile.photo_filename or "").strip()
         return cls(
             user_id=profile.user_id,
             username=profile.username,
@@ -137,10 +141,24 @@ class ProfileResponse(BaseModel):
             email=profile.email,
             phone_label=profile.phone_label,
             phone_display=profile.phone_display,
+            phone_country=str(profile.phone_country or ""),
+            phone_national=str(profile.phone_national or ""),
+            photo_url=f"/media/photos/{photo}" if photo else "",
             email_verified=bool(profile.email_verified),
             phone_verified=bool(profile.phone_verified),
             anagrafica_complete=bool(profile.anagrafica_complete),
         )
+
+
+class AnagraficaUpdateRequest(BaseModel):
+
+    first_name: str = Field(min_length=1, max_length=64)
+    last_name: str = Field(default="", max_length=64)
+    gender: str = Field(min_length=1, max_length=32)
+    email: str = Field(default="", max_length=254)
+    phone_country: str = Field(default="", max_length=8)
+    phone_national: str = Field(default="", max_length=32)
+    phone_label: str = Field(default="", max_length=64)
 
 class ConfigUpdateRequest(BaseModel):
 
@@ -4382,6 +4400,36 @@ def create_app(
         if profile is None:
             raise HTTPException(status_code=404, detail="Profile not found")
         return ProfileResponse.from_profile(profile)
+
+    @app.put("/api/me/anagrafica", response_model=ProfileResponse)
+    def api_update_anagrafica(
+        request: Request,
+        body: AnagraficaUpdateRequest,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> ProfileResponse:
+        """Same fields as /anagrafica — shared DB for site and app."""
+        username = _require_username(request)
+        try:
+            profile = profiles.update_anagrafica(
+                username,
+                first_name=body.first_name,
+                last_name=body.last_name,
+                gender=body.gender,
+                email=body.email,
+                phone_country=body.phone_country,
+                phone_national=body.phone_national,
+                phone_label=body.phone_label,
+            )
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Profile not found") from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        _sync_anagrafica_db(profile, access)
+        profiles.ensure_headset_pairing(profile.username)
+        profile = profiles.get(profile.username) or profile
+        return ProfileResponse.from_profile(profile)
+
     @app.put("/api/me/config", response_model=ProfileResponse)
     def api_update_me(
         request: Request,

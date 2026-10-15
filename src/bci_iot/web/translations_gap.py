@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.78 app photos + real account ---
+    "App: foto del sito e account reale": {
+        "en": "App: site photos and real account",
+        "fr": "App : photos du site et vrai compte",
+        "de": "App: Website-Fotos und echtes Konto",
+        "pt": "App: fotos do site e conta real",
+        "zh": "应用：网站同款照片与真实账户",
+        "ja": "アプリ：サイトと同じ写真と本物のアカウント",
+        "es": "App: fotos del sitio y cuenta real",
+    },
+    "L’app sembrava vuota e l’Account era finto.": {
+        "en": "The app looked empty and Account was fake.",
+        "fr": "L’app semblait vide et le Compte etait fictif.",
+        "de": "Die App wirkte leer und Konto war unecht.",
+        "pt": "A app parecia vazia e a Conta era falsa.",
+        "zh": "应用看起来空空的，账户是假的。",
+        "ja": "アプリが空に見え、アカウントは偽でした。",
+        "es": "La app parecia vacia y la Cuenta era falsa.",
+    },
+    "Ora Iris usa le stesse foto del sito (poi in 3D); Account legge i cookie: se sei già entrato vedi i tuoi dati, altrimenti login o iscrizione, e le modifiche restano uguali sul sito.": {
+        "en": "Now Iris uses the same site photos (3D later); Account reads cookies: if you are already signed in you see your data, otherwise login or sign-up, and edits stay the same on the site.",
+        "fr": "Desormais Iris utilise les memes photos du site (3D plus tard) ; Compte lit les cookies : si vous etes deja connecte vous voyez vos donnees, sinon connexion ou inscription, et les changements restent identiques sur le site.",
+        "de": "Jetzt nutzt Iris dieselben Website-Fotos (spaeter 3D); Konto liest Cookies: bist du schon angemeldet, siehst du deine Daten, sonst Login oder Registrierung — Aenderungen bleiben auf der Website gleich.",
+        "pt": "Agora a Iris usa as mesmas fotos do site (3D depois); Conta le cookies: se ja entraste ves os teus dados, senao login ou inscricao, e as alteracoes ficam iguais no site.",
+        "zh": "现在 Iris 使用与网站相同的照片（稍后 3D）；账户读取 cookie：已登录则显示你的资料，否则登录或注册，修改与网站保持一致。",
+        "ja": "いまIrisはサイトと同じ写真（のち3D）。アカウントはCookieを読み、既にログインならデータ表示、でなければログイン／登録。変更はサイトと同じ。",
+        "es": "Ahora Iris usa las mismas fotos del sitio (luego 3D); Cuenta lee cookies: si ya entraste ves tus datos, si no login o registro, y los cambios quedan iguales en el sitio.",
+    },
     # --- v0.4.77 simple app carousel ---
     "App semplice con popup che ruotano": {
         "en": "Simple app with rotating popups",
