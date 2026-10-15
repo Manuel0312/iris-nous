@@ -10,6 +10,28 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.77",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "App semplice con popup che ruotano",
+                "L’app ripeteva il sito lungo e bisognava scorrere.",
+                "Ora è una guida a schermo pieno: su Iris i popup cambiano ogni 7 secondi; in basso restano Connessioni, Iris e Account.",
+            ),
+        ),
+    },
+    {
+        "version": "0.4.76",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Anteprima: tre tasti in basso",
+                "La barra dell’anteprima aveva troppe sezioni.",
+                "Ora solo tre: Connessioni, Iris al centro, Account con i tuoi dati.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.75",
         "intro": WHATS_NEW_INTRO,
         "entries": (

@@ -3124,7 +3124,7 @@ def create_app(
 
     @app.get("/app", response_class=HTMLResponse)
     def companion_app_page(request: Request) -> HTMLResponse:
-        """App shell = full Iris website (same discovery UX as PC)."""
+        """Simple explainer app: rotating popups + Connections / Iris / Account."""
 
         return TEMPLATES.TemplateResponse(request, "app.html", {"request": request})
 

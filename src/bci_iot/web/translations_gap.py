@@ -1,6 +1,62 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.77 simple app carousel ---
+    "App semplice con popup che ruotano": {
+        "en": "Simple app with rotating popups",
+        "fr": "App simple avec popups qui tournent",
+        "de": "Einfache App mit wechselnden Popups",
+        "pt": "App simples com popups que rodam",
+        "zh": "带轮播弹窗的简易应用",
+        "ja": "ポップアップが巡るシンプルなアプリ",
+        "es": "App sencilla con popups que rotan",
+    },
+    "L’app ripeteva il sito lungo e bisognava scorrere.": {
+        "en": "The app repeated the long site and you had to scroll.",
+        "fr": "L’app repetait le long site et il fallait defiler.",
+        "de": "Die App wiederholte die lange Website und man musste scrollen.",
+        "pt": "A app repetia o site longo e era preciso deslocar.",
+        "zh": "应用复刻了长网站，还得往下滚。",
+        "ja": "アプリが長いサイトのままで、スクロールが必要でした。",
+        "es": "La app repetia el sitio largo y habia que desplazarse.",
+    },
+    "Ora è una guida a schermo pieno: su Iris i popup cambiano ogni 7 secondi; in basso restano Connessioni, Iris e Account.": {
+        "en": "Now it is a full-screen guide: on Iris the popups change every 7 seconds; Connections, Iris and Account stay at the bottom.",
+        "fr": "Desormais c’est un guide plein ecran : sur Iris les popups changent toutes les 7 secondes ; Connexions, Iris et Compte restent en bas.",
+        "de": "Jetzt ist es eine Vollbild-Hilfe: Bei Iris wechseln die Popups alle 7 Sekunden; Verbindungen, Iris und Konto bleiben unten.",
+        "pt": "Agora e um guia em ecran inteiro: no Iris os popups mudam a cada 7 segundos; Ligacoes, Iris e Conta ficam em baixo.",
+        "zh": "现在是全屏指南：Iris 上弹窗每 7 秒切换；底部仍是连接、Iris 与账户。",
+        "ja": "いまは全画面ガイド。Irisでは7秒ごとにポップアップが変わり、下は接続・Iris・アカウントのまま。",
+        "es": "Ahora es una guia a pantalla completa: en Iris los popups cambian cada 7 segundos; abajo siguen Conexiones, Iris y Cuenta.",
+    },
+    # --- v0.4.76 preview 3 tabs ---
+    "Anteprima: tre tasti in basso": {
+        "en": "Preview: three buttons at the bottom",
+        "fr": "Apercu : trois boutons en bas",
+        "de": "Vorschau: drei Tasten unten",
+        "pt": "Pre-visualizacao: tres botoes em baixo",
+        "zh": "预览：底部三个按钮",
+        "ja": "プレビュー：下に3つのボタン",
+        "es": "Vista previa: tres botones abajo",
+    },
+    "La barra dell’anteprima aveva troppe sezioni.": {
+        "en": "The preview bar had too many sections.",
+        "fr": "La barre d’apercu avait trop de sections.",
+        "de": "Die Vorschauleiste hatte zu viele Bereiche.",
+        "pt": "A barra da pre-visualizacao tinha demasiadas secoes.",
+        "zh": "预览栏分区太多。",
+        "ja": "プレビューのバーに区画が多すぎました。",
+        "es": "La barra de vista previa tenia demasiadas secciones.",
+    },
+    "Ora solo tre: Connessioni, Iris al centro, Account con i tuoi dati.": {
+        "en": "Now only three: Connections, Iris in the center, Account with your details.",
+        "fr": "Desormais seulement trois : Connexions, Iris au centre, Compte avec vos donnees.",
+        "de": "Jetzt nur drei: Verbindungen, Iris in der Mitte, Konto mit deinen Daten.",
+        "pt": "Agora so tres: Ligacoes, Iris no centro, Conta com os teus dados.",
+        "zh": "现在只有三个：连接、居中的 Iris、带你资料的账户。",
+        "ja": "いまは3つだけ：接続、中央のIris、あなたのデータのアカウント。",
+        "es": "Ahora solo tres: Conexiones, Iris en el centro, Cuenta con tus datos.",
+    },
     # --- v0.4.75 app preview ---
     "Anteprima app navigabile prima del download": {
         "en": "Navigable app preview before download",

@@ -26,7 +26,7 @@ class _SplashScreenState extends State<SplashScreen> {
     // First open = the real Iris website (same as discovering it on PC).
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
-        builder: (_) => SiteShellScreen(store: widget.store, initialPath: '/'),
+        builder: (_) => SiteShellScreen(store: widget.store, initialPath: '/app'),
       ),
     );
   }

@@ -32,6 +32,8 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
         or "Hub «La tua cuffia»" in page.text
         or "Privacy e chiarezza demo" in page.text
     )
+    assert "App semplice con popup che ruotano" in page.text
+    assert "Anteprima: tre tasti in basso" in page.text
     assert "Anteprima app navigabile prima del download" in page.text
     assert "Testi dell’app più semplici e invitanti" in page.text
     assert "App = sito completo (prima scoperta)" in page.text

@@ -165,9 +165,15 @@ def test_companion_pwa_routes(tmp_path: Path) -> None:
 
     app_page = client.get("/app")
     assert app_page.status_code == 200
-    # Full site experience for first-time downloaders (iframe of home).
-    assert 'src="/?from=app"' in app_page.text or "from=app" in app_page.text
-    assert "iris-site" in app_page.text
+    # Simple explainer app (not the full website iframe).
+    assert "shell-tabs" in app_page.text
+    assert "/static/app/shell.js" in app_page.text
+    assert 'data-go="iris"' in app_page.text
+    assert 'data-go="links"' in app_page.text
+    assert 'data-go="account"' in app_page.text
+    assert "Cambia da sola ogni 7 secondi" in app_page.text
+    assert "Connessioni" in app_page.text
+    assert "Account" in app_page.text
     assert "apple-mobile-web-app-capable" in app_page.text
     assert "/static/app/manifest.webmanifest" in app_page.text
 
@@ -180,9 +186,9 @@ def test_companion_pwa_routes(tmp_path: Path) -> None:
     preview = client.get("/app/preview")
     assert preview.status_code == 200
     assert "Come sarà l’app" in preview.text
-    assert "phone-tabs" in preview.text
-    assert "/static/app/preview.js" in preview.text
-    assert 'data-go="iris"' in preview.text
+    assert 'src="/app?from=preview"' in preview.text
+    assert "app-frame" in preview.text
+    assert "/static/app/shell.css" in preview.text
 
     android = client.get("/app/android")
     assert android.status_code == 200
