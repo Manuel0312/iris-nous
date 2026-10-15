@@ -59,7 +59,9 @@ class _LoginScreenState extends State<LoginScreen> {
       _error = null;
     });
     try {
-      await widget.store.setBaseUrl(_base.text);
+      await widget.store.setBaseUrl(
+        _base.text.trim().isEmpty ? IrisConfig.defaultBaseUrl : _base.text,
+      );
       await _api.pair(
         username: _user.text,
         password: _pass.text,
@@ -83,7 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final wide = MediaQuery.sizeOf(context).width >= 600;
     final pad = wide ? 32.0 : 18.0;
     return IrisGlassScaffold(
-      appBar: AppBar(title: const Text('Associa Iris')),
+      appBar: AppBar(title: const Text('Entra in Iris')),
       child: ListView(
         padding: EdgeInsets.fromLTRB(pad, 12, pad, 28),
         children: [
@@ -92,7 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Stesso account del sito. Codice o QR da Ecosistema → Associazione.',
+                  'Il tuo account. Un codice. E Iris resta con te anche a telefono chiuso.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: IrisTheme.deep.withValues(alpha: 0.75),
                         height: 1.35,
@@ -100,15 +102,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 16),
                 TextField(
-                  controller: _base,
-                  decoration: const InputDecoration(labelText: 'URL Iris'),
-                  keyboardType: TextInputType.url,
-                  autocorrect: false,
-                ),
-                const SizedBox(height: 12),
-                TextField(
                   controller: _user,
-                  decoration: const InputDecoration(labelText: 'Username'),
+                  decoration: const InputDecoration(labelText: 'Nome utente'),
                   autocorrect: false,
                   textInputAction: TextInputAction.next,
                 ),
@@ -123,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextField(
                   controller: _code,
                   decoration: const InputDecoration(
-                    labelText: 'Codice (6 cifre)',
+                    labelText: 'Codice a 6 cifre',
                     counterText: '',
                   ),
                   keyboardType: TextInputType.number,
@@ -133,7 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 OutlinedButton.icon(
                   onPressed: _busy ? null : _scanQr,
                   icon: const Icon(Icons.qr_code_scanner),
-                  label: const Text('Inquadra QR'),
+                  label: const Text('Inquadra il codice'),
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 10),
@@ -145,7 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 14),
                 FilledButton(
                   onPressed: _busy ? null : _pair,
-                  child: Text(_busy ? 'Associazione…' : 'Associa questo telefono'),
+                  child: Text(_busy ? 'Un momento…' : 'Collega e continua'),
                 ),
                 TextButton(
                   onPressed: () {

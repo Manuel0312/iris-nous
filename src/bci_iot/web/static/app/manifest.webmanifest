@@ -1,7 +1,7 @@
 {
   "name": "Iris Nous",
   "short_name": "Iris",
-  "description": "Iris Nous — lo stesso sito completo: scopri, crea account, Ecosistema, cuffia e telefono.",
+  "description": "Iris Nous — pensa SÌ o NO. Casa, musica e telefono seguono te.",
   "id": "/app",
   "start_url": "/app",
   "scope": "/app",

@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.74 simple app copy ---
+    "Testi dell’app più semplici e invitanti": {
+        "en": "Simpler, more inviting app copy",
+        "fr": "Textes d’app plus simples et accueillants",
+        "de": "Einfachere, einladendere App-Texte",
+        "pt": "Textos da app mais simples e convidativos",
+        "zh": "应用文案更简洁、更吸引人",
+        "ja": "アプリの文言をよりシンプルで惹きつけるものに",
+        "es": "Textos de la app mas simples y atractivos",
+    },
+    "Nell’app restavano frasi da laboratorio («companion», simulazioni, gergo tecnico).": {
+        "en": "The app still had lab-style phrases (“companion”, simulations, jargon).",
+        "fr": "L’app gardait des phrases de labo (« companion », simulations, jargon).",
+        "de": "In der App blieben Labor-Saetze (« companion », Simulationen, Jargon).",
+        "pt": "Na app ainda havia frases de laboratorio (« companion », simulacoes, jargao).",
+        "zh": "应用里仍有实验室口吻（companion、模拟、术语）。",
+        "ja": "アプリに実験室っぽい文言（companion・模擬・専門語）が残っていました。",
+        "es": "En la app quedaban frases de laboratorio (« companion », simulaciones, jerga).",
+    },
+    "Ora i messaggi sono brevi e chiari: entrata, telefono, permessi e prove invitano a usare Iris senza spiegoni.": {
+        "en": "Messages are now short and clear: entry, phone, permissions and trials invite you to use Iris without lectures.",
+        "fr": "Les textes sont courts et clairs : entree, telephone, permissions et essais invitent a utiliser Iris sans discours.",
+        "de": "Texte sind kurz und klar: Einstieg, Telefon, Rechte und Proben laden ein, Iris ohne Erklaerungen zu nutzen.",
+        "pt": "As mensagens sao curtas e claras: entrada, telefone, permissoes e provas convidam a usar a Iris sem discursos.",
+        "zh": "文案更短更清楚：进入、手机、权限与试用，邀请你使用 Iris，没有长篇说明。",
+        "ja": "文言は短く明確。入口・電話・権限・お試しで、説明なしにIrisを使いたくなります。",
+        "es": "Los mensajes son breves y claros: entrada, telefono, permisos y pruebas invitan a usar Iris sin rollos.",
+    },
     # --- v0.4.73 app = full site ---
     "App = sito completo (prima scoperta)": {
         "en": "App = full site (first discovery)",

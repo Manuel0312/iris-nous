@@ -3,7 +3,6 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-/// Descrizione IT di un permesso companion (richiesta graduale in UI).
 class IrisPermissionItem {
   const IrisPermissionItem({
     required this.id,
@@ -22,66 +21,58 @@ class IrisPermissionItem {
   final Permission? permission;
   final bool androidOnly;
   final bool iosOnly;
-  /// Non richiesto ora (es. SMS) — solo documentato.
   final bool planned;
   final String note;
 }
 
 class PermissionsService {
-  /// Elenco mostrato in schermata Permessi (non tutti richiesti subito).
   List<IrisPermissionItem> catalog() {
     final items = <IrisPermissionItem>[
       const IrisPermissionItem(
         id: 'phone',
-        title: 'Stato telefono + rispondi/rifiuta',
-        why:
-            'Rileva lo squillo e, con SÌ/NO, prova a rispondere o rifiutare la chiamata cellulare su Android.',
+        title: 'Chiamate',
+        why: 'Così Iris sa quando squilla e può aiutarti a rispondere o rifiutare.',
         permission: Permission.phone,
         androidOnly: true,
-        note:
-            'Include READ_PHONE_STATE e ANSWER_PHONE_CALLS. Su alcuni OEM può servire Iris come app telefono predefinita per il rifiuto.',
+        note: 'Solo su Android. Tu resti sempre in controllo.',
       ),
       const IrisPermissionItem(
         id: 'notification',
         title: 'Notifiche',
-        why:
-            'Obbligatorie per tenere attivo «Iris in ascolto» in background (chiamate anche con schermo spento).',
+        why: 'Per restare con te anche con lo schermo spento.',
         permission: Permission.notification,
-        note: 'Android 13+: POST_NOTIFICATIONS. iOS: permesso notifiche.',
+        note: 'Brevi avvisi, niente spam.',
       ),
       const IrisPermissionItem(
         id: 'camera',
         title: 'Fotocamera',
-        why: 'Per inquadrare il QR di Associazione da Ecosistema.',
+        why: 'Solo per leggere il codice e collegarti in un attimo.',
         permission: Permission.camera,
-        note: 'Solo lettura QR; nessuna foto inviata a Iris senza tua azione.',
+        note: 'Niente foto salvate senza che lo chiedi tu.',
       ),
       const IrisPermissionItem(
         id: 'ignore_battery',
-        title: 'Esecuzione in background (batteria)',
-        why:
-            'Consigliato: altrimenti Android può sospendere il ponte chiamate con lo schermo spento.',
+        title: 'Sempre attiva',
+        why: 'Evita che il telefono spenga Iris mentre non guardi.',
         permission: Permission.ignoreBatteryOptimizations,
         androidOnly: true,
-        note: 'Collegato al servizio foreground IrisCallWatchService.',
+        note: 'Consigliato per le chiamate in background.',
       ),
       const IrisPermissionItem(
         id: 'ios_callkit',
-        title: 'Osservazione chiamate (iOS)',
-        why:
-            'CXCallObserver rileva squillo / fine chiamata e lo manda a Iris. SÌ/NO nell’app simulano la cuffia sul contesto.',
+        title: 'Chiamate (iPhone)',
+        why: 'Iris può avvisarti quando arriva una chiamata.',
         permission: null,
         iosOnly: true,
-        note:
-            'iOS non permette alle app di rispondere/rifiutare la tipica chiamata cellulare. Iris aggiorna il contesto demo.',
+        note: 'Su iPhone rispondere al gestore resta a te.',
       ),
       const IrisPermissionItem(
         id: 'sms',
-        title: 'SMS / messaggi',
-        why: 'In futuro per notifiche messaggio — oggi puoi simulare il messaggio dall’app.',
+        title: 'Messaggi',
+        why: 'Presto Iris potrà avvisarti anche qui.',
         permission: null,
         planned: true,
-        note: 'Non richiesto ora.',
+        note: 'Non ancora attivo.',
       ),
     ];
 
@@ -113,13 +104,13 @@ class PermissionsService {
     switch (s) {
       case PermissionStatus.granted:
       case PermissionStatus.limited:
-        return 'Consentito';
+        return 'Attivo';
       case PermissionStatus.denied:
-        return 'Non ancora';
+        return 'Da attivare';
       case PermissionStatus.permanentlyDenied:
-        return 'Bloccato — apri Impostazioni';
+        return 'Apri Impostazioni';
       case PermissionStatus.restricted:
-        return 'Limitato dal sistema';
+        return 'Limitato';
       case PermissionStatus.provisional:
         return 'Provvisorio';
     }

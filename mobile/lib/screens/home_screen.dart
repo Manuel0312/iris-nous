@@ -194,8 +194,8 @@ class _HomeScreenState extends State<HomeScreen> {
         final ok = await openWhatsApp(url: url);
         ids.add(id);
         _lastOsAction = ok
-            ? 'WhatsApp aperto (nessuna lettura messaggi)'
-            : 'WhatsApp non disponibile su questo dispositivo';
+            ? 'WhatsApp aperto'
+            : 'WhatsApp non trovato su questo telefono';
         if (mounted) setState(() {});
         continue;
       }
@@ -254,7 +254,7 @@ class _HomeScreenState extends State<HomeScreen> {
           }
           _lastOsAction = ok
               ? 'WhatsApp aperto'
-              : 'Impossibile aprire WhatsApp';
+              : 'Non riesco ad aprire WhatsApp';
         } else if (action.isNotEmpty) {
           final result = await _callControl.runAction(action);
           final id = cmd['id']?.toString();
@@ -315,7 +315,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Messaggio simulato (WhatsApp). SÌ apre WhatsApp sul telefono.',
+            'Messaggio pronto. Tocca SÌ per aprire WhatsApp.',
           ),
         ),
       );
@@ -380,7 +380,7 @@ class _HomeScreenState extends State<HomeScreen> {
         mark: '3',
         title: 'Canali',
         done: canaliDone,
-        subtitle: canaliDone ? 'Spotify attivo (sito)' : 'Collega una volta sul sito',
+        subtitle: canaliDone ? 'Spotify pronto' : 'Collega Spotify',
         onTap: () => _openWeb(
           canaliDone ? IrisConfig.webEcosistema : IrisConfig.webSpotify,
         ),
@@ -417,7 +417,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return IrisGlassScaffold(
       appBar: AppBar(
-        title: const Text('Iris · Ecosistema'),
+        title: const Text('Iris'),
         actions: [
           IconButton(
             tooltip: 'Aggiorna',
@@ -438,7 +438,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         children: [
           Text(
-            _username == null ? 'Associato a Iris' : 'Ciao, $_username',
+            _username == null ? 'Benvenuto' : 'Ciao, $_username',
             textAlign: wideEco ? TextAlign.left : TextAlign.center,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w700,
@@ -447,7 +447,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Stesso ecosistema del sito: cuffia, telefono e canali.',
+            'Cuffia, telefono, musica: tutto in un posto.',
             textAlign: wideEco ? TextAlign.left : TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.black54,
@@ -465,7 +465,7 @@ class _HomeScreenState extends State<HomeScreen> {
           TextButton.icon(
             onPressed: () => _openWeb(IrisConfig.webEcosistema),
             icon: Icon(Icons.open_in_browser, size: 18, color: accent),
-            label: Text('Apri Ecosistema sul sito', style: TextStyle(color: accent)),
+            label: Text('Apri Ecosistema', style: TextStyle(color: accent)),
           ),
           const SizedBox(height: 16),
           Text('Stato live', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
@@ -478,31 +478,30 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 10),
           _StatusCard(
-            title: 'Musica (Spotify sito)',
+            title: 'Musica',
             value: music
                 ? 'In riproduzione${track.isNotEmpty ? ' · $track' : ''}'
                 : (spotify
-                    ? 'Collegato — apri Spotify e metti play (rileva via API)'
-                    : 'Non collegato — una volta da Ecosistema sul sito'),
+                    ? 'Collegata — metti play su Spotify'
+                    : 'Collega Spotify da Ecosistema'),
             tone: music ? const Color(0xFFE0F7FF) : const Color(0xFFF0F0F2),
             accent: accent,
           ),
           const SizedBox(height: 10),
           _StatusCard(
-            title: 'Focus Iris',
+            title: 'Ora',
             value: (focus?['title'] as String?) ?? '—',
             tone: const Color(0xFFE8F6FF),
             accent: accent,
           ),
           const SizedBox(height: 12),
           Text(
-            'Cuffia virtuale (SÌ / NO)',
+            'SÌ / NO',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
           Text(
-            'Come se pensassi con la cuffia. Su messaggio (anche simulato): SÌ apre WhatsApp senza leggere il testo. '
-            'Su Android, SÌ/NO può anche agire sulla chiamata cellulare. Su iPhone le chiamate restano Simulate/CallKit.',
+            'Pensa SÌ o NO. Iris lo applica a ciò che sta succedendo ora.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
           ),
           if (_lastOsAction != null) ...[
@@ -536,25 +535,25 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               OutlinedButton(
                 onPressed: _busy ? null : () => _demoCall('call_incoming'),
-                child: const Text('Simula squillo → Iris'),
+                child: const Text('Prova una chiamata'),
               ),
               OutlinedButton(
                 onPressed: _busy ? null : () => _demoCall('call_ended'),
-                child: const Text('Fine chiamata → Iris'),
+                child: const Text('Chiudi chiamata'),
               ),
               OutlinedButton(
                 onPressed: _busy ? null : _demoMessage,
-                child: const Text('Simula WhatsApp → poi SÌ'),
+                child: const Text('Prova un messaggio'),
               ),
               FilledButton(
                 onPressed: _busy ? null : _musicNext,
-                child: const Text('Prossima canzone'),
+                child: const Text('Canzone dopo'),
               ),
             ],
           ),
           const SizedBox(height: 8),
           if (_calls.lastSent != null)
-            Text('Ultimo invio: ${_calls.lastSent}',
+            Text('Ultimo segnale: ${_calls.lastSent}',
                 style: TextStyle(color: accent, fontWeight: FontWeight.w600)),
           if (_calls.lastError != null)
             Text(_calls.lastError!,
@@ -562,13 +561,10 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 6),
           Text(
             _calls.listening
-                ? 'Rilevamento nativo attivo con notifica «Iris in ascolto». '
-                    'Puoi lasciare l’app in background; sul PC apri In ascolto. '
-                    'SÌ/NO su In ascolto aggiornano Iris (non rispondono/rifiutano la radio cellulare).'
+                ? 'Iris resta in ascolto anche in background.'
                 : (!_calls.permitted
-                    ? 'Concedi «Stato telefono» e notifiche in Permessi, poi tocca Aggiorna. '
-                        'Senza permesso lo squillo non arriva al PC.'
-                    : 'Listener non attivo — tocca Aggiorna o riapri i Permessi.'),
+                    ? 'Attiva Chiamate e Notifiche nei Permessi, poi Aggiorna.'
+                    : 'Tocca Aggiorna per riprendere.'),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
           ),
           TextButton(
@@ -578,13 +574,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     await _calls.start();
                     await _refresh();
                   },
-            child: const Text('Riavvia rilevamento chiamate'),
+            child: const Text('Riprendi ascolto'),
           ),
           const SizedBox(height: 20),
           _LinkTile(
             icon: Icons.security,
             title: 'Permessi',
-            subtitle: 'Spiegazione e richiesta graduale',
+            subtitle: 'Solo ciò che serve, quando serve',
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
@@ -595,27 +591,27 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           _LinkTile(
             icon: Icons.hearing,
-            title: 'In ascolto (sito)',
-            subtitle: 'Contesto e risposte SÌ/NO',
+            title: 'In ascolto',
+            subtitle: 'Vedi cosa Iris sta decidendo',
             onTap: () => _openWeb(IrisConfig.webContesto),
           ),
           _LinkTile(
             icon: Icons.person_outline,
-            title: 'I miei dati',
-            subtitle: 'Anagrafica sul sito',
+            title: 'I tuoi dati',
+            subtitle: 'Nome, foto, preferenze',
             onTap: () => _openWeb(IrisConfig.webAnagrafica),
           ),
           _LinkTile(
             icon: Icons.chat_bubble_outline,
-            title: 'Le mie chat',
-            subtitle: 'Apri sul sito',
+            title: 'Chat',
+            subtitle: 'Parla con Iris',
             onTap: () => _openWeb(IrisConfig.webChat),
           ),
           const SizedBox(height: 8),
           TextButton(
             onPressed: _logout,
             child: Text(
-              'Scollega questo telefono',
+              'Esci da questo telefono',
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ),

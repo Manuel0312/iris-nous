@@ -66,7 +66,7 @@
     const el = livePill();
     if (!el) return;
     el.classList.toggle("on", !!on);
-    el.textContent = on ? "collegato" : "non collegato";
+    el.textContent = on ? "con te" : "in attesa";
   }
 
   function setText(sel, text, className) {
@@ -125,7 +125,7 @@
       if (item.action === "open_whatsapp" || item.action === "open_url") {
         await openWhatsApp(item.url || "whatsapp://");
         ids.push(item.id);
-        showMsg("Apertura WhatsApp (nessuna lettura messaggi).", "ok");
+        showMsg("Apro WhatsApp.", "ok");
       }
     }
     if (ids.length) {
@@ -164,9 +164,9 @@
       }
       if (data.companion) renderStatus(data.companion);
       else await refresh();
-      showMsg(data.feedback || data.message || "Decisione inviata.", "ok");
+      showMsg(data.feedback || data.message || "Fatto.", "ok");
     } catch (e) {
-      showMsg(e.message || "Decisione non inviata", "err");
+      showMsg(e.message || "Riprova tra un attimo.", "err");
     }
   }
 
@@ -186,8 +186,8 @@
         showMsg(
           e.message ||
             (e.status === 403
-              ? "Account sospeso: collegamento chiuso."
-              : "Sessione scaduta: associa di nuovo."),
+              ? "Questo account non è disponibile."
+              : "Ricollegati per continuare."),
           "err"
         );
         showTab("login");
@@ -202,7 +202,7 @@
     const device_name = ($("#f-device")?.value || "").trim();
     const btn = $("#btn-pair");
     btn.disabled = true;
-    showMsg("Collegamento dispositivo…", "");
+    showMsg("Un momento…", "");
     try {
       const data = await api("/api/companion/pair", {
         method: "POST",
@@ -211,10 +211,10 @@
       });
       setToken(data.device_token, data.username);
       renderStatus(data);
-      showMsg("Dispositivo collegato. Credenziale attiva.", "ok");
+      showMsg("Sei collegato. Iris è con te.", "ok");
       showTab("home");
     } catch (e) {
-      showMsg(e.message || "Collegamento fallito", "err");
+      showMsg(e.message || "Non riuscito. Controlla i dati e riprova.", "err");
     } finally {
       btn.disabled = false;
     }
@@ -229,9 +229,9 @@
       });
       if (data.companion) renderStatus(data.companion);
       else await refresh();
-      showMsg("Evento inviato a Iris.", "ok");
+      showMsg("Iris ha ricevuto il segnale.", "ok");
     } catch (e) {
-      showMsg(e.message || "Errore evento", "err");
+      showMsg(e.message || "Non riuscito. Riprova.", "err");
     }
   }
 
@@ -252,7 +252,7 @@
   function unpair() {
     setToken("", null);
     setLive(false);
-    showMsg("Dispositivo scollegato da questa app.", "ok");
+    showMsg("Telefono scollegato. Torna quando vuoi.", "ok");
     showTab("gate");
   }
 

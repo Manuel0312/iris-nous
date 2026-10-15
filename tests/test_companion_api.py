@@ -173,14 +173,14 @@ def test_companion_pwa_routes(tmp_path: Path) -> None:
 
     device = client.get("/app/device")
     assert device.status_code == 200
-    assert "Collega questo dispositivo" in device.text
-    assert "PIN di associazione" in device.text
+    assert "Collega e continua" in device.text
+    assert "Codice a 6 cifre" in device.text
     assert "/static/app/app.js" in device.text
 
     android = client.get("/app/android")
     assert android.status_code == 200
-    assert "APK" in android.text
-    assert "Una sola app" in android.text
+    assert "IrisNous.apk" in android.text or "APK" in android.text
+    assert "Iris sul tuo telefono" in android.text
 
     guide = client.get("/app/installa")
     assert guide.status_code == 200

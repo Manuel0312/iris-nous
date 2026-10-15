@@ -4,43 +4,43 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#00b7ff" />
-  <title>Iris Nous · Telefono</title>
-  <link rel="stylesheet" href="/static/app/app.css?v=irisApp73" />
+  <title>Iris Nous</title>
+  <link rel="stylesheet" href="/static/app/app.css?v=irisApp74" />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
 </head>
 <body class="app-body">
   <div class="liquid-mesh" aria-hidden="true"></div>
   <div class="app-shell">
     <header class="app-top">
-      <div class="brand"><span>Autorizzazioni telefono</span></div>
-      <span class="pill-live" id="live-pill">non collegato</span>
+      <div class="brand"><span>Il tuo telefono</span></div>
+      <span class="pill-live" id="live-pill">in attesa</span>
     </header>
     <p class="msg" id="app-msg" aria-live="polite"></p>
-    <p class="lede">Dopo aver creato l’account sul sito Iris, collega questo dispositivo e prova SÌ → WhatsApp.</p>
+    <p class="lede">Un tocco e Iris ti segue: chiamate, musica, messaggi. Inizia con il tuo account.</p>
     <form id="pair-form" autocomplete="on">
-      <input class="field" id="f-user" name="username" placeholder="Username" required />
+      <input class="field" id="f-user" name="username" placeholder="Il tuo nome utente" required />
       <input class="field" id="f-pass" name="password" type="password" placeholder="Password" required />
-      <input class="field" id="f-code" name="code" inputmode="numeric" maxlength="12" placeholder="PIN di associazione" required />
-      <input class="field" id="f-device" name="device_name" maxlength="64" placeholder="Nome dispositivo" />
-      <button class="btn primary" type="submit" id="btn-pair">Collega questo dispositivo</button>
+      <input class="field" id="f-code" name="code" inputmode="numeric" maxlength="12" placeholder="Codice a 6 cifre" required />
+      <input class="field" id="f-device" name="device_name" maxlength="64" placeholder="Come chiami questo telefono?" />
+      <button class="btn primary" type="submit" id="btn-pair">Collega e continua</button>
     </form>
     <div class="card" style="margin-top:1rem">
-      <div class="row"><span class="muted">Account</span><span id="st-user">—</span></div>
-      <div class="row"><span class="muted">Associato</span><span id="st-paired">—</span></div>
+      <div class="row"><span class="muted">Tu</span><span id="st-user">—</span></div>
+      <div class="row"><span class="muted">Telefono</span><span id="st-paired">—</span></div>
       <div class="row"><span class="muted">Messaggio</span><span id="st-msg">—</span></div>
-      <div class="row"><span class="muted">Focus</span><span id="st-focus">—</span></div>
+      <div class="row"><span class="muted">Ora</span><span id="st-focus">—</span></div>
     </div>
-    <button type="button" class="btn primary" id="btn-yes">Pensa SÌ</button>
-    <button type="button" class="btn" id="btn-no">Pensa NO</button>
-    <button type="button" class="btn" id="btn-wa">Simula WhatsApp → poi SÌ</button>
-    <button type="button" class="btn" id="btn-call">Segnala chiamata</button>
-    <button type="button" class="btn" id="btn-end">Fine chiamata</button>
-    <button type="button" class="btn primary" id="btn-next">Prossima canzone</button>
+    <button type="button" class="btn primary" id="btn-yes">SÌ</button>
+    <button type="button" class="btn" id="btn-no">NO</button>
+    <button type="button" class="btn" id="btn-wa">Prova un messaggio</button>
+    <button type="button" class="btn" id="btn-call">Prova una chiamata</button>
+    <button type="button" class="btn" id="btn-end">Chiudi chiamata</button>
+    <button type="button" class="btn primary" id="btn-next">Canzone dopo</button>
     <button type="button" class="btn ghost" id="btn-refresh">Aggiorna</button>
-    <button type="button" class="btn ghost" id="btn-unpair">Scollega</button>
-    <a class="btn ghost" href="/app">Torna al sito in app</a>
-    <a class="btn ghost" href="/telefono-setup">Dove trovo il PIN</a>
+    <button type="button" class="btn ghost" id="btn-unpair">Esci da questo telefono</button>
+    <a class="btn ghost" href="/app">Torna a Iris</a>
+    <a class="btn ghost" href="/telefono-setup">Dove trovo il codice?</a>
   </div>
-  <script src="/static/app/app.js?v=irisApp73" defer></script>
+  <script src="/static/app/app.js?v=irisApp74" defer></script>
 </body>
 </html>

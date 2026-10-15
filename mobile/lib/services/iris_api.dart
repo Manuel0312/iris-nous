@@ -36,7 +36,7 @@ class IrisApi {
       headers['Authorization'] = 'Bearer $token';
       headers['X-Iris-Device-Token'] = token;
     } else if (requireToken) {
-      throw IrisApiException('Telefono non associato. Completa Accedi / Associa.');
+      throw IrisApiException('Collega prima il telefono al tuo account.');
     }
     return headers;
   }

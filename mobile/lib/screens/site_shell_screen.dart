@@ -103,7 +103,7 @@ class _SiteShellScreenState extends State<SiteShellScreen> {
               children: [
                 if (_menuOpen) ...[
                   _MiniAction(
-                    label: 'Home Iris',
+                    label: 'Torna all’inizio',
                     onTap: () {
                       setState(() => _menuOpen = false);
                       _goHome();
@@ -111,7 +111,7 @@ class _SiteShellScreenState extends State<SiteShellScreen> {
                   ),
                   const SizedBox(height: 8),
                   _MiniAction(
-                    label: 'Autorizzazioni telefono',
+                    label: 'Permessi',
                     onTap: () {
                       setState(() => _menuOpen = false);
                       Navigator.of(context).push(
@@ -124,7 +124,7 @@ class _SiteShellScreenState extends State<SiteShellScreen> {
                   ),
                   const SizedBox(height: 8),
                   _MiniAction(
-                    label: 'Stato companion',
+                    label: 'Il tuo telefono',
                     onTap: () {
                       setState(() => _menuOpen = false);
                       Navigator.of(context).push(

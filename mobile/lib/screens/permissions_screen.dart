@@ -61,8 +61,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            'Chiediamo i permessi solo quando servono, non tutti insieme. '
-            'Ogni voce spiega perché Iris ne ha bisogno.',
+            'Pochi permessi, solo quelli che servono. Tu scegli quando.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.35),
           ),
           const SizedBox(height: 16),
