@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.75 app preview ---
+    "Anteprima app navigabile prima del download": {
+        "en": "Navigable app preview before download",
+        "fr": "Apercu d’app navigable avant telechargement",
+        "de": "Navigierbare App-Vorschau vor dem Download",
+        "pt": "Pre-visualizacao navegavel da app antes de descarregar",
+        "zh": "下载前可浏览的应用预览",
+        "ja": "ダウンロード前に触れるアプリプレビュー",
+        "es": "Vista previa navegable de la app antes de descargar",
+    },
+    "Per capire com’è l’app bisognava installarla sul telefono.": {
+        "en": "To see what the app was like you had to install it on the phone.",
+        "fr": "Pour voir l’app, il fallait l’installer sur le telephone.",
+        "de": "Um die App zu sehen, musste man sie aufs Handy installieren.",
+        "pt": "Para ver como era a app, era preciso instala-la no telemovel.",
+        "zh": "要想了解应用长什么样，只能先装到手机上。",
+        "ja": "アプリの様子を知るには端末へのインストールが必要でした。",
+        "es": "Para ver como era la app habia que instalarla en el telefono.",
+    },
+    "Ora su /app/preview c’è un telefono virtuale: sito Iris, telefono, permessi e SÌ/NO, senza scaricare nulla.": {
+        "en": "Now /app/preview has a virtual phone: Iris site, phone, permissions and YES/NO, with nothing to download.",
+        "fr": "Desormais /app/preview a un telephone virtuel : site Iris, telephone, permissions et OUI/NON, sans telecharger.",
+        "de": "Jetzt gibt es unter /app/preview ein virtuelles Handy: Iris-Site, Telefon, Rechte und JA/NEIN — ohne Download.",
+        "pt": "Agora em /app/preview ha um telemovel virtual: site Iris, telefone, permissoes e SIM/NAO, sem descarregar nada.",
+        "zh": "现在 /app/preview 有虚拟手机：Iris 网站、手机、权限与是/否，无需下载。",
+        "ja": "いま /app/preview に仮想スマホがあり、Irisサイト・電話・権限・はい/いいえをダウンロードなしで触れます。",
+        "es": "Ahora en /app/preview hay un telefono virtual: sitio Iris, telefono, permisos y SI/NO, sin descargar nada.",
+    },
     # --- v0.4.74 simple app copy ---
     "Testi dell’app più semplici e invitanti": {
         "en": "Simpler, more inviting app copy",

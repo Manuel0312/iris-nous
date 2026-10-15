@@ -177,6 +177,13 @@ def test_companion_pwa_routes(tmp_path: Path) -> None:
     assert "Codice a 6 cifre" in device.text
     assert "/static/app/app.js" in device.text
 
+    preview = client.get("/app/preview")
+    assert preview.status_code == 200
+    assert "Come sarà l’app" in preview.text
+    assert "phone-tabs" in preview.text
+    assert "/static/app/preview.js" in preview.text
+    assert 'data-go="iris"' in preview.text
+
     android = client.get("/app/android")
     assert android.status_code == 200
     assert "IrisNous.apk" in android.text or "APK" in android.text

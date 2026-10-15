@@ -1,0 +1,352 @@
+:root {
+  --bg: #0b0b0d;
+  --panel: #f5f5f7;
+  --ink: #1d1d1f;
+  --muted: #6e6e73;
+  --accent: #00b7ff;
+  --accent-ink: #fff;
+  --phone: #1a1a1e;
+  --font: "Outfit", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(0, 183, 255, 0.18), transparent 55%),
+    radial-gradient(ellipse 70% 45% at 90% 100%, rgba(110, 240, 255, 0.1), transparent 50%),
+    var(--bg);
+  color: #f5f5f7;
+  font-family: var(--font);
+}
+
+.preview-body {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 1rem 2rem;
+}
+
+.preview-top {
+  max-width: 980px;
+  margin: 0 auto 1.5rem;
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6ef0ff;
+  font-weight: 600;
+}
+
+.preview-top h1 {
+  margin: 0;
+  font-size: clamp(1.6rem, 4vw, 2.1rem);
+  letter-spacing: -0.04em;
+  font-weight: 650;
+}
+
+.lede, .copy {
+  margin: 0.4rem 0 0;
+  color: #a1a1a6;
+  line-height: 1.4;
+  max-width: 36rem;
+}
+
+.preview-top-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.7rem 1.1rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  color: #f5f5f7;
+}
+
+.btn.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn.ghost {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+.btn:active { transform: scale(0.98); }
+
+.preview-stage {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 0.5rem 0 1rem;
+}
+
+.phone {
+  width: min(100%, 390px);
+  height: min(82dvh, 760px);
+  background: var(--phone);
+  border-radius: 36px;
+  padding: 10px 10px 8px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 28px 80px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.phone-notch {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 108px;
+  height: 28px;
+  background: #000;
+  border-radius: 18px;
+  z-index: 5;
+}
+
+.phone-screen {
+  flex: 1;
+  background: var(--panel);
+  border-radius: 28px;
+  overflow: hidden;
+  position: relative;
+  color: var(--ink);
+}
+
+.screen {
+  display: none;
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.screen.on { display: block; }
+
+.splash {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  gap: 1.25rem;
+  background: var(--panel);
+}
+
+.splash .brand {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  color: var(--accent);
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid rgba(0, 183, 255, 0.2);
+  border-top-color: var(--accent);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#iris-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: var(--panel);
+}
+
+.panel {
+  padding: 2.6rem 1.15rem 1.25rem;
+  min-height: 100%;
+}
+
+.panel h2 {
+  margin: 0.15rem 0 0.4rem;
+  font-size: 1.45rem;
+  letter-spacing: -0.03em;
+}
+
+.panel .copy { color: var(--muted); margin-bottom: 1rem; }
+
+.field {
+  display: grid;
+  gap: 0.3rem;
+  margin-bottom: 0.7rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.field input {
+  border: 0;
+  border-radius: 14px;
+  padding: 0.85rem 0.95rem;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  font: inherit;
+  color: var(--ink);
+}
+
+.panel .btn.primary,
+.panel .btn {
+  width: 100%;
+  margin-top: 0.35rem;
+}
+
+.panel .btn.primary { color: #fff; }
+
+.panel .btn:not(.primary):not(.ghost) {
+  background: rgba(0, 183, 255, 0.12);
+  color: #0077aa;
+}
+
+.link {
+  display: inline-block;
+  margin-top: 0.9rem;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.hint {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.hint.ok { color: #0a7a4a; }
+.hint.err { color: #b42318; }
+
+.perm-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.perm-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+
+.perm-list strong { display: block; color: var(--ink); }
+.perm-list span { color: var(--muted); font-size: 0.82rem; }
+
+.chip {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  background: rgba(0, 183, 255, 0.15);
+  color: #0077aa;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chip.on {
+  background: #0a7a4a;
+  color: #fff;
+}
+
+.yesno {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  margin: 0.5rem 0 0.85rem;
+}
+
+.try-row {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.phone-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.15rem;
+  padding: 0.35rem 0.2rem 0.15rem;
+  background: #111114;
+}
+
+.tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #8e8e93;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.35rem 0.15rem;
+  cursor: pointer;
+  display: grid;
+  gap: 0.1rem;
+  place-items: center;
+}
+
+.tab.on { color: var(--accent); }
+
+.tab-ico { font-size: 0.95rem; line-height: 1; }
+
+.phone-home {
+  width: 108px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+  margin: 0.45rem auto 0.2rem;
+}
+
+.preview-foot {
+  text-align: center;
+  color: #8e8e93;
+  font-size: 0.88rem;
+  margin: 0.5rem auto 0;
+}
+
+.preview-foot a { color: #6ef0ff; text-decoration: none; }
+
+@media (max-width: 520px) {
+  .phone {
+    height: min(78dvh, 700px);
+    border-radius: 28px;
+  }
+  .phone-notch { width: 92px; height: 24px; }
+}

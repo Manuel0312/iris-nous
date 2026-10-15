@@ -3134,6 +3134,12 @@ def create_app(
 
         return TEMPLATES.TemplateResponse(request, "app_device.html", {"request": request})
 
+    @app.get("/app/preview", response_class=HTMLResponse)
+    def companion_app_preview_page(request: Request) -> HTMLResponse:
+        """Navigable phone mock of the app — try before install."""
+
+        return TEMPLATES.TemplateResponse(request, "app_preview.html", {"request": request})
+
     @app.get("/app/installa", response_class=HTMLResponse)
     def companion_app_install_page(request: Request) -> HTMLResponse:
         """How to install the companion on iPhone Safari."""

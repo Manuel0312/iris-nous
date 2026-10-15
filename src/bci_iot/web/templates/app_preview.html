@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b0d" />
+  <title>Anteprima app · Iris Nous</title>
+  <link rel="icon" href="/static/app/icon-192.png" type="image/png" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;650&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/app/preview.css?v=irisPrev75" />
+</head>
+<body class="preview-body">
+  <header class="preview-top">
+    <div>
+      <p class="eyebrow">Anteprima</p>
+      <h1>Come sarà l’app</h1>
+      <p class="lede">Naviga come sul telefono. Niente download: è solo una prova.</p>
+    </div>
+    <div class="preview-top-actions">
+      <a class="btn ghost" href="/">Sito</a>
+      <a class="btn" href="/app/installa">Come installarla</a>
+    </div>
+  </header>
+
+  <main class="preview-stage">
+    <div class="phone" role="application" aria-label="Anteprima Iris Nous">
+      <div class="phone-notch" aria-hidden="true"></div>
+      <div class="phone-screen">
+        <!-- Splash -->
+        <section class="screen on" id="screen-splash" data-screen="splash">
+          <div class="splash">
+            <p class="brand">Iris Nous</p>
+            <div class="spinner" aria-hidden="true"></div>
+          </div>
+        </section>
+
+        <!-- Full Iris site -->
+        <section class="screen" id="screen-iris" data-screen="iris">
+          <iframe
+            id="iris-frame"
+            title="Iris"
+            src="/?from=app_preview"
+            allow="camera; clipboard-read; clipboard-write; fullscreen"
+          ></iframe>
+        </section>
+
+        <!-- Phone / pair -->
+        <section class="screen" id="screen-phone" data-screen="phone">
+          <div class="panel">
+            <p class="eyebrow">Il tuo telefono</p>
+            <h2>Resta con Iris</h2>
+            <p class="copy">Un tocco e Iris ti segue: chiamate, musica, messaggi.</p>
+            <label class="field">
+              <span>Nome utente</span>
+              <input type="text" id="pv-user" placeholder="Il tuo nome utente" autocomplete="username" />
+            </label>
+            <label class="field">
+              <span>Password</span>
+              <input type="password" id="pv-pass" placeholder="Password" autocomplete="current-password" />
+            </label>
+            <label class="field">
+              <span>Codice a 6 cifre</span>
+              <input type="text" id="pv-code" inputmode="numeric" maxlength="6" placeholder="••••••" />
+            </label>
+            <button type="button" class="btn primary" id="pv-pair">Collega e continua</button>
+            <p class="hint" id="pv-pair-msg" hidden></p>
+            <a class="link" href="/telefono-setup" target="_blank" rel="noopener">Dove trovo il codice?</a>
+          </div>
+        </section>
+
+        <!-- Permissions -->
+        <section class="screen" id="screen-perm" data-screen="perm">
+          <div class="panel">
+            <p class="eyebrow">Permessi</p>
+            <h2>Solo ciò che serve</h2>
+            <p class="copy">Tu scegli quando. Pochi, chiari, utili.</p>
+            <ul class="perm-list">
+              <li>
+                <div>
+                  <strong>Chiamate</strong>
+                  <span>Sa quando squilla e può aiutarti.</span>
+                </div>
+                <button type="button" class="chip" data-perm>Attiva</button>
+              </li>
+              <li>
+                <div>
+                  <strong>Notifiche</strong>
+                  <span>Resta con te a schermo spento.</span>
+                </div>
+                <button type="button" class="chip" data-perm>Attiva</button>
+              </li>
+              <li>
+                <div>
+                  <strong>Fotocamera</strong>
+                  <span>Solo per il codice, in un attimo.</span>
+                </div>
+                <button type="button" class="chip" data-perm>Attiva</button>
+              </li>
+            </ul>
+            <button type="button" class="btn primary" data-go="live">Continua</button>
+          </div>
+        </section>
+
+        <!-- Live / YES NO -->
+        <section class="screen" id="screen-live" data-screen="live">
+          <div class="panel">
+            <p class="eyebrow">Ora</p>
+            <h2 id="pv-focus">Niente in corso</h2>
+            <p class="copy">Pensa SÌ o NO. Iris lo applica a ciò che sta succedendo.</p>
+            <div class="yesno">
+              <button type="button" class="btn primary" id="pv-yes">SÌ</button>
+              <button type="button" class="btn" id="pv-no">NO</button>
+            </div>
+            <div class="try-row">
+              <button type="button" class="btn ghost" id="pv-try-call">Prova una chiamata</button>
+              <button type="button" class="btn ghost" id="pv-try-msg">Prova un messaggio</button>
+            </div>
+            <p class="hint" id="pv-live-msg">Tocca una prova, poi SÌ o NO.</p>
+          </div>
+        </section>
+      </div>
+
+      <nav class="phone-tabs" aria-label="Sezioni app">
+        <button type="button" class="tab on" data-go="iris">
+          <span class="tab-ico" aria-hidden="true">✦</span>
+          Iris
+        </button>
+        <button type="button" class="tab" data-go="phone">
+          <span class="tab-ico" aria-hidden="true">◎</span>
+          Telefono
+        </button>
+        <button type="button" class="tab" data-go="perm">
+          <span class="tab-ico" aria-hidden="true">◇</span>
+          Permessi
+        </button>
+        <button type="button" class="tab" data-go="live">
+          <span class="tab-ico" aria-hidden="true">◉</span>
+          SÌ/NO
+        </button>
+      </nav>
+      <div class="phone-home" aria-hidden="true"></div>
+    </div>
+  </main>
+
+  <p class="preview-foot">
+    Anteprima nel browser ·
+    <a href="/app">Apri Iris a schermo intero</a> ·
+    <a href="/app/device">Collega il telefono</a>
+  </p>
+
+  <script src="/static/app/preview.js?v=irisPrev75" defer></script>
+</body>
+</html>
