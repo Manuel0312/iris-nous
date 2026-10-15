@@ -124,6 +124,23 @@ class ContextWorld:
     track_hint: str = ""
 
 
+@dataclass
+class FocusGate:
+    """Blocks SÌ/NO on a newly interrupting context until the user acknowledges it.
+
+    Prevents race: music playing + sudden message would otherwise steal the next SÌ
+    and open WhatsApp instead of skipping the track.
+    """
+
+    kind: ContextKind
+    title: str
+    prompt: str
+    acked: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
 class ContextRouter:
     """Per-user live context: simulate events, resolve focus, map SÌ/NO → action."""
 
@@ -134,13 +151,35 @@ class ContextRouter:
         self.live_mode = True
         self.last_decision: DecisionRecord | None = None
         self.history: list[dict[str, Any]] = []
+        self.gate: FocusGate | None = None
+
+    def _open_gate_if_interrupt(self, previous: ContextKind) -> None:
+        """If a higher-priority context interrupts a non-idle one, require an ack first."""
+
+        current = self.active_focus()
+        if previous == "idle" or current == previous:
+            return
+        if CONTEXT_PRIORITY.get(current, 0) <= CONTEXT_PRIORITY.get(previous, 0):
+            return
+        snap = self.focus_snapshot()
+        self.gate = FocusGate(
+            kind=snap.kind,
+            title=snap.title,
+            prompt=f"Nuovo contesto: {snap.title}. Pensa SÌ per decidere su questo, NO per ignorarlo.",
+            acked=False,
+        )
 
     # --- simulate / set events ---
 
     def simulate_call(self, *, caller: str = "Anna") -> dict[str, Any]:
+        previous = self.active_focus()
         self.world.incoming_call = True
         self.world.caller_name = (caller or "Anna").strip() or "Anna"
-        return self.status(message=f"Arriva una chiamata da {self.world.caller_name}.")
+        self._open_gate_if_interrupt(previous)
+        msg = f"Arriva una chiamata da {self.world.caller_name}."
+        if self.gate and not self.gate.acked:
+            msg = f"{msg} Conferma prima di rispondere (SÌ = ok, decido qui)."
+        return self.status(message=msg)
 
     def simulate_message(
         self,
@@ -148,15 +187,18 @@ class ContextRouter:
         sender: str = "Marco",
         app: str = "WhatsApp",
     ) -> dict[str, Any]:
+        previous = self.active_focus()
         self.world.unread_message = True
         self.world.message_from = (sender or "Marco").strip() or "Marco"
         self.world.message_app = (app or "WhatsApp").strip() or "WhatsApp"
-        return self.status(
-            message=(
-                f"Arriva un messaggio da {self.world.message_from} "
-                f"({self.world.message_app})."
-            )
+        self._open_gate_if_interrupt(previous)
+        msg = (
+            f"Arriva un messaggio da {self.world.message_from} "
+            f"({self.world.message_app})."
         )
+        if self.gate and not self.gate.acked:
+            msg = f"{msg} Conferma prima di aprire (SÌ = ok, decido qui)."
+        return self.status(message=msg)
 
     def set_music(self, playing: bool = True, *, track: str = "") -> dict[str, Any]:
         self.world.music_playing = bool(playing)
@@ -265,16 +307,89 @@ class ContextRouter:
         impulse_kind: str = "",
         via: str = "context_router",
         execution: dict[str, Any] | None = None,
+        skip_gate: bool = False,
     ) -> dict[str, Any]:
-        """Apply SÌ/NO to the current focus; close ephemeral contexts."""
+        """Apply SÌ/NO to the current focus; close ephemeral contexts.
+
+        If a higher-priority context just interrupted (gate), the first SÌ only
+        acknowledges («ok, decido su questo»); the first NO dismisses the interrupt.
+        """
 
         yn = answer if answer in ("SI", "NO") else normalize_yes_no(str(answer))
         if yn is None:
             raise ValueError("Serve SÌ o NO (o RISPONDI / RIFIUTA).")
 
         snap = self.focus_snapshot()
+
+        # --- focus gate (anti race-condition) ---
+        if (
+            not skip_gate
+            and self.gate is not None
+            and not self.gate.acked
+            and self.gate.kind == snap.kind
+        ):
+            if yn == "SI":
+                self.gate.acked = True
+                feedback = (
+                    f"Ok: ora stai decidendo su «{snap.title}». "
+                    f"Prossimo SÌ = {snap.yes_label}, NO = {snap.no_label}."
+                )
+                record = DecisionRecord(
+                    at=_utc_now(),
+                    answer=yn,
+                    focus=snap.kind,
+                    action="noop",
+                    focus_title=snap.title,
+                    feedback=feedback,
+                    via=f"{via}:gate_ack",
+                    impulse_kind=(impulse_kind or yn).strip().upper(),
+                    execution={"kind": "gate_ack", "gate": self.gate.to_dict()},
+                )
+                self.last_decision = record
+                self.history.append(record.to_dict())
+                self.history = self.history[-30:]
+                payload = self.status(message=feedback)
+                payload["decision"] = record.to_dict()
+                payload["gate_acked"] = True
+                return payload
+
+            # NO during gate → dismiss the interrupting context (don't touch music).
+            if snap.kind == "call":
+                feedback = self._apply_side_effects("reject_call", snap)
+                action: IntentAction = "reject_call"
+            elif snap.kind == "message":
+                feedback = self._apply_side_effects("dismiss_message", snap)
+                action = "dismiss_message"
+            else:
+                feedback = "Contesto ignorato."
+                action = "noop"
+            self.gate = None
+            record = DecisionRecord(
+                at=_utc_now(),
+                answer=yn,
+                focus=snap.kind,
+                action=action,
+                focus_title=snap.title,
+                feedback=feedback,
+                via=f"{via}:gate_dismiss",
+                impulse_kind=(impulse_kind or yn).strip().upper(),
+                execution=dict(execution or {}) or {"kind": "gate_dismiss"},
+            )
+            self.last_decision = record
+            self.history.append(record.to_dict())
+            self.history = self.history[-30:]
+            payload = self.status(message=feedback)
+            payload["decision"] = record.to_dict()
+            payload["gate_dismissed"] = True
+            return payload
+
+        if self.gate is not None and self.gate.kind != snap.kind:
+            self.gate = None
+
         action = map_decision(snap.kind, yn)
         feedback = self._apply_side_effects(action, snap)
+        if action in {"answer_call", "reject_call", "open_message", "dismiss_message"}:
+            self.gate = None
         record = DecisionRecord(
             at=_utc_now(),
             answer=yn,
@@ -331,12 +446,16 @@ class ContextRouter:
             "message": self.world.unread_message,
             "music": self.world.music_playing,
         }
+        gate_payload = None
+        if self.gate is not None and not self.gate.acked and self.gate.kind == snap.kind:
+            gate_payload = self.gate.to_dict()
         return {
             "username": self.username,
             "live_mode": self.live_mode,
             "focus": snap.to_dict(),
             "active_contexts": active,
             "priority_order": ["call", "message", "music", "idle"],
+            "gate": gate_payload,
             "world": {
                 "incoming_call": self.world.incoming_call,
                 "caller_name": self.world.caller_name,

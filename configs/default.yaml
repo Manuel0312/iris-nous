@@ -22,7 +22,10 @@ ml:
   confidence_threshold: 0.55
 
 router:
-  debounce_windows: 3
+  # Latency vs false positives (EEG windows are ~1s each):
+  #   fast=1 (~1s), balanced=2 (~2s), strict=3 (~3s). Prefer balanced for demo.
+  debounce_profile: balanced
+  debounce_windows: 2
   default_context: idle
 
 integrations:

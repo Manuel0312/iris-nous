@@ -55,6 +55,10 @@ def test_music_plus_call_si_answers_call() -> None:
     assert snap.kind == "call"
     assert "Luca" in snap.prompt
     assert "pensa SÌ o NO" in snap.prompt
+    # Gate: first SI only acknowledges the interrupting call.
+    ack = r.decide("SI")
+    assert ack.get("gate_acked") is True
+    assert ack["decision"]["action"] == "noop"
     out = r.decide("SI")
     assert out["decision"]["action"] == "answer_call"
     assert out["focus"]["kind"] == "music"  # call closed, music sticky
@@ -65,10 +69,26 @@ def test_music_plus_message_no_dismisses() -> None:
     r.set_music(True, track="Iris Mix")
     r.simulate_message(sender="Sara", app="Telegram")
     assert r.active_focus() == "message"
+    # Gate: NO dismisses the interrupting message without requiring ack.
     out = r.decide("NO")
+    assert out.get("gate_dismissed") is True
     assert out["decision"]["action"] == "dismiss_message"
     assert out["focus"]["kind"] == "music"
     assert "Iris Mix" in out["focus"]["title"]
+
+
+def test_interrupt_gate_blocks_stolen_yes() -> None:
+    """Music + sudden message must not open WhatsApp on the first SÌ."""
+
+    r = ContextRouter(username="race")
+    r.set_music(True, track="Demo")
+    r.simulate_message(sender="Marco", app="WhatsApp")
+    assert r.gate is not None and not r.gate.acked
+    first = r.decide("SI")
+    assert first["decision"]["action"] == "noop"
+    assert first.get("gate_acked") is True
+    second = r.decide("SI")
+    assert second["decision"]["action"] == "open_message"
 
 
 def test_music_only_si_next_no_keep() -> None:

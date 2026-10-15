@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.82",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Ponte PC↔cloud, gate contesti e backup più solido",
+                "Il worker BCI sul PC non parlava col sito; un SÌ poteva rubare il contesto sbagliato; SQLite su Render era fragile.",
+                "Ora `bci-iot run --cloud` invia SÌ/NO al hub; se arriva un messaggio durante la musica serve una conferma; il backup include cuffia e non committa a ogni riga.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.81",
         "intro": WHATS_NEW_INTRO,
         "entries": (

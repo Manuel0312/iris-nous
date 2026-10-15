@@ -6,7 +6,7 @@ from pathlib import Path
 
 from bci_iot.accounts.store import ProfileStore
 from bci_iot.acquisition.factory import create_eeg_source
-from bci_iot.config import AppConfig, load_app_config
+from bci_iot.config import AppConfig, load_app_config, resolve_debounce_windows
 from bci_iot.integrations.factory import build_dispatcher
 from bci_iot.ml.heuristic import HeuristicIntentClassifier
 from bci_iot.ml.sklearn_classifier import SklearnIntentClassifier
@@ -65,7 +65,7 @@ def build_pipeline(
         initial = ActionContext.IDLE
 
     router = IntentRouter(
-        debounce_windows=cfg.router.debounce_windows,
+        debounce_windows=resolve_debounce_windows(cfg.router),
         confidence_threshold=cfg.ml.confidence_threshold,
         initial_context=initial,
         action_map=action_map,

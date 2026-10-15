@@ -31,8 +31,20 @@ class MLSettings(BaseModel):
 
 
 class RouterSettings(BaseModel):
-    debounce_windows: int = 3
+    # fast=1, balanced=2, strict=3 — see resolve_debounce_windows()
+    debounce_profile: str = "balanced"
+    debounce_windows: int = 2
     default_context: str = "idle"
+
+
+def resolve_debounce_windows(router: RouterSettings) -> int:
+    """Map profile → windows; explicit debounce_windows wins if profile unknown."""
+
+    profile = (router.debounce_profile or "balanced").strip().lower()
+    by_profile = {"fast": 1, "balanced": 2, "strict": 3}
+    if profile in by_profile:
+        return by_profile[profile]
+    return max(1, int(router.debounce_windows or 2))
 
 
 class IntegrationsSettings(BaseModel):

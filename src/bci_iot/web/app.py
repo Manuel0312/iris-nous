@@ -9,9 +9,8 @@ Run::
 from __future__ import annotations
 
 import os
-
 import secrets
-
+import threading
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile, status
@@ -233,6 +232,14 @@ class CompanionDecideRequest(BaseModel):
     """SÌ/NO from the companion app (virtual headset thought)."""
 
     answer: str = Field(min_length=1, max_length=32)
+
+
+class CompanionIntentRequest(BaseModel):
+    """Pre-classified SÌ/NO from the local PC BCI worker (no cloud impulse)."""
+
+    answer: str = Field(min_length=1, max_length=32)
+    source: str = Field(default="local_worker", max_length=64)
+    meta: dict[str, object] = Field(default_factory=dict)
 
 
 class CompanionCommandsAckRequest(BaseModel):
@@ -3365,6 +3372,17 @@ def create_app(
             },
         }
 
+    # Per-user lock: hydrate → mutate → persist must be atomic (anti race).
+    _context_locks: dict[str, threading.Lock] = {}
+
+    def _context_lock(username: str) -> threading.Lock:
+        key = (username or "").strip().lower() or "_anon"
+        lock = _context_locks.get(key)
+        if lock is None:
+            lock = threading.Lock()
+            _context_locks[key] = lock
+        return lock
+
     def _hydrate_context_router(profiles: ProfileStore, username: str):
         """Load per-user context from SQLite so APK events reach In ascolto on PC."""
 
@@ -3377,6 +3395,21 @@ def create_app(
         snap = (profile.usage_stats or {}).get("context_world")
         if isinstance(snap, dict):
             router.apply_world_dict(snap)
+        gate_snap = (profile.usage_stats or {}).get("context_gate")
+        if isinstance(gate_snap, dict) and gate_snap.get("kind"):
+            from bci_iot.pipeline.context_router import FocusGate
+
+            try:
+                router.gate = FocusGate(
+                    kind=str(gate_snap["kind"]),  # type: ignore[arg-type]
+                    title=str(gate_snap.get("title") or ""),
+                    prompt=str(gate_snap.get("prompt") or ""),
+                    acked=bool(gate_snap.get("acked")),
+                )
+            except Exception:
+                router.gate = None
+        else:
+            router.gate = None
         router.live_mode = True
         return router
 
@@ -3389,6 +3422,10 @@ def create_app(
         from datetime import datetime, timezone
 
         stats["context_world_at"] = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+        if router.gate is not None and not router.gate.acked:
+            stats["context_gate"] = router.gate.to_dict()
+        else:
+            stats.pop("context_gate", None)
         profile.usage_stats = stats
         profiles.save(profile)
 
@@ -3819,6 +3856,43 @@ def create_app(
             "companion": _companion_status_payload(profiles, profile),
         }
 
+    @app.post("/api/companion/intent")
+    async def api_companion_intent(
+        request: Request,
+        body: CompanionIntentRequest,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        """Local PC BCI worker → cloud hub: pre-classified SÌ/NO (no cloud impulse).
+
+        Use after `bci-iot run --cloud` or `cloud_bridge.post_local_intent`.
+        Auth: companion device token (same as pair/heartbeat).
+        """
+
+        from bci_iot.pipeline.context_router import normalize_yes_no
+
+        profile = _resolve_companion_user(request, profiles)
+        yn = normalize_yes_no(body.answer)
+        if yn is None:
+            raise HTTPException(status_code=400, detail="Serve SÌ o NO")
+        meta = dict(body.meta or {})
+        meta["worker_source"] = (body.source or "local_worker").strip() or "local_worker"
+        routed = await _apply_context_decision(
+            request,
+            profiles,
+            username=profile.username,
+            answer=yn,
+            impulse_kind=yn,
+            impulse_payload={"meta": meta, "classified_answer": yn},
+            via="local_worker",
+        )
+        return {
+            "status": "ok",
+            **routed,
+            "classified_answer": yn,
+            "via": "local_worker",
+            "companion": _companion_status_payload(profiles, profile),
+        }
+
     @app.post("/api/companion/music/next")
     def api_companion_music_next(
         request: Request,
@@ -3984,6 +4058,30 @@ def create_app(
     ) -> dict:
         """Map SÌ/NO through ContextRouter; Spotify for next_track; phone queue for call/msg."""
 
+        from bci_iot.integrations.music_control import run_spotify_action
+        from bci_iot.pipeline.context_router import phone_queue_event
+
+        with _context_lock(username):
+            return await _apply_context_decision_locked(
+                request,
+                profiles,
+                username=username,
+                answer=answer,
+                impulse_kind=impulse_kind,
+                impulse_payload=impulse_payload,
+                via=via,
+            )
+
+    async def _apply_context_decision_locked(
+        request: Request,
+        profiles: ProfileStore,
+        *,
+        username: str,
+        answer: str,
+        impulse_kind: str = "",
+        impulse_payload: dict | None = None,
+        via: str = "context_router",
+    ) -> dict:
         from bci_iot.integrations.music_control import run_spotify_action
         from bci_iot.pipeline.context_router import phone_queue_event
 

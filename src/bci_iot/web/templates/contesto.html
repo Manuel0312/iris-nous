@@ -161,10 +161,17 @@
   function applyStatus(data) {
     if (!data) return;
     const focus = data.focus || {};
-    document.getElementById("focus-prompt").textContent = focus.prompt || "";
-    document.getElementById("focus-detail").textContent = focus.detail || "";
-    document.getElementById("focus-yes").textContent = focus.yes_label || "SÌ";
-    document.getElementById("focus-no").textContent = focus.no_label || "NO";
+    const gate = data.gate || null;
+    document.getElementById("focus-prompt").textContent =
+      (gate && gate.prompt) ? gate.prompt : (focus.prompt || "");
+    document.getElementById("focus-detail").textContent =
+      (gate && !gate.acked)
+        ? "Nuovo contesto: conferma con SÌ prima di agire, oppure NO per ignorarlo."
+        : (focus.detail || "");
+    document.getElementById("focus-yes").textContent =
+      (gate && !gate.acked) ? "Ok, decido qui" : (focus.yes_label || "SÌ");
+    document.getElementById("focus-no").textContent =
+      (gate && !gate.acked) ? "Ignora questo" : (focus.no_label || "NO");
 
     const active = data.active_contexts || {};
     document.getElementById("flag-call").textContent = active.call ? L.yes : L.no;

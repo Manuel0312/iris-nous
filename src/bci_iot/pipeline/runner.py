@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 
 from bci_iot.acquisition.base import EEGSource
@@ -17,6 +18,8 @@ class PipelineStepResult:
     intent: ClassifiedIntent
     action: ActionCommand | None
     is_clean: bool = True
+    latency_ms: float = 0.0
+    stage_ms: dict[str, float] | None = None
 
 
 class PipelineRunner:
@@ -47,18 +50,35 @@ class PipelineRunner:
             for index, window in enumerate(self.source.iter_windows()):
                 if index >= max_windows:
                     break
+                t0 = time.perf_counter()
+                t_feat0 = t0
                 features = self.extractor.transform(window)
+                t_feat1 = time.perf_counter()
                 intent = self.classifier.predict(features)
+                t_ml = time.perf_counter()
                 action = None
                 if features.is_clean:
                     action = self.router.route(intent)
+                    t_route = time.perf_counter()
                     if action is not None and self.dispatcher is not None:
                         self.dispatcher.dispatch(action)
+                    t_end = time.perf_counter()
+                else:
+                    t_route = t_ml
+                    t_end = t_ml
+                stage = {
+                    "features_ms": round((t_feat1 - t_feat0) * 1000, 2),
+                    "ml_ms": round((t_ml - t_feat1) * 1000, 2),
+                    "route_ms": round((t_route - t_ml) * 1000, 2),
+                    "dispatch_ms": round((t_end - t_route) * 1000, 2),
+                }
                 results.append(
                     PipelineStepResult(
                         intent=intent,
                         action=action,
                         is_clean=features.is_clean,
+                        latency_ms=round((t_end - t0) * 1000, 2),
+                        stage_ms=stage,
                     )
                 )
         return results

@@ -32,6 +32,7 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
         or "Hub «La tua cuffia»" in page.text
         or "Privacy e chiarezza demo" in page.text
     )
+    assert "Ponte PC↔cloud, gate contesti e backup più solido" in page.text
     assert "App: cosa fa Iris e perché iscriversi" in page.text
     assert "App: glass, foto e impostazioni" in page.text
     assert "Anteprima di nuovo visibile" in page.text

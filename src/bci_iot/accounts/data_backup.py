@@ -297,6 +297,12 @@ def _pack_bundle(data_root: Path) -> bytes | None:
             for path in sorted(photos.rglob("*")):
                 if path.is_file():
                     tar.add(path, arcname=str(Path("photos") / path.relative_to(photos)))
+        # Headset calibration / templates survive Render free-disk wipe.
+        headsets = data_root / "headsets"
+        if headsets.is_dir():
+            for path in sorted(headsets.rglob("*")):
+                if path.is_file():
+                    tar.add(path, arcname=str(Path("headsets") / path.relative_to(headsets)))
     return buf.getvalue()
 
 
@@ -469,12 +475,18 @@ def backup_data_dir(data_root: Path | str, *, force: bool = False) -> bool:
         return True
 
 
-def schedule_backup(data_root: Path | str, *, delay_s: float = 1.0, force: bool = False) -> None:
-    """Debounced background backup after account writes."""
+def schedule_backup(data_root: Path | str, *, delay_s: float = 8.0, force: bool = False) -> None:
+    """Debounced background backup after account writes.
+
+    Default delay is intentionally high: committing SQLite on every row write
+    causes Git lock races on Render free. Batch writes into one encrypted bundle.
+    """
     if not _enabled():
         return
     global _backup_timer
     root = str(Path(data_root))
+    # Never backup more often than ~8s unless force path uses a short delay.
+    wait = max(float(delay_s), 0.5)
 
     def _run() -> None:
         try:
@@ -487,6 +499,6 @@ def schedule_backup(data_root: Path | str, *, delay_s: float = 1.0, force: bool 
     with _backup_lock:
         if _backup_timer is not None:
             _backup_timer.cancel()
-        _backup_timer = threading.Timer(delay_s, _run)
+        _backup_timer = threading.Timer(wait, _run)
         _backup_timer.daemon = True
         _backup_timer.start()

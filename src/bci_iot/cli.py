@@ -64,6 +64,28 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Override acquisition.source: synthetic | brainflow_synthetic",
     )
+    run_parser.add_argument(
+        "--cloud",
+        action="store_true",
+        help="Push ACCEPT/REJECT as SÌ/NO to cloud (BCI_IOT_PUBLIC_URL + BCI_IOT_WORKER_TOKEN)",
+    )
+    run_parser.add_argument(
+        "--cloud-url",
+        type=str,
+        default=None,
+        help="Override BCI_IOT_PUBLIC_URL for --cloud",
+    )
+    run_parser.add_argument(
+        "--cloud-token",
+        type=str,
+        default=None,
+        help="Override BCI_IOT_WORKER_TOKEN for --cloud",
+    )
+    run_parser.add_argument(
+        "--profile-latency",
+        action="store_true",
+        help="Print per-window ms (features / ML / route / dispatch)",
+    )
 
     sub.add_parser("serve-help", help="Print how to open the config web app")
 
@@ -149,19 +171,35 @@ def main(argv: list[str] | None = None) -> int:
         results = runner.run(max_windows=args.windows)
         actions = sum(1 for r in results if r.action is not None)
         clean = sum(1 for r in results if r.is_clean)
+        debounce = getattr(runner.router, "debounce_windows", "?")
         print(
             f"windows={len(results)} clean={clean} actions={actions} "
-            f"dry_run={config.integrations.dry_run}"
+            f"debounce_windows={debounce} dry_run={config.integrations.dry_run}"
         )
         for step in results:
             action_name = step.action.name if step.action else "-"
-            print(
+            line = (
                 f"  t={step.intent.timestamp_s:.2f}s "
                 f"intent={step.intent.label.value} "
                 f"conf={step.intent.confidence:.2f} "
                 f"action={action_name} "
                 f"clean={step.is_clean}"
             )
+            if args.profile_latency:
+                line += f" latency_ms={step.latency_ms}"
+                if step.stage_ms:
+                    line += f" stages={step.stage_ms}"
+            print(line)
+        if args.cloud:
+            from bci_iot.pipeline.cloud_bridge import maybe_bridge_pipeline_results
+
+            bridged = maybe_bridge_pipeline_results(
+                results,
+                base_url=args.cloud_url,
+                token=args.cloud_token,
+            )
+            ok = sum(1 for b in bridged if b.get("ok"))
+            print(f"cloud_bridge pushed={ok}/{len(bridged)}")
         return 0
 
     if args.command == "serve-help":

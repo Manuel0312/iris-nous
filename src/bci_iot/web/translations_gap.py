@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.82 bridge + gate + backup ---
+    "Ponte PC↔cloud, gate contesti e backup più solido": {
+        "en": "PC↔cloud bridge, context gate and stronger backup",
+        "fr": "Pont PC↔cloud, gate de contexte et backup plus solide",
+        "de": "PC↔Cloud-Bruecke, Kontext-Gate und staerkeres Backup",
+        "pt": "Ponte PC↔cloud, gate de contexto e backup mais solido",
+        "zh": "PC↔云桥接、上下文门控与更稳备份",
+        "ja": "PC↔クラウド橋・コンテキストゲート・堅牢なバックアップ",
+        "es": "Puente PC↔nube, gate de contexto y backup mas solido",
+    },
+    "Il worker BCI sul PC non parlava col sito; un SÌ poteva rubare il contesto sbagliato; SQLite su Render era fragile.": {
+        "en": "The PC BCI worker did not talk to the site; a YES could steal the wrong context; SQLite on Render was fragile.",
+        "fr": "Le worker BCI du PC ne parlait pas au site ; un OUI pouvait voler le mauvais contexte ; SQLite sur Render etait fragile.",
+        "de": "Der PC-BCI-Worker sprach nicht mit der Website; ein JA konnte den falschen Kontext stehlen; SQLite auf Render war fragil.",
+        "pt": "O worker BCI no PC nao falava com o site; um SIM podia roubar o contexto errado; SQLite no Render era fragil.",
+        "zh": "PC 上的 BCI worker 不与网站通信；一个「是」可能抢错上下文；Render 上的 SQLite 很脆弱。",
+        "ja": "PCのBCIワーカーがサイトと話さず、「はい」が誤った文脈を奪い、Render上のSQLiteは脆かった。",
+        "es": "El worker BCI del PC no hablaba con el sitio; un SI podia robar el contexto equivocado; SQLite en Render era fragil.",
+    },
+    "Ora `bci-iot run --cloud` invia SÌ/NO al hub; se arriva un messaggio durante la musica serve una conferma; il backup include cuffia e non committa a ogni riga.": {
+        "en": "Now `bci-iot run --cloud` sends YES/NO to the hub; a message during music needs confirmation; backup includes headset data and does not commit every row.",
+        "fr": "Desormais `bci-iot run --cloud` envoie OUI/NON au hub ; un message pendant la musique demande confirmation ; le backup inclut le casque et ne commit pas a chaque ligne.",
+        "de": "Jetzt sendet `bci-iot run --cloud` JA/NEIN an den Hub; eine Nachricht waehrend Musik braucht Bestaetigung; Backup inkl. Headset, kein Commit pro Zeile.",
+        "pt": "Agora `bci-iot run --cloud` envia SIM/NAO ao hub; mensagem durante musica precisa de confirmacao; o backup inclui a cuffia e nao faz commit a cada linha.",
+        "zh": "现在 `bci-iot run --cloud` 向中枢发送是/否；听音乐时来消息需确认；备份含耳机数据且不逐行提交。",
+        "ja": "いま `bci-iot run --cloud` がはい/いいえをハブへ。音楽中のメッセージは確認が必要。バックアップはヘッドセット込みで行ごとのcommitなし。",
+        "es": "Ahora `bci-iot run --cloud` envia SI/NO al hub; un mensaje durante la musica pide confirmacion; el backup incluye casco y no hace commit por cada fila.",
+    },
     # --- v0.4.81 why Iris / register ---
     "App: cosa fa Iris e perché iscriversi": {
         "en": "App: what Iris does and why to sign up",
