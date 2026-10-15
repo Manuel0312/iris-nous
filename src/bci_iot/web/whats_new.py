@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.81",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "App: cosa fa Iris e perché iscriversi",
+                "Senza testo non si capiva a cosa serve l’app né perché creare un account.",
+                "Ora su Iris c’è una card liquid glass che spiega sì/no e i collegamenti; in Account è chiaro perché registrarsi (stessi dati su sito e app).",
+            ),
+        ),
+    },
+    {
         "version": "0.4.80",
         "intro": WHATS_NEW_INTRO,
         "entries": (

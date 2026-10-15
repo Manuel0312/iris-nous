@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.81 why Iris / register ---
+    "App: cosa fa Iris e perché iscriversi": {
+        "en": "App: what Iris does and why to sign up",
+        "fr": "App : a quoi sert Iris et pourquoi s’inscrire",
+        "de": "App: was Iris macht und warum anmelden",
+        "pt": "App: o que a Iris faz e porque registar",
+        "zh": "应用：Iris 做什么以及为何注册",
+        "ja": "アプリ：Irisの役割と登録の理由",
+        "es": "App: que hace Iris y por que registrarse",
+    },
+    "Senza testo non si capiva a cosa serve l’app né perché creare un account.": {
+        "en": "Without text it was unclear what the app is for or why to create an account.",
+        "fr": "Sans texte on ne comprenait ni a quoi sert l’app ni pourquoi creer un compte.",
+        "de": "Ohne Text war unklar, wofuer die App ist und warum man ein Konto braucht.",
+        "pt": "Sem texto nao se percebia para que serve a app nem porque criar uma conta.",
+        "zh": "没有文字时看不清应用用途，也不明白为何要注册。",
+        "ja": "文言がなく、アプリの役割もアカウント作成の理由も分かりませんでした。",
+        "es": "Sin texto no se entendia para que sirve la app ni por que crear una cuenta.",
+    },
+    "Ora su Iris c’è una card liquid glass che spiega sì/no e i collegamenti; in Account è chiaro perché registrarsi (stessi dati su sito e app).": {
+        "en": "Now Iris has a liquid-glass card explaining yes/no and connections; Account makes clear why to sign up (same data on site and app).",
+        "fr": "Desormais Iris a une carte liquid glass qui explique oui/non et les liens ; Compte clarifie pourquoi s’inscrire (memes donnees sur site et app).",
+        "de": "Jetzt hat Iris eine Liquid-Glass-Karte zu Ja/Nein und Verbindungen; unter Konto ist klar, warum man sich anmeldet (gleiche Daten auf Website und App).",
+        "pt": "Agora no Iris ha um cartao liquid glass que explica sim/nao e ligacoes; em Conta fica claro porque registar (mesmos dados no site e na app).",
+        "zh": "现在 Iris 有液态玻璃卡片说明是/否与连接；账户页说明为何注册（网站与应用同一资料）。",
+        "ja": "いまIrisにリキッドガラスのカードではい/いいえと接続を説明。アカウントでは登録理由（サイトとアプリで同じデータ）が明確。",
+        "es": "Ahora Iris tiene una card liquid glass que explica si/no y conexiones; en Cuenta queda claro por que registrarse (mismos datos en sitio y app).",
+    },
     # --- v0.4.80 glass + settings ---
     "App: glass, foto e impostazioni": {
         "en": "App: glass, photos and settings",
