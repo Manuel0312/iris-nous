@@ -181,9 +181,12 @@ def test_companion_pwa_routes(tmp_path: Path) -> None:
     assert "Pensi sì o no" in app_page.text
     assert "why-copy" in app_page.text or "Serve un account" in app_page.text
     assert "settings-open" in app_page.text
+    assert "settings-lang-toggle" in app_page.text
     assert "whats-new-open" in app_page.text
     assert "whats-new-dialog" in app_page.text
     assert "data-theme-choice" in app_page.text
+    assert "iris-stage" in app_page.text
+    assert "explain-title" in app_page.text
     assert "/lingua/" in app_page.text
     assert "next=" in app_page.text
     assert "profile-hero" in app_page.text

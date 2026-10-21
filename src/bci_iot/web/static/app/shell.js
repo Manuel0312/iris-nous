@@ -1,5 +1,5 @@
 (() => {
-  const PHOTOS = [
+  const PHOTO_SRC = [
     { src: "/static/product/headset.jpg", alt: "Cuffia" },
     { src: "/static/product/phone.jpg", alt: "Telefono" },
     { src: "/static/product/music.jpg", alt: "Musica" },
@@ -23,6 +23,14 @@
   }
   const I18N = loadI18n();
   const msg = (key, fallback) => (I18N[key] != null && I18N[key] !== "" ? I18N[key] : fallback);
+
+  const SLIDE_TITLES = Array.isArray(I18N.slideTitles) ? I18N.slideTitles : [];
+  const SLIDE_BODIES = Array.isArray(I18N.slideBodies) ? I18N.slideBodies : [];
+  const PHOTOS = PHOTO_SRC.map((p, i) => ({
+    ...p,
+    title: SLIDE_TITLES[i] || "",
+    body: SLIDE_BODIES[i] || "",
+  }));
 
   let index = 0;
   let timer = null;
@@ -124,14 +132,24 @@
   function renderSlide(i, animate) {
     const slide = PHOTOS[i];
     const img = $("#iris-photo-img");
+    const titleEl = $("#explain-title");
+    const bodyEl = $("#explain-body");
+    const card = $("#explain-card");
     if (!img || !slide) return;
     if (animate) {
       img.classList.remove("is-swap");
       void img.offsetWidth;
       img.classList.add("is-swap");
+      if (card) {
+        card.classList.remove("is-swap");
+        void card.offsetWidth;
+        card.classList.add("is-swap");
+      }
     }
     img.src = slide.src;
     img.alt = slide.alt;
+    if (titleEl && slide.title) titleEl.textContent = slide.title;
+    if (bodyEl && slide.body) bodyEl.textContent = slide.body;
     $$("#popup-dots button").forEach((btn, n) => {
       btn.classList.toggle("on", n === i);
       btn.setAttribute("aria-current", n === i ? "true" : "false");
@@ -145,6 +163,10 @@
 
   function next() {
     go(index + 1, true);
+  }
+
+  function prev() {
+    go(index - 1, true);
   }
 
   function stopCarousel() {
@@ -180,10 +202,76 @@
     });
   }
 
+  function bindIrisSwipe() {
+    const stage = $(".iris-stage");
+    if (!stage) return;
+    let startX = 0;
+    let startY = 0;
+    let tracking = false;
+
+    const onStart = (x, y) => {
+      startX = x;
+      startY = y;
+      tracking = true;
+    };
+    const onEnd = (x, y) => {
+      if (!tracking) return;
+      tracking = false;
+      const dx = x - startX;
+      const dy = y - startY;
+      if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy)) return;
+      if (dx < 0) next();
+      else prev();
+      if (carouselOn) startCarousel();
+    };
+
+    stage.addEventListener(
+      "touchstart",
+      (e) => {
+        const t = e.changedTouches[0];
+        if (t) onStart(t.clientX, t.clientY);
+      },
+      { passive: true }
+    );
+    stage.addEventListener(
+      "touchend",
+      (e) => {
+        const t = e.changedTouches[0];
+        if (t) onEnd(t.clientX, t.clientY);
+      },
+      { passive: true }
+    );
+
+    let mouseDown = false;
+    stage.addEventListener("mousedown", (e) => {
+      mouseDown = true;
+      onStart(e.clientX, e.clientY);
+    });
+    stage.addEventListener("mouseup", (e) => {
+      if (!mouseDown) return;
+      mouseDown = false;
+      onEnd(e.clientX, e.clientY);
+    });
+    stage.addEventListener("mouseleave", () => {
+      mouseDown = false;
+      tracking = false;
+    });
+  }
+
+  function setLangMenuOpen(open) {
+    const block = $(".settings-lang-block");
+    const list = $("#settings-langs");
+    const toggle = $("#settings-lang-toggle");
+    if (block) block.dataset.open = open ? "1" : "0";
+    if (list) list.hidden = !open;
+    if (toggle) toggle.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
   function openSettings() {
     const panel = $("#settings-panel");
     const backdrop = $("#settings-backdrop");
     if (!panel) return;
+    setLangMenuOpen(false);
     panel.hidden = false;
     if (backdrop) backdrop.hidden = false;
     document.body.classList.add("settings-open");
@@ -195,12 +283,19 @@
     if (panel) panel.hidden = true;
     if (backdrop) backdrop.hidden = true;
     document.body.classList.remove("settings-open");
+    setLangMenuOpen(false);
   }
 
   function bindSettings() {
     $("#settings-open")?.addEventListener("click", openSettings);
     $("#settings-close")?.addEventListener("click", closeSettings);
     $("#settings-backdrop")?.addEventListener("click", closeSettings);
+
+    $("#settings-lang-toggle")?.addEventListener("click", () => {
+      const block = $(".settings-lang-block");
+      const open = !(block && block.dataset.open === "1");
+      setLangMenuOpen(open);
+    });
 
     $$(".theme-choice").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -667,6 +762,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     applyTheme();
     buildDots();
+    bindIrisSwipe();
     bindSettings();
     bindWhatsNew();
     bindPhonePicker();

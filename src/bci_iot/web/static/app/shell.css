@@ -188,12 +188,17 @@ html, body.shell-body {
 
 .field:last-child { margin-bottom: 0; }
 
-.field input {
+.field input,
+.phone-row input[type="tel"],
+.phone-cc-menu input[type="search"],
+.auth-form input,
+.data-card input {
   border: 0;
   border-radius: 12px;
   padding: 0.7rem 0.8rem;
   background: #f0f0f2;
   font: inherit;
+  font-size: 16px; /* iOS: evita zoom automatico sulla tastiera */
   color: var(--shell-ink);
 }
 
@@ -227,29 +232,48 @@ html, body.shell-body {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .iris-photo {
   position: absolute;
   inset: 0;
+  display: grid;
+  place-items: center;
+  background: #0b0b0d;
+  touch-action: pan-y;
 }
 
 .iris-photo img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center center;
   display: block;
-  transform: scale(1.04);
-  transition: opacity 0.45s ease, transform 0.7s ease;
+  transform: none;
+  transition: opacity 0.4s ease;
 }
 
 .iris-photo img.is-swap {
-  animation: photoIn 0.55s ease;
+  animation: photoIn 0.5s ease;
 }
 
 @keyframes photoIn {
-  from { opacity: 0.35; transform: scale(1.1); }
-  to { opacity: 1; transform: scale(1.04); }
+  from { opacity: 0.25; }
+  to { opacity: 1; }
+}
+
+.explain-card.is-swap {
+  animation: explainIn 0.45s ease;
+}
+
+@keyframes explainIn {
+  from { opacity: 0.35; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .iris-shade {
@@ -1112,6 +1136,53 @@ body.whats-new-open { overflow: hidden; }
 
 .lang-code { font-weight: 700; font-size: 0.78rem; }
 .lang-name { font-size: 0.9rem; }
+
+.settings-lang-toggle {
+  appearance: none;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  border: 1px solid var(--glass-edge);
+  border-radius: 14px;
+  padding: 0.75rem 0.85rem;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--shell-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings-lang-toggle-label {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.settings-lang-toggle-label strong {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.settings-lang-current {
+  font-size: 0.9rem;
+  color: var(--shell-muted);
+}
+
+.settings-lang-chevron {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  transition: transform 0.18s ease;
+}
+
+.settings-lang-block[data-open="1"] .settings-lang-chevron {
+  transform: rotate(180deg);
+}
+
+.settings-lang-block .settings-langs {
+  margin-top: 0.55rem;
+}
 
 .theme-choices {
   display: grid;

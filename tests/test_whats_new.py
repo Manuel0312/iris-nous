@@ -32,6 +32,7 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
         or "Hub «La tua cuffia»" in page.text
         or "Privacy e chiarezza demo" in page.text
     )
+    assert "Iris: swipe, foto centrate, tastiera senza zoom, rotellina" in page.text
     assert "App telefono = anteprima; /app non è più la destinazione" in page.text
     assert "App Account: dopo Salva vedi il profilo" in page.text
     assert "App Account: foto e prefisso telefono" in page.text

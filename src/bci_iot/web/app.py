@@ -3155,6 +3155,12 @@ def create_app(
 
     def _app_shell_ctx(request: Request) -> dict:
         lang = get_request_language(request)
+        path = request.url.path if request.url.path.startswith("/app") else "/app"
+        from_q = str(request.query_params.get("from") or "").strip()
+        if path == "/app" and from_q in {"native_app", "native", "webview"}:
+            shell_return = f"/app?from={from_q}"
+        else:
+            shell_return = path
         return {
             "request": request,
             "lang": lang,
@@ -3163,7 +3169,7 @@ def create_app(
             "phone_countries": PHONE_COUNTRIES,
             "app_version": __version__,
             "whats_new": whats_new_payload(),
-            "shell_return": request.url.path if request.url.path.startswith("/app") else "/app",
+            "shell_return": shell_return,
         }
 
     @app.get("/app", response_class=HTMLResponse)

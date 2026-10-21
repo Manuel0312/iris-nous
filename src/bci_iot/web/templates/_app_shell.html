@@ -9,9 +9,8 @@
       <span class="whats-new-dot" id="whats-new-dot" hidden aria-hidden="true"></span>
     </button>
     <button type="button" class="settings-fab" id="settings-open" aria-label="{{ tx('Impostazioni') }}" title="{{ tx('Impostazioni') }}">
-      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.1 5.1l1.6 1.6M17.3 17.3l1.6 1.6M18.9 5.1l-1.6 1.6M6.7 17.3l-1.6 1.6"/>
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="currentColor">
+        <path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.1 7.1 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.55-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.7 8.48a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94L2.82 14.1a.5.5 0 0 0-.12.64l1.92 3.32c.13.23.4.32.64.22l2.39-.96c.5.39 1.04.7 1.63.94l.36 2.54c.05.24.26.42.5.42h3.8c.24 0 .45-.18.5-.42l.36-2.54c.59-.24 1.13-.55 1.63-.94l2.39.96c.24.1.51 0 .64-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z"/>
       </svg>
     </button>
   </div>
@@ -75,8 +74,27 @@
     </header>
 
     <section class="settings-block">
-      <h3>{{ tx('Lingua') }}</h3>
-      <ul class="settings-langs">
+      <h3>{{ tx('Tema') }}</h3>
+      <div class="theme-choices" role="radiogroup" aria-label="{{ tx('Tema') }}">
+        <button type="button" class="theme-choice" data-theme-choice="light">{{ tx('Chiaro') }}</button>
+        <button type="button" class="theme-choice" data-theme-choice="dark">{{ tx('Scuro') }}</button>
+        <button type="button" class="theme-choice" data-theme-choice="auto">{{ tx('Automatico (ora)') }}</button>
+      </div>
+      <p class="settings-note">{{ tx('Automatico: chiaro di giorno (7–20), scuro di notte.') }}</p>
+    </section>
+
+    <section class="settings-block settings-lang-block" data-open="0">
+      <button type="button" class="settings-lang-toggle" id="settings-lang-toggle" aria-expanded="false" aria-controls="settings-langs">
+        <span class="settings-lang-toggle-label">
+          <strong>{{ tx('Lingua') }}</strong>
+          <span class="settings-lang-current" id="settings-lang-current">
+            {% set cur_langs = languages|selectattr('code', 'equalto', lang)|list if languages is defined else [] %}
+            {% if cur_langs %}{{ cur_langs[0].code|upper }} · {{ cur_langs[0].name }}{% else %}IT · Italiano{% endif %}
+          </span>
+        </span>
+        <span class="settings-lang-chevron" aria-hidden="true">▾</span>
+      </button>
+      <ul class="settings-langs" id="settings-langs" hidden>
         {% for item in languages|default([]) %}
         <li>
           <a
@@ -90,20 +108,10 @@
           </a>
         </li>
         {% else %}
-        <li><a class="settings-lang is-active" href="/lingua/it?next=/app">IT · Italiano</a></li>
-        <li><a class="settings-lang" href="/lingua/en?next=/app">EN · English</a></li>
+        <li><a class="settings-lang is-active" href="/lingua/it?next=/app?from=native_app">IT · Italiano</a></li>
+        <li><a class="settings-lang" href="/lingua/en?next=/app?from=native_app">EN · English</a></li>
         {% endfor %}
       </ul>
-    </section>
-
-    <section class="settings-block">
-      <h3>{{ tx('Aspetto') }}</h3>
-      <div class="theme-choices" role="radiogroup" aria-label="{{ tx('Aspetto') }}">
-        <button type="button" class="theme-choice" data-theme-choice="light">{{ tx('Chiaro') }}</button>
-        <button type="button" class="theme-choice" data-theme-choice="dark">{{ tx('Scuro') }}</button>
-        <button type="button" class="theme-choice" data-theme-choice="auto">{{ tx('Automatico (ora)') }}</button>
-      </div>
-      <p class="settings-note">{{ tx('Automatico: chiaro di giorno (7–20), scuro di notte.') }}</p>
     </section>
   </aside>
 
@@ -152,10 +160,10 @@
       </div>
       <div class="iris-shade" aria-hidden="true"></div>
       <div class="iris-fore">
-        <div class="glass-card explain-card">
+        <div class="glass-card explain-card" id="explain-card">
           <p class="glass-pill-mark">Iris</p>
-          <h2 class="explain-title">{{ tx('Pensi sì o no. Il resto segue.') }}</h2>
-          <p class="explain-body">{{ tx('Con la cuffia, Iris apre musica, casa e telefono senza toccare lo schermo. È una demo di tesi: prova, poi crea un account per salvare i tuoi dati.') }}</p>
+          <h2 class="explain-title" id="explain-title">{{ tx('Pensi sì o no. Il resto segue.') }}</h2>
+          <p class="explain-body" id="explain-body">{{ tx('Con la cuffia, Iris apre musica, casa e telefono senza toccare lo schermo. È una demo di tesi: prova, poi crea un account per salvare i tuoi dati.') }}</p>
         </div>
         <div class="popup-dots" id="popup-dots" aria-label="{{ tx('Foto') }}"></div>
       </div>
@@ -350,5 +358,19 @@
   "genderMale": {{ tx('Uomo')|tojson }},
   "genderNonBinary": {{ tx('Non binario')|tojson }},
   "notSet": {{ tx('Non impostato')|tojson }},
-  "profileUpdated": {{ tx('Profilo aggiornato. Ecco i tuoi dati.')|tojson }}
+  "profileUpdated": {{ tx('Profilo aggiornato. Ecco i tuoi dati.')|tojson }},
+  "slideTitles": [
+    {{ tx('Pensi sì o no. Il resto segue.')|tojson }},
+    {{ tx('Il telefono risponde con te.')|tojson }},
+    {{ tx('La musica cambia col pensiero.')|tojson }},
+    {{ tx('Casa, senza toccare nulla.')|tojson }},
+    {{ tx('Tutto collegato in un gesto.')|tojson }}
+  ],
+  "slideBodies": [
+    {{ tx('Con la cuffia, Iris apre musica, casa e telefono senza toccare lo schermo. È una demo di tesi: prova, poi crea un account per salvare i tuoi dati.')|tojson }},
+    {{ tx('Quando squilla, un sì o un no bastano. Iris capisce e agisce al posto tuo.')|tojson }},
+    {{ tx('Brano dopo brano: pensi avanti e Iris salta alla traccia successiva.')|tojson }},
+    {{ tx('Luci e ambienti seguono il tuo sì. Meno tap, più presenza.')|tojson }},
+    {{ tx('Cuffia, telefono e canali nello stesso ecosistema: un solo profilo, ovunque.')|tojson }}
+  ]
 }</script>
