@@ -263,7 +263,11 @@
     const list = $("#settings-langs");
     const toggle = $("#settings-lang-toggle");
     if (block) block.dataset.open = open ? "1" : "0";
-    if (list) list.hidden = !open;
+    if (list) {
+      list.hidden = !open;
+      if (!open) list.setAttribute("hidden", "");
+      else list.removeAttribute("hidden");
+    }
     if (toggle) toggle.setAttribute("aria-expanded", open ? "true" : "false");
   }
 
@@ -291,10 +295,21 @@
     $("#settings-close")?.addEventListener("click", closeSettings);
     $("#settings-backdrop")?.addEventListener("click", closeSettings);
 
-    $("#settings-lang-toggle")?.addEventListener("click", () => {
+    $("#settings-lang-toggle")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       const block = $(".settings-lang-block");
       const open = !(block && block.dataset.open === "1");
       setLangMenuOpen(open);
+    });
+
+    // Chiudi tendina se clicchi fuori (ma resti nelle impostazioni).
+    document.addEventListener("click", (e) => {
+      const block = $(".settings-lang-block");
+      if (!block || block.dataset.open !== "1") return;
+      const t = e.target;
+      if (t instanceof Node && block.contains(t)) return;
+      setLangMenuOpen(false);
     });
 
     $$(".theme-choice").forEach((btn) => {

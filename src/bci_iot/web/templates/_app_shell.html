@@ -84,34 +84,41 @@
     </section>
 
     <section class="settings-block settings-lang-block" data-open="0">
-      <button type="button" class="settings-lang-toggle" id="settings-lang-toggle" aria-expanded="false" aria-controls="settings-langs">
-        <span class="settings-lang-toggle-label">
-          <strong>{{ tx('Lingua') }}</strong>
-          <span class="settings-lang-current" id="settings-lang-current">
+      <h3>{{ tx('Lingua') }}</h3>
+      <div class="settings-lang-select" id="settings-lang-select">
+        <button type="button" class="settings-lang-toggle" id="settings-lang-toggle" aria-expanded="false" aria-haspopup="listbox" aria-controls="settings-langs">
+          <span class="settings-lang-current-row" id="settings-lang-current">
             {% set cur_langs = languages|selectattr('code', 'equalto', lang)|list if languages is defined else [] %}
-            {% if cur_langs %}{{ cur_langs[0].code|upper }} · {{ cur_langs[0].name }}{% else %}IT · Italiano{% endif %}
+            {% if cur_langs %}
+            <img class="lang-flag-img" src="{{ cur_langs[0].flag_src }}" alt="" width="22" height="16" />
+            <span class="lang-code">{{ cur_langs[0].code|upper }}</span>
+            <span class="lang-name">{{ cur_langs[0].name }}</span>
+            {% else %}
+            <span class="lang-code">IT</span>
+            <span class="lang-name">Italiano</span>
+            {% endif %}
           </span>
-        </span>
-        <span class="settings-lang-chevron" aria-hidden="true">▾</span>
-      </button>
-      <ul class="settings-langs" id="settings-langs" hidden>
-        {% for item in languages|default([]) %}
-        <li>
-          <a
-            class="settings-lang {% if item.code == lang %}is-active{% endif %}"
-            href="/lingua/{{ item.code }}?next={{ back|urlencode }}"
-            data-lang="{{ item.code }}"
-          >
-            <img class="lang-flag-img" src="{{ item.flag_src }}" alt="" width="22" height="16" loading="lazy" />
-            <span class="lang-code">{{ item.code|upper }}</span>
-            <span class="lang-name">{{ item.name }}</span>
-          </a>
-        </li>
-        {% else %}
-        <li><a class="settings-lang is-active" href="/lingua/it?next=/app?from=native_app">IT · Italiano</a></li>
-        <li><a class="settings-lang" href="/lingua/en?next=/app?from=native_app">EN · English</a></li>
-        {% endfor %}
-      </ul>
+          <span class="settings-lang-chevron" aria-hidden="true">▾</span>
+        </button>
+        <ul class="settings-langs" id="settings-langs" role="listbox" hidden>
+          {% for item in languages|default([]) %}
+          <li role="option" aria-selected="{{ 'true' if item.code == lang else 'false' }}">
+            <a
+              class="settings-lang {% if item.code == lang %}is-active{% endif %}"
+              href="/lingua/{{ item.code }}?next={{ back|urlencode }}"
+              data-lang="{{ item.code }}"
+            >
+              <img class="lang-flag-img" src="{{ item.flag_src }}" alt="" width="22" height="16" loading="lazy" />
+              <span class="lang-code">{{ item.code|upper }}</span>
+              <span class="lang-name">{{ item.name }}</span>
+            </a>
+          </li>
+          {% else %}
+          <li><a class="settings-lang is-active" href="/lingua/it?next=/app?from=native_app">IT · Italiano</a></li>
+          <li><a class="settings-lang" href="/lingua/en?next=/app?from=native_app">EN · English</a></li>
+          {% endfor %}
+        </ul>
+      </div>
     </section>
   </aside>
 

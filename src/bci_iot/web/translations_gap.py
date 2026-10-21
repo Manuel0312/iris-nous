@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.88 language dropdown ---
+    "Lingua: menu a tendina vero": {
+        "en": "Language: real dropdown menu",
+        "fr": "Langue : vrai menu deroulant",
+        "de": "Sprache: echtes Dropdown",
+        "pt": "Idioma: menu pendente real",
+        "zh": "语言：真正的下拉菜单",
+        "ja": "言語：本物のドロップダウン",
+        "es": "Idioma: menu desplegable de verdad",
+    },
+    "La lista lingue si apriva come bottoni sparsi sotto, non come tendina.": {
+        "en": "The language list opened as scattered buttons below, not as a dropdown.",
+        "fr": "La liste des langues s’ouvrait en boutons eparpilles, pas en menu.",
+        "de": "Die Sprachenliste oeffnete sich als lose Buttons, nicht als Dropdown.",
+        "pt": "A lista de idiomas abria como botoes soltos, nao como menu.",
+        "zh": "语言列表像散落按钮，不是下拉菜单。",
+        "ja": "言語一覧がばらばらのボタンで、ドロップダウンではなかった。",
+        "es": "La lista de idiomas se abria como botones sueltos, no como menu.",
+    },
+    "Ora Lingua è un selettore: tocchi, si apre il menu sotto (scrollabile), scegli e vai.": {
+        "en": "Now Language is a selector: tap, the menu opens below (scrollable), pick and go.",
+        "fr": "Desormais Langue est un selecteur : touchez, le menu s’ouvre en dessous (defilable).",
+        "de": "Jetzt ist Sprache ein Selektor: tippen, Menue oeffnet sich darunter (scrollbar).",
+        "pt": "Agora Lingua e um seletor: toca, o menu abre abaixo (com scroll).",
+        "zh": "现在语言是选择器：点一下，下方弹出可滚动菜单，选完即可。",
+        "ja": "いま言語はセレクタ。タップで下にスクロール可能なメニューが開く。",
+        "es": "Ahora Idioma es un selector: tocas, se abre el menu abajo (con scroll).",
+    },
     # --- v0.4.87 iris swipe + settings gear ---
     "Iris: swipe, foto centrate, tastiera senza zoom, rotellina": {
         "en": "Iris: swipe, centered photos, no keyboard zoom, gear",
