@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.84 account photo + phone prefix ---
+    "App Account: foto e prefisso telefono": {
+        "en": "App Account: photo and phone prefix",
+        "fr": "App Compte : photo et indicatif",
+        "de": "App Konto: Foto und Vorwahl",
+        "pt": "App Conta: foto e indicativo",
+        "zh": "应用账户：照片与电话区号",
+        "ja": "アプリアカウント：写真と国番号",
+        "es": "App Cuenta: foto y prefijo telefonico",
+    },
+    "La foto profilo era storta e il prefisso era un campo di testo inutile.": {
+        "en": "The profile photo looked broken and the prefix was a useless text field.",
+        "fr": "La photo de profil etait cassee et l’indicatif etait un champ texte inutile.",
+        "de": "Das Profilfoto wirkte kaputt und die Vorwahl war ein nutzloses Textfeld.",
+        "pt": "A foto de perfil parecia partida e o indicativo era um campo de texto inutil.",
+        "zh": "头像显示异常，区号只是无用的文本框。",
+        "ja": "プロフィール写真が崩れており、国番号は無意味なテキスト欄でした。",
+        "es": "La foto de perfil se veia rota y el prefijo era un campo de texto inutil.",
+    },
+    "Ora la foto è centrata e chiara (come sul sito) e scegli paese/prefisso dalla lista con bandiera, poi digiti solo il numero.": {
+        "en": "Now the photo is centered and clear (like the site) and you pick country/prefix from a flagged list, then type only the number.",
+        "fr": "Desormais la photo est centree et claire (comme sur le site) et vous choisissez pays/indicatif dans une liste avec drapeau, puis tapez seulement le numero.",
+        "de": "Jetzt ist das Foto zentriert und klar (wie auf der Website) und du waehlst Land/Vorwahl aus einer Liste mit Flagge, dann tippst nur die Nummer.",
+        "pt": "Agora a foto esta centrada e clara (como no site) e escolhes pais/indicativo numa lista com bandeira, depois digitas so o numero.",
+        "zh": "现在头像居中清晰（与网站一致），从带国旗的列表选择国家/区号，再只输入号码。",
+        "ja": "いま写真は中央で見やすく（サイト同様）、旗付き一覧で国番号を選び、番号だけ入力します。",
+        "es": "Ahora la foto esta centrada y clara (como en el sitio) y eliges pais/prefijo de una lista con bandera, luego escribes solo el numero.",
+    },
     # --- v0.4.83 app i18n + novità ---
     "App: lingue e Novità come sul sito": {
         "en": "App: languages and What’s New like the site",

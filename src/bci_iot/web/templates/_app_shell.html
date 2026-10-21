@@ -206,17 +206,19 @@
       <div id="account-user" class="account-state" hidden>
         <h2>{{ tx('I tuoi dati') }}</h2>
 
-        <div class="profile-photo-row">
-          <div class="avatar-wrap">
-            <img id="profile-photo" class="avatar" alt="{{ tx('Foto profilo') }}" hidden />
-            <div id="profile-photo-fallback" class="avatar avatar-fallback" aria-hidden="true">☺</div>
-          </div>
-          <div class="photo-actions">
-            <label class="btn soft file-btn">
-              {{ tx('Cambia foto') }}
-              <input id="photo-input" type="file" accept="image/jpeg,image/png,image/webp,image/*" hidden />
-            </label>
-          </div>
+        <div class="profile-hero" id="profile-hero" data-has-photo="0">
+          <button type="button" class="profile-avatar-btn" id="profile-avatar-btn" aria-label="{{ tx('Cambia foto') }}">
+            <img id="profile-photo" class="avatar" alt="" hidden />
+            <span id="profile-photo-fallback" class="avatar avatar-fallback" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21a8 8 0 0 0-16 0"/>
+                <circle cx="12" cy="8" r="4"/>
+              </svg>
+            </span>
+          </button>
+          <label class="profile-photo-cta" id="photo-cta-label" for="photo-input">{{ tx('Scegli una foto') }}</label>
+          <p class="profile-photo-meta">{{ tx('JPG · PNG · WebP') }}</p>
+          <input id="photo-input" type="file" accept="image/jpeg,image/png,image/webp,image/*" hidden />
         </div>
 
         <form id="form-profile" class="data-card glass-card">
@@ -229,12 +231,44 @@
           <label class="field">{{ tx('Email') }}
             <input name="email" type="email" required maxlength="254" autocomplete="email" />
           </label>
-          <label class="field">{{ tx('Prefisso paese') }}
-            <input name="phone_country" type="text" maxlength="8" placeholder="IT" autocomplete="country" />
-          </label>
-          <label class="field">{{ tx('Numero') }}
-            <input name="phone_national" type="tel" maxlength="32" autocomplete="tel-national" inputmode="tel" />
-          </label>
+
+          <div class="phone-block">
+            <span class="field-label">{{ tx('Telefono') }} <span class="opt-tag">{{ tx('facoltativo') }}</span></span>
+            <div class="phone-row" id="phone-row" data-locked="0">
+              <button type="button" class="phone-cc-btn" id="phone-cc-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="{{ tx('Prefisso internazionale') }}">
+                <img class="flag-img" id="phone-cc-flag" src="/flags/un.svg" alt="" width="22" height="16" />
+                <span id="phone-cc-dial">{{ tx('Prefisso') }}</span>
+              </button>
+              <input type="hidden" name="phone_country" id="phone-country" value="" />
+              <input
+                name="phone_national"
+                id="phone-national"
+                type="tel"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="15"
+                placeholder="{{ tx('Numero senza prefisso') }}"
+                autocomplete="tel-national"
+                disabled
+              />
+            </div>
+            <div class="phone-cc-menu" id="phone-cc-menu" hidden role="listbox">
+              <input type="search" id="phone-cc-filter" placeholder="{{ tx('Cerca paese…') }}" autocomplete="off" />
+              <div class="phone-cc-list" id="phone-cc-list">
+                {% for c in phone_countries|default([]) %}
+                <button type="button" class="phone-cc-option" role="option"
+                  data-iso="{{ c.iso }}" data-dial="{{ c.dial }}" data-flag-src="{{ c.flag_src }}"
+                  data-min="{{ c.min_len }}" data-max="{{ c.max_len }}">
+                  <img class="flag-img" src="{{ c.flag_src }}" alt="{{ c.iso }}" width="22" height="16" loading="lazy" />
+                  <span class="phone-cc-name">{{ c.name }}</span>
+                  <span class="phone-cc-dial-muted">{{ c.dial }}</span>
+                </button>
+                {% endfor %}
+              </div>
+            </div>
+            <p class="form-hint" id="phone-hint">{{ tx('Scegli la bandiera/prefisso, poi digita solo le cifre. Il telefono è opzionale.') }}</p>
+          </div>
+
           <fieldset class="gender-set">
             <legend>{{ tx('Come ti senti') }}</legend>
             <label><input type="radio" name="gender" value="female" required /> {{ tx('Donna') }}</label>
@@ -280,5 +314,12 @@
   "uploadPhoto": {{ tx('Carico la foto…')|tojson }},
   "photoFailed": {{ tx('Foto non caricata.')|tojson }},
   "photoUpdated": {{ tx('Foto aggiornata.')|tojson }},
-  "loadAccountFailed": {{ tx('Non riesco a caricare l’account.')|tojson }}
+  "loadAccountFailed": {{ tx('Non riesco a caricare l’account.')|tojson }},
+  "choosePhoto": {{ tx('Scegli una foto')|tojson }},
+  "changePhoto": {{ tx('Cambia foto')|tojson }},
+  "prefisso": {{ tx('Prefisso')|tojson }},
+  "prefissoFissato": {{ tx('Prefisso fissato')|tojson }},
+  "digita": {{ tx('Digita')|tojson }},
+  "cifreDelNumero": {{ tx('cifre del numero.')|tojson }},
+  "phoneHint": {{ tx('Scegli la bandiera/prefisso, poi digita solo le cifre. Il telefono è opzionale.')|tojson }}
 }</script>

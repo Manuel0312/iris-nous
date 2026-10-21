@@ -181,6 +181,13 @@ def test_companion_pwa_routes(tmp_path: Path) -> None:
     assert "data-theme-choice" in app_page.text
     assert "/lingua/" in app_page.text
     assert "next=" in app_page.text
+    assert "profile-hero" in app_page.text
+    assert "phone-cc-btn" in app_page.text
+    assert "phone-cc-menu" in app_page.text
+    assert 'name="phone_country"' in app_page.text
+    assert 'name="phone_country" type="text"' not in app_page.text
+    assert 'data-iso="IT"' in app_page.text
+    assert 'data-dial="+39"' in app_page.text
     # Language switch must re-render translated shell (not Italian-only hardcode).
     client.get("/lingua/en?next=/app", follow_redirects=True)
     en_app = client.get("/app")

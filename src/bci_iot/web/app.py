@@ -119,6 +119,7 @@ class ProfileResponse(BaseModel):
     phone_label: str = ""
     phone_display: str = ""
     phone_country: str = ""
+    phone_dial: str = ""
     phone_national: str = ""
     photo_url: str = ""
     email_verified: bool = False
@@ -141,6 +142,7 @@ class ProfileResponse(BaseModel):
             phone_label=profile.phone_label,
             phone_display=profile.phone_display,
             phone_country=str(profile.phone_country or ""),
+            phone_dial=str(profile.phone_dial or ""),
             phone_national=str(profile.phone_national or ""),
             photo_url=f"/media/photos/{photo}" if photo else "",
             email_verified=bool(profile.email_verified),
@@ -3158,6 +3160,7 @@ def create_app(
             "lang": lang,
             "languages": LANGUAGES,
             "t": make_translator(lang),
+            "phone_countries": PHONE_COUNTRIES,
             "app_version": __version__,
             "whats_new": whats_new_payload(),
             "shell_return": request.url.path if request.url.path.startswith("/app") else "/app",

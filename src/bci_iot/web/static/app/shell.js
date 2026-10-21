@@ -237,6 +237,94 @@
     });
   }
 
+  function setProfilePhoto(url) {
+    const hero = $("#profile-hero");
+    const img = $("#profile-photo");
+    const fallback = $("#profile-photo-fallback");
+    const cta = $("#photo-cta-label");
+    const has = Boolean(url);
+    if (hero) hero.dataset.hasPhoto = has ? "1" : "0";
+    if (cta) cta.textContent = has ? msg("changePhoto", "Cambia foto") : msg("choosePhoto", "Scegli una foto");
+    if (!img) return;
+    img.onload = () => {
+      img.hidden = false;
+      if (fallback) fallback.hidden = true;
+    };
+    img.onerror = () => {
+      img.hidden = true;
+      img.removeAttribute("src");
+      if (fallback) fallback.hidden = false;
+      if (hero) hero.dataset.hasPhoto = "0";
+      if (cta) cta.textContent = msg("choosePhoto", "Scegli una foto");
+    };
+    if (has) {
+      img.src = url + (url.includes("?") ? "&" : "?") + "t=" + Date.now();
+    } else {
+      img.hidden = true;
+      img.removeAttribute("src");
+      if (fallback) fallback.hidden = false;
+    }
+  }
+
+  function findCountryOption(iso) {
+    if (!iso) return null;
+    return $$("#phone-cc-list .phone-cc-option").find((el) => el.dataset.iso === iso) || null;
+  }
+
+  function applyPhoneCountry(iso, dial, flagSrc, minLen, maxLen, { focus } = {}) {
+    const row = $("#phone-row");
+    const btn = $("#phone-cc-btn");
+    const isoInput = $("#phone-country");
+    const national = $("#phone-national");
+    const flagEl = $("#phone-cc-flag");
+    const dialEl = $("#phone-cc-dial");
+    const hint = $("#phone-hint");
+    const menu = $("#phone-cc-menu");
+    if (!isoInput || !national || !dialEl) return;
+    if (!iso) {
+      isoInput.value = "";
+      if (flagEl) {
+        flagEl.src = "/flags/un.svg";
+        flagEl.alt = "";
+      }
+      dialEl.textContent = msg("prefisso", "Prefisso");
+      national.value = "";
+      national.disabled = true;
+      if (row) row.dataset.locked = "0";
+      btn?.classList.remove("is-locked");
+      if (hint) hint.textContent = msg("phoneHint", "Scegli la bandiera/prefisso, poi digita solo le cifre. Il telefono è opzionale.");
+      return;
+    }
+    isoInput.value = iso;
+    if (flagEl && flagSrc) {
+      flagEl.src = flagSrc;
+      flagEl.alt = iso;
+    }
+    dialEl.textContent = dial || iso;
+    national.disabled = false;
+    if (row) row.dataset.locked = "1";
+    btn?.classList.add("is-locked");
+    if (menu) {
+      menu.hidden = true;
+      btn?.setAttribute("aria-expanded", "false");
+    }
+    if (hint && minLen && maxLen) {
+      hint.textContent =
+        msg("prefissoFissato", "Prefisso fissato") +
+        " (" +
+        dial +
+        "). " +
+        msg("digita", "Digita") +
+        " " +
+        minLen +
+        "–" +
+        maxLen +
+        " " +
+        msg("cifreDelNumero", "cifre del numero.");
+    }
+    if (focus) national.focus();
+  }
+
   function fillProfile(data) {
     profile = data;
     const form = $("#form-profile");
@@ -244,23 +332,90 @@
     form.first_name.value = data.first_name || "";
     form.last_name.value = data.last_name || "";
     form.email.value = data.email || "";
-    form.phone_country.value = data.phone_country || "IT";
-    form.phone_national.value = data.phone_national || "";
     const gender = data.gender || "";
     $$('input[name="gender"]', form).forEach((r) => {
       r.checked = r.value === gender;
     });
-    const img = $("#profile-photo");
-    const fallback = $("#profile-photo-fallback");
-    if (data.photo_url) {
-      img.src = data.photo_url + (data.photo_url.includes("?") ? "&" : "?") + "t=" + Date.now();
-      img.hidden = false;
-      if (fallback) fallback.hidden = true;
+
+    const iso = String(data.phone_country || "").trim().toUpperCase();
+    const national = $("#phone-national");
+    if (iso) {
+      const opt = findCountryOption(iso);
+      applyPhoneCountry(
+        iso,
+        data.phone_dial || (opt && opt.dataset.dial) || "",
+        (opt && opt.dataset.flagSrc) || `/flags/${iso.toLowerCase() === "uk" ? "gb" : iso.toLowerCase()}.svg`,
+        opt && opt.dataset.min,
+        opt && opt.dataset.max
+      );
+      if (national) national.value = String(data.phone_national || "").replace(/\D+/g, "");
     } else {
-      img.removeAttribute("src");
-      img.hidden = true;
-      if (fallback) fallback.hidden = false;
+      applyPhoneCountry("", "", "");
     }
+
+    setProfilePhoto(data.photo_url || "");
+  }
+
+  function bindPhonePicker() {
+    const row = $("#phone-row");
+    const btn = $("#phone-cc-btn");
+    const menu = $("#phone-cc-menu");
+    const filter = $("#phone-cc-filter");
+    const list = $("#phone-cc-list");
+    const national = $("#phone-national");
+    if (!btn || !menu || !list || !national) return;
+
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (row && row.dataset.locked === "1") {
+        row.dataset.locked = "0";
+        btn.classList.remove("is-locked");
+      }
+      const open = menu.hidden;
+      menu.hidden = !open;
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+      if (open && filter) filter.focus();
+    });
+
+    list.querySelectorAll(".phone-cc-option").forEach((opt) => {
+      opt.addEventListener("click", () => {
+        applyPhoneCountry(opt.dataset.iso, opt.dataset.dial, opt.dataset.flagSrc, opt.dataset.min, opt.dataset.max, {
+          focus: true,
+        });
+      });
+    });
+
+    filter?.addEventListener("input", () => {
+      const q = filter.value.trim().toLowerCase();
+      list.querySelectorAll(".phone-cc-option").forEach((opt) => {
+        const text = (opt.textContent || "").toLowerCase();
+        opt.hidden = Boolean(q) && !text.includes(q);
+      });
+    });
+
+    national.addEventListener("beforeinput", (e) => {
+      if (e.data && /\D/.test(e.data)) e.preventDefault();
+    });
+    national.addEventListener("keydown", (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key.length === 1 && /\D/.test(e.key)) e.preventDefault();
+    });
+    national.addEventListener("paste", (e) => {
+      e.preventDefault();
+      const pasted = (e.clipboardData || window.clipboardData).getData("text") || "";
+      national.value = pasted.replace(/\D+/g, "").slice(0, 15);
+    });
+    national.addEventListener("input", () => {
+      national.value = national.value.replace(/\D+/g, "");
+    });
+
+    document.addEventListener("click", (e) => {
+      if (menu.hidden) return;
+      const t = e.target;
+      if (t instanceof Node && (menu.contains(t) || btn.contains(t))) return;
+      menu.hidden = true;
+      btn.setAttribute("aria-expanded", "false");
+    });
   }
 
   async function api(path, options = {}) {
@@ -363,6 +518,8 @@
         setHint($("#profile-hint"), msg("chooseGender", "Scegli come ti senti."), "err");
         return;
       }
+      const phoneNational = String(fd.get("phone_national") || "").replace(/\D+/g, "").trim();
+      const phoneCountry = phoneNational ? String(fd.get("phone_country") || "").trim() : "";
       setHint($("#profile-hint"), msg("saving", "Salvataggio…"));
       const { res, data } = await api("/api/me/anagrafica", {
         method: "PUT",
@@ -370,8 +527,8 @@
           first_name: String(fd.get("first_name") || "").trim(),
           last_name: String(fd.get("last_name") || "").trim(),
           email: String(fd.get("email") || "").trim(),
-          phone_country: String(fd.get("phone_country") || "").trim(),
-          phone_national: String(fd.get("phone_national") || "").trim(),
+          phone_country: phoneCountry,
+          phone_national: phoneNational,
           gender: String(gender),
         },
       });
@@ -390,6 +547,10 @@
       setHint($("#auth-hint"), msg("loggedOut", "Sei uscito."), "ok");
     });
 
+    $("#profile-avatar-btn")?.addEventListener("click", () => {
+      $("#photo-input")?.click();
+    });
+
     $("#photo-input")?.addEventListener("change", async (e) => {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
@@ -406,8 +567,12 @@
         setHint($("#profile-hint"), (data && data.detail) || msg("photoFailed", "Foto non caricata."), "err");
         return;
       }
-      const me = await api("/api/me");
-      if (me.res.ok) fillProfile(me.data);
+      if (data && data.url) {
+        setProfilePhoto(data.url);
+      } else {
+        const me = await api("/api/me");
+        if (me.res.ok) fillProfile(me.data);
+      }
       setHint($("#profile-hint"), msg("photoUpdated", "Foto aggiornata."), "ok");
     });
   }
@@ -417,6 +582,7 @@
     buildDots();
     bindSettings();
     bindWhatsNew();
+    bindPhonePicker();
     bindAuth();
     setTimeout(() => show("iris"), 700);
 
