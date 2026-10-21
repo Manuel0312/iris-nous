@@ -182,6 +182,9 @@ def test_companion_pwa_routes(tmp_path: Path) -> None:
     assert "/lingua/" in app_page.text
     assert "next=" in app_page.text
     assert "profile-hero" in app_page.text
+    assert "account-summary" in app_page.text
+    assert "btn-edit-profile" in app_page.text
+    assert "summary-card" in app_page.text
     assert "phone-cc-btn" in app_page.text
     assert "phone-cc-menu" in app_page.text
     assert 'name="phone_country"' in app_page.text

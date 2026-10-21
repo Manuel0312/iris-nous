@@ -1,6 +1,70 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.85 account summary after save ---
+    "App Account: dopo Salva vedi il profilo": {
+        "en": "App Account: after Save you see your profile",
+        "fr": "App Compte : apres Enregistrer vous voyez le profil",
+        "de": "App Konto: nach Speichern siehst du dein Profil",
+        "pt": "App Conta: depois de Guardar ves o perfil",
+        "zh": "应用账户：保存后显示个人资料",
+        "ja": "アプリアカウント：保存後にプロフィール表示",
+        "es": "App Cuenta: tras Guardar ves tu perfil",
+    },
+    "Premendo Salva restavi sul form vuoto e non vedevi i dati appena salvati.": {
+        "en": "Pressing Save left you on an empty form and you could not see the data you just saved.",
+        "fr": "En appuyant sur Enregistrer vous restiez sur un formulaire vide sans voir les donnees.",
+        "de": "Nach Speichern bliebst du im leeren Formular und sahst die Daten nicht.",
+        "pt": "Ao premir Guardar ficavas no formulario vazio sem ver os dados.",
+        "zh": "按下保存后仍停在空表单，看不到刚保存的资料。",
+        "ja": "保存を押しても空のフォームのままで、保存した内容が見えませんでした。",
+        "es": "Al pulsar Guardar te quedabas en un formulario vacio sin ver los datos.",
+    },
+    "Ora dopo Salva compare una pagina chiara con nome, email, telefono e come ti senti; da lì puoi modificare o uscire.": {
+        "en": "Now after Save a clear page shows your name, email, phone and how you feel; from there you can edit or sign out.",
+        "fr": "Desormais apres Enregistrer une page claire montre nom, e-mail, telephone et ressenti ; vous pouvez modifier ou quitter.",
+        "de": "Jetzt erscheint nach Speichern eine klare Seite mit Name, E-Mail, Telefon und Gefuehl; von dort bearbeiten oder abmelden.",
+        "pt": "Agora apos Guardar aparece uma pagina clara com nome, email, telefone e como te sentes; podes editar ou sair.",
+        "zh": "现在保存后会显示清晰页面：姓名、邮箱、电话与感受；可从此修改或退出。",
+        "ja": "保存後に名前・メール・電話・気持ちが分かるページが表示され、編集やログアウトができます。",
+        "es": "Ahora tras Guardar aparece una pagina clara con nombre, email, telefono y como te sientes; desde ahi puedes editar o salir.",
+    },
+    "Profilo aggiornato. Ecco i tuoi dati.": {
+        "en": "Profile updated. Here are your details.",
+        "fr": "Profil mis a jour. Voici vos donnees.",
+        "de": "Profil aktualisiert. Hier sind deine Daten.",
+        "pt": "Perfil atualizado. Aqui estao os teus dados.",
+        "zh": "资料已更新。以下是你的信息。",
+        "ja": "プロフィールを更新しました。内容はこちらです。",
+        "es": "Perfil actualizado. Aqui estan tus datos.",
+    },
+    "Modifica": {
+        "en": "Edit",
+        "fr": "Modifier",
+        "de": "Bearbeiten",
+        "pt": "Editar",
+        "zh": "编辑",
+        "ja": "編集",
+        "es": "Editar",
+    },
+    "Annulla": {
+        "en": "Cancel",
+        "fr": "Annuler",
+        "de": "Abbrechen",
+        "pt": "Cancelar",
+        "zh": "取消",
+        "ja": "キャンセル",
+        "es": "Cancelar",
+    },
+    "Non impostato": {
+        "en": "Not set",
+        "fr": "Non defini",
+        "de": "Nicht gesetzt",
+        "pt": "Nao definido",
+        "zh": "未设置",
+        "ja": "未設定",
+        "es": "No definido",
+    },
     # --- v0.4.84 account photo + phone prefix ---
     "App Account: foto e prefisso telefono": {
         "en": "App Account: photo and phone prefix",

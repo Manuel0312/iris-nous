@@ -28,6 +28,61 @@
   let timer = null;
   let carouselOn = false;
   let profile = null;
+  let accountMode = "view";
+
+  function genderLabel(code) {
+    if (code === "female") return msg("genderFemale", "Donna");
+    if (code === "male") return msg("genderMale", "Uomo");
+    if (code === "non_binary") return msg("genderNonBinary", "Non binario");
+    return msg("notSet", "Non impostato");
+  }
+
+  function phoneLabel(data) {
+    const display = String((data && data.phone_display) || "").trim();
+    if (display) return display;
+    const dial = String((data && data.phone_dial) || "").trim();
+    const national = String((data && data.phone_national) || "").replace(/\D+/g, "");
+    if (dial && national) return dial + " " + national;
+    if (national) return national;
+    return msg("notSet", "Non impostato");
+  }
+
+  function setAccountMode(mode, { justSaved } = {}) {
+    accountMode = mode === "edit" ? "edit" : "view";
+    const root = $("#account-user");
+    const summary = $("#account-summary");
+    const edit = $("#account-edit");
+    const banner = $("#saved-banner");
+    if (root) root.dataset.mode = accountMode;
+    if (summary) summary.hidden = accountMode !== "view";
+    if (edit) edit.hidden = accountMode !== "edit";
+    if (banner) {
+      if (justSaved && accountMode === "view") {
+        banner.hidden = false;
+        banner.textContent = msg("profileUpdated", "Profilo aggiornato. Ecco i tuoi dati.");
+      } else if (accountMode === "edit") {
+        banner.hidden = true;
+      }
+    }
+    if (accountMode === "edit") setHint($("#profile-hint"));
+  }
+
+  function renderSummary(data) {
+    if (!data) return;
+    const first = String(data.first_name || "").trim();
+    const last = String(data.last_name || "").trim();
+    const full = [first, last].filter(Boolean).join(" ") || String(data.username || "").trim() || "—";
+    const nameEl = $("#summary-name");
+    const userEl = $("#summary-username");
+    const emailEl = $("#summary-email");
+    const phoneEl = $("#summary-phone");
+    const genderEl = $("#summary-gender");
+    if (nameEl) nameEl.textContent = full;
+    if (userEl) userEl.textContent = data.username ? "@" + data.username : "";
+    if (emailEl) emailEl.textContent = String(data.email || "").trim() || msg("notSet", "Non impostato");
+    if (phoneEl) phoneEl.textContent = phoneLabel(data);
+    if (genderEl) genderEl.textContent = genderLabel(data.gender);
+  }
 
   function themeFromHour() {
     const h = new Date().getHours();
@@ -325,35 +380,42 @@
     if (focus) national.focus();
   }
 
-  function fillProfile(data) {
+  function fillProfile(data, { mode, justSaved } = {}) {
     profile = data;
     const form = $("#form-profile");
-    if (!form) return;
-    form.first_name.value = data.first_name || "";
-    form.last_name.value = data.last_name || "";
-    form.email.value = data.email || "";
-    const gender = data.gender || "";
-    $$('input[name="gender"]', form).forEach((r) => {
-      r.checked = r.value === gender;
-    });
+    if (form) {
+      form.first_name.value = data.first_name || "";
+      form.last_name.value = data.last_name || "";
+      form.email.value = data.email || "";
+      const gender = data.gender || "";
+      $$('input[name="gender"]', form).forEach((r) => {
+        r.checked = r.value === gender;
+      });
 
-    const iso = String(data.phone_country || "").trim().toUpperCase();
-    const national = $("#phone-national");
-    if (iso) {
-      const opt = findCountryOption(iso);
-      applyPhoneCountry(
-        iso,
-        data.phone_dial || (opt && opt.dataset.dial) || "",
-        (opt && opt.dataset.flagSrc) || `/flags/${iso.toLowerCase() === "uk" ? "gb" : iso.toLowerCase()}.svg`,
-        opt && opt.dataset.min,
-        opt && opt.dataset.max
-      );
-      if (national) national.value = String(data.phone_national || "").replace(/\D+/g, "");
-    } else {
-      applyPhoneCountry("", "", "");
+      const iso = String(data.phone_country || "").trim().toUpperCase();
+      const national = $("#phone-national");
+      if (iso) {
+        const opt = findCountryOption(iso);
+        applyPhoneCountry(
+          iso,
+          data.phone_dial || (opt && opt.dataset.dial) || "",
+          (opt && opt.dataset.flagSrc) || `/flags/${iso.toLowerCase() === "uk" ? "gb" : iso.toLowerCase()}.svg`,
+          opt && opt.dataset.min,
+          opt && opt.dataset.max
+        );
+        if (national) national.value = String(data.phone_national || "").replace(/\D+/g, "");
+      } else {
+        applyPhoneCountry("", "", "");
+      }
     }
 
     setProfilePhoto(data.photo_url || "");
+    renderSummary(data);
+
+    const nextMode =
+      mode ||
+      (data.anagrafica_complete || (data.first_name && data.email && data.gender) ? "view" : "edit");
+    setAccountMode(nextMode, { justSaved: Boolean(justSaved) });
   }
 
   function bindPhonePicker() {
@@ -485,7 +547,6 @@
       }
       fillProfile(data);
       showAccountState("account-user");
-      setHint($("#profile-hint"), msg("saved", "Ok."), "ok");
     });
 
     $("#form-register")?.addEventListener("submit", async (e) => {
@@ -505,7 +566,7 @@
         setHint($("#auth-hint"), typeof detail === "string" ? detail : msg("registerFailed", "Registrazione non riuscita."), "err");
         return;
       }
-      fillProfile(data);
+      fillProfile(data, { mode: "edit" });
       showAccountState("account-user");
       setHint($("#profile-hint"), msg("accountCreated", "Account creato."), "ok");
     });
@@ -536,8 +597,25 @@
         setHint($("#profile-hint"), (data && data.detail) || msg("saveFailed", "Salvataggio non riuscito."), "err");
         return;
       }
-      fillProfile(data);
-      setHint($("#profile-hint"), msg("saved", "Salvato."), "ok");
+      fillProfile(data, { mode: "view", justSaved: true });
+      setHint($("#profile-hint"));
+      const summary = $("#account-summary");
+      if (summary) summary.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    $("#btn-edit-profile")?.addEventListener("click", () => {
+      if (profile) fillProfile(profile, { mode: "edit" });
+      else setAccountMode("edit");
+      setHint($("#profile-hint"));
+    });
+
+    $("#btn-cancel-edit")?.addEventListener("click", () => {
+      if (profile && (profile.anagrafica_complete || profile.first_name)) {
+        fillProfile(profile, { mode: "view" });
+      } else {
+        setAccountMode("view");
+      }
+      setHint($("#profile-hint"));
     });
 
     $("#btn-logout")?.addEventListener("click", async () => {
@@ -556,7 +634,8 @@
       if (!file) return;
       const body = new FormData();
       body.append("photo", file);
-      setHint($("#profile-hint"), msg("uploadPhoto", "Carico la foto…"));
+      const hintTarget = accountMode === "edit" ? $("#profile-hint") : $("#saved-banner");
+      if (accountMode === "edit") setHint($("#profile-hint"), msg("uploadPhoto", "Carico la foto…"));
       const { res, data } = await api("/anagrafica/foto", {
         method: "POST",
         body,
@@ -564,16 +643,24 @@
       });
       e.target.value = "";
       if (!res.ok) {
-        setHint($("#profile-hint"), (data && data.detail) || msg("photoFailed", "Foto non caricata."), "err");
+        if (accountMode === "edit") {
+          setHint($("#profile-hint"), (data && data.detail) || msg("photoFailed", "Foto non caricata."), "err");
+        }
         return;
       }
       if (data && data.url) {
         setProfilePhoto(data.url);
+        if (profile) profile.photo_url = data.url;
       } else {
         const me = await api("/api/me");
-        if (me.res.ok) fillProfile(me.data);
+        if (me.res.ok) fillProfile(me.data, { mode: accountMode });
       }
-      setHint($("#profile-hint"), msg("photoUpdated", "Foto aggiornata."), "ok");
+      if (accountMode === "edit") {
+        setHint($("#profile-hint"), msg("photoUpdated", "Foto aggiornata."), "ok");
+      } else if (hintTarget) {
+        hintTarget.hidden = false;
+        hintTarget.textContent = msg("photoUpdated", "Foto aggiornata.");
+      }
     });
   }
 

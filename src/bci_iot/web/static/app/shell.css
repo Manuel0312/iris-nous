@@ -426,11 +426,96 @@ html, body.shell-body {
 
 .auth-form[hidden] { display: none !important; }
 
+.account-pane[hidden] {
+  display: none !important;
+}
+
+.account-pane {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.saved-banner {
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: 14px;
+  background: rgba(10, 122, 74, 0.16);
+  color: #1a9a5c;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.35;
+}
+
+html[data-theme-resolved="dark"] .saved-banner {
+  background: rgba(46, 204, 113, 0.16);
+  color: #7dffa8;
+}
+
+.summary-name {
+  margin: 0;
+  text-align: center;
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.summary-username {
+  margin: -0.35rem 0 0.15rem;
+  text-align: center;
+  color: var(--shell-muted);
+  font-size: 0.92rem;
+}
+
+.summary-card {
+  display: grid;
+  gap: 0;
+  padding: 0.35rem 0.2rem !important;
+  overflow: hidden;
+}
+
+.summary-row {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.85rem 0.95rem;
+  border-bottom: 1px solid rgba(127, 127, 127, 0.18);
+}
+
+.summary-row:last-child {
+  border-bottom: 0;
+}
+
+.summary-row span {
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--shell-muted);
+}
+
+.summary-row strong {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--shell-ink);
+  word-break: break-word;
+}
+
+.btn.soft.wide,
+.btn.wide {
+  width: 100%;
+  justify-content: center;
+}
+
+#account-user[data-mode="view"] .profile-photo-meta {
+  display: none;
+}
+
 .profile-hero {
   display: grid;
   justify-items: center;
   gap: 0.55rem;
-  margin: 0.15rem 0 1rem;
+  margin: 0.15rem 0 0.85rem;
   text-align: center;
 }
 
@@ -509,8 +594,17 @@ html[data-theme-resolved="light"] .profile-photo-cta {
   background: rgba(0, 183, 255, 0.14);
   color: #0077aa;
   width: auto;
-  padding: 0.55rem 0.9rem;
-  font-size: 0.88rem;
+  padding: 0.7rem 1rem;
+  font-size: 0.95rem;
+}
+
+html[data-theme-resolved="dark"] .btn.soft {
+  color: #6ef0ff;
+  background: rgba(0, 183, 255, 0.18);
+}
+
+#form-profile .btn.ghost {
+  margin-top: 0.35rem;
 }
 
 .phone-block {

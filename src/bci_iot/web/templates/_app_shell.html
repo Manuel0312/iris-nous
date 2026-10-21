@@ -203,9 +203,7 @@
         <p id="auth-hint" class="hint" hidden></p>
       </div>
 
-      <div id="account-user" class="account-state" hidden>
-        <h2>{{ tx('I tuoi dati') }}</h2>
-
+      <div id="account-user" class="account-state" hidden data-mode="view">
         <div class="profile-hero" id="profile-hero" data-has-photo="0">
           <button type="button" class="profile-avatar-btn" id="profile-avatar-btn" aria-label="{{ tx('Cambia foto') }}">
             <img id="profile-photo" class="avatar" alt="" hidden />
@@ -221,63 +219,89 @@
           <input id="photo-input" type="file" accept="image/jpeg,image/png,image/webp,image/*" hidden />
         </div>
 
-        <form id="form-profile" class="data-card glass-card">
-          <label class="field">{{ tx('Nome') }}
-            <input name="first_name" type="text" required maxlength="64" autocomplete="given-name" />
-          </label>
-          <label class="field">{{ tx('Cognome') }}
-            <input name="last_name" type="text" maxlength="64" autocomplete="family-name" />
-          </label>
-          <label class="field">{{ tx('Email') }}
-            <input name="email" type="email" required maxlength="254" autocomplete="email" />
-          </label>
-
-          <div class="phone-block">
-            <span class="field-label">{{ tx('Telefono') }} <span class="opt-tag">{{ tx('facoltativo') }}</span></span>
-            <div class="phone-row" id="phone-row" data-locked="0">
-              <button type="button" class="phone-cc-btn" id="phone-cc-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="{{ tx('Prefisso internazionale') }}">
-                <img class="flag-img" id="phone-cc-flag" src="/flags/un.svg" alt="" width="22" height="16" />
-                <span id="phone-cc-dial">{{ tx('Prefisso') }}</span>
-              </button>
-              <input type="hidden" name="phone_country" id="phone-country" value="" />
-              <input
-                name="phone_national"
-                id="phone-national"
-                type="tel"
-                inputmode="numeric"
-                pattern="[0-9]*"
-                maxlength="15"
-                placeholder="{{ tx('Numero senza prefisso') }}"
-                autocomplete="tel-national"
-                disabled
-              />
+        <div id="account-summary" class="account-pane">
+          <p class="saved-banner" id="saved-banner" hidden>{{ tx('Profilo aggiornato. Ecco i tuoi dati.') }}</p>
+          <h2 class="summary-name" id="summary-name">—</h2>
+          <p class="summary-username" id="summary-username"></p>
+          <div class="summary-card glass-card" role="list">
+            <div class="summary-row" role="listitem">
+              <span>{{ tx('Email') }}</span>
+              <strong id="summary-email">—</strong>
             </div>
-            <div class="phone-cc-menu" id="phone-cc-menu" hidden role="listbox">
-              <input type="search" id="phone-cc-filter" placeholder="{{ tx('Cerca paese…') }}" autocomplete="off" />
-              <div class="phone-cc-list" id="phone-cc-list">
-                {% for c in phone_countries|default([]) %}
-                <button type="button" class="phone-cc-option" role="option"
-                  data-iso="{{ c.iso }}" data-dial="{{ c.dial }}" data-flag-src="{{ c.flag_src }}"
-                  data-min="{{ c.min_len }}" data-max="{{ c.max_len }}">
-                  <img class="flag-img" src="{{ c.flag_src }}" alt="{{ c.iso }}" width="22" height="16" loading="lazy" />
-                  <span class="phone-cc-name">{{ c.name }}</span>
-                  <span class="phone-cc-dial-muted">{{ c.dial }}</span>
-                </button>
-                {% endfor %}
-              </div>
+            <div class="summary-row" role="listitem">
+              <span>{{ tx('Telefono') }}</span>
+              <strong id="summary-phone">—</strong>
             </div>
-            <p class="form-hint" id="phone-hint">{{ tx('Scegli la bandiera/prefisso, poi digita solo le cifre. Il telefono è opzionale.') }}</p>
+            <div class="summary-row" role="listitem">
+              <span>{{ tx('Come ti senti') }}</span>
+              <strong id="summary-gender">—</strong>
+            </div>
           </div>
+          <button type="button" class="btn soft wide" id="btn-edit-profile">{{ tx('Modifica') }}</button>
+        </div>
 
-          <fieldset class="gender-set">
-            <legend>{{ tx('Come ti senti') }}</legend>
-            <label><input type="radio" name="gender" value="female" required /> {{ tx('Donna') }}</label>
-            <label><input type="radio" name="gender" value="male" /> {{ tx('Uomo') }}</label>
-            <label><input type="radio" name="gender" value="non_binary" /> {{ tx('Non binario') }}</label>
-          </fieldset>
-          <button class="btn primary" type="submit">{{ tx('Salva') }}</button>
-        </form>
-        <p id="profile-hint" class="hint" hidden></p>
+        <div id="account-edit" class="account-pane" hidden>
+          <h2>{{ tx('I tuoi dati') }}</h2>
+          <form id="form-profile" class="data-card glass-card">
+            <label class="field">{{ tx('Nome') }}
+              <input name="first_name" type="text" required maxlength="64" autocomplete="given-name" />
+            </label>
+            <label class="field">{{ tx('Cognome') }}
+              <input name="last_name" type="text" maxlength="64" autocomplete="family-name" />
+            </label>
+            <label class="field">{{ tx('Email') }}
+              <input name="email" type="email" required maxlength="254" autocomplete="email" />
+            </label>
+
+            <div class="phone-block">
+              <span class="field-label">{{ tx('Telefono') }} <span class="opt-tag">{{ tx('facoltativo') }}</span></span>
+              <div class="phone-row" id="phone-row" data-locked="0">
+                <button type="button" class="phone-cc-btn" id="phone-cc-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="{{ tx('Prefisso internazionale') }}">
+                  <img class="flag-img" id="phone-cc-flag" src="/flags/un.svg" alt="" width="22" height="16" />
+                  <span id="phone-cc-dial">{{ tx('Prefisso') }}</span>
+                </button>
+                <input type="hidden" name="phone_country" id="phone-country" value="" />
+                <input
+                  name="phone_national"
+                  id="phone-national"
+                  type="tel"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  maxlength="15"
+                  placeholder="{{ tx('Numero senza prefisso') }}"
+                  autocomplete="tel-national"
+                  disabled
+                />
+              </div>
+              <div class="phone-cc-menu" id="phone-cc-menu" hidden role="listbox">
+                <input type="search" id="phone-cc-filter" placeholder="{{ tx('Cerca paese…') }}" autocomplete="off" />
+                <div class="phone-cc-list" id="phone-cc-list">
+                  {% for c in phone_countries|default([]) %}
+                  <button type="button" class="phone-cc-option" role="option"
+                    data-iso="{{ c.iso }}" data-dial="{{ c.dial }}" data-flag-src="{{ c.flag_src }}"
+                    data-min="{{ c.min_len }}" data-max="{{ c.max_len }}">
+                    <img class="flag-img" src="{{ c.flag_src }}" alt="{{ c.iso }}" width="22" height="16" loading="lazy" />
+                    <span class="phone-cc-name">{{ c.name }}</span>
+                    <span class="phone-cc-dial-muted">{{ c.dial }}</span>
+                  </button>
+                  {% endfor %}
+                </div>
+              </div>
+              <p class="form-hint" id="phone-hint">{{ tx('Scegli la bandiera/prefisso, poi digita solo le cifre. Il telefono è opzionale.') }}</p>
+            </div>
+
+            <fieldset class="gender-set">
+              <legend>{{ tx('Come ti senti') }}</legend>
+              <label><input type="radio" name="gender" value="female" required /> {{ tx('Donna') }}</label>
+              <label><input type="radio" name="gender" value="male" /> {{ tx('Uomo') }}</label>
+              <label><input type="radio" name="gender" value="non_binary" /> {{ tx('Non binario') }}</label>
+            </fieldset>
+            <button class="btn primary" type="submit">{{ tx('Salva') }}</button>
+            <button type="button" class="btn ghost" id="btn-cancel-edit">{{ tx('Annulla') }}</button>
+          </form>
+          <p id="profile-hint" class="hint" hidden></p>
+        </div>
+
         <button type="button" class="btn ghost" id="btn-logout">{{ tx('Esci') }}</button>
       </div>
     </div>
@@ -321,5 +345,10 @@
   "prefissoFissato": {{ tx('Prefisso fissato')|tojson }},
   "digita": {{ tx('Digita')|tojson }},
   "cifreDelNumero": {{ tx('cifre del numero.')|tojson }},
-  "phoneHint": {{ tx('Scegli la bandiera/prefisso, poi digita solo le cifre. Il telefono è opzionale.')|tojson }}
+  "phoneHint": {{ tx('Scegli la bandiera/prefisso, poi digita solo le cifre. Il telefono è opzionale.')|tojson }},
+  "genderFemale": {{ tx('Donna')|tojson }},
+  "genderMale": {{ tx('Uomo')|tojson }},
+  "genderNonBinary": {{ tx('Non binario')|tojson }},
+  "notSet": {{ tx('Non impostato')|tojson }},
+  "profileUpdated": {{ tx('Profilo aggiornato. Ecco i tuoi dati.')|tojson }}
 }</script>
