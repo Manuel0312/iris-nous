@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.89 theme dropdown + fullscreen photos ---
+    "Tema a tendina e foto a tutto schermo": {
+        "en": "Theme dropdown and fullscreen photos",
+        "fr": "Theme en menu et photos plein ecran",
+        "de": "Thema-Dropdown und Vollbild-Fotos",
+        "pt": "Tema em menu e fotos ecran inteiro",
+        "zh": "主题下拉与全屏照片",
+        "ja": "テーマのドロップダウンと全画面写真",
+        "es": "Tema en menu y fotos a pantalla completa",
+    },
+    "Il tema era una lista di bottoni e le foto avevano bande nere sopra/sotto.": {
+        "en": "Theme was a button list and photos had black bars top/bottom.",
+        "fr": "Le theme etait une liste de boutons et les photos avaient des bandes noires.",
+        "de": "Thema war eine Buttonliste und Fotos hatten schwarze Balken.",
+        "pt": "O tema era uma lista de botoes e as fotos tinham faixas pretas.",
+        "zh": "主题是按钮列表，照片上下有黑边。",
+        "ja": "テーマはボタン列で、写真に上下の黒帯がありました。",
+        "es": "El tema era una lista de botones y las fotos tenian bandas negras.",
+    },
+    "Ora anche il Tema è un menu a tendina come la Lingua, e le foto Iris riempiono lo schermo (cover, centrate) senza bande.": {
+        "en": "Now Theme is also a dropdown like Language, and Iris photos fill the screen (cover, centered) with no bars.",
+        "fr": "Desormais Theme est aussi un menu comme Langue, et les photos Iris remplissent l’ecran sans bandes.",
+        "de": "Jetzt ist Thema auch ein Dropdown wie Sprache, und Iris-Fotos fuellen den Bildschirm ohne Balken.",
+        "pt": "Agora o Tema tambem e um menu como a Lingua, e as fotos Iris enchem o ecran sem faixas.",
+        "zh": "现在主题也是下拉菜单，Iris 照片铺满屏幕、居中、无黑边。",
+        "ja": "テーマも言語と同じドロップダウン。Irisの写真は黒帯なしで全画面。",
+        "es": "Ahora Tema tambien es un menu como Idioma, y las fotos Iris llenan la pantalla sin bandas.",
+    },
     # --- v0.4.88 language dropdown ---
     "Lingua: menu a tendina vero": {
         "en": "Language: real dropdown menu",

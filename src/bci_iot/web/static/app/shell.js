@@ -105,6 +105,12 @@
     return "auto";
   }
 
+  function themeLabel(mode) {
+    if (mode === "light") return msg("themeLight", "Chiaro");
+    if (mode === "dark") return msg("themeDark", "Scuro");
+    return msg("themeAuto", "Automatico (ora)");
+  }
+
   function applyTheme(choice) {
     const mode = choice || getThemeChoice();
     const resolved = mode === "auto" ? themeFromHour() : mode;
@@ -117,6 +123,8 @@
     $$(".theme-choice").forEach((btn) => {
       btn.classList.toggle("on", btn.getAttribute("data-theme-choice") === mode);
     });
+    const cur = $("#settings-theme-current");
+    if (cur) cur.textContent = themeLabel(mode);
   }
 
   function show(name) {
@@ -258,10 +266,10 @@
     });
   }
 
-  function setLangMenuOpen(open) {
-    const block = $(".settings-lang-block");
-    const list = $("#settings-langs");
-    const toggle = $("#settings-lang-toggle");
+  function setDropdownOpen(kind, open) {
+    const block = kind === "theme" ? $(".settings-theme-block") : $(".settings-lang-block");
+    const list = kind === "theme" ? $("#settings-themes") : $("#settings-langs");
+    const toggle = kind === "theme" ? $("#settings-theme-toggle") : $("#settings-lang-toggle");
     if (block) block.dataset.open = open ? "1" : "0";
     if (list) {
       list.hidden = !open;
@@ -271,11 +279,16 @@
     if (toggle) toggle.setAttribute("aria-expanded", open ? "true" : "false");
   }
 
+  function closeAllDropdowns() {
+    setDropdownOpen("theme", false);
+    setDropdownOpen("lang", false);
+  }
+
   function openSettings() {
     const panel = $("#settings-panel");
     const backdrop = $("#settings-backdrop");
     if (!panel) return;
-    setLangMenuOpen(false);
+    closeAllDropdowns();
     panel.hidden = false;
     if (backdrop) backdrop.hidden = false;
     document.body.classList.add("settings-open");
@@ -287,7 +300,7 @@
     if (panel) panel.hidden = true;
     if (backdrop) backdrop.hidden = true;
     document.body.classList.remove("settings-open");
-    setLangMenuOpen(false);
+    closeAllDropdowns();
   }
 
   function bindSettings() {
@@ -295,30 +308,46 @@
     $("#settings-close")?.addEventListener("click", closeSettings);
     $("#settings-backdrop")?.addEventListener("click", closeSettings);
 
+    $("#settings-theme-toggle")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const block = $(".settings-theme-block");
+      const open = !(block && block.dataset.open === "1");
+      setDropdownOpen("lang", false);
+      setDropdownOpen("theme", open);
+    });
+
     $("#settings-lang-toggle")?.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
       const block = $(".settings-lang-block");
       const open = !(block && block.dataset.open === "1");
-      setLangMenuOpen(open);
+      setDropdownOpen("theme", false);
+      setDropdownOpen("lang", open);
     });
 
-    // Chiudi tendina se clicchi fuori (ma resti nelle impostazioni).
     document.addEventListener("click", (e) => {
-      const block = $(".settings-lang-block");
-      if (!block || block.dataset.open !== "1") return;
       const t = e.target;
-      if (t instanceof Node && block.contains(t)) return;
-      setLangMenuOpen(false);
+      const themeBlock = $(".settings-theme-block");
+      const langBlock = $(".settings-lang-block");
+      if (themeBlock && themeBlock.dataset.open === "1" && !(t instanceof Node && themeBlock.contains(t))) {
+        setDropdownOpen("theme", false);
+      }
+      if (langBlock && langBlock.dataset.open === "1" && !(t instanceof Node && langBlock.contains(t))) {
+        setDropdownOpen("lang", false);
+      }
     });
 
     $$(".theme-choice").forEach((btn) => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         const choice = btn.getAttribute("data-theme-choice");
         try {
           localStorage.setItem(THEME_KEY, choice);
         } catch (_) {}
         applyTheme(choice);
+        setDropdownOpen("theme", false);
       });
     });
 

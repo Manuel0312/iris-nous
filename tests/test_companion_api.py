@@ -182,7 +182,9 @@ def test_companion_pwa_routes(tmp_path: Path) -> None:
     assert "why-copy" in app_page.text or "Serve un account" in app_page.text
     assert "settings-open" in app_page.text
     assert "settings-lang-toggle" in app_page.text
+    assert "settings-theme-toggle" in app_page.text
     assert "settings-lang-select" in app_page.text
+    assert "settings-theme-select" in app_page.text
     assert 'role="listbox"' in app_page.text
     assert "whats-new-open" in app_page.text
     assert "whats-new-dialog" in app_page.text

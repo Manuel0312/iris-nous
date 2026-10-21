@@ -73,20 +73,32 @@
       <button type="button" class="settings-close" id="settings-close" aria-label="{{ tx('Chiudi') }}">✕</button>
     </header>
 
-    <section class="settings-block">
+    <section class="settings-block settings-theme-block" data-open="0">
       <h3>{{ tx('Tema') }}</h3>
-      <div class="theme-choices" role="radiogroup" aria-label="{{ tx('Tema') }}">
-        <button type="button" class="theme-choice" data-theme-choice="light">{{ tx('Chiaro') }}</button>
-        <button type="button" class="theme-choice" data-theme-choice="dark">{{ tx('Scuro') }}</button>
-        <button type="button" class="theme-choice" data-theme-choice="auto">{{ tx('Automatico (ora)') }}</button>
+      <div class="settings-dropdown" id="settings-theme-select">
+        <button type="button" class="settings-dropdown-toggle" id="settings-theme-toggle" aria-expanded="false" aria-haspopup="listbox" aria-controls="settings-themes">
+          <span class="settings-dropdown-current" id="settings-theme-current">{{ tx('Automatico (ora)') }}</span>
+          <span class="settings-dropdown-chevron" aria-hidden="true">▾</span>
+        </button>
+        <ul class="settings-dropdown-menu" id="settings-themes" role="listbox" hidden>
+          <li role="option">
+            <button type="button" class="settings-dropdown-option theme-choice" data-theme-choice="light">{{ tx('Chiaro') }}</button>
+          </li>
+          <li role="option">
+            <button type="button" class="settings-dropdown-option theme-choice" data-theme-choice="dark">{{ tx('Scuro') }}</button>
+          </li>
+          <li role="option">
+            <button type="button" class="settings-dropdown-option theme-choice" data-theme-choice="auto">{{ tx('Automatico (ora)') }}</button>
+          </li>
+        </ul>
       </div>
       <p class="settings-note">{{ tx('Automatico: chiaro di giorno (7–20), scuro di notte.') }}</p>
     </section>
 
     <section class="settings-block settings-lang-block" data-open="0">
       <h3>{{ tx('Lingua') }}</h3>
-      <div class="settings-lang-select" id="settings-lang-select">
-        <button type="button" class="settings-lang-toggle" id="settings-lang-toggle" aria-expanded="false" aria-haspopup="listbox" aria-controls="settings-langs">
+      <div class="settings-dropdown" id="settings-lang-select">
+        <button type="button" class="settings-dropdown-toggle" id="settings-lang-toggle" aria-expanded="false" aria-haspopup="listbox" aria-controls="settings-langs">
           <span class="settings-lang-current-row" id="settings-lang-current">
             {% set cur_langs = languages|selectattr('code', 'equalto', lang)|list if languages is defined else [] %}
             {% if cur_langs %}
@@ -98,13 +110,13 @@
             <span class="lang-name">Italiano</span>
             {% endif %}
           </span>
-          <span class="settings-lang-chevron" aria-hidden="true">▾</span>
+          <span class="settings-dropdown-chevron" aria-hidden="true">▾</span>
         </button>
-        <ul class="settings-langs" id="settings-langs" role="listbox" hidden>
+        <ul class="settings-dropdown-menu settings-langs" id="settings-langs" role="listbox" hidden>
           {% for item in languages|default([]) %}
           <li role="option" aria-selected="{{ 'true' if item.code == lang else 'false' }}">
             <a
-              class="settings-lang {% if item.code == lang %}is-active{% endif %}"
+              class="settings-dropdown-option settings-lang {% if item.code == lang %}is-active{% endif %}"
               href="/lingua/{{ item.code }}?next={{ back|urlencode }}"
               data-lang="{{ item.code }}"
             >
@@ -114,8 +126,8 @@
             </a>
           </li>
           {% else %}
-          <li><a class="settings-lang is-active" href="/lingua/it?next=/app?from=native_app">IT · Italiano</a></li>
-          <li><a class="settings-lang" href="/lingua/en?next=/app?from=native_app">EN · English</a></li>
+          <li><a class="settings-dropdown-option settings-lang is-active" href="/lingua/it?next=/app?from=native_app">IT · Italiano</a></li>
+          <li><a class="settings-dropdown-option settings-lang" href="/lingua/en?next=/app?from=native_app">EN · English</a></li>
           {% endfor %}
         </ul>
       </div>
@@ -366,6 +378,9 @@
   "genderNonBinary": {{ tx('Non binario')|tojson }},
   "notSet": {{ tx('Non impostato')|tojson }},
   "profileUpdated": {{ tx('Profilo aggiornato. Ecco i tuoi dati.')|tojson }},
+  "themeLight": {{ tx('Chiaro')|tojson }},
+  "themeDark": {{ tx('Scuro')|tojson }},
+  "themeAuto": {{ tx('Automatico (ora)')|tojson }},
   "slideTitles": [
     {{ tx('Pensi sì o no. Il resto segue.')|tojson }},
     {{ tx('Il telefono risponde con te.')|tojson }},
