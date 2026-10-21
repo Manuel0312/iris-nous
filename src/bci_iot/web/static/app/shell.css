@@ -538,30 +538,178 @@ html[data-theme-resolved="dark"] .glass-card .field input {
   color: var(--shell-ink);
 }
 
-/* —— Settings gear —— */
-.settings-fab {
+/* —— Top actions: Novità + settings —— */
+.shell-top-actions {
   position: absolute;
-  top: 0.7rem;
-  right: 0.7rem;
+  top: 0.65rem;
+  right: 0.65rem;
   z-index: 20;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.news-fab,
+.settings-fab {
   border: 1px solid var(--glass-edge);
   background: var(--glass);
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
   color: var(--shell-ink);
-  display: grid;
-  place-items: center;
   cursor: pointer;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 8px 20px rgba(0, 0, 0, 0.18);
 }
 
-#screen-iris ~ .settings-fab,
-.shell > .settings-fab {
+.news-fab {
+  appearance: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 650;
+  min-height: 42px;
+}
+
+.settings-fab {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.shell-top-actions .news-fab,
+.shell-top-actions .settings-fab {
   color: #fff;
 }
+
+html[data-theme-resolved="light"] .screen:not(#screen-iris) ~ * .news-fab,
+html[data-theme-resolved="light"] .panel ~ .shell-top-actions .news-fab {
+  color: var(--shell-ink);
+}
+
+.whats-new-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ff9f0a;
+  flex-shrink: 0;
+}
+
+.whats-new-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+}
+
+.whats-new-overlay[hidden] { display: none !important; }
+
+.whats-new-dialog {
+  width: min(100%, 340px);
+  max-height: min(78%, 560px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 22px;
+  background: var(--glass);
+  color: var(--glass-ink);
+  border: 1px solid var(--glass-edge);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+.whats-new-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "kicker close" "title close";
+  gap: 0.15rem 0.55rem;
+  padding: 1rem 1rem 0.7rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.whats-new-kicker {
+  grid-area: kicker;
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--shell-muted);
+}
+
+.whats-new-head h2 {
+  grid-area: title;
+  margin: 0;
+  font-size: 1.25rem;
+  letter-spacing: -0.03em;
+}
+
+.whats-new-close {
+  grid-area: close;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.1);
+  color: inherit;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.4rem 0.7rem;
+  cursor: pointer;
+}
+
+.whats-new-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.75rem 1rem 1.1rem;
+}
+
+.whats-new-intro {
+  margin: 0 0 0.85rem;
+  color: var(--shell-muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.whats-new-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.whats-new-list li { display: grid; gap: 0.2rem; }
+.whats-new-list strong { font-size: 0.98rem; }
+.whats-new-list span { font-size: 0.88rem; color: var(--shell-muted); line-height: 1.4; }
+
+.whats-new-history {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.whats-new-history-toggle {
+  cursor: pointer;
+  font-weight: 650;
+  font-size: 0.9rem;
+  list-style: none;
+}
+
+.whats-new-history-toggle::-webkit-details-marker { display: none; }
+.whats-new-history-body { display: grid; gap: 1rem; margin-top: 0.75rem; }
+
+body.whats-new-open { overflow: hidden; }
 
 .settings-backdrop {
   position: absolute;

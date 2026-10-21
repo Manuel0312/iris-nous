@@ -176,8 +176,22 @@ def test_companion_pwa_routes(tmp_path: Path) -> None:
     assert "Pensi sì o no" in app_page.text
     assert "why-copy" in app_page.text or "Serve un account" in app_page.text
     assert "settings-open" in app_page.text
+    assert "whats-new-open" in app_page.text
+    assert "whats-new-dialog" in app_page.text
     assert "data-theme-choice" in app_page.text
     assert "/lingua/" in app_page.text
+    assert "next=" in app_page.text
+    # Language switch must re-render translated shell (not Italian-only hardcode).
+    client.get("/lingua/en?next=/app", follow_redirects=True)
+    en_app = client.get("/app")
+    assert en_app.status_code == 200
+    assert "whats-new-open" in en_app.text
+    assert ("What's New" in en_app.text) or ("What’s New" in en_app.text)
+    assert "Settings" in en_app.text
+    assert "Connections" in en_app.text
+    assert "Think yes or no" in en_app.text
+    assert "Sign in or sign up" in en_app.text
+    assert "Impostazioni" not in en_app.text
     assert "form-login" in app_page.text
     assert "form-register" in app_page.text
     assert "form-profile" in app_page.text

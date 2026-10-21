@@ -784,20 +784,24 @@ def create_app(
     @app.get("/lingua/{lang}")
     def set_language_get(request: Request, lang: str) -> RedirectResponse:
         code = set_request_language(request, lang)
-        referer = request.headers.get("referer") or "/"
+        next_q = str(request.query_params.get("next") or "").strip()
         dest = "/"
-        if referer:
-            try:
-                from urllib.parse import urlparse
+        if next_q.startswith("/") and not next_q.startswith("//") and not next_q.startswith("/lingua"):
+            dest = next_q
+        else:
+            referer = request.headers.get("referer") or "/"
+            if referer:
+                try:
+                    from urllib.parse import urlparse
 
-                path = urlparse(referer).path or "/"
-                query = urlparse(referer).query
-                if path.startswith("/lingua"):
+                    path = urlparse(referer).path or "/"
+                    query = urlparse(referer).query
+                    if path.startswith("/lingua"):
+                        dest = "/"
+                    elif path.startswith("/"):
+                        dest = f"{path}?{query}" if query else path
+                except Exception:
                     dest = "/"
-                elif path.startswith("/"):
-                    dest = f"{path}?{query}" if query else path
-            except Exception:
-                dest = "/"
         return _redirect_with_lang(request, dest, code)
 
     @app.get("/", response_class=HTMLResponse)
@@ -3148,10 +3152,15 @@ def create_app(
         )
 
     def _app_shell_ctx(request: Request) -> dict:
+        lang = get_request_language(request)
         return {
             "request": request,
-            "lang": get_request_language(request),
+            "lang": lang,
             "languages": LANGUAGES,
+            "t": make_translator(lang),
+            "app_version": __version__,
+            "whats_new": whats_new_payload(),
+            "shell_return": request.url.path if request.url.path.startswith("/app") else "/app",
         }
 
     @app.get("/app", response_class=HTMLResponse)

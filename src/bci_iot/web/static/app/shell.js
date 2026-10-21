@@ -12,6 +12,18 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
+  function loadI18n() {
+    const el = document.getElementById("shell-i18n");
+    if (!el) return {};
+    try {
+      return JSON.parse(el.textContent || "{}");
+    } catch (_) {
+      return {};
+    }
+  }
+  const I18N = loadI18n();
+  const msg = (key, fallback) => (I18N[key] != null && I18N[key] !== "" ? I18N[key] : fallback);
+
   let index = 0;
   let timer = null;
   let carouselOn = false;
@@ -151,6 +163,59 @@
     }, 60_000);
   }
 
+  function bindWhatsNew() {
+    const newsOpen = $("#whats-new-open");
+    const newsOverlay = $("#whats-new-overlay");
+    const newsDialog = $("#whats-new-dialog");
+    const newsClose = $("#whats-new-close");
+    const newsDot = $("#whats-new-dot");
+    const newsVersion = String(I18N.version || "");
+    const newsSeenKey = "iris_whats_new_seen_" + newsVersion;
+
+    function newsSeen() {
+      try {
+        return localStorage.getItem(newsSeenKey) === "1";
+      } catch (_) {
+        return false;
+      }
+    }
+    function markNewsSeen() {
+      try {
+        localStorage.setItem(newsSeenKey, "1");
+      } catch (_) {}
+      if (newsDot) newsDot.hidden = true;
+    }
+    function openNews() {
+      if (!newsOverlay) return;
+      closeSettings();
+      newsOverlay.hidden = false;
+      document.body.classList.add("whats-new-open");
+      if (newsDialog) newsDialog.focus();
+      markNewsSeen();
+    }
+    function closeNews() {
+      if (!newsOverlay) return;
+      newsOverlay.hidden = true;
+      document.body.classList.remove("whats-new-open");
+    }
+    if (newsDot && !newsSeen()) newsDot.hidden = false;
+    newsOpen?.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openNews();
+    });
+    newsClose?.addEventListener("click", (e) => {
+      e.preventDefault();
+      closeNews();
+    });
+    newsOverlay?.addEventListener("click", (e) => {
+      if (e.target === newsOverlay) closeNews();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && newsOverlay && !newsOverlay.hidden) closeNews();
+    });
+  }
+
   function setHint(el, text, kind) {
     if (!el) return;
     if (!text) {
@@ -230,7 +295,7 @@
     }
     if (!res.ok) {
       showAccountState("account-guest");
-      setHint($("#auth-hint"), (data && data.detail) || "Non riesco a caricare l’account.", "err");
+      setHint($("#auth-hint"), (data && data.detail) || msg("loadAccountFailed", "Non riesco a caricare l’account."), "err");
       return;
     }
     fillProfile(data);
@@ -251,7 +316,7 @@
     $("#form-login")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const fd = new FormData(e.target);
-      setHint($("#auth-hint"), "Accesso in corso…");
+      setHint($("#auth-hint"), msg("accessInProgress", "Accesso in corso…"));
       const { res, data } = await api("/api/auth/login", {
         method: "POST",
         body: {
@@ -260,18 +325,18 @@
         },
       });
       if (!res.ok) {
-        setHint($("#auth-hint"), (data && data.detail) || "Credenziali non valide.", "err");
+        setHint($("#auth-hint"), (data && data.detail) || msg("invalidCredentials", "Credenziali non valide."), "err");
         return;
       }
       fillProfile(data);
       showAccountState("account-user");
-      setHint($("#profile-hint"), "Ok.", "ok");
+      setHint($("#profile-hint"), msg("saved", "Ok."), "ok");
     });
 
     $("#form-register")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const fd = new FormData(e.target);
-      setHint($("#auth-hint"), "Creazione account…");
+      setHint($("#auth-hint"), msg("creatingAccount", "Creazione account…"));
       const { res, data } = await api("/api/auth/register", {
         method: "POST",
         body: {
@@ -282,12 +347,12 @@
       });
       if (!res.ok) {
         const detail = data && (data.detail || data.message);
-        setHint($("#auth-hint"), typeof detail === "string" ? detail : "Registrazione non riuscita.", "err");
+        setHint($("#auth-hint"), typeof detail === "string" ? detail : msg("registerFailed", "Registrazione non riuscita."), "err");
         return;
       }
       fillProfile(data);
       showAccountState("account-user");
-      setHint($("#profile-hint"), "Account creato.", "ok");
+      setHint($("#profile-hint"), msg("accountCreated", "Account creato."), "ok");
     });
 
     $("#form-profile")?.addEventListener("submit", async (e) => {
@@ -295,10 +360,10 @@
       const fd = new FormData(e.target);
       const gender = fd.get("gender");
       if (!gender) {
-        setHint($("#profile-hint"), "Scegli come ti senti.", "err");
+        setHint($("#profile-hint"), msg("chooseGender", "Scegli come ti senti."), "err");
         return;
       }
-      setHint($("#profile-hint"), "Salvataggio…");
+      setHint($("#profile-hint"), msg("saving", "Salvataggio…"));
       const { res, data } = await api("/api/me/anagrafica", {
         method: "PUT",
         body: {
@@ -311,18 +376,18 @@
         },
       });
       if (!res.ok) {
-        setHint($("#profile-hint"), (data && data.detail) || "Salvataggio non riuscito.", "err");
+        setHint($("#profile-hint"), (data && data.detail) || msg("saveFailed", "Salvataggio non riuscito."), "err");
         return;
       }
       fillProfile(data);
-      setHint($("#profile-hint"), "Salvato.", "ok");
+      setHint($("#profile-hint"), msg("saved", "Salvato."), "ok");
     });
 
     $("#btn-logout")?.addEventListener("click", async () => {
       await api("/api/auth/logout", { method: "POST" });
       profile = null;
       showAccountState("account-guest");
-      setHint($("#auth-hint"), "Sei uscito.", "ok");
+      setHint($("#auth-hint"), msg("loggedOut", "Sei uscito."), "ok");
     });
 
     $("#photo-input")?.addEventListener("change", async (e) => {
@@ -330,7 +395,7 @@
       if (!file) return;
       const body = new FormData();
       body.append("photo", file);
-      setHint($("#profile-hint"), "Carico la foto…");
+      setHint($("#profile-hint"), msg("uploadPhoto", "Carico la foto…"));
       const { res, data } = await api("/anagrafica/foto", {
         method: "POST",
         body,
@@ -338,12 +403,12 @@
       });
       e.target.value = "";
       if (!res.ok) {
-        setHint($("#profile-hint"), (data && data.detail) || "Foto non caricata.", "err");
+        setHint($("#profile-hint"), (data && data.detail) || msg("photoFailed", "Foto non caricata."), "err");
         return;
       }
       const me = await api("/api/me");
       if (me.res.ok) fillProfile(me.data);
-      setHint($("#profile-hint"), "Foto aggiornata.", "ok");
+      setHint($("#profile-hint"), msg("photoUpdated", "Foto aggiornata."), "ok");
     });
   }
 
@@ -351,6 +416,7 @@
     applyTheme();
     buildDots();
     bindSettings();
+    bindWhatsNew();
     bindAuth();
     setTimeout(() => show("iris"), 700);
 

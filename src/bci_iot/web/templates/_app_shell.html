@@ -1,27 +1,87 @@
-{# Shared app chrome: photo stage + Connessioni + Account + settings. #}
-<div class="shell">
-  <button type="button" class="settings-fab" id="settings-open" aria-label="Impostazioni" title="Impostazioni">
-    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="3"/>
-      <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.1 5.1l1.6 1.6M17.3 17.3l1.6 1.6M18.9 5.1l-1.6 1.6M6.7 17.3l-1.6 1.6"/>
-    </svg>
-  </button>
+{# Shared app chrome: photo stage + Connessioni + Account + settings + Novità. #}
+{% set T = t if t is defined else none %}
+{% macro tx(s) -%}{{ T(s) if T else s }}{%- endmacro %}
+{% set back = shell_return|default('/app') %}
+<div class="shell" data-lang="{{ lang|default('it') }}">
+  <div class="shell-top-actions">
+    <button type="button" class="news-fab" id="whats-new-open" aria-haspopup="dialog" aria-controls="whats-new-dialog" title="{{ tx('Novità') }}">
+      <span>{{ tx('Novità') }}</span>
+      <span class="whats-new-dot" id="whats-new-dot" hidden aria-hidden="true"></span>
+    </button>
+    <button type="button" class="settings-fab" id="settings-open" aria-label="{{ tx('Impostazioni') }}" title="{{ tx('Impostazioni') }}">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.1 5.1l1.6 1.6M17.3 17.3l1.6 1.6M18.9 5.1l-1.6 1.6M6.7 17.3l-1.6 1.6"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="whats-new-overlay" id="whats-new-overlay" hidden>
+    <div class="whats-new-dialog glass" id="whats-new-dialog" role="dialog" aria-modal="true" aria-labelledby="whats-new-title" tabindex="-1">
+      <div class="whats-new-head">
+        <p class="whats-new-kicker">{{ tx('Versione') }} {{ app_version if app_version is defined else whats_new.version }}</p>
+        <h2 id="whats-new-title">{{ tx('Novità') }}</h2>
+        <button type="button" class="whats-new-close" id="whats-new-close" aria-label="{{ tx('Chiudi') }}">{{ tx('Chiudi') }}</button>
+      </div>
+      <div class="whats-new-body">
+        {% if whats_new is defined %}
+        <p class="whats-new-intro">{{ tx(whats_new.intro) }}</p>
+        <ul class="whats-new-list">
+          {% for item in whats_new.entries %}
+          <li>
+            <strong>{{ tx(item.title) }}</strong>
+            {% if item.problem %}
+            <span>{{ tx(item.problem) }} {{ tx(item.fix) }}</span>
+            {% else %}
+            <span>{{ tx(item.body) }}</span>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% if whats_new.history %}
+        <details class="whats-new-history">
+          <summary class="whats-new-history-toggle">{{ tx('Versioni precedenti') }}</summary>
+          <div class="whats-new-history-body">
+            {% for rel in whats_new.history %}
+            <section class="whats-new-past">
+              <p class="whats-new-kicker">{{ tx('Versione') }} {{ rel.version }}</p>
+              <ul class="whats-new-list">
+                {% for item in rel.entries %}
+                <li>
+                  <strong>{{ tx(item.title) }}</strong>
+                  {% if item.problem %}
+                  <span>{{ tx(item.problem) }} {{ tx(item.fix) }}</span>
+                  {% else %}
+                  <span>{{ tx(item.body) }}</span>
+                  {% endif %}
+                </li>
+                {% endfor %}
+              </ul>
+            </section>
+            {% endfor %}
+          </div>
+        </details>
+        {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
 
   <div class="settings-backdrop" id="settings-backdrop" hidden></div>
-  <aside class="settings-panel glass" id="settings-panel" hidden aria-label="Impostazioni">
+  <aside class="settings-panel glass" id="settings-panel" hidden aria-label="{{ tx('Impostazioni') }}">
     <header class="settings-head">
-      <h2>Impostazioni</h2>
-      <button type="button" class="settings-close" id="settings-close" aria-label="Chiudi">✕</button>
+      <h2>{{ tx('Impostazioni') }}</h2>
+      <button type="button" class="settings-close" id="settings-close" aria-label="{{ tx('Chiudi') }}">✕</button>
     </header>
 
     <section class="settings-block">
-      <h3>Lingua</h3>
+      <h3>{{ tx('Lingua') }}</h3>
       <ul class="settings-langs">
         {% for item in languages|default([]) %}
         <li>
           <a
             class="settings-lang {% if item.code == lang %}is-active{% endif %}"
-            href="/lingua/{{ item.code }}"
+            href="/lingua/{{ item.code }}?next={{ back|urlencode }}"
             data-lang="{{ item.code }}"
           >
             <img class="lang-flag-img" src="{{ item.flag_src }}" alt="" width="22" height="16" loading="lazy" />
@@ -30,20 +90,20 @@
           </a>
         </li>
         {% else %}
-        <li><a class="settings-lang is-active" href="/lingua/it">IT · Italiano</a></li>
-        <li><a class="settings-lang" href="/lingua/en">EN · English</a></li>
+        <li><a class="settings-lang is-active" href="/lingua/it?next=/app">IT · Italiano</a></li>
+        <li><a class="settings-lang" href="/lingua/en?next=/app">EN · English</a></li>
         {% endfor %}
       </ul>
     </section>
 
     <section class="settings-block">
-      <h3>Aspetto</h3>
-      <div class="theme-choices" role="radiogroup" aria-label="Aspetto">
-        <button type="button" class="theme-choice" data-theme-choice="light">Chiaro</button>
-        <button type="button" class="theme-choice" data-theme-choice="dark">Scuro</button>
-        <button type="button" class="theme-choice" data-theme-choice="auto">Automatico (ora)</button>
+      <h3>{{ tx('Aspetto') }}</h3>
+      <div class="theme-choices" role="radiogroup" aria-label="{{ tx('Aspetto') }}">
+        <button type="button" class="theme-choice" data-theme-choice="light">{{ tx('Chiaro') }}</button>
+        <button type="button" class="theme-choice" data-theme-choice="dark">{{ tx('Scuro') }}</button>
+        <button type="button" class="theme-choice" data-theme-choice="auto">{{ tx('Automatico (ora)') }}</button>
       </div>
-      <p class="settings-note">Automatico: chiaro di giorno (7–20), scuro di notte.</p>
+      <p class="settings-note">{{ tx('Automatico: chiaro di giorno (7–20), scuro di notte.') }}</p>
     </section>
   </aside>
 
@@ -56,28 +116,28 @@
 
   <section class="screen" id="screen-links" data-screen="links">
     <div class="panel fit">
-      <p class="eyebrow">Connessioni</p>
-      <h2>Collegamenti</h2>
-      <p class="copy">Qui colleghi cuffia, telefono e musica: Iris li usa quando pensi sì o no.</p>
+      <p class="eyebrow">{{ tx('Connessioni') }}</p>
+      <h2>{{ tx('Collegamenti') }}</h2>
+      <p class="copy">{{ tx('Qui colleghi cuffia, telefono e musica: Iris li usa quando pensi sì o no.') }}</p>
       <ul class="conn-list">
         <li>
           <div>
-            <strong>Cuffia</strong>
-            <span>Per capire i tuoi sì e no</span>
+            <strong>{{ tx('Cuffia') }}</strong>
+            <span>{{ tx('Per capire i tuoi sì e no') }}</span>
           </div>
-          <span class="chip soft">Pronta</span>
+          <span class="chip soft">{{ tx('Pronta') }}</span>
         </li>
         <li>
           <div>
-            <strong>Telefono</strong>
-            <span>Chiamate e messaggi</span>
+            <strong>{{ tx('Telefono') }}</strong>
+            <span>{{ tx('Chiamate e messaggi') }}</span>
           </div>
-          <a class="chip" href="/app/device">Collega</a>
+          <a class="chip" href="/app/device">{{ tx('Collega') }}</a>
         </li>
         <li>
           <div>
-            <strong>Musica</strong>
-            <span>Cambia brano col pensiero</span>
+            <strong>{{ tx('Musica') }}</strong>
+            <span>{{ tx('Cambia brano col pensiero') }}</span>
           </div>
           <span class="chip soft">Ok</span>
         </li>
@@ -94,105 +154,105 @@
       <div class="iris-fore">
         <div class="glass-card explain-card">
           <p class="glass-pill-mark">Iris</p>
-          <h2 class="explain-title">Pensi sì o no. Il resto segue.</h2>
-          <p class="explain-body">Con la cuffia, Iris apre musica, casa e telefono senza toccare lo schermo. È una demo di tesi: prova, poi crea un account per salvare i tuoi dati.</p>
+          <h2 class="explain-title">{{ tx('Pensi sì o no. Il resto segue.') }}</h2>
+          <p class="explain-body">{{ tx('Con la cuffia, Iris apre musica, casa e telefono senza toccare lo schermo. È una demo di tesi: prova, poi crea un account per salvare i tuoi dati.') }}</p>
         </div>
-        <div class="popup-dots" id="popup-dots" aria-label="Foto"></div>
+        <div class="popup-dots" id="popup-dots" aria-label="{{ tx('Foto') }}"></div>
       </div>
     </div>
   </section>
 
   <section class="screen" id="screen-account" data-screen="account">
     <div class="panel account-scroll">
-      <p class="eyebrow">Account</p>
+      <p class="eyebrow">{{ tx('Account') }}</p>
 
       <div id="account-loading" class="account-state">
         <div class="spinner" aria-hidden="true"></div>
       </div>
 
       <div id="account-guest" class="account-state" hidden>
-        <h2>Accedi o iscriviti</h2>
-        <p class="copy why-copy">Serve un account per tenere foto, nome e collegamenti sul sito e sull’app. Stesso profilo ovunque: lo cambi da una parte, lo ritrovi dall’altra.</p>
+        <h2>{{ tx('Accedi o iscriviti') }}</h2>
+        <p class="copy why-copy">{{ tx('Serve un account per tenere foto, nome e collegamenti sul sito e sull’app. Stesso profilo ovunque: lo cambi da una parte, lo ritrovi dall’altra.') }}</p>
         <div class="auth-toggle" role="tablist">
-          <button type="button" class="auth-tab on" data-auth="login">Accedi</button>
-          <button type="button" class="auth-tab" data-auth="register">Iscriviti</button>
+          <button type="button" class="auth-tab on" data-auth="login">{{ tx('Accedi') }}</button>
+          <button type="button" class="auth-tab" data-auth="register">{{ tx('Iscriviti') }}</button>
         </div>
 
         <form id="form-login" class="auth-form data-card glass-card" autocomplete="on">
-          <label class="field">Nome utente
+          <label class="field">{{ tx('Nome utente') }}
             <input name="username" type="text" required maxlength="64" autocomplete="username" />
           </label>
-          <label class="field">Password
+          <label class="field">{{ tx('Password') }}
             <input name="password" type="password" required maxlength="128" autocomplete="current-password" />
           </label>
-          <button class="btn primary" type="submit">Entra</button>
+          <button class="btn primary" type="submit">{{ tx('Entra') }}</button>
         </form>
 
         <form id="form-register" class="auth-form data-card glass-card" hidden autocomplete="on">
-          <label class="field">Nome utente
+          <label class="field">{{ tx('Nome utente') }}
             <input name="username" type="text" required maxlength="64" autocomplete="username" />
           </label>
-          <label class="field">Email
+          <label class="field">{{ tx('Email') }}
             <input name="email" type="email" required maxlength="254" autocomplete="email" />
           </label>
-          <label class="field">Password
+          <label class="field">{{ tx('Password') }}
             <input name="password" type="password" required minlength="8" maxlength="128" autocomplete="new-password" />
           </label>
-          <button class="btn primary" type="submit">Crea account</button>
+          <button class="btn primary" type="submit">{{ tx('Crea account') }}</button>
         </form>
         <p id="auth-hint" class="hint" hidden></p>
       </div>
 
       <div id="account-user" class="account-state" hidden>
-        <h2>I tuoi dati</h2>
+        <h2>{{ tx('I tuoi dati') }}</h2>
 
         <div class="profile-photo-row">
           <div class="avatar-wrap">
-            <img id="profile-photo" class="avatar" alt="Foto profilo" hidden />
+            <img id="profile-photo" class="avatar" alt="{{ tx('Foto profilo') }}" hidden />
             <div id="profile-photo-fallback" class="avatar avatar-fallback" aria-hidden="true">☺</div>
           </div>
           <div class="photo-actions">
             <label class="btn soft file-btn">
-              Cambia foto
+              {{ tx('Cambia foto') }}
               <input id="photo-input" type="file" accept="image/jpeg,image/png,image/webp,image/*" hidden />
             </label>
           </div>
         </div>
 
         <form id="form-profile" class="data-card glass-card">
-          <label class="field">Nome
+          <label class="field">{{ tx('Nome') }}
             <input name="first_name" type="text" required maxlength="64" autocomplete="given-name" />
           </label>
-          <label class="field">Cognome
+          <label class="field">{{ tx('Cognome') }}
             <input name="last_name" type="text" maxlength="64" autocomplete="family-name" />
           </label>
-          <label class="field">Email
+          <label class="field">{{ tx('Email') }}
             <input name="email" type="email" required maxlength="254" autocomplete="email" />
           </label>
-          <label class="field">Prefisso paese
+          <label class="field">{{ tx('Prefisso paese') }}
             <input name="phone_country" type="text" maxlength="8" placeholder="IT" autocomplete="country" />
           </label>
-          <label class="field">Numero
+          <label class="field">{{ tx('Numero') }}
             <input name="phone_national" type="tel" maxlength="32" autocomplete="tel-national" inputmode="tel" />
           </label>
           <fieldset class="gender-set">
-            <legend>Come ti senti</legend>
-            <label><input type="radio" name="gender" value="female" required /> Donna</label>
-            <label><input type="radio" name="gender" value="male" /> Uomo</label>
-            <label><input type="radio" name="gender" value="non_binary" /> Non binario</label>
+            <legend>{{ tx('Come ti senti') }}</legend>
+            <label><input type="radio" name="gender" value="female" required /> {{ tx('Donna') }}</label>
+            <label><input type="radio" name="gender" value="male" /> {{ tx('Uomo') }}</label>
+            <label><input type="radio" name="gender" value="non_binary" /> {{ tx('Non binario') }}</label>
           </fieldset>
-          <button class="btn primary" type="submit">Salva</button>
+          <button class="btn primary" type="submit">{{ tx('Salva') }}</button>
         </form>
         <p id="profile-hint" class="hint" hidden></p>
-        <button type="button" class="btn ghost" id="btn-logout">Esci</button>
+        <button type="button" class="btn ghost" id="btn-logout">{{ tx('Esci') }}</button>
       </div>
     </div>
   </section>
 
-  <nav class="shell-tabs" aria-label="Sezioni app">
+  <nav class="shell-tabs" aria-label="{{ tx('Sezioni app') }}">
     <button type="button" class="tab" data-go="links">
       <span class="tab-ico" aria-hidden="true">⬡</span>
-      Connessioni
+      {{ tx('Connessioni') }}
     </button>
     <button type="button" class="tab tab-center on" data-go="iris">
       <span class="tab-ico tab-ico-center" aria-hidden="true">✦</span>
@@ -200,7 +260,25 @@
     </button>
     <button type="button" class="tab" data-go="account">
       <span class="tab-ico" aria-hidden="true">☺</span>
-      Account
+      {{ tx('Account') }}
     </button>
   </nav>
 </div>
+
+<script type="application/json" id="shell-i18n">{
+  "version": {{ (app_version if app_version is defined else '')|tojson }},
+  "accessInProgress": {{ tx('Accesso in corso…')|tojson }},
+  "invalidCredentials": {{ tx('Credenziali non valide.')|tojson }},
+  "creatingAccount": {{ tx('Creazione account…')|tojson }},
+  "registerFailed": {{ tx('Registrazione non riuscita.')|tojson }},
+  "accountCreated": {{ tx('Account creato.')|tojson }},
+  "chooseGender": {{ tx('Scegli come ti senti.')|tojson }},
+  "saving": {{ tx('Salvataggio…')|tojson }},
+  "saveFailed": {{ tx('Salvataggio non riuscito.')|tojson }},
+  "saved": {{ tx('Salvato.')|tojson }},
+  "loggedOut": {{ tx('Sei uscito.')|tojson }},
+  "uploadPhoto": {{ tx('Carico la foto…')|tojson }},
+  "photoFailed": {{ tx('Foto non caricata.')|tojson }},
+  "photoUpdated": {{ tx('Foto aggiornata.')|tojson }},
+  "loadAccountFailed": {{ tx('Non riesco a caricare l’account.')|tojson }}
+}</script>
