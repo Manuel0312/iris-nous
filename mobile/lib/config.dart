@@ -13,6 +13,9 @@ class IrisConfig {
   static const String decidePath = '/api/companion/decide';
   static const String commandsAckPath = '/api/companion/commands/ack';
 
+  /// Shell nativa (stessa UI della preview). Query from=native_app obbligatoria.
+  static const String webShell = '/app?from=native_app';
+
   static const String webEcosistema = '/ecosistema';
   static const String webTelefonoSetup = '/telefono-setup';
   static const String webContesto = '/contesto';
@@ -20,6 +23,7 @@ class IrisConfig {
   static const String webSpotify = '/auth/spotify/start';
   static const String webAnagrafica = '/anagrafica';
   static const String webChat = '/chatta';
+  static const String webPreview = '/app/preview';
 
   /// Brand accent (pari al sito 0.4.54+).
   static const int accentBlue = 0xFF00B7FF;

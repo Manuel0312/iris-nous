@@ -3168,8 +3168,15 @@ def create_app(
 
     @app.get("/app", response_class=HTMLResponse)
     def companion_app_page(request: Request) -> HTMLResponse:
-        """App shell: photos, Connections / Iris / Account, settings."""
+        """Shell fullscreen solo per l’app nativa (WebView).
 
+        Sul browser «normale» non esiste come destinazione: si va all’anteprima
+        (stesso contenuto dentro il telefono mock).
+        """
+
+        from_q = str(request.query_params.get("from") or "").strip().lower()
+        if from_q not in {"native_app", "native", "webview"}:
+            return RedirectResponse("/app/preview", status_code=303)
         return TEMPLATES.TemplateResponse(request, "app.html", _app_shell_ctx(request))
 
     @app.get("/app/device", response_class=HTMLResponse)

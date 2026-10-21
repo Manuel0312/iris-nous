@@ -23,10 +23,13 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _go() async {
     await Future<void>.delayed(const Duration(milliseconds: 450));
     if (!mounted) return;
-    // First open = the real Iris website (same as discovering it on PC).
+    // Stessa shell della preview sul sito (non Ecosistema Flutter, non PWA /app).
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
-        builder: (_) => SiteShellScreen(store: widget.store, initialPath: '/app'),
+        builder: (_) => SiteShellScreen(
+          store: widget.store,
+          initialPath: '/app?from=native_app',
+        ),
       ),
     );
   }

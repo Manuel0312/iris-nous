@@ -12,8 +12,8 @@ Percorso per avere Iris **come app nativa al 100%** sull’iPhone (CallKit, noti
 Per **prova dimostrativa sul tuo iPhone** (permessi, chiamate, non PWA) **non** serve il Program a pagamento e **non** serve un Mac a casa.
 
 1. Su GitHub → Actions → **iOS IPA (Sideloadly)** → **Run workflow** (workflow: `.github/workflows/ios-ipa-sideload.yml`).
-2. A fine build scarica l’artifact `iris-nous-ios-ipa-unsigned` → file `IrisNous-unsigned.ipa`.
-3. Sul PC Windows: installa **iTunes + iCloud** dal sito Apple (non dallo Store), poi **Sideloadly**.
+2. A fine build, sul PC: `.\scripts\fetch-mobile-builds.ps1 -IpaOnly` → **sovrascrive** sempre `IrisNous-ipa/IrisNous-unsigned.ipa` (niente copie versionate).
+3. Sul PC Windows: **iTunes + iCloud** (sito Apple) e **Sideloadly** (già installati su questa macchina).
 4. Collega l’iPhone (sblocca, “Considera attendibile”), apri Sideloadly, metti il tuo **Apple ID** gratis, trascina l’`.ipa` → **Start**.
 5. Su iPhone: Impostazioni → Generali → VPN e gestione dispositivo → autorizza il tuo Apple ID.
 6. Apri **Iris Nous** (icona vera, non Safari): concedi i permessi e fai la prova chiamata.

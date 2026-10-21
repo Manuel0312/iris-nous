@@ -4,12 +4,13 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import '../services/auth_store.dart';
 
-/// Simple Iris app shell (explainer + 3 tabs) served by /app — not the full site.
+/// Stessa UI della preview sul sito (Connessioni / Iris / Account), a schermo intero.
+/// Carica /app?from=native_app — sul browser /app reindirizza a /app/preview.
 class SiteShellScreen extends StatefulWidget {
   const SiteShellScreen({
     super.key,
     required this.store,
-    this.initialPath = '/app',
+    this.initialPath = '/app?from=native_app',
   });
 
   final AuthStore store;

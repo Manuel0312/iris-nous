@@ -1,0 +1,22 @@
+---
+description: IPA/APK sempre nello stesso path, sovrascrivendo la versione precedente
+alwaysApply: true
+---
+
+# Artifact app: un solo file, sempre sovrascritto
+
+Quando crei, scarichi o aggiorni **IPA** o **APK** (build locale, GitHub Actions, Sideloadly, copia sul Desktop):
+
+1. **Non** creare cartelle versionate (`v0.4.85`, `IrisNous-ipa-new`, timestamp, ecc.).
+2. **Sovrascrivi** sempre questi path fissi (stesso nome file):
+
+| Piattaforma | Path canonico (Desktop) |
+|-------------|-------------------------|
+| iOS (Sideloadly) | `%USERPROFILE%\Desktop\app iris\iphone\IrisNous-unsigned.ipa` |
+| Android | `%USERPROFILE%\Desktop\app iris\android\IrisNous.apk` |
+
+Copia di lavoro nel repo (opzionale, stessa policy overwrite): `IrisNous-ipa/…`, `IrisNous-apk/…`.
+
+3. Prima di scrivere: assicurati che la cartella esista; se c’è già il file, **sostituiscilo** (`-Force` / `--clobber`).
+4. Preferisci lo script `scripts/fetch-mobile-builds.ps1` dopo una Actions riuscita (scrive Desktop + repo).
+5. In chat: indica solo il path aggiornato, non un elenco di vecchie build.

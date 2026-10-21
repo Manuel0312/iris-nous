@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.4.86",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "App telefono = anteprima; /app non è più la destinazione",
+                "Sul telefono restava la vecchia schermata Ecosistema e /app sembrava un’altra app.",
+                "Ora l’app nativa mostra la stessa UI dell’anteprima (Connessioni, Iris, Account). Sul browser /app porta all’anteprima; la shell fullscreen è solo per l’app.",
+            ),
+        ),
+    },
+    {
         "version": "0.4.85",
         "intro": WHATS_NEW_INTRO,
         "entries": (

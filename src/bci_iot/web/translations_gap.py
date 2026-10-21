@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.86 native = preview shell ---
+    "App telefono = anteprima; /app non è più la destinazione": {
+        "en": "Phone app = preview; /app is no longer the destination",
+        "fr": "App telephone = apercu ; /app n’est plus la destination",
+        "de": "Telefon-App = Vorschau; /app ist nicht mehr das Ziel",
+        "pt": "App telefone = antevisao; /app ja nao e o destino",
+        "zh": "手机应用=预览；/app 不再是入口",
+        "ja": "スマホアプリ＝プレビュー。/app は通常の入口ではない",
+        "es": "App telefono = vista previa; /app ya no es el destino",
+    },
+    "Sul telefono restava la vecchia schermata Ecosistema e /app sembrava un’altra app.": {
+        "en": "On the phone the old Ecosystem screen remained and /app looked like another app.",
+        "fr": "Sur le telephone restait l’ancien ecran Ecosistema et /app semblait une autre app.",
+        "de": "Am Telefon blieb die alte Ecosistema-Ansicht und /app wirkte wie eine andere App.",
+        "pt": "No telefone ficava o ecran antigo Ecosistema e /app parecia outra app.",
+        "zh": "手机上仍是旧的生态系统界面，/app 像另一个应用。",
+        "ja": "スマホに古いエコシステム画面が残り、/app は別アプリに見えました。",
+        "es": "En el telefono quedaba la pantalla vieja Ecosistema y /app parecia otra app.",
+    },
+    "Ora l’app nativa mostra la stessa UI dell’anteprima (Connessioni, Iris, Account). Sul browser /app porta all’anteprima; la shell fullscreen è solo per l’app.": {
+        "en": "Now the native app shows the same preview UI (Connections, Iris, Account). In the browser /app goes to the preview; the fullscreen shell is only for the app.",
+        "fr": "Desormais l’app native montre la meme UI que l’apercu. Dans le navigateur /app mene a l’apercu ; le plein ecran est reserve a l’app.",
+        "de": "Jetzt zeigt die native App dieselbe UI wie die Vorschau. Im Browser fuehrt /app zur Vorschau; Vollbild-Shell nur fuer die App.",
+        "pt": "Agora a app nativa mostra a mesma UI da antevisao. No browser /app vai a antevisao; o ecran inteiro e so para a app.",
+        "zh": "现在原生应用与预览相同（连接、Iris、账户）。浏览器访问 /app 会到预览；全屏外壳仅供应用。",
+        "ja": "いまネイティブはプレビューと同じUI。ブラウザの /app はプレビューへ。全画面シェルはアプリ専用。",
+        "es": "Ahora la app nativa muestra la misma UI de la vista previa. En el navegador /app va a la vista previa; la shell a pantalla completa es solo para la app.",
+    },
     # --- v0.4.85 account summary after save ---
     "App Account: dopo Salva vedi il profilo": {
         "en": "App Account: after Save you see your profile",

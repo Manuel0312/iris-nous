@@ -163,9 +163,14 @@ def test_companion_pwa_routes(tmp_path: Path) -> None:
     app = create_app(data_dir=tmp_path, session_secret="pwa-app")
     client = TestClient(app)
 
-    app_page = client.get("/app")
+    # Browser: /app non è destinazione normale → anteprima.
+    bare = client.get("/app", follow_redirects=False)
+    assert bare.status_code in {303, 302}
+    assert "/app/preview" in (bare.headers.get("location") or "")
+
+    # Nativo / WebView: stessa shell della preview a schermo intero.
+    app_page = client.get("/app?from=native_app")
     assert app_page.status_code == 200
-    # Simple explainer app (not the full website iframe).
     assert "shell-tabs" in app_page.text
     assert "/static/app/shell.js" in app_page.text
     assert 'data-go="iris"' in app_page.text
@@ -192,8 +197,8 @@ def test_companion_pwa_routes(tmp_path: Path) -> None:
     assert 'data-iso="IT"' in app_page.text
     assert 'data-dial="+39"' in app_page.text
     # Language switch must re-render translated shell (not Italian-only hardcode).
-    client.get("/lingua/en?next=/app", follow_redirects=True)
-    en_app = client.get("/app")
+    client.get("/lingua/en?next=/app?from=native_app", follow_redirects=True)
+    en_app = client.get("/app?from=native_app")
     assert en_app.status_code == 200
     assert "whats-new-open" in en_app.text
     assert ("What's New" in en_app.text) or ("What’s New" in en_app.text)
@@ -234,8 +239,8 @@ def test_companion_pwa_routes(tmp_path: Path) -> None:
 
     guide = client.get("/app/installa")
     assert guide.status_code == 200
-    assert "Aggiungi a Home" in guide.text
-    assert "Safari" in guide.text
+    assert "Sideloadly" in guide.text or "anteprima" in guide.text.lower()
+    assert "/app/preview" in guide.text
     assert "/app/apple" in guide.text
 
     apple = client.get("/app/apple")

@@ -4,11 +4,14 @@ L’app Flutter in `mobile/` è **unica per Android e iPhone**. Su Android puoi 
 
 ## Installazione sul telefono
 
-1. Copia `mobile/build/app/outputs/flutter-apk/app-release.apk` (o `app-debug.apk`) sul telefono (USB, Drive, WhatsApp a te stessa…).
-2. Apri il file → se chiede, abilita **Installa app sconosciute** per quella app (Chrome/File).
-3. Apri **Iris Nous** → Accedi con username, password e codice a 6 cifre da [Il tuo telefono](https://iris-nous.onrender.com/telefono-setup).
-4. In **Permessi** concedi **Stato telefono** (e notifiche se vuoi).
-5. Prova: una chiamata in arrivo dovrebbe aggiornare Iris (*In ascolto*); oppure usa «Simula squillo».
+Path canonico (sempre **sovrascritto**, mai versioni parallele): `IrisNous-apk/IrisNous.apk`.
+
+1. Dopo Actions **Android APK**: `.\scripts\fetch-mobile-builds.ps1 -ApkOnly` (oppure, in locale dopo `flutter build apk --release`, copia `mobile/build/app/outputs/flutter-apk/app-release.apk` → `IrisNous-apk/IrisNous.apk` con `-Force`).
+2. Copia `IrisNous-apk/IrisNous.apk` sul telefono (USB, Drive, WhatsApp…).
+3. Apri il file → se chiede, abilita **Installa app sconosciute** per quella app (Chrome/File).
+4. Apri **Iris Nous** → Accedi con username, password e codice a 6 cifre da [Il tuo telefono](https://iris-nous.onrender.com/telefono-setup).
+5. In **Permessi** concedi **Stato telefono** (e notifiche se vuoi).
+6. Prova: una chiamata in arrivo dovrebbe aggiornare Iris (*In ascolto*); oppure usa «Simula squillo».
 
 ## Build in locale (Windows)
 
@@ -20,9 +23,10 @@ cd mobile
 flutter create . --project-name iris_nous_mobile --org com.irisnous --platforms=android,ios
 flutter pub get
 flutter build apk --release
+Copy-Item .\build\app\outputs\flutter-apk\app-release.apk ..\IrisNous-apk\IrisNous.apk -Force
 ```
 
-APK: `mobile/build/app/outputs/flutter-apk/app-release.apk`
+APK canonico: `IrisNous-apk/IrisNous.apk`
 
 ## Cosa funziona (Android)
 

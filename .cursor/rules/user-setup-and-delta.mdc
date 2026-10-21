@@ -1,0 +1,37 @@
+---
+description: Risposte delta — non ripetere installazioni già fatte; setup PC Iris
+alwaysApply: true
+---
+
+# Setup utente e risposte “solo cosa manca”
+
+## Come rispondere a domande tipo “come installo / Sideloadly / app sul telefono”
+
+1. **Controlla prima** (repo, transcript, filesystem, regole) cosa è già fatto.
+2. Rispondi **solo ai passi mancanti**. Non ridire di scaricare/installare cose già presenti.
+3. Se non sei sicuro di uno stato, verifica sul PC (path, file) invece di ripetere la guida completa.
+
+## Già fatto su questo PC (Manuel / TESI)
+
+- **iTunes** e **iCloud** (Apple, non Store) — installati e usati.
+- **Sideloadly** — installato in `%LOCALAPPDATA%\Sideloadly\sideloadly.exe` e già usato almeno una volta.
+- Cartella Desktop **`app iris`**: `iphone/IrisNous-unsigned.ipa` + `android/IrisNous.apk`.
+- Ogni nuova build **sovrascrive** quei file (niente copie versionate). Script: `scripts/fetch-mobile-builds.ps1`.
+- Account GitHub repo: `Manuel0312/iris-nous`.
+- Sito online: `https://iris-nous.onrender.com` (dopo push: Manual Deploy su Render).
+
+## Tipico “cosa manca” per mettere Iris sull’iPhone (Sideloadly)
+
+Non: riscaricare iTunes / iCloud / Sideloadly.  
+Sì, in ordine:
+
+1. iPhone collegato col cavo, sbloccato, «Considera attendibile».
+2. In Sideloadly: trascina l’IPA → Apple ID → **Start**.
+3. Su iPhone: Impostazioni → Generali → VPN e gestione dispositivo → autorizza l’Apple ID.
+4. Apri Iris Nous → account + PIN da `/telefono-setup`.
+
+Firma free ~7 giorni: basta rifare Start su Sideloadly (stessi tool già installati).
+
+## Preferenza comunicazione
+
+Su setup hardware/PC: tono breve, checklist di ciò che resta. Niente tutorial da zero se lo storico dice che è già fatto.

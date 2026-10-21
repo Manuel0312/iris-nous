@@ -54,3 +54,11 @@ METTI_CHIAVI_RENDER.html
 
 # Notebooks checkpoints
 .ipynb_checkpoints/
+
+# Mobile builds (always overwritten in place — never commit binaries)
+IrisNous-ipa/*.ipa
+IrisNous-ipa/_dl_tmp/
+IrisNous-apk/*.apk
+IrisNous-apk/_dl_tmp/
+!IrisNous-ipa/.gitkeep
+!IrisNous-apk/.gitkeep
