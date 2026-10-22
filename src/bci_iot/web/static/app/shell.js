@@ -253,6 +253,13 @@
         setHint($("#auth-hint"), msg("loginForSetup", "Accedi o crea l’account per configurare la cuffia."), "ok");
         return;
       }
+      if (!profile.is_admin && profile.email_verified === false) {
+        openSetup(
+          "/attendi-conferma-email?next=/cuffia",
+          msg("setupEmail", "Conferma email")
+        );
+        return;
+      }
       const path = a.getAttribute("data-setup") || "/cuffia";
       const titleFn = titles[path.split("?")[0]] || (() => msg("setupTitle", "Configurazione"));
       openSetup(path, titleFn());

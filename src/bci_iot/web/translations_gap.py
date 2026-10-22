@@ -1,6 +1,52 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.95 email confirm in-app ---
+    "App: conferma email senza uscire dal telefono": {
+        "en": "App: confirm email without leaving the phone",
+        "fr": "App : confirmer l’email sans quitter le telephone",
+        "de": "App: E-Mail bestaetigen ohne das Telefon zu verlassen",
+        "pt": "App: confirmar email sem sair do telemovel",
+        "zh": "应用：无需离开手机即可确认邮箱",
+        "ja": "アプリ：スマホを離れずにメール確認",
+        "es": "App: confirma el email sin salir del telefono",
+    },
+    "Cliccando Cuffia senza aver confermato l’email, si apriva la pagina sito con menu e Novità.": {
+        "en": "Tapping Headset without confirming email opened the website page with menu and What’s new.",
+        "fr": "Toucher Casque sans confirmer l’email ouvrait la page du site avec menu et Nouveautes.",
+        "de": "Ohne E-Mail-Bestaetigung oeffnete Headset die Website mit Menue und Neuigkeiten.",
+        "pt": "Ao tocar Headset sem confirmar o email, abria a pagina do site com menu e Novidades.",
+        "zh": "未确认邮箱就点「耳机」会打开带菜单和「新功能」的网站页。",
+        "ja": "メール未確認でヘッドセットを開くと、メニュー付きのサイト画面になっていた。",
+        "es": "Al tocar Casco sin confirmar el email se abria la pagina del sitio con menu y Novedades.",
+    },
+    "Ora la conferma email resta nell’overlay dell’app; dopo il codice torni a configurare la cuffia.": {
+        "en": "Email confirmation stays in the app overlay; after the code you go back to headset setup.",
+        "fr": "La confirmation email reste dans l’overlay de l’app ; apres le code tu reviens au casque.",
+        "de": "Die E-Mail-Bestaetigung bleibt im App-Overlay; nach dem Code weiter zur Headset-Einrichtung.",
+        "pt": "A confirmacao de email fica no overlay da app; depois do codigo voltas ao headset.",
+        "zh": "邮箱确认留在应用内叠层；输入验证码后回到耳机配置。",
+        "ja": "メール確認はアプリ内オーバーレイのまま。コード後はヘッドセット設定へ。",
+        "es": "La confirmacion de email queda en el overlay de la app; tras el codigo vuelves al casco.",
+    },
+    "Dopo la conferma puoi configurare la cuffia dall’app, senza tornare al sito.": {
+        "en": "After confirming you can set up the headset from the app, without going back to the site.",
+        "fr": "Apres confirmation tu configures le casque depuis l’app, sans revenir au site.",
+        "de": "Nach der Bestaetigung richtest du das Headset in der App ein — ohne zur Website.",
+        "pt": "Depois de confirmar configures o headset na app, sem voltar ao site.",
+        "zh": "确认后可在应用内配置耳机，无需回到网站。",
+        "ja": "確認後はアプリからヘッドセット設定へ。サイトに戻る必要なし。",
+        "es": "Tras confirmar puedes configurar el casco desde la app, sin volver al sitio.",
+    },
+    "Conferma email": {
+        "en": "Confirm email",
+        "fr": "Confirmer l’email",
+        "de": "E-Mail bestaetigen",
+        "pt": "Confirmar email",
+        "zh": "确认邮箱",
+        "ja": "メール確認",
+        "es": "Confirmar email",
+    },
     # --- v0.4.94 in-app cuffia ---
     "App: cuffia e calibrazione senza uscire dall’app": {
         "en": "App: headset and calibration without leaving the app",

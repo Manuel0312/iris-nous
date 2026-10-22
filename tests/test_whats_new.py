@@ -32,6 +32,7 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
         or "Hub «La tua cuffia»" in page.text
         or "Privacy e chiarezza demo" in page.text
     )
+    assert "App: conferma email senza uscire dal telefono" in page.text
     assert "App: cuffia e calibrazione senza uscire dall’app" in page.text
     assert "App telefono: swipe fluido, Account e setup completo" in page.text
     assert "Impostazioni: testo leggibile, tendine insieme, bandiere" in page.text

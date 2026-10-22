@@ -728,24 +728,52 @@ def create_app(
         )
         response.headers["Cache-Control"] = "no-store"
         return response
+    def _is_app_client(request: Request) -> bool:
+        from_q = str(request.query_params.get("from") or "").strip().lower()
+        embed_q = str(request.query_params.get("embed") or "").strip()
+        return (
+            embed_q == "1"
+            or from_q in {"native_app", "native", "webview"}
+            or request.cookies.get("iris_app_client") == "1"
+        )
+
+    def _app_url(request: Request, path: str, *, next_path: str | None = None) -> str:
+        """Keep cuffia/email gates inside the phone shell (embed query + optional next)."""
+        from urllib.parse import quote
+
+        base = path.split("?", 1)[0]
+        params: list[str] = []
+        if _is_app_client(request):
+            params.extend(["embed=1", "from=native_app"])
+        nxt = (next_path or "").strip()
+        if nxt.startswith("/") and not nxt.startswith("//"):
+            params.append(f"next={quote(nxt, safe='/')}")
+        if not params:
+            return base
+        return f"{base}?{'&'.join(params)}"
+
     def _require_profile(
         request: Request,
         profiles: ProfileStore,
     ) -> UserProfile | RedirectResponse:
         username = _session_username(request)
         if not username:
-            return RedirectResponse("/login", status_code=303)
+            return RedirectResponse(_app_url(request, "/login"), status_code=303)
         ban = profiles.ban_status(username)
         if ban.get("active"):
             request.session.clear()
             _flash(request, _ban_user_message(ban), kind="error")
-            return RedirectResponse("/login", status_code=303)
+            return RedirectResponse(_app_url(request, "/login"), status_code=303)
         profile = profiles.get(username)
         if profile is None:
             request.session.clear()
-            return RedirectResponse("/login", status_code=303)
+            return RedirectResponse(_app_url(request, "/login"), status_code=303)
         if not profile.is_admin and not profile.email_verified:
-            return RedirectResponse("/attendi-conferma-email", status_code=303)
+            # Same gate as PC — but stay in-app when opened from Connessioni
+            return RedirectResponse(
+                _app_url(request, "/attendi-conferma-email", next_path=request.url.path),
+                status_code=303,
+            )
         profiles.touch_last_seen(username)
         return profiles.get(username) or profile
     def _log_access(
@@ -937,7 +965,15 @@ def create_app(
             return RedirectResponse("/login", status_code=303)
         if profile.is_admin or profile.email_verified:
             request.session.pop("email_preview_code", None)
-            return RedirectResponse(_post_auth_destination(profile), status_code=303)
+            nxt = str(request.query_params.get("next") or "").strip()
+            if _is_app_client(request) and nxt.startswith("/") and not nxt.startswith("//"):
+                return RedirectResponse(_app_url(request, nxt), status_code=303)
+            dest = _post_auth_destination(profile)
+            return RedirectResponse(
+                _app_url(request, dest) if _is_app_client(request) else dest,
+                status_code=303,
+            )
+        next_raw = str(request.query_params.get("next") or "").strip()
         return TEMPLATES.TemplateResponse(
             request,
             "attendi_conferma_email.html",
@@ -946,6 +982,17 @@ def create_app(
                 profiles,
                 profile=profile,
                 masked_email=mask_destination(profile.email, channel="email"),
+                confirm_next=next_raw if next_raw.startswith("/") else "",
+                confirm_action=_app_url(
+                    request,
+                    "/attendi-conferma-email",
+                    next_path=next_raw if next_raw.startswith("/") else None,
+                ),
+                resend_action=_app_url(
+                    request,
+                    "/attendi-conferma-email/reinvia",
+                    next_path=next_raw if next_raw.startswith("/") else None,
+                ),
             ),
         )
 
@@ -953,20 +1000,30 @@ def create_app(
     def resend_email_confirm(
         request: Request,
         profiles: ProfileStore = Depends(_store),
+        next: str = Form(""),
     ) -> RedirectResponse:
         username = _session_username(request)
         if not username:
-            return RedirectResponse("/login", status_code=303)
+            return RedirectResponse(_app_url(request, "/login"), status_code=303)
         profile = profiles.get(username)
         if profile is None:
-            return RedirectResponse("/login", status_code=303)
+            return RedirectResponse(_app_url(request, "/login"), status_code=303)
+        back = _app_url(
+            request,
+            "/attendi-conferma-email",
+            next_path=next if str(next).startswith("/") else None,
+        )
         if profile.email_verified:
-            return RedirectResponse(_post_auth_destination(profile), status_code=303)
+            dest = _post_auth_destination(profile)
+            return RedirectResponse(
+                _app_url(request, dest) if _is_app_client(request) else dest,
+                status_code=303,
+            )
         try:
             delivery = _send_signup_mail(request, profile)
         except ValueError as exc:
             _flash(request, str(exc), kind="error")
-            return RedirectResponse("/attendi-conferma-email", status_code=303)
+            return RedirectResponse(back, status_code=303)
         if not delivery.ok:
             _flash(
                 request,
@@ -979,33 +1036,51 @@ def create_app(
                 "Ti abbiamo reinviato l'email. Controlla anche Spam.",
                 kind="ok",
             )
-        return RedirectResponse("/attendi-conferma-email", status_code=303)
+        return RedirectResponse(back, status_code=303)
 
     @app.post("/attendi-conferma-email")
     def confirm_email_with_code(
         request: Request,
         code: str = Form(""),
+        next: str = Form(""),
         profiles: ProfileStore = Depends(_store),
         access: AccessDatabase = Depends(_access),
     ) -> RedirectResponse:
         username = _session_username(request)
         if not username:
-            return RedirectResponse("/login", status_code=303)
+            return RedirectResponse(_app_url(request, "/login"), status_code=303)
         profile = profiles.get(username)
         if profile is None:
-            return RedirectResponse("/login", status_code=303)
+            return RedirectResponse(_app_url(request, "/login"), status_code=303)
+        back = _app_url(
+            request,
+            "/attendi-conferma-email",
+            next_path=next if str(next).startswith("/") else None,
+        )
         if profile.email_verified:
-            return RedirectResponse(_post_auth_destination(profile), status_code=303)
+            dest = _post_auth_destination(profile)
+            return RedirectResponse(
+                _app_url(request, dest) if _is_app_client(request) else dest,
+                status_code=303,
+            )
         try:
             profile = profiles.consume_otp(
                 username, code=code, purpose="confirm_signup"
             )
         except ValueError as exc:
             _flash(request, str(exc), kind="error")
-            return RedirectResponse("/attendi-conferma-email", status_code=303)
+            return RedirectResponse(back, status_code=303)
         _log_access(request, username=profile.username, event="email_confirmed", access=access)
         request.session.pop("email_preview_code", None)
         _flash(request, "Email confermata. Benvenuta/o in Iris Nous: completa i tuoi dati.", kind="ok")
+        # From app: resume cuffia (or next); from web: anagrafica as before
+        nxt = str(next or "").strip()
+        if _is_app_client(request):
+            if nxt.startswith("/") and not nxt.startswith("//"):
+                target = nxt
+            else:
+                target = "/cuffia" if profile.anagrafica_complete else "/anagrafica"
+            return RedirectResponse(_app_url(request, target), status_code=303)
         return RedirectResponse("/anagrafica", status_code=303)
 
     @app.get("/conferma-iscrizione/{token}", response_class=HTMLResponse)
@@ -2637,7 +2712,10 @@ def create_app(
             return loaded
         profile = loaded
         if profile.needs_anagrafica:
-            return RedirectResponse("/anagrafica", status_code=303)
+            return RedirectResponse(
+                _app_url(request, "/anagrafica", next_path="/cuffia"),
+                status_code=303,
+            )
         profiles.ensure_headset_pairing(profile.username)
         profile = profiles.get(profile.username) or profile
 
