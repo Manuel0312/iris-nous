@@ -1523,6 +1523,23 @@ html[data-theme-resolved="light"] .settings-dropdown-menu {
 
 .shell { position: relative; }
 
+/* Finché l’email non è confermata: solo schermata codice (stesso look app) */
+body.email-gate .shell-tabs [data-go="iris"],
+body.email-gate .shell-tabs [data-go="links"] {
+  opacity: 0.35;
+  pointer-events: none;
+}
+#account-confirm .otp-code {
+  letter-spacing: 0.28em;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 1.15rem;
+}
+#account-confirm .btn.ghost {
+  width: 100%;
+  margin-top: 0.45rem;
+}
+
 /* Cuffia / calibrazione / In ascolto: overlay a tutto schermo dentro l’app */
 .setup-overlay {
   position: absolute;

@@ -136,7 +136,58 @@
     if (cur) cur.textContent = themeLabel(mode);
   }
 
+  function needsEmailGate(p) {
+    return Boolean(p) && !p.is_admin && p.email_verified === false;
+  }
+
+  function maskEmail(email) {
+    const s = String(email || "").trim();
+    const at = s.indexOf("@");
+    if (at < 1) return s;
+    const local = s.slice(0, at);
+    const domain = s.slice(at);
+    if (local.length <= 1) return `${local}***${domain}`;
+    return `${local[0]}***${domain}`;
+  }
+
+  function showEmailGate(p) {
+    profile = p || profile;
+    document.body.classList.add("email-gate");
+    const overlay = $("#setup-overlay");
+    const frame = $("#setup-frame");
+    if (overlay) {
+      overlay.hidden = true;
+      overlay.setAttribute("aria-hidden", "true");
+    }
+    if (frame) frame.src = "about:blank";
+    const masked = $("#confirm-email-masked");
+    if (masked) masked.textContent = maskEmail(profile && profile.email);
+    const lede = $("#confirm-email-lede");
+    if (lede) {
+      lede.textContent =
+        msg("confirmEmailSent", "Ti abbiamo mandato una email da Iris Nous a") +
+        " " +
+        maskEmail(profile && profile.email) +
+        ". " +
+        msg("confirmEmailSpam", "Apri la posta (anche Spam), copia il codice di 6 caratteri e inseriscilo qui.");
+    }
+    showAccountState("account-confirm");
+    $$(".screen").forEach((el) => el.classList.toggle("on", el.dataset.screen === "account"));
+    $$(".shell-tabs .tab").forEach((el) =>
+      el.classList.toggle("on", el.getAttribute("data-go") === "account")
+    );
+    stopCarousel();
+  }
+
+  function clearEmailGate() {
+    document.body.classList.remove("email-gate");
+  }
+
   function show(name) {
+    if (needsEmailGate(profile) && name !== "account") {
+      showEmailGate(profile);
+      return;
+    }
     $$(".screen").forEach((el) => el.classList.toggle("on", el.dataset.screen === name));
     $$(".shell-tabs .tab").forEach((el) =>
       el.classList.toggle("on", el.getAttribute("data-go") === name)
@@ -253,11 +304,8 @@
         setHint($("#auth-hint"), msg("loginForSetup", "Accedi o crea l’account per configurare la cuffia."), "ok");
         return;
       }
-      if (!profile.is_admin && profile.email_verified === false) {
-        openSetup(
-          "/attendi-conferma-email?next=/cuffia",
-          msg("setupEmail", "Conferma email")
-        );
+      if (needsEmailGate(profile)) {
+        showEmailGate(profile);
         return;
       }
       const path = a.getAttribute("data-setup") || "/cuffia";
@@ -664,7 +712,7 @@
   }
 
   function showAccountState(name) {
-    ["account-loading", "account-guest", "account-user"].forEach((id) => {
+    ["account-loading", "account-guest", "account-confirm", "account-user"].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.hidden = id !== name;
     });
@@ -882,18 +930,26 @@
     showAccountState("account-loading");
     setHint($("#auth-hint"));
     setHint($("#profile-hint"));
+    setHint($("#confirm-hint"));
     const { res, data } = await api("/api/me");
     if (res.status === 401) {
       profile = null;
+      clearEmailGate();
       showAccountState("account-guest");
       return;
     }
     if (!res.ok) {
+      clearEmailGate();
       showAccountState("account-guest");
       setHint($("#auth-hint"), (data && data.detail) || msg("loadAccountFailed", "Non riesco a caricare l’account."), "err");
       return;
     }
     fillProfile(data);
+    if (needsEmailGate(data)) {
+      showEmailGate(data);
+      return;
+    }
+    clearEmailGate();
     showAccountState("account-user");
   }
 
@@ -996,7 +1052,12 @@
         return;
       }
       fillProfile(data);
-      showAccountState("account-user");
+      // Account già verificato → profilo; altrimenti (raro) blocco codice in-app
+      if (needsEmailGate(data)) showEmailGate(data);
+      else {
+        clearEmailGate();
+        showAccountState("account-user");
+      }
     });
 
     $("#form-register")?.addEventListener("submit", async (e) => {
@@ -1016,9 +1077,60 @@
         setHint($("#auth-hint"), typeof detail === "string" ? detail : msg("registerFailed", "Registrazione non riuscita."), "err");
         return;
       }
+      // Codice PRIMA del profilo / cuffia — stessa UI app, zero redirect sito
+      fillProfile(data);
+      showEmailGate(data);
+      setHint($("#confirm-hint"), msg("accountCreated", "Account creato."), "ok");
+    });
+
+    const confirmCode = $("#shell-confirm-code");
+    confirmCode?.addEventListener("input", function () {
+      this.value = this.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 6);
+    });
+
+    $("#form-confirm-email")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const code = String(fd.get("code") || "").trim().toUpperCase();
+      setHint($("#confirm-hint"), msg("confirmingEmail", "Conferma in corso…"));
+      const { res, data } = await api("/api/auth/confirm-email", {
+        method: "POST",
+        body: { code },
+      });
+      if (!res.ok) {
+        setHint(
+          $("#confirm-hint"),
+          (data && data.detail) || msg("confirmEmailFail", "Codice non valido. Riprova."),
+          "err"
+        );
+        return;
+      }
       fillProfile(data, { mode: "edit" });
+      clearEmailGate();
       showAccountState("account-user");
-      setHint($("#profile-hint"), msg("accountCreated", "Account creato."), "ok");
+      setHint($("#profile-hint"), msg("confirmEmailOk", "Email confermata. Ora puoi configurare la cuffia."), "ok");
+    });
+
+    $("#btn-resend-confirm")?.addEventListener("click", async () => {
+      setHint($("#confirm-hint"), msg("resendingEmail", "Invio in corso…"));
+      const { res, data } = await api("/api/auth/resend-confirm-email", { method: "POST" });
+      if (!res.ok) {
+        setHint(
+          $("#confirm-hint"),
+          (data && data.detail) || msg("resendEmailFail", "Invio non riuscito. Riprova tra un minuto."),
+          "err"
+        );
+        return;
+      }
+      setHint($("#confirm-hint"), msg("resendEmailOk", "Email reinviata. Controlla anche Spam."), "ok");
+    });
+
+    $("#btn-confirm-logout")?.addEventListener("click", async () => {
+      await api("/api/auth/logout", { method: "POST" });
+      profile = null;
+      clearEmailGate();
+      showAccountState("account-guest");
+      setHint($("#auth-hint"), msg("loggedOut", "Sei uscito."), "ok");
     });
 
     $("#form-profile")?.addEventListener("submit", async (e) => {
@@ -1126,7 +1238,16 @@
     bindAuth();
     bindSetupOverlay();
     nativeBridge("ensureCallBridge", {});
-    setTimeout(() => show("iris"), 400);
+    setTimeout(async () => {
+      const { res, data } = await api("/api/me");
+      if (res.ok && needsEmailGate(data)) {
+        fillProfile(data);
+        showEmailGate(data);
+        return;
+      }
+      if (res.ok) fillProfile(data);
+      show("iris");
+    }, 400);
 
     $$(".shell-tabs [data-go]").forEach((btn) => {
       btn.addEventListener("click", () => show(btn.getAttribute("data-go")));

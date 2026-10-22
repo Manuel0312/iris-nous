@@ -104,6 +104,10 @@ class LoginRequest(BaseModel):
     username: str = Field(min_length=1, max_length=64)
     password: str = Field(min_length=1, max_length=128)
 
+
+class ConfirmEmailRequest(BaseModel):
+    code: str = Field(min_length=6, max_length=6)
+
 class ProfileResponse(BaseModel):
 
     user_id: str
@@ -4590,10 +4594,70 @@ def create_app(
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         request.session["username"] = profile.username
-        # Stesso DB admin/anagrafica del register web (anche da app telefono)
-        _sync_anagrafica_db(profile, access)
+        # Admin list + email OTP come sul register web
+        access.upsert_anagrafica(
+            username=profile.username,
+            user_id=profile.user_id,
+            first_name="",
+            last_name="",
+            gender="",
+            email=profile.email,
+            phone_label="",
+            phone_e164=profile.phone_e164,
+            headset_id=profile.headset_id,
+        )
+        try:
+            _send_signup_mail(request, profile)
+        except ValueError:
+            pass
         _log_access(request, username=profile.username, event="register", access=access)
         return ProfileResponse.from_profile(profile)
+
+    @app.post("/api/auth/confirm-email", response_model=ProfileResponse)
+    def api_confirm_email(
+        request: Request,
+        body: ConfirmEmailRequest,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> ProfileResponse:
+        username = _require_username(request)
+        profile = profiles.get(username)
+        if profile is None:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        if profile.is_admin or profile.email_verified:
+            return ProfileResponse.from_profile(profile)
+        try:
+            profile = profiles.consume_otp(
+                username, code=body.code, purpose="confirm_signup"
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        _log_access(request, username=profile.username, event="email_confirmed", access=access)
+        request.session.pop("email_preview_code", None)
+        return ProfileResponse.from_profile(profile)
+
+    @app.post("/api/auth/resend-confirm-email")
+    def api_resend_confirm_email(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict[str, object]:
+        username = _require_username(request)
+        profile = profiles.get(username)
+        if profile is None:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        if profile.is_admin or profile.email_verified:
+            return {"status": "ok", "already_verified": True}
+        try:
+            delivery = _send_signup_mail(request, profile)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        if not delivery.ok:
+            raise HTTPException(
+                status_code=502,
+                detail="Non siamo riusciti a inviare l'email. Controlla Spam e riprova.",
+            )
+        return {"status": "ok", "already_verified": False}
+
     @app.post("/api/auth/login", response_model=ProfileResponse)
     def api_login(
         request: Request,

@@ -267,6 +267,36 @@
         <p id="auth-hint" class="hint" hidden></p>
       </div>
 
+      {# Blocco in-app: niente redirect al sito per il codice email #}
+      <div id="account-confirm" class="account-state" hidden>
+        <h2>{{ tx('Conferma la tua email') }}</h2>
+        <p class="copy" id="confirm-email-lede">
+          {{ tx('Ti abbiamo mandato una email da Iris Nous. Apri la posta (anche Spam), copia il codice di 6 caratteri e inseriscilo qui.') }}
+        </p>
+        <p class="copy"><strong id="confirm-email-masked"></strong></p>
+        <form id="form-confirm-email" class="auth-form data-card glass-card" autocomplete="on">
+          <label class="field">{{ tx('Codice ricevuto via email') }}
+            <input
+              name="code"
+              id="shell-confirm-code"
+              class="otp-code"
+              inputmode="text"
+              pattern="[A-Za-z0-9]{6}"
+              maxlength="6"
+              minlength="6"
+              required
+              autocomplete="one-time-code"
+              autocapitalize="characters"
+              spellcheck="false"
+            />
+          </label>
+          <button class="btn primary" type="submit">{{ tx('Conferma iscrizione') }}</button>
+        </form>
+        <button type="button" class="btn ghost" id="btn-resend-confirm">{{ tx('Reinvia email di conferma') }}</button>
+        <button type="button" class="btn ghost" id="btn-confirm-logout">{{ tx('Esci') }}</button>
+        <p id="confirm-hint" class="hint" hidden></p>
+      </div>
+
       <div id="account-user" class="account-state" hidden data-mode="view">
         <div class="profile-hero" id="profile-hero" data-has-photo="0">
           <button type="button" class="profile-avatar-btn" id="profile-avatar-btn" aria-label="{{ tx('Cambia foto') }}">
@@ -443,6 +473,14 @@
   "setupPhone": {{ tx('Telefono')|tojson }},
   "loginForSetup": {{ tx('Accedi o crea l’account per configurare la cuffia.')|tojson }},
   "setupEmail": {{ tx('Conferma email')|tojson }},
+  "confirmEmailSent": {{ tx('Ti abbiamo mandato una email da Iris Nous a')|tojson }},
+  "confirmEmailSpam": {{ tx('Apri la posta (anche Spam), copia il codice di 6 caratteri e inseriscilo qui.')|tojson }},
+  "confirmingEmail": {{ tx('Conferma in corso…')|tojson }},
+  "confirmEmailOk": {{ tx('Email confermata. Ora puoi configurare la cuffia.')|tojson }},
+  "confirmEmailFail": {{ tx('Codice non valido. Riprova.')|tojson }},
+  "resendEmailOk": {{ tx('Email reinviata. Controlla anche Spam.')|tojson }},
+  "resendEmailFail": {{ tx('Invio non riuscito. Riprova tra un minuto.')|tojson }},
+  "resendingEmail": {{ tx('Invio in corso…')|tojson }},
   "shellReturn": {{ (shell_return if shell_return is defined else '/app?from=native_app')|tojson }},
   "slideTitles": [
     {{ tx('Pensi sì o no. Il resto segue.')|tojson }},
