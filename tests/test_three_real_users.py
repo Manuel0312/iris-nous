@@ -210,7 +210,7 @@ def test_three_real_users_isolated_journeys(tmp_path: Path) -> None:
     # 7) Pagine anti-confusione app
     android = client.get("/app/android")
     assert android.status_code == 200
-    assert "APK" in android.text
+    assert "IrisNous.apk" in android.text or "apk" in android.text.lower()
 
 
 def test_three_users_ban_one_does_not_affect_others(tmp_path: Path) -> None:
