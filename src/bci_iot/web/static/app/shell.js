@@ -232,14 +232,17 @@
       showEmailGate(profile);
       return;
     }
+    document.body.classList.toggle("cuffia-open", name === "cuffia");
     $$(".screen").forEach((el) => el.classList.toggle("on", el.dataset.screen === name));
-    $$(".shell-tabs .tab").forEach((el) =>
-      el.classList.toggle("on", el.getAttribute("data-go") === name)
-    );
+    $$(".shell-tabs .tab").forEach((el) => {
+      const go = el.getAttribute("data-go");
+      el.classList.toggle("on", go === name || (name === "cuffia" && go === "links"));
+    });
     if (name === "iris") startCarousel();
     else stopCarousel();
     if (name === "account") refreshAccount();
     if (name === "links") refreshConnections();
+    if (name === "cuffia") refreshCuffia();
   }
 
   function nativeBridge(action, payload) {
@@ -293,6 +296,160 @@
       el.setAttribute("href", setupUrl(path));
       el.setAttribute("data-setup", path);
     }
+  }
+
+  let cuffiaSi = 0;
+  let cuffiaNo = 0;
+  let cuffiaAgent = null;
+
+  function setCuffiaHint(text, kind) {
+    setHint($("#cuffia-hint"), text, kind);
+  }
+
+  function showCuffiaPane(which) {
+    $$(".cuffia-pane").forEach((el) => {
+      const match = el.getAttribute("data-pane") === String(which);
+      el.hidden = !match;
+      el.classList.toggle("on", match);
+    });
+    $$(".cuffia-step").forEach((el) => {
+      el.classList.toggle("on", el.getAttribute("data-cuffia-step") === String(which));
+    });
+  }
+
+  function applyCuffiaAgent(a) {
+    cuffiaAgent = a || null;
+    if (!a) return;
+    const label = $("#cs-label");
+    if (label) label.textContent = a.label || a.detail || msg("cuffiaOff", "Spenta");
+    const set = (id, v) => {
+      const el = $(id);
+      if (el) el.textContent = v;
+    };
+    set("#cs-power", a.power || "off");
+    set("#cs-wear", a.wear === "on_head" ? msg("yesShort", "sì") : msg("noShort", "no"));
+    set(
+      "#cs-contact",
+      a.contact_ok
+        ? msg("contactOk", "ok") + (a.contact_mean != null ? " · " + Math.round(a.contact_mean * 100) + "%" : "")
+        : msg("contactWait", "da verificare")
+    );
+    const ready = Boolean(a.ready_for_impulses);
+    const toCal = $("#cs-to-calib");
+    if (toCal) toCal.disabled = !ready;
+    ["#cs-si-btn", "#cs-no-btn"].forEach((sel) => {
+      const b = $(sel);
+      if (b) b.disabled = !ready;
+    });
+    const needed = a.impulses_needed || 3;
+    const impulses = $("#cs-impulses");
+    if (impulses) impulses.textContent = String(a.impulses_count || 0) + " / " + needed;
+    const neededN = a.impulses_needed || 3;
+    const fin = $("#cs-finish");
+    if (fin) {
+      fin.disabled = !(
+        ready &&
+        cuffiaSi >= 1 &&
+        cuffiaNo >= 1 &&
+        (a.impulses_count || 0) >= neededN
+      );
+    }
+  }
+
+  async function refreshCuffia() {
+    setCuffiaHint();
+    const me = await api("/api/me");
+    if (!me.res.ok) {
+      show("account");
+      return;
+    }
+    fillProfile(me.data);
+    if (needsEmailGate(me.data)) {
+      showEmailGate(me.data);
+      return;
+    }
+    if (me.data.calibration_complete) {
+      showCuffiaPane("done");
+      return;
+    }
+    const { res, data } = await api("/api/headset/agent");
+    if (res.ok && data && data.agent) applyCuffiaAgent(data.agent);
+    else applyCuffiaAgent(null);
+    showCuffiaPane(cuffiaAgent && cuffiaAgent.ready_for_impulses ? "2" : "1");
+  }
+
+  function bindCuffia() {
+    $("#cuffia-back")?.addEventListener("click", () => show("links"));
+    $("#cs-done-links")?.addEventListener("click", () => show("links"));
+    $("#cs-open-contesto")?.addEventListener("click", () => {
+      openSetup("/contesto", msg("setupContesto", "In ascolto"));
+    });
+    $$(".cuffia-step").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const step = btn.getAttribute("data-cuffia-step");
+        if (step === "2" && !(cuffiaAgent && cuffiaAgent.ready_for_impulses)) {
+          setCuffiaHint(msg("cuffiaNeedReady", "Prima indossa la cuffia virtuale."), "err");
+          showCuffiaPane("1");
+          return;
+        }
+        showCuffiaPane(step);
+      });
+    });
+    $("#cs-to-calib")?.addEventListener("click", () => showCuffiaPane("2"));
+
+    $("#cs-virtual")?.addEventListener("click", async () => {
+      setCuffiaHint();
+      const { res, data } = await api("/api/headset/virtual-ready", { method: "POST", body: {} });
+      if (!res.ok) {
+        setCuffiaHint((data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
+        return;
+      }
+      applyCuffiaAgent(data.agent);
+      setCuffiaHint(
+        data.agent && data.agent.ready_for_impulses
+          ? msg("cuffiaVirtualOk", "Cuffia virtuale in testa.")
+          : msg("cuffiaReady", "Cuffia pronta per la calibrazione."),
+        "ok"
+      );
+    });
+
+    async function sendYn(kind) {
+      setCuffiaHint();
+      const { res, data } = await api("/api/headset/impulse", { method: "POST", body: { kind } });
+      if (!res.ok) {
+        setCuffiaHint((data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
+        return;
+      }
+      if (kind === "SI") cuffiaSi += 1;
+      if (kind === "NO") cuffiaNo += 1;
+      const si = $("#cs-si");
+      const no = $("#cs-no");
+      if (si) si.textContent = String(cuffiaSi);
+      if (no) no.textContent = String(cuffiaNo);
+      if (data.status) applyCuffiaAgent(data.status);
+      else if (data.agent) applyCuffiaAgent(data.agent);
+      else applyCuffiaAgent(cuffiaAgent);
+      setCuffiaHint(msg("cuffiaImpulseOk", "Impulso salvato."), "ok");
+    }
+    $("#cs-si-btn")?.addEventListener("click", () => sendYn("SI"));
+    $("#cs-no-btn")?.addEventListener("click", () => sendYn("NO"));
+
+    $("#cs-finish")?.addEventListener("click", async () => {
+      if (cuffiaSi < 1 || cuffiaNo < 1) {
+        setCuffiaHint(msg("cuffiaNeedSiNo", "Serve almeno un SÌ e un NO."), "err");
+        return;
+      }
+      setCuffiaHint();
+      const { res, data } = await api("/api/calibrate/complete-setup", { method: "POST", body: {} });
+      if (!res.ok) {
+        setCuffiaHint((data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
+        return;
+      }
+      if (profile) profile.calibration_complete = true;
+      setCuffiaHint(msg("cuffiaDone", "Configurazione completata."), "ok");
+      showCuffiaPane("done");
+      refreshConnections();
+    });
   }
 
   async function refreshConnections() {
@@ -352,8 +509,13 @@
         showEmailGate(profile);
         return;
       }
-      const path = a.getAttribute("data-setup") || "/cuffia";
-      const titleFn = titles[path.split("?")[0]] || (() => msg("setupTitle", "Configurazione"));
+      const path = (a.getAttribute("data-setup") || "/cuffia").split("?")[0];
+      // Cuffia = schermata nativa app (mai iframe del sito)
+      if (path === "/cuffia") {
+        show("cuffia");
+        return;
+      }
+      const titleFn = titles[path] || (() => msg("setupTitle", "Configurazione"));
       openSetup(path, titleFn());
     }
 
@@ -1292,6 +1454,7 @@
     bindPasswordToggles();
     bindAuth();
     bindSetupOverlay();
+    bindCuffia();
     nativeBridge("ensureCallBridge", {});
     setTimeout(async () => {
       const { res, data } = await api("/api/me");

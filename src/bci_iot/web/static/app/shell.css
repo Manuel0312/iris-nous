@@ -1523,6 +1523,90 @@ html[data-theme-resolved="light"] .settings-dropdown-menu {
 
 .shell { position: relative; }
 
+/* Cuffia: schermata app compatta (niente scroll lungo / niente sito) */
+.cuffia-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding-bottom: 0.5rem;
+  overflow: hidden;
+}
+.cuffia-back {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--shell-link, #2563eb);
+  font: inherit;
+  font-weight: 650;
+  font-size: 0.92rem;
+  padding: 0.2rem 0;
+  align-self: flex-start;
+  cursor: pointer;
+}
+.cuffia-steps {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+.cuffia-step {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.45rem 0.55rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 650;
+  background: color-mix(in srgb, var(--shell-ink, #111) 8%, transparent);
+  color: var(--shell-muted, #666);
+  cursor: pointer;
+}
+.cuffia-step.on {
+  background: rgba(0, 183, 255, 0.2);
+  color: var(--shell-link, #0a7aff);
+}
+.cuffia-pane h2 {
+  margin: 0.15rem 0 0.25rem;
+  font-size: 1.25rem;
+}
+.cuffia-copy {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+.cuffia-status {
+  margin: 0.15rem 0;
+  font-weight: 650;
+  font-size: 0.95rem;
+}
+.cuffia-meta {
+  list-style: none;
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  border-radius: 14px;
+  background: var(--shell-card, #fff);
+  display: grid;
+  gap: 0.35rem;
+}
+.cuffia-meta li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+.cuffia-meta span { color: var(--shell-muted, #666); }
+.cuffia-shell .btn {
+  width: 100%;
+}
+.cuffia-yn {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+.cuffia-yn .btn { width: 100%; }
+body.cuffia-open .shell-tabs [data-go="iris"] {
+  opacity: 0.45;
+}
+
 /* Finché l’email non è confermata: solo schermata codice (stesso look app) */
 body.email-gate .shell-tabs [data-go="iris"],
 body.email-gate .shell-tabs [data-go="links"] {

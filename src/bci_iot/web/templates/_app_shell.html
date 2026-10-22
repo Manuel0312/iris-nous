@@ -403,6 +403,55 @@
     </div>
   </section>
 
+  {# Cuffia nativa in-app (niente iframe / sito) #}
+  <section class="screen" id="screen-cuffia" data-screen="cuffia">
+    <div class="panel fit cuffia-shell">
+      <button type="button" class="cuffia-back" id="cuffia-back">← {{ tx('Torna') }}</button>
+      <p class="eyebrow">{{ tx('Cuffia') }}</p>
+      <div class="cuffia-steps" role="tablist" aria-label="{{ tx('Passi') }}">
+        <button type="button" class="cuffia-step on" data-cuffia-step="1" id="cuffia-tab-1">1 · {{ tx('Associazione') }}</button>
+        <button type="button" class="cuffia-step" data-cuffia-step="2" id="cuffia-tab-2">2 · {{ tx('Calibrazione') }}</button>
+      </div>
+
+      <div class="cuffia-pane on" id="cuffia-pane-1" data-pane="1">
+        <h2>{{ tx('Associazione') }}</h2>
+        <p class="copy cuffia-copy">{{ tx('Un tap indossa la cuffia virtuale (accende, in testa, contatto).') }}</p>
+        <p class="cuffia-status" id="cs-label">{{ tx('Spenta') }}</p>
+        <ul class="cuffia-meta" id="cs-meta">
+          <li><span>{{ tx('Alimentazione') }}</span><strong id="cs-power">off</strong></li>
+          <li><span>{{ tx('In testa') }}</span><strong id="cs-wear">{{ tx('no') }}</strong></li>
+          <li><span>{{ tx('Contatto') }}</span><strong id="cs-contact">—</strong></li>
+        </ul>
+        <button type="button" class="btn primary" id="cs-virtual">{{ tx('Indossa cuffia virtuale') }}</button>
+        <button type="button" class="btn primary" id="cs-to-calib" disabled>{{ tx('Vai alla calibrazione') }}</button>
+      </div>
+
+      <div class="cuffia-pane" id="cuffia-pane-2" data-pane="2" hidden>
+        <h2>{{ tx('Calibrazione') }}</h2>
+        <p class="copy cuffia-copy">{{ tx('Tappa mentre pensi SÌ o NO.') }}</p>
+        <p class="cuffia-status" id="cs-calib-stats">
+          <span id="cs-impulses">0 / 3</span>
+          · {{ tx('SÌ') }} <strong id="cs-si">0</strong>
+          · {{ tx('NO') }} <strong id="cs-no">0</strong>
+        </p>
+        <div class="cuffia-yn">
+          <button type="button" class="btn primary" id="cs-si-btn" disabled>{{ tx('Pensa SÌ') }}</button>
+          <button type="button" class="btn" id="cs-no-btn" disabled>{{ tx('Pensa NO') }}</button>
+        </div>
+        <button type="button" class="btn primary" id="cs-finish" disabled>{{ tx('Completa configurazione') }}</button>
+      </div>
+
+      <div class="cuffia-pane" id="cuffia-pane-done" data-pane="done" hidden>
+        <h2>{{ tx('Cuffia pronta.') }}</h2>
+        <p class="copy cuffia-copy">{{ tx('Puoi usare In ascolto per SÌ/NO su chiamate e musica.') }}</p>
+        <button type="button" class="btn primary" id="cs-open-contesto">{{ tx('In ascolto') }}</button>
+        <button type="button" class="btn ghost" id="cs-done-links">{{ tx('Torna a Connessioni') }}</button>
+      </div>
+
+      <p id="cuffia-hint" class="hint" hidden></p>
+    </div>
+  </section>
+
   <nav class="shell-tabs" aria-label="{{ tx('Sezioni app') }}">
     <button type="button" class="tab" data-go="links">
       <span class="tab-ico" aria-hidden="true">⬡</span>
@@ -483,6 +532,18 @@
   "resendEmailFail": {{ tx('Invio non riuscito. Riprova tra un minuto.')|tojson }},
   "resendingEmail": {{ tx('Invio in corso…')|tojson }},
   "devOtpLocal": {{ tx('Anteprima locale: la mail non parte da questo computer. Usa questo codice:')|tojson }},
+  "cuffiaOff": {{ tx('Spenta')|tojson }},
+  "cuffiaReady": {{ tx('Cuffia pronta per la calibrazione.')|tojson }},
+  "cuffiaVirtualOk": {{ tx('Cuffia virtuale in testa.')|tojson }},
+  "cuffiaNeedReady": {{ tx('Prima indossa la cuffia virtuale.')|tojson }},
+  "cuffiaNeedSiNo": {{ tx('Serve almeno un SÌ e un NO.')|tojson }},
+  "cuffiaImpulseOk": {{ tx('Impulso salvato.')|tojson }},
+  "cuffiaDone": {{ tx('Configurazione completata.')|tojson }},
+  "cuffiaErr": {{ tx('Operazione non riuscita.')|tojson }},
+  "yesShort": {{ tx('sì')|tojson }},
+  "noShort": {{ tx('no')|tojson }},
+  "contactOk": {{ tx('ok')|tojson }},
+  "contactWait": {{ tx('da verificare')|tojson }},
   "shellReturn": {{ (shell_return if shell_return is defined else '/app?from=native_app')|tojson }},
   "slideTitles": [
     {{ tx('Pensi sì o no. Il resto segue.')|tojson }},
