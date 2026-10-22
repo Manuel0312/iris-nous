@@ -152,42 +152,41 @@
     <div class="panel fit account-scroll">
       <p class="eyebrow">{{ tx('Connessioni') }}</p>
       <h2>{{ tx('Collegamenti') }}</h2>
-      <p class="copy">{{ tx('Dal telefono puoi configurare cuffia, calibrazione, permessi e In ascolto — tutto nello stesso account.') }}</p>
       <ul class="conn-list" id="conn-list">
         <li>
           <div>
             <strong>{{ tx('Cuffia') }}</strong>
-            <span>{{ tx('Associazione e calibrazione SÌ/NO') }}</span>
+            <span>{{ tx('Associazione e calibrazione') }}</span>
           </div>
-          <a class="chip" id="conn-cuffia-chip" href="/cuffia?from=native_app&embed=1" data-setup="/cuffia">{{ tx('Apri') }}</a>
+          <a class="chip" id="conn-cuffia-chip" href="#cuffia" data-setup="/cuffia">{{ tx('Apri') }}</a>
         </li>
         <li>
           <div>
             <strong>{{ tx('In ascolto') }}</strong>
-            <span>{{ tx('SÌ/NO su chiamate, messaggi e musica') }}</span>
+            <span>{{ tx('SÌ/NO chiamate e musica') }}</span>
           </div>
-          <a class="chip" id="conn-contesto-chip" href="/contesto?from=native_app&embed=1" data-setup="/contesto">{{ tx('Apri') }}</a>
+          <a class="chip" id="conn-contesto-chip" href="#contesto" data-setup="/contesto">{{ tx('Apri') }}</a>
         </li>
         <li>
           <div>
             <strong>{{ tx('Telefono') }}</strong>
-            <span>{{ tx('Codice, QR e ponte chiamate') }}</span>
+            <span>{{ tx('PIN e dispositivo') }}</span>
           </div>
-          <a class="chip" id="conn-phone-chip" href="/telefono-setup?from=native_app&embed=1" data-setup="/telefono-setup">{{ tx('Collega') }}</a>
+          <a class="chip" id="conn-phone-chip" href="#telefono" data-setup="/telefono-setup">{{ tx('Collega') }}</a>
         </li>
         <li>
           <div>
             <strong>{{ tx('Permessi') }}</strong>
-            <span>{{ tx('Chiamate, notifiche e batteria') }}</span>
+            <span>{{ tx('Chiamate e notifiche') }}</span>
           </div>
-          <button type="button" class="chip" id="conn-perms-btn">{{ tx('Apri') }}</button>
+          <button type="button" class="chip" id="conn-perms-btn" data-setup="/permessi">{{ tx('Apri') }}</button>
         </li>
         <li>
           <div>
             <strong>{{ tx('Musica') }}</strong>
-            <span>{{ tx('Cambia brano col pensiero') }}</span>
+            <span>{{ tx('Spotify e brano') }}</span>
           </div>
-          <a class="chip soft" href="/ecosistema">{{ tx('Ecosistema') }}</a>
+          <a class="chip soft" id="conn-music-chip" href="#musica" data-setup="/musica">{{ tx('Apri') }}</a>
         </li>
       </ul>
       <p class="settings-note" id="conn-guest-hint" hidden>{{ tx('Accedi dall’Account per salvare cuffia e calibrazione sul tuo profilo.') }}</p>
@@ -452,6 +451,76 @@
     </div>
   </section>
 
+  <section class="screen" id="screen-contesto" data-screen="contesto">
+    <div class="panel fit cuffia-shell">
+      <button type="button" class="cuffia-back" data-back-links>← {{ tx('Torna') }}</button>
+      <p class="eyebrow">{{ tx('In ascolto') }}</p>
+      <h2 id="cx-prompt">{{ tx('Cosa sta succedendo') }}</h2>
+      <p class="copy cuffia-copy" id="cx-detail">{{ tx('Simula un evento, poi pensa SÌ o NO.') }}</p>
+      <ul class="cuffia-meta">
+        <li><span>{{ tx('SÌ') }}</span><strong id="cx-yes">—</strong></li>
+        <li><span>{{ tx('NO') }}</span><strong id="cx-no">—</strong></li>
+        <li><span>{{ tx('Chiamata') }}</span><strong id="cx-flag-call">{{ tx('No') }}</strong></li>
+        <li><span>{{ tx('Messaggio') }}</span><strong id="cx-flag-msg">{{ tx('No') }}</strong></li>
+        <li><span>{{ tx('Musica') }}</span><strong id="cx-flag-music">{{ tx('No') }}</strong></li>
+      </ul>
+      <div class="cuffia-yn cx-sim">
+        <button type="button" class="btn" id="cx-sim-call">{{ tx('Chiamata') }}</button>
+        <button type="button" class="btn" id="cx-sim-msg">{{ tx('Messaggio') }}</button>
+      </div>
+      <div class="cuffia-yn">
+        <button type="button" class="btn primary" id="cx-si" disabled>{{ tx('Pensa SÌ') }}</button>
+        <button type="button" class="btn" id="cx-no-btn" disabled>{{ tx('Pensa NO') }}</button>
+      </div>
+      <p id="cx-hint" class="hint" hidden></p>
+    </div>
+  </section>
+
+  <section class="screen" id="screen-telefono" data-screen="telefono">
+    <div class="panel fit cuffia-shell">
+      <button type="button" class="cuffia-back" data-back-links>← {{ tx('Torna') }}</button>
+      <p class="eyebrow">{{ tx('Telefono') }}</p>
+      <h2 id="ph-title">{{ tx('Collega il telefono') }}</h2>
+      <p class="copy cuffia-copy" id="ph-lede">{{ tx('PIN per l’APK, oppure collega questo dispositivo ora.') }}</p>
+      <p class="cuffia-status pair-code" id="ph-pin">————</p>
+      <p class="copy cuffia-copy" id="ph-status"></p>
+      <button type="button" class="btn primary" id="ph-pair-now">{{ tx('Collega questo telefono ora') }}</button>
+      <button type="button" class="btn ghost" id="ph-refresh-pin">{{ tx('Nuovo PIN') }}</button>
+      <button type="button" class="btn ghost" id="ph-unpair" hidden>{{ tx('Scollega dispositivo') }}</button>
+      <p id="ph-hint" class="hint" hidden></p>
+    </div>
+  </section>
+
+  <section class="screen" id="screen-permessi" data-screen="permessi">
+    <div class="panel fit cuffia-shell">
+      <button type="button" class="cuffia-back" data-back-links>← {{ tx('Torna') }}</button>
+      <p class="eyebrow">{{ tx('Permessi') }}</p>
+      <h2>{{ tx('Chiamate e notifiche') }}</h2>
+      <p class="copy cuffia-copy">{{ tx('Sull’app installata Iris chiede i permessi di sistema. In anteprima browser puoi solo leggere cosa serve.') }}</p>
+      <ul class="cuffia-meta">
+        <li><span>{{ tx('Chiamate') }}</span><strong>{{ tx('APK Android') }}</strong></li>
+        <li><span>{{ tx('Notifiche') }}</span><strong>{{ tx('Consigliato') }}</strong></li>
+        <li><span>{{ tx('Batteria') }}</span><strong>{{ tx('Non ottimizzare') }}</strong></li>
+      </ul>
+      <button type="button" class="btn primary" id="pm-open">{{ tx('Apri permessi') }}</button>
+      <p id="pm-hint" class="hint" hidden></p>
+    </div>
+  </section>
+
+  <section class="screen" id="screen-musica" data-screen="musica">
+    <div class="panel fit cuffia-shell">
+      <button type="button" class="cuffia-back" data-back-links>← {{ tx('Torna') }}</button>
+      <p class="eyebrow">{{ tx('Musica') }}</p>
+      <h2>{{ tx('Spotify') }}</h2>
+      <p class="copy cuffia-copy" id="mu-status">{{ tx('Collega Spotify Premium per cambiare brano col pensiero.') }}</p>
+      <p class="cuffia-status" id="mu-name" hidden></p>
+      <a class="btn primary" id="mu-spotify" href="/auth/spotify/start">{{ tx('Collega Spotify') }}</a>
+      <button type="button" class="btn primary" id="mu-next" hidden>{{ tx('Prossima canzone') }}</button>
+      <button type="button" class="btn ghost" id="mu-to-listen">{{ tx('In ascolto') }}</button>
+      <p id="mu-hint" class="hint" hidden></p>
+    </div>
+  </section>
+
   <nav class="shell-tabs" aria-label="{{ tx('Sezioni app') }}">
     <button type="button" class="tab" data-go="links">
       <span class="tab-ico" aria-hidden="true">⬡</span>
@@ -544,6 +613,21 @@
   "noShort": {{ tx('no')|tojson }},
   "contactOk": {{ tx('ok')|tojson }},
   "contactWait": {{ tx('da verificare')|tojson }},
+  "cxGate": {{ tx('Nuovo contesto: SÌ per decidere, NO per ignorare.')|tojson }},
+  "cxDetail": {{ tx('Simula un evento, poi pensa SÌ o NO.')|tojson }},
+  "cxGateYes": {{ tx('Ok, decido')|tojson }},
+  "cxGateNo": {{ tx('Ignora')|tojson }},
+  "phLinked": {{ tx('Telefono collegato')|tojson }},
+  "phLink": {{ tx('Collega il telefono')|tojson }},
+  "phLinkedLede": {{ tx('Dispositivo fidato attivo su questo account.')|tojson }},
+  "phLede": {{ tx('PIN per l’APK, oppure collega questo dispositivo ora.')|tojson }},
+  "phPairOk": {{ tx('Telefono collegato.')|tojson }},
+  "phNewPin": {{ tx('Nuovo PIN pronto.')|tojson }},
+  "phUnpairOk": {{ tx('Telefono scollegato.')|tojson }},
+  "pmBrowser": {{ tx('In anteprima browser i permessi di sistema non si aprono: usa l’APK o l’IPA.')|tojson }},
+  "muLinked": {{ tx('Spotify collegato. Puoi passare al brano successivo.')|tojson }},
+  "muNeed": {{ tx('Collega Spotify Premium per cambiare brano col pensiero.')|tojson }},
+  "muNextOk": {{ tx('Brano successivo richiesto.')|tojson }},
   "shellReturn": {{ (shell_return if shell_return is defined else '/app?from=native_app')|tojson }},
   "slideTitles": [
     {{ tx('Pensi sì o no. Il resto segue.')|tojson }},

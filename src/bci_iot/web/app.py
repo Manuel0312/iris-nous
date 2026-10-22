@@ -131,6 +131,9 @@ class ProfileResponse(BaseModel):
     anagrafica_complete: bool = False
     calibration_complete: bool = False
     phone_paired: bool = False
+    spotify_linked: bool = False
+    spotify_display_name: str = ""
+    pairing_code: str = ""
     # Solo localhost/preview quando la mail non parte (mai su Render produzione)
     dev_otp_code: str = ""
 
@@ -159,6 +162,9 @@ class ProfileResponse(BaseModel):
             anagrafica_complete=bool(profile.anagrafica_complete),
             calibration_complete=bool(profile.calibration_complete),
             phone_paired=bool(getattr(profile, "phone_paired", False)),
+            spotify_linked=bool(getattr(profile, "spotify_linked", False)),
+            spotify_display_name=str(getattr(profile, "spotify_display_name", "") or ""),
+            pairing_code=str(getattr(profile, "pairing_code", "") or ""),
             dev_otp_code=str(dev_otp_code or ""),
         )
 
@@ -3191,6 +3197,52 @@ def create_app(
             "code": code,
             "qr_payload": payload,
             "qr_url": pairing_qr_url(payload),
+        }
+
+    @app.post("/api/telefono/pair-this-device")
+    def api_telefono_pair_this_device(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        """One-tap pair from the phone app shell (JSON, no site redirect)."""
+
+        username = _require_username(request)
+        profile = profiles.ensure_headset_pairing(username)
+        ua = request.headers.get("user-agent", "")
+        label = _device_label_from_ua(ua)
+        if profile.phone_paired and profiles.companion_linked(profile.username):
+            return {
+                "status": "ok",
+                "already": True,
+                "phone_paired": True,
+                "device_label": profile.phone_label or label,
+            }
+        try:
+            profile, _token = profiles.bind_phone_device(
+                profile.username, profile.pairing_code, device_label=label
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {
+            "status": "ok",
+            "already": False,
+            "phone_paired": True,
+            "device_label": profile.phone_label or label,
+        }
+
+    @app.post("/api/telefono/unpair")
+    def api_telefono_unpair(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        username = _require_username(request)
+        profiles.unpair_phone(username)
+        app.state.phone_queues.pop(username, None)
+        profile = profiles.ensure_headset_pairing(username)
+        return {
+            "status": "ok",
+            "phone_paired": False,
+            "pairing_code": profile.pairing_code,
         }
 
     def _telefono_setup_page_response(

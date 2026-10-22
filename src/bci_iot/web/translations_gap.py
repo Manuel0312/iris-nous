@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.5.0 all connections native ---
+    "App: tutte le Connessioni restano nell’app": {
+        "en": "App: all Connections stay in the app",
+        "fr": "App : toutes les Connexions restent dans l’app",
+        "de": "App: alle Verbindungen bleiben in der App",
+        "pt": "App: todas as Ligacoes ficam na app",
+        "zh": "应用：所有连接都留在应用内",
+        "ja": "アプリ：接続はすべてアプリ内",
+        "es": "App: todas las Conexiones quedan en la app",
+    },
+    "In ascolto, Telefono, Permessi e Musica aprivano ancora pagine del sito con scroll e chrome web.": {
+        "en": "Listening, Phone, Permissions and Music still opened site pages with scrolling and web chrome.",
+        "fr": "Ecoute, Telephone, Permissions et Musique ouvraient encore des pages site avec scroll et chrome web.",
+        "de": "Zuhoeren, Telefon, Rechte und Musik oeffneten noch Website-Seiten mit Scroll und Web-Chrome.",
+        "pt": "Em escuta, Telemovel, Permissoes e Musica ainda abriam paginas do site com scroll e chrome web.",
+        "zh": "聆听、手机、权限和音乐仍会打开带滚动和网站栏的网页。",
+        "ja": "聴取・電話・権限・音楽でまだサイト画面（スクロール付き）が開いていた。",
+        "es": "Escucha, Telefono, Permisos y Musica seguian abriendo paginas del sitio con scroll y chrome web.",
+    },
+    "Ora ogni voce di Connessioni è una schermata nativa compatta (come la cuffia): tap, niente redirect.": {
+        "en": "Every Connections item is now a compact native screen (like headset): tap, no redirect.",
+        "fr": "Chaque Connexion est un ecran natif compact (comme le casque) : tap, zero redirect.",
+        "de": "Jeder Verbindungspunkt ist ein kompakter nativer Screen (wie Headset): Tippen, kein Redirect.",
+        "pt": "Cada item de Ligacoes e um ecran nativo compacto (como o headset): toque, sem redirect.",
+        "zh": "每个连接项都是紧凑原生屏（像耳机）：点按，无跳转。",
+        "ja": "接続の各項目はコンパクトなネイティブ画面（ヘッドセット同様）。タップのみ、リダイレクトなし。",
+        "es": "Cada Conexion es una pantalla nativa compacta (como el casco): toque, sin redirect.",
+    },
     # --- v0.4.99 native cuffia shell ---
     "App: cuffia nativa, senza aprire il sito": {
         "en": "App: native headset setup, without opening the site",

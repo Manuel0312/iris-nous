@@ -227,22 +227,34 @@
     document.body.classList.remove("email-gate");
   }
 
+  const NATIVE_CONN = {
+    cuffia: true,
+    contesto: true,
+    telefono: true,
+    permessi: true,
+    musica: true,
+  };
+
   function show(name) {
     if (needsEmailGate(profile) && name !== "account") {
       showEmailGate(profile);
       return;
     }
-    document.body.classList.toggle("cuffia-open", name === "cuffia");
+    document.body.classList.toggle("cuffia-open", Boolean(NATIVE_CONN[name]));
     $$(".screen").forEach((el) => el.classList.toggle("on", el.dataset.screen === name));
     $$(".shell-tabs .tab").forEach((el) => {
       const go = el.getAttribute("data-go");
-      el.classList.toggle("on", go === name || (name === "cuffia" && go === "links"));
+      el.classList.toggle("on", go === name || (NATIVE_CONN[name] && go === "links"));
     });
     if (name === "iris") startCarousel();
     else stopCarousel();
     if (name === "account") refreshAccount();
     if (name === "links") refreshConnections();
     if (name === "cuffia") refreshCuffia();
+    if (name === "contesto") refreshContesto();
+    if (name === "telefono") refreshTelefono();
+    if (name === "musica") refreshMusica();
+    if (name === "permessi") setHint($("#pm-hint"));
   }
 
   function nativeBridge(action, payload) {
@@ -381,9 +393,7 @@
   function bindCuffia() {
     $("#cuffia-back")?.addEventListener("click", () => show("links"));
     $("#cs-done-links")?.addEventListener("click", () => show("links"));
-    $("#cs-open-contesto")?.addEventListener("click", () => {
-      openSetup("/contesto", msg("setupContesto", "In ascolto"));
-    });
+    $("#cs-open-contesto")?.addEventListener("click", () => show("contesto"));
     $$(".cuffia-step").forEach((btn) => {
       btn.addEventListener("click", () => {
         const step = btn.getAttribute("data-cuffia-step");
@@ -510,9 +520,15 @@
         return;
       }
       const path = (a.getAttribute("data-setup") || "/cuffia").split("?")[0];
-      // Cuffia = schermata nativa app (mai iframe del sito)
-      if (path === "/cuffia") {
-        show("cuffia");
+      const nativeMap = {
+        "/cuffia": "cuffia",
+        "/contesto": "contesto",
+        "/telefono-setup": "telefono",
+        "/permessi": "permessi",
+        "/musica": "musica",
+      };
+      if (nativeMap[path]) {
+        show(nativeMap[path]);
         return;
       }
       const titleFn = titles[path] || (() => msg("setupTitle", "Configurazione"));
@@ -522,6 +538,196 @@
     $("#conn-cuffia-chip")?.addEventListener("click", onSetupChip);
     $("#conn-contesto-chip")?.addEventListener("click", onSetupChip);
     $("#conn-phone-chip")?.addEventListener("click", onSetupChip);
+    $("#conn-music-chip")?.addEventListener("click", onSetupChip);
+    $("#conn-perms-btn")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (!profile) {
+        show("account");
+        return;
+      }
+      if (needsEmailGate(profile)) {
+        showEmailGate(profile);
+        return;
+      }
+      show("permessi");
+    });
+  }
+
+  function applyContesto(data) {
+    if (!data) return;
+    const focus = data.focus || {};
+    const gate = data.gate || null;
+    const set = (id, v) => {
+      const el = $(id);
+      if (el) el.textContent = v;
+    };
+    set("#cx-prompt", (gate && gate.prompt) || focus.prompt || msg("setupContesto", "In ascolto"));
+    set(
+      "#cx-detail",
+      gate && !gate.acked
+        ? msg("cxGate", "Nuovo contesto: SÌ per decidere, NO per ignorare.")
+        : focus.detail || msg("cxDetail", "Simula un evento, poi pensa SÌ o NO.")
+    );
+    set("#cx-yes", (gate && !gate.acked) ? msg("cxGateYes", "Ok, decido") : focus.yes_label || msg("yesShort", "sì").toUpperCase());
+    set("#cx-no", (gate && !gate.acked) ? msg("cxGateNo", "Ignora") : focus.no_label || msg("noShort", "no").toUpperCase());
+    const active = data.active_contexts || {};
+    const yn = (v) => (v ? msg("yesShort", "sì") : msg("noShort", "no"));
+    set("#cx-flag-call", yn(active.call));
+    set("#cx-flag-msg", yn(active.message));
+    set("#cx-flag-music", yn(active.music));
+    const ready = Boolean(data.headset && data.headset.ready_for_impulses);
+    const si = $("#cx-si");
+    const no = $("#cx-no-btn");
+    if (si) si.disabled = !ready;
+    if (no) no.disabled = !ready;
+    if (data.message) setHint($("#cx-hint"), data.message, "ok");
+  }
+
+  async function refreshContesto() {
+    setHint($("#cx-hint"));
+    const { res, data } = await api("/api/context/status");
+    if (!res.ok) {
+      setHint($("#cx-hint"), (data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
+      return;
+    }
+    applyContesto(data);
+  }
+
+  async function refreshTelefono() {
+    setHint($("#ph-hint"));
+    const me = await api("/api/me");
+    if (!me.res.ok) {
+      show("account");
+      return;
+    }
+    fillProfile(me.data);
+    const paired = Boolean(me.data.phone_paired);
+    const title = $("#ph-title");
+    const lede = $("#ph-lede");
+    const status = $("#ph-status");
+    const pin = $("#ph-pin");
+    const unpair = $("#ph-unpair");
+    const pairNow = $("#ph-pair-now");
+    if (title) title.textContent = paired ? msg("phLinked", "Telefono collegato") : msg("phLink", "Collega il telefono");
+    if (lede) {
+      lede.textContent = paired
+        ? msg("phLinkedLede", "Dispositivo fidato attivo su questo account.")
+        : msg("phLede", "PIN per l’APK, oppure collega questo dispositivo ora.");
+    }
+    if (status) {
+      status.textContent = paired
+        ? me.data.phone_label || msg("connLinked", "Collegato")
+        : "";
+    }
+    if (unpair) unpair.hidden = !paired;
+    if (pairNow) pairNow.hidden = paired;
+    if (pin) pin.textContent = me.data.pairing_code || "————";
+    if (!paired || !me.data.pairing_code) {
+      const sess = await api("/api/telefono/pairing-session", { method: "POST", body: {} });
+      if (sess.res.ok && sess.data && sess.data.code && pin) pin.textContent = sess.data.code;
+    }
+  }
+
+  function refreshMusica() {
+    setHint($("#mu-hint"));
+    const linked = Boolean(profile && profile.spotify_linked);
+    const status = $("#mu-status");
+    const name = $("#mu-name");
+    const linkBtn = $("#mu-spotify");
+    const nextBtn = $("#mu-next");
+    if (status) {
+      status.textContent = linked
+        ? msg("muLinked", "Spotify collegato. Puoi passare al brano successivo.")
+        : msg("muNeed", "Collega Spotify Premium per cambiare brano col pensiero.");
+    }
+    if (name) {
+      name.hidden = !(linked && profile.spotify_display_name);
+      name.textContent = profile && profile.spotify_display_name ? profile.spotify_display_name : "";
+    }
+    if (linkBtn) {
+      linkBtn.hidden = linked;
+      linkBtn.setAttribute("href", "/auth/spotify/start");
+    }
+    if (nextBtn) nextBtn.hidden = !linked;
+  }
+
+  function bindConnScreens() {
+    $$("[data-back-links]").forEach((btn) => {
+      btn.addEventListener("click", () => show("links"));
+    });
+
+    $("#cx-sim-call")?.addEventListener("click", async () => {
+      const { res, data } = await api("/api/context/event", { method: "POST", body: { event: "call" } });
+      if (res.ok) applyContesto(data);
+      else setHint($("#cx-hint"), (data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
+    });
+    $("#cx-sim-msg")?.addEventListener("click", async () => {
+      const { res, data } = await api("/api/context/event", { method: "POST", body: { event: "message" } });
+      if (res.ok) applyContesto(data);
+      else setHint($("#cx-hint"), (data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
+    });
+    async function cxDecide(answer) {
+      setHint($("#cx-hint"));
+      const { res, data } = await api("/api/context/decide", { method: "POST", body: { answer } });
+      if (!res.ok) {
+        setHint($("#cx-hint"), (data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
+        return;
+      }
+      applyContesto(data);
+    }
+    $("#cx-si")?.addEventListener("click", () => cxDecide("SI"));
+    $("#cx-no-btn")?.addEventListener("click", () => cxDecide("NO"));
+
+    $("#ph-pair-now")?.addEventListener("click", async () => {
+      setHint($("#ph-hint"));
+      const { res, data } = await api("/api/telefono/pair-this-device", { method: "POST", body: {} });
+      if (!res.ok) {
+        setHint($("#ph-hint"), (data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
+        return;
+      }
+      setHint($("#ph-hint"), msg("phPairOk", "Telefono collegato."), "ok");
+      refreshTelefono();
+      refreshConnections();
+    });
+    $("#ph-refresh-pin")?.addEventListener("click", async () => {
+      const { res, data } = await api("/api/telefono/pairing-session", { method: "POST", body: {} });
+      if (res.ok && data && data.code) {
+        const pin = $("#ph-pin");
+        if (pin) pin.textContent = data.code;
+        setHint($("#ph-hint"), msg("phNewPin", "Nuovo PIN pronto."), "ok");
+      }
+    });
+    $("#ph-unpair")?.addEventListener("click", async () => {
+      const { res, data } = await api("/api/telefono/unpair", { method: "POST", body: {} });
+      if (!res.ok) {
+        setHint($("#ph-hint"), (data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
+        return;
+      }
+      setHint($("#ph-hint"), msg("phUnpairOk", "Telefono scollegato."), "ok");
+      refreshTelefono();
+      refreshConnections();
+    });
+
+    $("#pm-open")?.addEventListener("click", () => {
+      if (!nativeBridge("openPermissions")) {
+        setHint(
+          $("#pm-hint"),
+          msg("pmBrowser", "In anteprima browser i permessi di sistema non si aprono: usa l’APK o l’IPA."),
+          "ok"
+        );
+      }
+    });
+
+    $("#mu-next")?.addEventListener("click", async () => {
+      setHint($("#mu-hint"));
+      const { res, data } = await api("/api/music/next", { method: "POST", body: {} });
+      if (!res.ok) {
+        setHint($("#mu-hint"), (data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
+        return;
+      }
+      setHint($("#mu-hint"), msg("muNextOk", "Brano successivo richiesto."), "ok");
+    });
+    $("#mu-to-listen")?.addEventListener("click", () => show("contesto"));
   }
 
   function renderSlide(i, animate) {
@@ -1232,16 +1438,6 @@
       });
     });
 
-    $("#conn-perms-btn")?.addEventListener("click", () => {
-      if (!nativeBridge("openPermissions")) {
-        if (!profile) {
-          show("account");
-          return;
-        }
-        openSetup("/telefono-setup", msg("setupPhone", "Telefono"));
-      }
-    });
-
     $("#form-login")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const fd = new FormData(e.target);
@@ -1455,6 +1651,7 @@
     bindAuth();
     bindSetupOverlay();
     bindCuffia();
+    bindConnScreens();
     nativeBridge("ensureCallBridge", {});
     setTimeout(async () => {
       const { res, data } = await api("/api/me");
