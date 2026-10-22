@@ -1539,6 +1539,25 @@ body.email-gate .shell-tabs [data-go="links"] {
   width: 100%;
   margin-top: 0.45rem;
 }
+#confirm-dev-otp {
+  margin: 0.75rem 0;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  background: rgba(10, 122, 74, 0.14);
+  color: var(--shell-ink, #111);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+#confirm-dev-otp .dev-otp-code {
+  display: inline-block;
+  margin-top: 0.35rem;
+  letter-spacing: 0.28em;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+html[data-theme-resolved="dark"] #confirm-dev-otp {
+  background: rgba(125, 255, 168, 0.16);
+}
 
 /* Cuffia / calibrazione / In ascolto: overlay a tutto schermo dentro l’app */
 .setup-overlay {

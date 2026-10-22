@@ -153,19 +153,42 @@
   function showDevOtp(code) {
     const box = $("#confirm-dev-otp");
     if (!box) return;
-    const c = String(code || "").trim();
+    const c = String(code || "").trim().toUpperCase();
     if (!c) {
       box.hidden = true;
       box.textContent = "";
       return;
     }
     box.hidden = false;
-    box.textContent =
+    box.innerHTML =
+      "<span>" +
       msg("devOtpLocal", "Anteprima locale: la mail non parte da questo computer. Usa questo codice:") +
-      " " +
-      c;
+      '</span> <strong class="dev-otp-code">' +
+      c +
+      "</strong>";
     const input = $("#shell-confirm-code");
-    if (input && !input.value) input.value = c;
+    if (input) input.value = c;
+  }
+
+  async function ensureLocalOtp() {
+    if (profile && profile.dev_otp_code) {
+      showDevOtp(profile.dev_otp_code);
+      return profile.dev_otp_code;
+    }
+    const { res, data } = await api("/api/auth/resend-confirm-email", { method: "POST" });
+    if (res.ok && data && data.dev_otp_code) {
+      if (profile) profile.dev_otp_code = data.dev_otp_code;
+      showDevOtp(data.dev_otp_code);
+      return data.dev_otp_code;
+    }
+    const me = await api("/api/me");
+    if (me.res.ok && me.data && me.data.dev_otp_code) {
+      if (profile) profile.dev_otp_code = me.data.dev_otp_code;
+      else profile = me.data;
+      showDevOtp(me.data.dev_otp_code);
+      return me.data.dev_otp_code;
+    }
+    return "";
   }
 
   function showEmailGate(p) {
@@ -196,6 +219,8 @@
       el.classList.toggle("on", el.getAttribute("data-go") === "account")
     );
     stopCarousel();
+    // Preview locale: se non c’è ancora il codice, lo richiede e lo mostra subito
+    ensureLocalOtp().catch(() => {});
   }
 
   function clearEmailGate() {

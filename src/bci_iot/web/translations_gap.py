@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.98 local OTP auto ---
+    "Preview locale: codice subito, senza aspettare la mail": {
+        "en": "Local preview: code right away, no waiting for email",
+        "fr": "Apercu local : code tout de suite, sans attendre l’email",
+        "de": "Lokale Vorschau: Code sofort, ohne auf E-Mail zu warten",
+        "pt": "Pre-visualizacao local: codigo ja, sem esperar pelo email",
+        "zh": "本地预览：立刻显示验证码，无需等邮件",
+        "ja": "ローカルプレビュー：メール待ちなしでコード表示",
+        "es": "Vista previa local: codigo al momento, sin esperar el email",
+    },
+    "Restavi bloccato su «Conferma email» perché in locale la mail non parte e il codice non si vedeva.": {
+        "en": "You were stuck on “Confirm email” because locally no mail is sent and the code was invisible.",
+        "fr": "Tu restais bloque sur « Confirmer l’email » car en local aucun mail ne part et le code etait invisible.",
+        "de": "Du hingst bei «E-Mail bestaetigen», weil lokal keine Mail geht und der Code unsichtbar war.",
+        "pt": "Ficavas preso em «Confirmar email» porque em local o email nao sai e o codigo nao aparecia.",
+        "zh": "卡在「确认邮箱」：本地不发信且看不到验证码。",
+        "ja": "「メール確認」で止まっていた。ローカルではメールが来ずコードも見えなかった。",
+        "es": "Te quedabas en «Confirmar email» porque en local no sale el email y el codigo no se veia.",
+    },
+    "Ora in anteprima il codice compare in grande e si inserisce da solo; se manca, l’app lo richiede subito.": {
+        "en": "In preview the code shows large and fills in; if missing, the app requests it right away.",
+        "fr": "En apercu le code s’affiche en grand et se remplit ; s’il manque, l’app le demande tout de suite.",
+        "de": "In der Vorschau erscheint der Code gross und wird eingetragen; fehlt er, holt ihn die App sofort.",
+        "pt": "Na pre-visualizacao o codigo aparece grande e preenche-se; se faltar, a app pede-o ja.",
+        "zh": "预览里验证码大字显示并自动填入；若没有，应用会立刻再要一份。",
+        "ja": "プレビューではコードが大きく表示され自動入力。無ければアプリがすぐ再取得。",
+        "es": "En la vista previa el codigo sale grande y se rellena; si falta, la app lo pide al momento.",
+    },
     # --- v0.4.97 local OTP on screen ---
     "Anteprima locale: codice email a schermo": {
         "en": "Local preview: email code on screen",
