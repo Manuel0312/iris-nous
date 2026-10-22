@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.91 fluid settings motion ---
+    "Impostazioni e tendine più fluide": {
+        "en": "Smoother settings and dropdowns",
+        "fr": "Reglages et menus plus fluides",
+        "de": "Einstellungen und Menus fliessender",
+        "pt": "Definicoes e menus mais fluidos",
+        "zh": "设置与下拉更流畅",
+        "ja": "設定とドロップダウンが滑らかに",
+        "es": "Ajustes y menus mas fluidos",
+    },
+    "Aprire ingranaggio o Tema/Lingua era uno stacco netto, tipo flash.": {
+        "en": "Opening the gear or Theme/Language was a hard cut, like a flash.",
+        "fr": "Ouvrir l'engrenage ou Theme/Langue etait un coupe net, comme un flash.",
+        "de": "Zahnrad oder Thema/Sprache oeffnen war ein harter Schnitt, wie ein Blitz.",
+        "pt": "Abrir a engrenagem ou Tema/Lingua era um corte seco, como um flash.",
+        "zh": "打开齿轮或主题/语言是硬切，像闪一下。",
+        "ja": "歯車やテーマ/言語を開くと切り替わりが唐突でした。",
+        "es": "Abrir el engranaje o Tema/Idioma era un corte seco, como un flash.",
+    },
+    "Ora pannello, backdrop e tendine entrano con una dinamica leggera e veloce (quasi 3D), senza tagli secchi.": {
+        "en": "Now panel, backdrop and dropdowns enter with a light, quick motion (almost 3D), no hard cuts.",
+        "fr": "Desormais panneau, fond et menus entrent avec un mouvement leger et rapide (quasi 3D).",
+        "de": "Panel, Backdrop und Dropdowns kommen mit leichter, schneller Bewegung (fast 3D).",
+        "pt": "Agora painel, fundo e menus entram com movimento leve e rapido (quase 3D).",
+        "zh": "面板、背景和下拉以轻快近 3D 动效进入，不再硬切。",
+        "ja": "パネル・背景・メニューが軽く速い動き（ほぼ3D）で入ります。",
+        "es": "Ahora panel, fondo y menus entran con un movimiento ligero y rapido (casi 3D).",
+    },
     # --- v0.4.90 dropdown no overlap ---
     "Tendine Tema/Lingua senza sovrapposizione": {
         "en": "Theme/Language dropdowns without overlap",

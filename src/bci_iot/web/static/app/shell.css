@@ -898,6 +898,15 @@ html[data-theme-resolved="dark"] .glass-card .field input {
   border-radius: 50%;
   display: grid;
   place-items: center;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.settings-fab svg {
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body.settings-open .settings-fab svg {
+  transform: rotate(48deg);
 }
 
 .shell-top-actions .news-fab,
@@ -928,6 +937,19 @@ html[data-theme-resolved="light"] .panel ~ .shell-top-actions .news-fab {
   padding: 0.85rem;
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(8px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.22s ease,
+    visibility 0.22s ease,
+    backdrop-filter 0.22s ease;
+}
+
+.whats-new-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .whats-new-overlay[hidden] { display: none !important; }
@@ -943,6 +965,17 @@ html[data-theme-resolved="light"] .panel ~ .shell-top-actions .news-fab {
   color: var(--glass-ink);
   border: 1px solid var(--glass-edge);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 20px 50px rgba(0, 0, 0, 0.3);
+  transform: perspective(900px) translate3d(0, 14px, -28px) rotateX(8deg) scale(0.96);
+  transform-origin: center top;
+  opacity: 0;
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.22s ease;
+}
+
+.whats-new-overlay.is-open .whats-new-dialog {
+  transform: perspective(900px) translate3d(0, 0, 0) rotateX(0) scale(1);
+  opacity: 1;
 }
 
 .whats-new-head {
@@ -1035,6 +1068,18 @@ body.whats-new-open { overflow: hidden; }
   z-index: 30;
   background: rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(2px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.22s ease,
+    visibility 0.22s ease;
+}
+
+.settings-backdrop.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .settings-backdrop[hidden] { display: none !important; }
@@ -1057,6 +1102,22 @@ body.whats-new-open { overflow: hidden; }
     inset 0 1px 0 rgba(255, 255, 255, 0.3),
     0 20px 50px rgba(0, 0, 0, 0.28);
   color: var(--glass-ink);
+  transform: perspective(900px) translate3d(0, -12px, -24px) rotateX(-7deg) scale(0.96);
+  transform-origin: top center;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.2s ease,
+    visibility 0.28s ease;
+}
+
+.settings-panel.is-open {
+  transform: perspective(900px) translate3d(0, 0, 0) rotateX(0) scale(1);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .settings-panel[hidden] { display: none !important; }
@@ -1167,25 +1228,43 @@ html[data-theme-resolved="light"] .settings-dropdown {
 .settings-dropdown-menu {
   list-style: none;
   margin: 0;
-  padding: 0.2rem 0.25rem 0.3rem;
+  padding: 0;
   position: static;
-  max-height: 180px;
-  overflow-y: auto;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
   -webkit-overflow-scrolling: touch;
-  display: grid;
+  display: grid !important; /* anima anche se c’è [hidden] iniziale */
   gap: 0;
   border: 0;
   border-radius: 0;
   background: rgba(0, 0, 0, 0.18);
   box-shadow: none;
+  transform: translate3d(0, -6px, 0) scaleY(0.92);
+  transform-origin: top center;
+  pointer-events: none;
+  visibility: hidden;
+  transition:
+    max-height 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.18s ease,
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    padding 0.24s ease,
+    visibility 0.24s ease;
 }
 
 html[data-theme-resolved="light"] .settings-dropdown-menu {
   background: rgba(0, 0, 0, 0.04);
 }
 
-.settings-dropdown-menu[hidden] {
-  display: none !important;
+.settings-theme-block[data-open="1"] .settings-dropdown-menu,
+.settings-lang-block[data-open="1"] .settings-dropdown-menu {
+  max-height: 200px;
+  opacity: 1;
+  overflow-y: auto;
+  padding: 0.2rem 0.25rem 0.3rem;
+  transform: translate3d(0, 0, 0) scaleY(1);
+  pointer-events: auto;
+  visibility: visible;
 }
 
 .settings-theme-block[data-open="1"],
@@ -1216,6 +1295,35 @@ html[data-theme-resolved="light"] .settings-dropdown-menu {
   font-weight: 600;
   text-align: left;
   cursor: pointer;
+  opacity: 0.55;
+  transform: translate3d(0, -4px, 0);
+  transition:
+    opacity 0.16s ease,
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.15s ease;
+}
+
+.settings-theme-block[data-open="1"] .settings-dropdown-option,
+.settings-lang-block[data-open="1"] .settings-dropdown-option {
+  opacity: 1;
+  transform: none;
+}
+
+.settings-theme-block[data-open="1"] .settings-dropdown-menu li:nth-child(1) .settings-dropdown-option,
+.settings-lang-block[data-open="1"] .settings-dropdown-menu li:nth-child(1) .settings-dropdown-option {
+  transition-delay: 0.02s;
+}
+.settings-theme-block[data-open="1"] .settings-dropdown-menu li:nth-child(2) .settings-dropdown-option,
+.settings-lang-block[data-open="1"] .settings-dropdown-menu li:nth-child(2) .settings-dropdown-option {
+  transition-delay: 0.04s;
+}
+.settings-theme-block[data-open="1"] .settings-dropdown-menu li:nth-child(3) .settings-dropdown-option,
+.settings-lang-block[data-open="1"] .settings-dropdown-menu li:nth-child(3) .settings-dropdown-option {
+  transition-delay: 0.06s;
+}
+.settings-theme-block[data-open="1"] .settings-dropdown-menu li:nth-child(n + 4) .settings-dropdown-option,
+.settings-lang-block[data-open="1"] .settings-dropdown-menu li:nth-child(n + 4) .settings-dropdown-option {
+  transition-delay: 0.08s;
 }
 
 .settings-dropdown-option.theme-choice {
@@ -1269,4 +1377,19 @@ html[data-theme-resolved="dark"] .btn.ghost {
 html[data-theme-resolved="dark"] .iris-shade {
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.45) 50%, rgba(0, 0, 0, 0.72) 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-fab,
+  .settings-fab svg,
+  .settings-backdrop,
+  .settings-panel,
+  .settings-dropdown-menu,
+  .settings-dropdown-option,
+  .settings-dropdown-chevron,
+  .whats-new-overlay,
+  .whats-new-dialog {
+    transition: none !important;
+    transform: none !important;
+  }
 }
