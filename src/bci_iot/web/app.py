@@ -131,8 +131,11 @@ class ProfileResponse(BaseModel):
     anagrafica_complete: bool = False
     calibration_complete: bool = False
     phone_paired: bool = False
+    # Solo localhost/preview quando la mail non parte (mai su Render produzione)
+    dev_otp_code: str = ""
+
     @classmethod
-    def from_profile(cls, profile: UserProfile) -> ProfileResponse:
+    def from_profile(cls, profile: UserProfile, *, dev_otp_code: str = "") -> ProfileResponse:
         photo = str(profile.photo_filename or "").strip()
         return cls(
             user_id=profile.user_id,
@@ -156,6 +159,7 @@ class ProfileResponse(BaseModel):
             anagrafica_complete=bool(profile.anagrafica_complete),
             calibration_complete=bool(profile.calibration_complete),
             phone_paired=bool(getattr(profile, "phone_paired", False)),
+            dev_otp_code=str(dev_otp_code or ""),
         )
 
 
@@ -647,8 +651,17 @@ def create_app(
             username=profile.username,
             code=code,
         )
-        request.session.pop("email_preview_code", None)
+        # Locale/preview: fallback demo ok → codice in sessione (mai se l’invio reale fallisce in prod)
+        if delivery.ok and delivery.mode == "demo" and delivery.demo_code:
+            request.session["email_preview_code"] = delivery.demo_code
+        else:
+            request.session.pop("email_preview_code", None)
         return delivery
+
+    def _dev_otp_for_client(request: Request) -> str:
+        """Codice OTP solo se il server è in modalità demo (sessione), tipicamente locale."""
+        # La sessione viene valorizzata solo quando l’invio mail cade in mode=demo.
+        return str(request.session.get("email_preview_code") or "").strip()
 
     def _pairing_mail_already_sent(profile: UserProfile) -> bool:
         last = str((profile.usage_stats or {}).get("pairing_emailed_code") or "")
@@ -997,6 +1010,7 @@ def create_app(
                     "/attendi-conferma-email/reinvia",
                     next_path=next_raw if next_raw.startswith("/") else None,
                 ),
+                dev_otp_code=_dev_otp_for_client(request),
             ),
         )
 
@@ -4611,7 +4625,9 @@ def create_app(
         except ValueError:
             pass
         _log_access(request, username=profile.username, event="register", access=access)
-        return ProfileResponse.from_profile(profile)
+        return ProfileResponse.from_profile(
+            profile, dev_otp_code=_dev_otp_for_client(request)
+        )
 
     @app.post("/api/auth/confirm-email", response_model=ProfileResponse)
     def api_confirm_email(
@@ -4646,7 +4662,7 @@ def create_app(
         if profile is None:
             raise HTTPException(status_code=404, detail="Profile not found")
         if profile.is_admin or profile.email_verified:
-            return {"status": "ok", "already_verified": True}
+            return {"status": "ok", "already_verified": True, "dev_otp_code": ""}
         try:
             delivery = _send_signup_mail(request, profile)
         except ValueError as exc:
@@ -4656,7 +4672,11 @@ def create_app(
                 status_code=502,
                 detail="Non siamo riusciti a inviare l'email. Controlla Spam e riprova.",
             )
-        return {"status": "ok", "already_verified": False}
+        return {
+            "status": "ok",
+            "already_verified": False,
+            "dev_otp_code": _dev_otp_for_client(request),
+        }
 
     @app.post("/api/auth/login", response_model=ProfileResponse)
     def api_login(
@@ -4696,7 +4716,10 @@ def create_app(
         profile = profiles.get(username)
         if profile is None:
             raise HTTPException(status_code=404, detail="Profile not found")
-        return ProfileResponse.from_profile(profile)
+        dev = ""
+        if not profile.email_verified and not profile.is_admin:
+            dev = _dev_otp_for_client(request)
+        return ProfileResponse.from_profile(profile, dev_otp_code=dev)
 
     @app.put("/api/me/anagrafica", response_model=ProfileResponse)
     def api_update_anagrafica(

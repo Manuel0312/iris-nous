@@ -1,6 +1,43 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.97 local OTP on screen ---
+    "Anteprima locale: codice email a schermo": {
+        "en": "Local preview: email code on screen",
+        "fr": "Apercu local : code email a l’ecran",
+        "de": "Lokale Vorschau: E-Mail-Code auf dem Bildschirm",
+        "pt": "Pre-visualizacao local: codigo de email no ecran",
+        "zh": "本地预览：屏幕显示邮箱验证码",
+        "ja": "ローカルプレビュー：画面にメールコード",
+        "es": "Vista previa local: codigo de email en pantalla",
+    },
+    "In preview sul computer la mail di conferma non arriva, quindi non si poteva completare l’iscrizione.": {
+        "en": "In the computer preview the confirmation email never arrives, so signup could not be completed.",
+        "fr": "En apercu sur ordinateur l’email de confirmation n’arrive pas, donc l’inscription etait bloquee.",
+        "de": "In der PC-Vorschau kommt keine Bestaetigungsmail, daher war die Anmeldung blockiert.",
+        "pt": "Na pre-visualizacao no PC o email de confirmacao nao chega, por isso o registo ficava preso.",
+        "zh": "电脑预览收不到确认邮件，注册无法完成。",
+        "ja": "PCプレビューでは確認メールが届かず、登録を完了できなかった。",
+        "es": "En la vista previa del PC el email de confirmacion no llega, asi que no se podia terminar el registro.",
+    },
+    "In locale il codice a 6 caratteri compare nell’app (e si può copiare); online resta solo la mail vera.": {
+        "en": "Locally the 6-character code appears in the app (and can be copied); online only the real email is used.",
+        "fr": "En local le code a 6 caracteres s’affiche dans l’app (copiable) ; en ligne seule la vraie email compte.",
+        "de": "Lokal erscheint der 6-Zeichen-Code in der App (kopierbar); online nur die echte E-Mail.",
+        "pt": "Em local o codigo de 6 caracteres aparece na app (e podes copiar); online so o email real.",
+        "zh": "本地时 6 位验证码显示在应用内（可复制）；线上仍只用真实邮件。",
+        "ja": "ローカルでは6桁コードがアプリに表示（コピー可）。本番は本物のメールのみ。",
+        "es": "En local el codigo de 6 caracteres sale en la app (se puede copiar); online solo el email real.",
+    },
+    "Anteprima locale: la mail non parte da questo computer. Usa questo codice:": {
+        "en": "Local preview: email is not sent from this computer. Use this code:",
+        "fr": "Apercu local : l’email ne part pas de cet ordinateur. Utilise ce code :",
+        "de": "Lokale Vorschau: von diesem PC wird keine E-Mail gesendet. Nutze diesen Code:",
+        "pt": "Pre-visualizacao local: o email nao sai deste computador. Usa este codigo:",
+        "zh": "本地预览：本机不会发邮件。请用此验证码：",
+        "ja": "ローカルプレビュー：このPCからはメールを送りません。このコードを使って：",
+        "es": "Vista previa local: el email no sale de este ordenador. Usa este codigo:",
+    },
     # --- v0.4.96 email gate in shell ---
     "App: codice email in registrazione, non dopo il login": {
         "en": "App: email code at signup, not after login",

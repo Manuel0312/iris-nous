@@ -150,6 +150,24 @@
     return `${local[0]}***${domain}`;
   }
 
+  function showDevOtp(code) {
+    const box = $("#confirm-dev-otp");
+    if (!box) return;
+    const c = String(code || "").trim();
+    if (!c) {
+      box.hidden = true;
+      box.textContent = "";
+      return;
+    }
+    box.hidden = false;
+    box.textContent =
+      msg("devOtpLocal", "Anteprima locale: la mail non parte da questo computer. Usa questo codice:") +
+      " " +
+      c;
+    const input = $("#shell-confirm-code");
+    if (input && !input.value) input.value = c;
+  }
+
   function showEmailGate(p) {
     profile = p || profile;
     document.body.classList.add("email-gate");
@@ -171,6 +189,7 @@
         ". " +
         msg("confirmEmailSpam", "Apri la posta (anche Spam), copia il codice di 6 caratteri e inseriscilo qui.");
     }
+    showDevOtp(profile && profile.dev_otp_code);
     showAccountState("account-confirm");
     $$(".screen").forEach((el) => el.classList.toggle("on", el.dataset.screen === "account"));
     $$(".shell-tabs .tab").forEach((el) =>
@@ -1080,6 +1099,7 @@
       // Codice PRIMA del profilo / cuffia — stessa UI app, zero redirect sito
       fillProfile(data);
       showEmailGate(data);
+      showDevOtp(data && data.dev_otp_code);
       setHint($("#confirm-hint"), msg("accountCreated", "Account creato."), "ok");
     });
 
@@ -1122,7 +1142,17 @@
         );
         return;
       }
-      setHint($("#confirm-hint"), msg("resendEmailOk", "Email reinviata. Controlla anche Spam."), "ok");
+      if (data && data.dev_otp_code) {
+        if (profile) profile.dev_otp_code = data.dev_otp_code;
+        showDevOtp(data.dev_otp_code);
+      }
+      setHint(
+        $("#confirm-hint"),
+        data && data.dev_otp_code
+          ? msg("devOtpLocal", "Anteprima locale: la mail non parte da questo computer. Usa questo codice:")
+          : msg("resendEmailOk", "Email reinviata. Controlla anche Spam."),
+        "ok"
+      );
     });
 
     $("#btn-confirm-logout")?.addEventListener("click", async () => {

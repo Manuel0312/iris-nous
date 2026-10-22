@@ -274,6 +274,7 @@
           {{ tx('Ti abbiamo mandato una email da Iris Nous. Apri la posta (anche Spam), copia il codice di 6 caratteri e inseriscilo qui.') }}
         </p>
         <p class="copy"><strong id="confirm-email-masked"></strong></p>
+        <p class="flash ok" id="confirm-dev-otp" hidden></p>
         <form id="form-confirm-email" class="auth-form data-card glass-card" autocomplete="on">
           <label class="field">{{ tx('Codice ricevuto via email') }}
             <input
@@ -481,6 +482,7 @@
   "resendEmailOk": {{ tx('Email reinviata. Controlla anche Spam.')|tojson }},
   "resendEmailFail": {{ tx('Invio non riuscito. Riprova tra un minuto.')|tojson }},
   "resendingEmail": {{ tx('Invio in corso…')|tojson }},
+  "devOtpLocal": {{ tx('Anteprima locale: la mail non parte da questo computer. Usa questo codice:')|tojson }},
   "shellReturn": {{ (shell_return if shell_return is defined else '/app?from=native_app')|tojson }},
   "slideTitles": [
     {{ tx('Pensi sì o no. Il resto segue.')|tojson }},
