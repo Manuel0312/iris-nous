@@ -2,38 +2,44 @@
 html[data-theme-resolved="light"] {
   --shell-bg: #f5f5f7;
   --shell-ink: #1d1d1f;
-  --shell-muted: #6e6e73;
+  --shell-muted: #3a3a3c; /* più scuro: sottotitoli leggibili su card chiare */
   --shell-accent: #00b7ff;
-  --shell-card: rgba(255, 255, 255, 0.55);
+  --shell-card: rgba(255, 255, 255, 0.92);
   --shell-bar: rgba(17, 17, 20, 0.88);
   --shell-font: "Outfit", system-ui, sans-serif;
-  --shell-input-bg: rgba(255, 255, 255, 0.78);
-  --shell-link: #0077aa;
-  --shell-success: #1a9a4a;
+  --shell-input-bg: rgba(255, 255, 255, 0.92);
+  --shell-link: #006691;
+  --shell-success: #0f7a3a;
   --shell-danger: #c0392b;
-  --shell-warn: #d4a017;
-  --glass: rgba(255, 255, 255, 0.28);
-  --glass-edge: rgba(255, 255, 255, 0.45);
+  --shell-warn: #a67c00;
+  --glass: rgba(255, 255, 255, 0.55);
+  --glass-edge: rgba(0, 0, 0, 0.12);
   --glass-ink: #1d1d1f;
   --blur: blur(22px) saturate(160%);
+  --shell-fab-bg: rgba(255, 255, 255, 0.92);
+  --shell-fab-ink: #1d1d1f;
+  --shell-fab-border: rgba(29, 29, 31, 0.16);
 }
 
 html[data-theme-resolved="dark"] {
   --shell-bg: #0b0b0d;
   --shell-ink: #f5f5f7;
-  --shell-muted: #a1a1a6;
+  --shell-muted: #c8c8cc;
   --shell-accent: #6ef0ff;
-  --shell-card: rgba(28, 28, 32, 0.55);
+  --shell-card: rgba(36, 36, 42, 0.94);
   --shell-bar: rgba(8, 8, 10, 0.92);
-  --shell-input-bg: rgba(255, 255, 255, 0.1);
+  --shell-input-bg: rgba(255, 255, 255, 0.12);
   --shell-link: #6ef0ff;
   --shell-success: #7dffa8;
   --shell-danger: #ff8a80;
   --shell-warn: #ffd166;
-  --glass: rgba(255, 255, 255, 0.08);
-  --glass-edge: rgba(255, 255, 255, 0.18);
+  --glass: rgba(40, 40, 48, 0.72);
+  --glass-edge: rgba(255, 255, 255, 0.2);
   --glass-ink: #f5f5f7;
   --blur: blur(24px) saturate(150%);
+  --shell-fab-bg: rgba(28, 28, 34, 0.92);
+  --shell-fab-ink: #f5f5f7;
+  --shell-fab-border: rgba(255, 255, 255, 0.22);
 }
 
 * { box-sizing: border-box; }
@@ -118,10 +124,10 @@ html, body.shell-body {
 .eyebrow {
   margin: 0 0 0.3rem;
   font-size: 0.72rem;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #0077aa;
-  font-weight: 600;
+  color: var(--shell-link);
 }
 
 .panel h2 {
@@ -160,10 +166,13 @@ html, body.shell-body {
   display: block;
   color: var(--shell-ink);
   font-size: 0.95rem;
+  font-weight: 700;
 }
 .conn-list span:not(.chip) {
   color: var(--shell-muted);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
+  font-weight: 550;
+  opacity: 1;
 }
 #screen-links .panel.fit {
   overflow: hidden;
@@ -1001,13 +1010,13 @@ html[data-theme-resolved="dark"] .glass-card .field input {
 
 .news-fab,
 .settings-fab {
-  border: 1px solid var(--glass-edge);
-  background: var(--glass);
+  border: 1px solid var(--shell-fab-border);
+  background: var(--shell-fab-bg);
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
-  color: var(--shell-ink);
+  color: var(--shell-fab-ink);
   cursor: pointer;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 8px 20px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
 }
 
 .news-fab {
@@ -1020,7 +1029,7 @@ html[data-theme-resolved="dark"] .glass-card .field input {
   padding: 0.45rem 0.8rem;
   font: inherit;
   font-size: 0.78rem;
-  font-weight: 650;
+  font-weight: 700;
   min-height: 42px;
 }
 
@@ -1035,20 +1044,21 @@ html[data-theme-resolved="dark"] .glass-card .field input {
 
 .settings-fab svg {
   transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  stroke: currentColor;
 }
 
 body.settings-open .settings-fab svg {
   transform: rotate(48deg);
 }
 
-.shell-top-actions .news-fab,
-.shell-top-actions .settings-fab {
+/* Su foto Iris: pill scura + testo bianco (sempre leggibile) */
+body.iris-top .shell-top-actions .news-fab,
+body.iris-top .shell-top-actions .settings-fab {
   color: #fff;
-}
-
-html[data-theme-resolved="light"] .screen:not(#screen-iris) ~ * .news-fab,
-html[data-theme-resolved="light"] .panel ~ .shell-top-actions .news-fab {
-  color: var(--shell-ink);
+  background: rgba(0, 0, 0, 0.5);
+  border-color: rgba(255, 255, 255, 0.35);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
 }
 
 .whats-new-dot {

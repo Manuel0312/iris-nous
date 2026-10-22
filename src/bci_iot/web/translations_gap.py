@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.5.2 contrast / readability ---
+    "App: testi leggibili su ogni tema e foto": {
+        "en": "App: readable text on every theme and photo",
+        "fr": "App : textes lisibles sur chaque theme et photo",
+        "de": "App: lesbare Texte auf jedem Theme und Foto",
+        "pt": "App: textos legiveis em cada tema e foto",
+        "zh": "应用：每种主题与照片下文字都可读",
+        "ja": "アプリ：どのテーマ・写真でも読める文字",
+        "es": "App: textos legibles en cada tema y foto",
+    },
+    "Novità e ingranaggio erano bianchi su sfondi chiari; alcuni sottotitoli sparivano col tema chiaro.": {
+        "en": "What’s new and the gear were white on light backgrounds; some subtitles vanished in light theme.",
+        "fr": "Nouveautes et engrenage etaient blancs sur fond clair ; certains sous-titres disparaissaient en theme clair.",
+        "de": "Neuigkeiten und Zahnrad waren weiss auf hellem Grund; Untertitel verschwanden im hellen Theme.",
+        "pt": "Novidades e engrenagem ficavam brancos em fundos claros; alguns subtitulos sumiam no tema claro.",
+        "zh": "「新功能」与齿轮在浅色背景上发白；部分副标题在浅色主题中看不清。",
+        "ja": "新着と歯車が明るい背景で白く、字幕がライトテーマで消えていた。",
+        "es": "Novedades y el engranaje eran blancos sobre fondos claros; algunos subtitulos se perdian en tema claro.",
+    },
+    "Ora i tasti top hanno contrasto fisso sul tema, e su Iris restano chiari sulle foto; testi secondari più scuri/chiari a seconda del tema.": {
+        "en": "Top buttons now match theme contrast, stay clear on Iris photos; secondary text is darker/lighter by theme.",
+        "fr": "Les boutons du haut suivent le contraste du theme, restent lisibles sur les photos Iris ; textes secondaires adaptes.",
+        "de": "Obere Tasten passen zum Theme-Kontrast, bleiben auf Iris-Fotos klar; Nebentexte je Theme dunkler/heller.",
+        "pt": "Os botoes de cima seguem o contraste do tema e ficam claros nas fotos Iris; textos secundarios conforme o tema.",
+        "zh": "顶部按钮随主题对比度，在 Iris 照片上仍清晰；次要文字按主题加深/变浅。",
+        "ja": "上部ボタンはテーマに合わせ、Iris写真上でも明瞭。補助テキストもテーマで調整。",
+        "es": "Los botones superiores siguen el contraste del tema y se leen sobre fotos Iris; textos secundarios segun el tema.",
+    },
     # --- v0.5.1 no redundant phone link in app ---
     "App: niente «Collega telefono» se hai già l’app": {
         "en": "App: no “Link phone” if you already have the app",

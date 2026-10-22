@@ -240,6 +240,7 @@
       return;
     }
     document.body.classList.toggle("cuffia-open", Boolean(NATIVE_CONN[name]));
+    document.body.classList.toggle("iris-top", name === "iris");
     $$(".screen").forEach((el) => el.classList.toggle("on", el.dataset.screen === name));
     $$(".shell-tabs .tab").forEach((el) => {
       const go = el.getAttribute("data-go");
