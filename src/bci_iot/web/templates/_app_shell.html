@@ -149,33 +149,48 @@
   </section>
 
   <section class="screen" id="screen-links" data-screen="links">
-    <div class="panel fit">
+    <div class="panel fit account-scroll">
       <p class="eyebrow">{{ tx('Connessioni') }}</p>
       <h2>{{ tx('Collegamenti') }}</h2>
-      <p class="copy">{{ tx('Qui colleghi cuffia, telefono e musica: Iris li usa quando pensi sì o no.') }}</p>
-      <ul class="conn-list">
+      <p class="copy">{{ tx('Dal telefono puoi configurare cuffia, calibrazione, permessi e In ascolto — tutto nello stesso account.') }}</p>
+      <ul class="conn-list" id="conn-list">
         <li>
           <div>
             <strong>{{ tx('Cuffia') }}</strong>
-            <span>{{ tx('Per capire i tuoi sì e no') }}</span>
+            <span>{{ tx('Associazione e calibrazione SÌ/NO') }}</span>
           </div>
-          <span class="chip soft">{{ tx('Pronta') }}</span>
+          <a class="chip" id="conn-cuffia-chip" href="/cuffia">{{ tx('Apri') }}</a>
+        </li>
+        <li>
+          <div>
+            <strong>{{ tx('In ascolto') }}</strong>
+            <span>{{ tx('SÌ/NO su chiamate, messaggi e musica') }}</span>
+          </div>
+          <a class="chip" id="conn-contesto-chip" href="/contesto">{{ tx('Apri') }}</a>
         </li>
         <li>
           <div>
             <strong>{{ tx('Telefono') }}</strong>
-            <span>{{ tx('Chiamate e messaggi') }}</span>
+            <span>{{ tx('Codice, QR e ponte chiamate') }}</span>
           </div>
-          <a class="chip" href="/app/device">{{ tx('Collega') }}</a>
+          <a class="chip" id="conn-phone-chip" href="/telefono-setup">{{ tx('Collega') }}</a>
+        </li>
+        <li>
+          <div>
+            <strong>{{ tx('Permessi') }}</strong>
+            <span>{{ tx('Chiamate, notifiche e batteria') }}</span>
+          </div>
+          <button type="button" class="chip" id="conn-perms-btn">{{ tx('Apri') }}</button>
         </li>
         <li>
           <div>
             <strong>{{ tx('Musica') }}</strong>
             <span>{{ tx('Cambia brano col pensiero') }}</span>
           </div>
-          <span class="chip soft">Ok</span>
+          <a class="chip soft" href="/ecosistema">{{ tx('Ecosistema') }}</a>
         </li>
       </ul>
+      <p class="settings-note" id="conn-guest-hint" hidden>{{ tx('Accedi dall’Account per salvare cuffia e calibrazione sul tuo profilo.') }}</p>
     </div>
   </section>
 
@@ -217,9 +232,16 @@
             <input name="username" type="text" required maxlength="64" autocomplete="username" />
           </label>
           <label class="field">{{ tx('Password') }}
-            <input name="password" type="password" required maxlength="128" autocomplete="current-password" />
+            <div class="password-field">
+              <input id="shell-login-password" name="password" type="password" required maxlength="128" autocomplete="current-password" />
+              <button type="button" class="password-toggle" data-toggle-password="shell-login-password" aria-label="{{ tx('Mostra password') }}" aria-pressed="false">
+                <span class="eye-show" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></span>
+                <span class="eye-hide" aria-hidden="true" hidden><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l18 18"/><path d="M10.6 10.6a2.5 2.5 0 0 0 3.5 3.5"/><path d="M7 7.2C4.7 8.7 3 12 3 12s3.5 7 10 7a11 11 0 0 0 5-1.2"/><path d="M14.1 5.2A11 11 0 0 1 13 5c-6.5 0-10 7-10 7a18 18 0 0 0 2.2 3.1"/></svg></span>
+              </button>
+            </div>
           </label>
           <button class="btn primary" type="submit">{{ tx('Entra') }}</button>
+          <p class="auth-switch"><a href="/recupera-password">{{ tx('Password dimenticata?') }}</a></p>
         </form>
 
         <form id="form-register" class="auth-form data-card glass-card" hidden autocomplete="on">
@@ -229,10 +251,18 @@
           <label class="field">{{ tx('Email') }}
             <input name="email" type="email" required maxlength="254" autocomplete="email" />
           </label>
-          <label class="field">{{ tx('Password') }}
-            <input name="password" type="password" required minlength="8" maxlength="128" autocomplete="new-password" />
+          <label class="field">{{ tx('Password (minimo livello medio)') }}
+            <div class="password-field">
+              <input id="shell-register-password" name="password" type="password" required minlength="8" maxlength="128" autocomplete="new-password" />
+              <button type="button" class="password-toggle" data-toggle-password="shell-register-password" aria-label="{{ tx('Mostra password') }}" aria-pressed="false">
+                <span class="eye-show" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></span>
+                <span class="eye-hide" aria-hidden="true" hidden><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l18 18"/><path d="M10.6 10.6a2.5 2.5 0 0 0 3.5 3.5"/><path d="M7 7.2C4.7 8.7 3 12 3 12s3.5 7 10 7a11 11 0 0 0 5-1.2"/><path d="M14.1 5.2A11 11 0 0 1 13 5c-6.5 0-10 7-10 7a18 18 0 0 0 2.2 3.1"/></svg></span>
+              </button>
+            </div>
           </label>
-          <button class="btn primary" type="submit">{{ tx('Crea account') }}</button>
+          <ul class="pwd-reqs" id="shell-reg-reqs" aria-live="polite"></ul>
+          <p class="strength-meter" id="shell-reg-strength" data-level="weak">{{ tx('Serve almeno: 8 caratteri, una maiuscola, un numero.') }}</p>
+          <button class="btn primary" type="submit" id="shell-reg-submit" disabled>{{ tx('Crea account') }}</button>
         </form>
         <p id="auth-hint" class="hint" hidden></p>
       </div>
@@ -272,6 +302,7 @@
             </div>
           </div>
           <button type="button" class="btn soft wide" id="btn-edit-profile">{{ tx('Modifica') }}</button>
+          <a class="btn ghost wide" href="/cambia-password">{{ tx('Cambia password') }}</a>
         </div>
 
         <div id="account-edit" class="account-pane" hidden>
@@ -388,6 +419,16 @@
   "themeLight": {{ tx('Chiaro')|tojson }},
   "themeDark": {{ tx('Scuro')|tojson }},
   "themeAuto": {{ tx('Automatico (ora)')|tojson }},
+  "showPassword": {{ tx('Mostra password')|tojson }},
+  "hidePassword": {{ tx('Nascondi password')|tojson }},
+  "pwdNeedMedium": {{ tx('Serve almeno: 8 caratteri, una maiuscola, un numero.')|tojson }},
+  "connReady": {{ tx('Pronta')|tojson }},
+  "connCalibrate": {{ tx('Da calibrare')|tojson }},
+  "connSetup": {{ tx('Da configurare')|tojson }},
+  "connLinked": {{ tx('Collegato')|tojson }},
+  "connOpen": {{ tx('Apri')|tojson }},
+  "connConnect": {{ tx('Collega')|tojson }},
+  "shellReturn": {{ (shell_return if shell_return is defined else '/app?from=native_app')|tojson }},
   "slideTitles": [
     {{ tx('Pensi sì o no. Il resto segue.')|tojson }},
     {{ tx('Il telefono risponde con te.')|tojson }},

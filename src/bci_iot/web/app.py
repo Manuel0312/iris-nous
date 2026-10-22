@@ -125,6 +125,8 @@ class ProfileResponse(BaseModel):
     email_verified: bool = False
     phone_verified: bool = False
     anagrafica_complete: bool = False
+    calibration_complete: bool = False
+    phone_paired: bool = False
     @classmethod
     def from_profile(cls, profile: UserProfile) -> ProfileResponse:
         photo = str(profile.photo_filename or "").strip()
@@ -148,6 +150,8 @@ class ProfileResponse(BaseModel):
             email_verified=bool(profile.email_verified),
             phone_verified=bool(profile.phone_verified),
             anagrafica_complete=bool(profile.anagrafica_complete),
+            calibration_complete=bool(profile.calibration_complete),
+            phone_paired=bool(getattr(profile, "phone_paired", False)),
         )
 
 

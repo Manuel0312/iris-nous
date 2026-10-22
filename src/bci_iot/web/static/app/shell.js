@@ -35,8 +35,17 @@
   let index = 0;
   let timer = null;
   let carouselOn = false;
+  let slideToken = 0;
   let profile = null;
   let accountMode = "view";
+
+  function preloadIrisPhotos() {
+    PHOTO_SRC.forEach((p) => {
+      const im = new Image();
+      im.decoding = "async";
+      im.src = p.src;
+    });
+  }
 
   function genderLabel(code) {
     if (code === "female") return msg("genderFemale", "Donna");
@@ -135,6 +144,54 @@
     if (name === "iris") startCarousel();
     else stopCarousel();
     if (name === "account") refreshAccount();
+    if (name === "links") refreshConnections();
+  }
+
+  function nativeBridge(action, payload) {
+    try {
+      if (window.IrisNative && typeof window.IrisNative.postMessage === "function") {
+        window.IrisNative.postMessage(JSON.stringify({ action, ...(payload || {}) }));
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  function setChip(el, label, href, soft) {
+    if (!el) return;
+    el.textContent = label;
+    el.classList.toggle("soft", Boolean(soft));
+    if (href && "href" in el) el.setAttribute("href", href);
+  }
+
+  async function refreshConnections() {
+    const guestHint = $("#conn-guest-hint");
+    const cuffia = $("#conn-cuffia-chip");
+    const contesto = $("#conn-contesto-chip");
+    const phone = $("#conn-phone-chip");
+    const { res, data } = await api("/api/me");
+    const logged = res.ok && data;
+    if (guestHint) guestHint.hidden = Boolean(logged);
+    if (!logged) {
+      setChip(cuffia, msg("connSetup", "Da configurare"), "/cuffia", false);
+      setChip(contesto, msg("connOpen", "Apri"), "/contesto", false);
+      setChip(phone, msg("connConnect", "Collega"), "/telefono-setup", false);
+      return;
+    }
+    const calib = Boolean(data.calibration_complete);
+    const linked = Boolean(data.headset_id);
+    const paired = Boolean(data.phone_paired);
+    if (calib) setChip(cuffia, msg("connReady", "Pronta"), "/cuffia", true);
+    else if (linked) setChip(cuffia, msg("connCalibrate", "Da calibrare"), "/cuffia", false);
+    else setChip(cuffia, msg("connSetup", "Da configurare"), "/cuffia", false);
+    setChip(contesto, msg("connOpen", "Apri"), "/contesto", calib);
+    setChip(
+      phone,
+      paired ? msg("connLinked", "Collegato") : msg("connConnect", "Collega"),
+      "/telefono-setup",
+      paired
+    );
+    nativeBridge("ensureCallBridge", { username: data.username || "" });
   }
 
   function renderSlide(i, animate) {
@@ -143,25 +200,46 @@
     const titleEl = $("#explain-title");
     const bodyEl = $("#explain-body");
     const card = $("#explain-card");
+    const photo = $("#iris-photo");
     if (!img || !slide) return;
-    if (animate) {
-      img.classList.remove("is-swap");
-      void img.offsetWidth;
-      img.classList.add("is-swap");
-      if (card) {
-        card.classList.remove("is-swap");
-        void card.offsetWidth;
-        card.classList.add("is-swap");
-      }
-    }
-    img.src = slide.src;
-    img.alt = slide.alt;
+    const token = ++slideToken;
+
     if (titleEl && slide.title) titleEl.textContent = slide.title;
     if (bodyEl && slide.body) bodyEl.textContent = slide.body;
     $$("#popup-dots button").forEach((btn, n) => {
       btn.classList.toggle("on", n === i);
       btn.setAttribute("aria-current", n === i ? "true" : "false");
     });
+    if (photo) photo.style.transform = "";
+
+    const kickAnim = () => {
+      if (token !== slideToken || !animate) return;
+      img.classList.remove("is-swap");
+      if (card) card.classList.remove("is-swap");
+      void img.offsetWidth;
+      img.classList.add("is-swap");
+      if (card) card.classList.add("is-swap");
+    };
+
+    const same = img.getAttribute("src") === slide.src;
+    img.alt = slide.alt || "";
+    if (same) {
+      kickAnim();
+      return;
+    }
+    img.src = slide.src;
+    const finish = () => {
+      if (token !== slideToken) return;
+      kickAnim();
+    };
+    if (typeof img.decode === "function") {
+      img.decode().then(finish).catch(finish);
+    } else if (!img.complete) {
+      img.addEventListener("load", finish, { once: true });
+      img.addEventListener("error", finish, { once: true });
+    } else {
+      finish();
+    }
   }
 
   function go(i, animate = true) {
@@ -185,13 +263,22 @@
     }
   }
 
+  function resetCarouselTimer() {
+    if (timer) {
+      clearInterval(timer);
+      timer = null;
+    }
+    if (!carouselOn) return;
+    timer = setInterval(() => {
+      if (carouselOn) next();
+    }, INTERVAL_MS);
+  }
+
   function startCarousel() {
     stopCarousel();
     carouselOn = true;
     go(index, false);
-    timer = setInterval(() => {
-      if (carouselOn) next();
-    }, INTERVAL_MS);
+    resetCarouselTimer();
   }
 
   function buildDots() {
@@ -204,7 +291,7 @@
       btn.setAttribute("aria-label", `Foto ${n + 1}`);
       btn.addEventListener("click", () => {
         go(n, true);
-        if (carouselOn) startCarousel();
+        resetCarouselTimer();
       });
       host.appendChild(btn);
     });
@@ -212,25 +299,38 @@
 
   function bindIrisSwipe() {
     const stage = $(".iris-stage");
+    const photo = $("#iris-photo");
     if (!stage) return;
     let startX = 0;
     let startY = 0;
     let tracking = false;
+
+    const clearDrag = () => {
+      if (photo) photo.style.transform = "";
+    };
 
     const onStart = (x, y) => {
       startX = x;
       startY = y;
       tracking = true;
     };
+    const onMove = (x, y) => {
+      if (!tracking || !photo) return;
+      const dx = x - startX;
+      const dy = y - startY;
+      if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(dy)) return;
+      photo.style.transform = `translate3d(${Math.round(dx * 0.28)}px,0,0)`;
+    };
     const onEnd = (x, y) => {
       if (!tracking) return;
       tracking = false;
+      clearDrag();
       const dx = x - startX;
       const dy = y - startY;
-      if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy)) return;
+      if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
       if (dx < 0) next();
       else prev();
-      if (carouselOn) startCarousel();
+      resetCarouselTimer();
     };
 
     stage.addEventListener(
@@ -242,10 +342,26 @@
       { passive: true }
     );
     stage.addEventListener(
+      "touchmove",
+      (e) => {
+        const t = e.touches[0];
+        if (t) onMove(t.clientX, t.clientY);
+      },
+      { passive: true }
+    );
+    stage.addEventListener(
       "touchend",
       (e) => {
         const t = e.changedTouches[0];
         if (t) onEnd(t.clientX, t.clientY);
+      },
+      { passive: true }
+    );
+    stage.addEventListener(
+      "touchcancel",
+      () => {
+        tracking = false;
+        clearDrag();
       },
       { passive: true }
     );
@@ -255,6 +371,10 @@
       mouseDown = true;
       onStart(e.clientX, e.clientY);
     });
+    stage.addEventListener("mousemove", (e) => {
+      if (!mouseDown) return;
+      onMove(e.clientX, e.clientY);
+    });
     stage.addEventListener("mouseup", (e) => {
       if (!mouseDown) return;
       mouseDown = false;
@@ -263,6 +383,7 @@
     stage.addEventListener("mouseleave", () => {
       mouseDown = false;
       tracking = false;
+      clearDrag();
     });
   }
 
@@ -700,7 +821,68 @@
     showAccountState("account-user");
   }
 
+  function bindPasswordToggles() {
+    const showLabel = msg("showPassword", "Mostra password");
+    const hideLabel = msg("hidePassword", "Nascondi password");
+    const isTouchUi = window.matchMedia("(hover: none), (pointer: coarse)").matches;
+    $$("[data-toggle-password]").forEach((btn) => {
+      const input = document.getElementById(btn.getAttribute("data-toggle-password"));
+      if (!input) return;
+      const eyeShow = btn.querySelector(".eye-show");
+      const eyeHide = btn.querySelector(".eye-hide");
+      const setVisible = (show) => {
+        input.type = show ? "text" : "password";
+        btn.setAttribute("aria-pressed", show ? "true" : "false");
+        btn.setAttribute("aria-label", show ? hideLabel : showLabel);
+        if (eyeShow && eyeHide) {
+          eyeShow.hidden = show;
+          eyeHide.hidden = !show;
+        }
+      };
+      if (isTouchUi) {
+        btn.addEventListener("click", () => setVisible(input.type === "password"));
+      } else {
+        btn.addEventListener("mouseenter", () => setVisible(true));
+        btn.addEventListener("mouseleave", () => setVisible(false));
+        btn.addEventListener("click", (e) => e.preventDefault());
+      }
+    });
+  }
+
+  function initPasswordStrength() {
+    const input = $("#shell-register-password");
+    const meter = $("#shell-reg-strength");
+    const list = $("#shell-reg-reqs");
+    const submit = $("#shell-reg-submit");
+    if (!input || !meter || !list) return null;
+    async function check() {
+      try {
+        const res = await fetch("/api/password-strength?password=" + encodeURIComponent(input.value));
+        const data = await res.json();
+        meter.dataset.level = data.level || "weak";
+        meter.textContent =
+          data.message || msg("pwdNeedMedium", "Serve almeno: 8 caratteri, una maiuscola, un numero.");
+        list.innerHTML = "";
+        (data.requirements || []).forEach((r) => {
+          const li = document.createElement("li");
+          li.textContent = r.label;
+          if (r.optional) li.classList.add("is-optional");
+          if (r.ok) li.classList.add("is-ok");
+          list.appendChild(li);
+        });
+        const ok = (data.requirements || []).filter((r) => !r.optional).every((r) => r.ok);
+        if (submit) submit.disabled = !ok;
+      } catch (_) {
+        if (submit) submit.disabled = true;
+      }
+    }
+    input.addEventListener("input", check);
+    check();
+    return check;
+  }
+
   function bindAuth() {
+    const recheckPwd = initPasswordStrength();
     $$(".auth-tab").forEach((btn) => {
       btn.addEventListener("click", () => {
         const mode = btn.getAttribute("data-auth");
@@ -708,7 +890,14 @@
         $("#form-login").hidden = mode !== "login";
         $("#form-register").hidden = mode !== "register";
         setHint($("#auth-hint"));
+        if (mode === "register" && typeof recheckPwd === "function") recheckPwd();
       });
+    });
+
+    $("#conn-perms-btn")?.addEventListener("click", () => {
+      if (!nativeBridge("openPermissions")) {
+        window.location.href = "/telefono-setup";
+      }
     });
 
     $("#form-login")?.addEventListener("submit", async (e) => {
@@ -847,13 +1036,16 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     applyTheme();
+    preloadIrisPhotos();
     buildDots();
     bindIrisSwipe();
     bindSettings();
     bindWhatsNew();
     bindPhonePicker();
+    bindPasswordToggles();
     bindAuth();
-    setTimeout(() => show("iris"), 700);
+    nativeBridge("ensureCallBridge", {});
+    setTimeout(() => show("iris"), 400);
 
     $$(".shell-tabs [data-go]").forEach((btn) => {
       btn.addEventListener("click", () => show(btn.getAttribute("data-go")));
