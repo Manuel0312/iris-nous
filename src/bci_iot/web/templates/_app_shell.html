@@ -169,13 +169,6 @@
         </li>
         <li>
           <div>
-            <strong>{{ tx('Telefono') }}</strong>
-            <span>{{ tx('PIN e dispositivo') }}</span>
-          </div>
-          <a class="chip" id="conn-phone-chip" href="#telefono" data-setup="/telefono-setup">{{ tx('Collega') }}</a>
-        </li>
-        <li>
-          <div>
             <strong>{{ tx('Permessi') }}</strong>
             <span>{{ tx('Chiamate e notifiche') }}</span>
           </div>
@@ -476,29 +469,15 @@
     </div>
   </section>
 
-  <section class="screen" id="screen-telefono" data-screen="telefono">
-    <div class="panel fit cuffia-shell">
-      <button type="button" class="cuffia-back" data-back-links>← {{ tx('Torna') }}</button>
-      <p class="eyebrow">{{ tx('Telefono') }}</p>
-      <h2 id="ph-title">{{ tx('Collega il telefono') }}</h2>
-      <p class="copy cuffia-copy" id="ph-lede">{{ tx('PIN per l’APK, oppure collega questo dispositivo ora.') }}</p>
-      <p class="cuffia-status pair-code" id="ph-pin">————</p>
-      <p class="copy cuffia-copy" id="ph-status"></p>
-      <button type="button" class="btn primary" id="ph-pair-now">{{ tx('Collega questo telefono ora') }}</button>
-      <button type="button" class="btn ghost" id="ph-refresh-pin">{{ tx('Nuovo PIN') }}</button>
-      <button type="button" class="btn ghost" id="ph-unpair" hidden>{{ tx('Scollega dispositivo') }}</button>
-      <p id="ph-hint" class="hint" hidden></p>
-    </div>
-  </section>
-
   <section class="screen" id="screen-permessi" data-screen="permessi">
     <div class="panel fit cuffia-shell">
       <button type="button" class="cuffia-back" data-back-links>← {{ tx('Torna') }}</button>
       <p class="eyebrow">{{ tx('Permessi') }}</p>
       <h2>{{ tx('Chiamate e notifiche') }}</h2>
-      <p class="copy cuffia-copy">{{ tx('Sull’app installata Iris chiede i permessi di sistema. In anteprima browser puoi solo leggere cosa serve.') }}</p>
+      <p class="copy cuffia-copy">{{ tx('Questa app è già il tuo telefono Iris: servono solo i permessi di sistema per chiamate e notifiche.') }}</p>
       <ul class="cuffia-meta">
-        <li><span>{{ tx('Chiamate') }}</span><strong>{{ tx('APK Android') }}</strong></li>
+        <li><span>{{ tx('Dispositivo') }}</span><strong id="pm-device">{{ tx('Questa app') }}</strong></li>
+        <li><span>{{ tx('Chiamate') }}</span><strong>{{ tx('Permesso sistema') }}</strong></li>
         <li><span>{{ tx('Notifiche') }}</span><strong>{{ tx('Consigliato') }}</strong></li>
         <li><span>{{ tx('Batteria') }}</span><strong>{{ tx('Non ottimizzare') }}</strong></li>
       </ul>
@@ -625,6 +604,7 @@
   "phNewPin": {{ tx('Nuovo PIN pronto.')|tojson }},
   "phUnpairOk": {{ tx('Telefono scollegato.')|tojson }},
   "pmBrowser": {{ tx('In anteprima browser i permessi di sistema non si aprono: usa l’APK o l’IPA.')|tojson }},
+  "pmThisApp": {{ tx('Questa app')|tojson }},
   "muLinked": {{ tx('Spotify collegato. Puoi passare al brano successivo.')|tojson }},
   "muNeed": {{ tx('Collega Spotify Premium per cambiare brano col pensiero.')|tojson }},
   "muNextOk": {{ tx('Brano successivo richiesto.')|tojson }},

@@ -230,7 +230,6 @@
   const NATIVE_CONN = {
     cuffia: true,
     contesto: true,
-    telefono: true,
     permessi: true,
     musica: true,
   };
@@ -252,9 +251,25 @@
     if (name === "links") refreshConnections();
     if (name === "cuffia") refreshCuffia();
     if (name === "contesto") refreshContesto();
-    if (name === "telefono") refreshTelefono();
     if (name === "musica") refreshMusica();
-    if (name === "permessi") setHint($("#pm-hint"));
+    if (name === "permessi") {
+      setHint($("#pm-hint"));
+      const dev = $("#pm-device");
+      if (dev) dev.textContent = (profile && profile.phone_label) || msg("pmThisApp", "Questa app");
+    }
+  }
+
+  async function ensureThisDevicePaired() {
+    // Nell’app il telefono È già Iris: collega in silenzio, senza schermata «Collega telefono»
+    if (!profile || needsEmailGate(profile) || profile.phone_paired) return true;
+    const { res, data } = await api("/api/telefono/pair-this-device", { method: "POST", body: {} });
+    if (!res.ok) return false;
+    if (profile) {
+      profile.phone_paired = true;
+      if (data && data.device_label) profile.phone_label = data.device_label;
+    }
+    nativeBridge("ensureCallBridge", { username: (profile && profile.username) || "" });
+    return true;
   }
 
   function nativeBridge(action, payload) {
@@ -466,29 +481,22 @@
     const guestHint = $("#conn-guest-hint");
     const cuffia = $("#conn-cuffia-chip");
     const contesto = $("#conn-contesto-chip");
-    const phone = $("#conn-phone-chip");
     const { res, data } = await api("/api/me");
     const logged = res.ok && data;
     if (guestHint) guestHint.hidden = Boolean(logged);
     if (!logged) {
       setChip(cuffia, msg("connSetup", "Da configurare"), "/cuffia", false);
       setChip(contesto, msg("connOpen", "Apri"), "/contesto", false);
-      setChip(phone, msg("connConnect", "Collega"), "/telefono-setup", false);
       return;
     }
+    fillProfile(data);
+    await ensureThisDevicePaired();
     const calib = Boolean(data.calibration_complete);
     const linked = Boolean(data.headset_id);
-    const paired = Boolean(data.phone_paired);
     if (calib) setChip(cuffia, msg("connReady", "Pronta"), "/cuffia", true);
     else if (linked) setChip(cuffia, msg("connCalibrate", "Da calibrare"), "/cuffia", false);
     else setChip(cuffia, msg("connSetup", "Da configurare"), "/cuffia", false);
     setChip(contesto, msg("connOpen", "Apri"), "/contesto", calib);
-    setChip(
-      phone,
-      paired ? msg("connLinked", "Collegato") : msg("connConnect", "Collega"),
-      "/telefono-setup",
-      paired
-    );
     nativeBridge("ensureCallBridge", { username: data.username || "" });
   }
 
@@ -523,7 +531,6 @@
       const nativeMap = {
         "/cuffia": "cuffia",
         "/contesto": "contesto",
-        "/telefono-setup": "telefono",
         "/permessi": "permessi",
         "/musica": "musica",
       };
@@ -537,7 +544,6 @@
 
     $("#conn-cuffia-chip")?.addEventListener("click", onSetupChip);
     $("#conn-contesto-chip")?.addEventListener("click", onSetupChip);
-    $("#conn-phone-chip")?.addEventListener("click", onSetupChip);
     $("#conn-music-chip")?.addEventListener("click", onSetupChip);
     $("#conn-perms-btn")?.addEventListener("click", (e) => {
       e.preventDefault();
@@ -593,41 +599,6 @@
     applyContesto(data);
   }
 
-  async function refreshTelefono() {
-    setHint($("#ph-hint"));
-    const me = await api("/api/me");
-    if (!me.res.ok) {
-      show("account");
-      return;
-    }
-    fillProfile(me.data);
-    const paired = Boolean(me.data.phone_paired);
-    const title = $("#ph-title");
-    const lede = $("#ph-lede");
-    const status = $("#ph-status");
-    const pin = $("#ph-pin");
-    const unpair = $("#ph-unpair");
-    const pairNow = $("#ph-pair-now");
-    if (title) title.textContent = paired ? msg("phLinked", "Telefono collegato") : msg("phLink", "Collega il telefono");
-    if (lede) {
-      lede.textContent = paired
-        ? msg("phLinkedLede", "Dispositivo fidato attivo su questo account.")
-        : msg("phLede", "PIN per l’APK, oppure collega questo dispositivo ora.");
-    }
-    if (status) {
-      status.textContent = paired
-        ? me.data.phone_label || msg("connLinked", "Collegato")
-        : "";
-    }
-    if (unpair) unpair.hidden = !paired;
-    if (pairNow) pairNow.hidden = paired;
-    if (pin) pin.textContent = me.data.pairing_code || "————";
-    if (!paired || !me.data.pairing_code) {
-      const sess = await api("/api/telefono/pairing-session", { method: "POST", body: {} });
-      if (sess.res.ok && sess.data && sess.data.code && pin) pin.textContent = sess.data.code;
-    }
-  }
-
   function refreshMusica() {
     setHint($("#mu-hint"));
     const linked = Boolean(profile && profile.spotify_linked);
@@ -677,36 +648,6 @@
     }
     $("#cx-si")?.addEventListener("click", () => cxDecide("SI"));
     $("#cx-no-btn")?.addEventListener("click", () => cxDecide("NO"));
-
-    $("#ph-pair-now")?.addEventListener("click", async () => {
-      setHint($("#ph-hint"));
-      const { res, data } = await api("/api/telefono/pair-this-device", { method: "POST", body: {} });
-      if (!res.ok) {
-        setHint($("#ph-hint"), (data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
-        return;
-      }
-      setHint($("#ph-hint"), msg("phPairOk", "Telefono collegato."), "ok");
-      refreshTelefono();
-      refreshConnections();
-    });
-    $("#ph-refresh-pin")?.addEventListener("click", async () => {
-      const { res, data } = await api("/api/telefono/pairing-session", { method: "POST", body: {} });
-      if (res.ok && data && data.code) {
-        const pin = $("#ph-pin");
-        if (pin) pin.textContent = data.code;
-        setHint($("#ph-hint"), msg("phNewPin", "Nuovo PIN pronto."), "ok");
-      }
-    });
-    $("#ph-unpair")?.addEventListener("click", async () => {
-      const { res, data } = await api("/api/telefono/unpair", { method: "POST", body: {} });
-      if (!res.ok) {
-        setHint($("#ph-hint"), (data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
-        return;
-      }
-      setHint($("#ph-hint"), msg("phUnpairOk", "Telefono scollegato."), "ok");
-      refreshTelefono();
-      refreshConnections();
-    });
 
     $("#pm-open")?.addEventListener("click", () => {
       if (!nativeBridge("openPermissions")) {
@@ -1459,6 +1400,7 @@
       else {
         clearEmailGate();
         showAccountState("account-user");
+        ensureThisDevicePaired();
       }
     });
 
@@ -1511,6 +1453,7 @@
       fillProfile(data, { mode: "edit" });
       clearEmailGate();
       showAccountState("account-user");
+      ensureThisDevicePaired();
       setHint($("#profile-hint"), msg("confirmEmailOk", "Email confermata. Ora puoi configurare la cuffia."), "ok");
     });
 
@@ -1660,7 +1603,10 @@
         showEmailGate(data);
         return;
       }
-      if (res.ok) fillProfile(data);
+      if (res.ok) {
+        fillProfile(data);
+        await ensureThisDevicePaired();
+      }
       show("iris");
     }, 400);
 

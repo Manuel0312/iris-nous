@@ -32,6 +32,7 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
         or "Hub «La tua cuffia»" in page.text
         or "Privacy e chiarezza demo" in page.text
     )
+    assert "App: niente «Collega telefono» se hai già l’app" in page.text
     assert "App: tutte le Connessioni restano nell’app" in page.text
     assert "App: cuffia nativa, senza aprire il sito" in page.text
     assert "Preview locale: codice subito, senza aspettare la mail" in page.text

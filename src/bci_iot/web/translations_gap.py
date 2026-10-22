@@ -1,6 +1,61 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.5.1 no redundant phone link in app ---
+    "App: niente «Collega telefono» se hai già l’app": {
+        "en": "App: no “Link phone” if you already have the app",
+        "fr": "App : pas de « Lier le telephone » si tu as deja l’app",
+        "de": "App: kein «Telefon verknuepfen», wenn die App schon da ist",
+        "pt": "App: sem «Ligar telemovel» se ja tens a app",
+        "zh": "应用：已有应用时不再「关联手机」",
+        "ja": "アプリ：アプリ利用中は「電話を連携」不要",
+        "es": "App: sin «Vincular telefono» si ya tienes la app",
+    },
+    "In Connessioni c’era ancora Telefono/PIN anche se stavi già usando l’app scaricata.": {
+        "en": "Connections still showed Phone/PIN even while you were already using the downloaded app.",
+        "fr": "Connexions montrait encore Telephone/PIN alors que tu utilisais deja l’app.",
+        "de": "Verbindungen zeigte noch Telefon/PIN, obwohl die App schon genutzt wurde.",
+        "pt": "Ligacoes ainda mostrava Telemovel/PIN mesmo com a app ja em uso.",
+        "zh": "即使已在用下载的应用，「连接」仍显示手机/PIN。",
+        "ja": "アプリ使用中なのに接続に電話/PINが残っていた。",
+        "es": "Conexiones seguia mostrando Telefono/PIN aunque ya usabas la app.",
+    },
+    "Nell’app il dispositivo si collega da solo all’accesso; resta Permessi per chiamate e notifiche.": {
+        "en": "In the app the device links itself on sign-in; Permissions remains for calls and notifications.",
+        "fr": "Dans l’app le dispositif se lie tout seul a la connexion ; Permissions reste pour appels et notifications.",
+        "de": "In der App verknuepft sich das Geraet beim Login selbst; Rechte bleiben fuer Anrufe und Benachrichtigungen.",
+        "pt": "Na app o dispositivo liga-se sozinho ao entrar; Permissoes fica para chamadas e notificacoes.",
+        "zh": "应用内登录后设备自动关联；权限仍用于来电与通知。",
+        "ja": "アプリではログイン時に端末が自動連携。権限は通話・通知用。",
+        "es": "En la app el dispositivo se vincula solo al entrar; Permisos queda para llamadas y notificaciones.",
+    },
+    "Questa app è già il tuo telefono Iris: servono solo i permessi di sistema per chiamate e notifiche.": {
+        "en": "This app is already your Iris phone: you only need system permissions for calls and notifications.",
+        "fr": "Cette app est deja ton telephone Iris : il faut seulement les permissions systeme pour appels et notifications.",
+        "de": "Diese App ist schon dein Iris-Telefon: nur Systemrechte fuer Anrufe und Benachrichtigungen.",
+        "pt": "Esta app ja e o teu telemovel Iris: so precisas das permissoes de sistema para chamadas e notificacoes.",
+        "zh": "本应用已是你的 Iris 手机：只需系统权限用于来电和通知。",
+        "ja": "このアプリがIrisの電話。通話・通知のシステム権限だけ必要。",
+        "es": "Esta app ya es tu telefono Iris: solo hacen falta permisos del sistema para llamadas y notificaciones.",
+    },
+    "Questa app": {
+        "en": "This app",
+        "fr": "Cette app",
+        "de": "Diese App",
+        "pt": "Esta app",
+        "zh": "本应用",
+        "ja": "このアプリ",
+        "es": "Esta app",
+    },
+    "Permesso sistema": {
+        "en": "System permission",
+        "fr": "Permission systeme",
+        "de": "Systemrecht",
+        "pt": "Permissao do sistema",
+        "zh": "系统权限",
+        "ja": "システム権限",
+        "es": "Permiso del sistema",
+    },
     # --- v0.5.0 all connections native ---
     "App: tutte le Connessioni restano nell’app": {
         "en": "App: all Connections stay in the app",
