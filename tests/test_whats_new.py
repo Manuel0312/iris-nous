@@ -32,6 +32,7 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
         or "Hub «La tua cuffia»" in page.text
         or "Privacy e chiarezza demo" in page.text
     )
+    assert "Tendine Tema/Lingua senza sovrapposizione" in page.text
     assert "Tema a tendina e foto a tutto schermo" in page.text
     assert "Lingua: menu a tendina vero" in page.text
     assert "Iris: swipe, foto centrate, tastiera senza zoom, rotellina" in page.text

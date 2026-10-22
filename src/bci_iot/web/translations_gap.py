@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.90 dropdown no overlap ---
+    "Tendine Tema/Lingua senza sovrapposizione": {
+        "en": "Theme/Language dropdowns without overlap",
+        "fr": "Menus Theme/Langue sans chevauchement",
+        "de": "Thema/Sprache-Dropdowns ohne Ueberlappung",
+        "pt": "Menus Tema/Lingua sem sobreposicao",
+        "zh": "主题/语言下拉互不重叠",
+        "ja": "テーマ/言語ドロップダウンが重ならない",
+        "es": "Menus Tema/Idioma sin solaparse",
+    },
+    "Aprendo Tema, il menu copriva Lingua e sembrava buggato.": {
+        "en": "Opening Theme covered Language and looked buggy.",
+        "fr": "Ouvrir Theme couvrait Langue et semblait bugue.",
+        "de": "Thema oeffnen verdeckte Sprache und wirkte buggy.",
+        "pt": "Abrir Tema cobria Lingua e parecia com bug.",
+        "zh": "打开主题会盖住语言，看起来像出错。",
+        "ja": "テーマを開くと言語が隠れ、不具合に見えました。",
+        "es": "Al abrir Tema cubria Idioma y parecia un fallo.",
+    },
+    "Ora le tendine si aprono spingendo il contenuto sotto (niente overlap): una aperta alla volta, lista chiara.": {
+        "en": "Now dropdowns open by pushing content below (no overlap): one at a time, clear list.",
+        "fr": "Desormais les menus poussent le contenu dessous (sans chevauchement) : un a la fois.",
+        "de": "Dropdowns schieben den Inhalt nach unten (kein Overlap): eines nach dem anderen.",
+        "pt": "Agora os menus empurram o conteudo abaixo (sem overlap): um de cada vez.",
+        "zh": "现在下拉会把下方内容顶开（不重叠）：一次一个，列表清晰。",
+        "ja": "ドロップダウンは下を押し下げて開く（重ならない）。一度に一つ。",
+        "es": "Ahora los menus empujan el contenido abajo (sin solape): uno a la vez.",
+    },
     # --- v0.4.89 theme dropdown + fullscreen photos ---
     "Tema a tendina e foto a tutto schermo": {
         "en": "Theme dropdown and fullscreen photos",
