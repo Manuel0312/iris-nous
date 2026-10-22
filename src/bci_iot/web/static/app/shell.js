@@ -272,6 +272,18 @@
     requestAnimationFrame(() => requestAnimationFrame(fn));
   }
 
+  function ensureLangFlags() {
+    $$("#settings-langs .lang-flag-img, #settings-lang-current .lang-flag-img").forEach((img) => {
+      if (!(img instanceof HTMLImageElement)) return;
+      img.loading = "eager";
+      const src = img.getAttribute("src");
+      if (!src) return;
+      if (!img.complete || img.naturalWidth === 0) {
+        img.src = src;
+      }
+    });
+  }
+
   function setDropdownOpen(kind, open) {
     const block = kind === "theme" ? $(".settings-theme-block") : $(".settings-lang-block");
     const list = kind === "theme" ? $("#settings-themes") : $("#settings-langs");
@@ -284,6 +296,7 @@
       list.setAttribute("aria-hidden", open ? "false" : "true");
     }
     if (toggle) toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    if (kind === "lang" && open) ensureLangFlags();
   }
 
   function closeAllDropdowns() {
@@ -341,7 +354,7 @@
       e.stopPropagation();
       const block = $(".settings-theme-block");
       const open = !(block && block.dataset.open === "1");
-      setDropdownOpen("lang", false);
+      // Tema e Lingua possono restare aperte insieme
       setDropdownOpen("theme", open);
     });
 
@@ -350,7 +363,6 @@
       e.stopPropagation();
       const block = $(".settings-lang-block");
       const open = !(block && block.dataset.open === "1");
-      setDropdownOpen("theme", false);
       setDropdownOpen("lang", open);
     });
 
@@ -358,12 +370,10 @@
       const t = e.target;
       const themeBlock = $(".settings-theme-block");
       const langBlock = $(".settings-lang-block");
-      if (themeBlock && themeBlock.dataset.open === "1" && !(t instanceof Node && themeBlock.contains(t))) {
-        setDropdownOpen("theme", false);
-      }
-      if (langBlock && langBlock.dataset.open === "1" && !(t instanceof Node && langBlock.contains(t))) {
-        setDropdownOpen("lang", false);
-      }
+      const inTheme = t instanceof Node && themeBlock && themeBlock.contains(t);
+      const inLang = t instanceof Node && langBlock && langBlock.contains(t);
+      // Chiudi solo se il tap è fuori da entrambe (non chiudere l’altra tendina)
+      if (!inTheme && !inLang) closeAllDropdowns();
     });
 
     $$(".theme-choice").forEach((btn) => {

@@ -102,10 +102,14 @@
           <span class="settings-lang-current-row" id="settings-lang-current">
             {% set cur_langs = languages|selectattr('code', 'equalto', lang)|list if languages is defined else [] %}
             {% if cur_langs %}
-            <img class="lang-flag-img" src="{{ cur_langs[0].flag_src }}" alt="" width="22" height="16" />
+            <span class="lang-flag-slot" aria-hidden="true">
+              <span class="lang-flag-emoji">{{ cur_langs[0].flag }}</span>
+              <img class="lang-flag-img" src="{{ cur_langs[0].flag_src }}" alt="" width="22" height="16" decoding="async" onerror="this.classList.add('is-broken')" />
+            </span>
             <span class="lang-code">{{ cur_langs[0].code|upper }}</span>
             <span class="lang-name">{{ cur_langs[0].name }}</span>
             {% else %}
+            <span class="lang-flag-slot" aria-hidden="true"><span class="lang-flag-emoji">🇮🇹</span></span>
             <span class="lang-code">IT</span>
             <span class="lang-name">Italiano</span>
             {% endif %}
@@ -120,7 +124,10 @@
               href="/lingua/{{ item.code }}?next={{ back|urlencode }}"
               data-lang="{{ item.code }}"
             >
-              <img class="lang-flag-img" src="{{ item.flag_src }}" alt="" width="22" height="16" loading="lazy" />
+              <span class="lang-flag-slot" aria-hidden="true">
+                <span class="lang-flag-emoji">{{ item.flag }}</span>
+                <img class="lang-flag-img" src="{{ item.flag_src }}" alt="" width="22" height="16" decoding="async" onerror="this.classList.add('is-broken')" />
+              </span>
               <span class="lang-code">{{ item.code|upper }}</span>
               <span class="lang-name">{{ item.name }}</span>
             </a>

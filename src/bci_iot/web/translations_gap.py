@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.92 settings contrast + both menus + flags ---
+    "Impostazioni: testo leggibile, tendine insieme, bandiere": {
+        "en": "Settings: readable text, menus together, flags",
+        "fr": "Reglages : texte lisible, menus ensemble, drapeaux",
+        "de": "Einstellungen: lesbarer Text, Menus zusammen, Flaggen",
+        "pt": "Definicoes: texto legivel, menus juntos, bandeiras",
+        "zh": "设置：可读文字、菜单可同时开、国旗",
+        "ja": "設定：読みやすい文字、同時メニュー、旗",
+        "es": "Ajustes: texto legible, menus juntos, banderas",
+    },
+    "Note poco contrastate, Tema e Lingua si chiudevano a vicenda, bandiere assenti nella lista.": {
+        "en": "Low-contrast notes, Theme and Language closed each other, flags missing in the list.",
+        "fr": "Notes peu contrastees, Theme et Langue se fermaient, drapeaux absents.",
+        "de": "Schwacher Kontrast, Thema und Sprache schlossen sich, Flaggen fehlten.",
+        "pt": "Notas com pouco contraste, Tema e Lingua fechavam-se, bandeiras ausentes.",
+        "zh": "说明对比度低，主题与语言互相关闭，列表缺国旗。",
+        "ja": "注釈が見えにくく、テーマと言語が閉じ合い、旗が消えていました。",
+        "es": "Notas poco contrastadas, Tema e Idioma se cerraban, faltaban banderas.",
+    },
+    "Pannello più opaco e testi chiari; Tema e Lingua si aprono anche insieme; bandiere con SVG + emoji di riserva.": {
+        "en": "More opaque panel and clearer text; Theme and Language can both stay open; flags via SVG + emoji fallback.",
+        "fr": "Panneau plus opaque et textes clairs ; Theme et Langue restent ouverts ; drapeaux SVG + emoji.",
+        "de": "Opakeres Panel und klarerer Text; Thema und Sprache bleiben offen; Flaggen per SVG + Emoji.",
+        "pt": "Painel mais opaco e textos claros; Tema e Lingua abrem juntos; bandeiras SVG + emoji.",
+        "zh": "面板更实、文字更清；主题与语言可同时开；国旗 SVG + emoji 备用。",
+        "ja": "パネルを不透明に、文字を明確に。テーマと言語は同時に開く。旗はSVG+絵文字。",
+        "es": "Panel mas opaco y textos claros; Tema e Idioma abiertos a la vez; banderas SVG + emoji.",
+    },
     # --- v0.4.91 fluid settings motion ---
     "Impostazioni e tendine più fluide": {
         "en": "Smoother settings and dropdowns",
