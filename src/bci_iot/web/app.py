@@ -576,6 +576,13 @@ def create_app(
                     username=person.username,
                     email=person.email or "",
                 )
+        from_q = str(request.query_params.get("from") or "").strip().lower()
+        embed_q = str(request.query_params.get("embed") or "").strip()
+        app_embed = (
+            embed_q == "1"
+            or from_q in {"native_app", "native", "webview"}
+            or request.cookies.get("iris_app_client") == "1"
+        )
         return {
             "username": username,
             "is_admin": is_admin,
@@ -593,6 +600,8 @@ def create_app(
             "chat_disclaimer": DISCLAIMER_IT,
             "app_version": __version__,
             "whats_new": whats_new_payload(),
+            "app_embed": app_embed,
+            "shell_return": "/app?from=native_app",
             **extra,
         }
 
@@ -3187,7 +3196,17 @@ def create_app(
         from_q = str(request.query_params.get("from") or "").strip().lower()
         if from_q not in {"native_app", "native", "webview"}:
             return RedirectResponse("/app/preview", status_code=303)
-        return TEMPLATES.TemplateResponse(request, "app.html", _app_shell_ctx(request))
+        response = TEMPLATES.TemplateResponse(request, "app.html", _app_shell_ctx(request))
+        # Cookie: le pagine cuffia/calibrazione/In ascolto restano in «modalità app»
+        response.set_cookie(
+            "iris_app_client",
+            "1",
+            max_age=60 * 60 * 24 * 90,
+            httponly=False,
+            samesite="lax",
+            path="/",
+        )
+        return response
 
     @app.get("/app/device", response_class=HTMLResponse)
     def companion_app_device_page(request: Request) -> HTMLResponse:
@@ -4493,6 +4512,8 @@ def create_app(
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         request.session["username"] = profile.username
+        # Stesso DB admin/anagrafica del register web (anche da app telefono)
+        _sync_anagrafica_db(profile, access)
         _log_access(request, username=profile.username, event="register", access=access)
         return ProfileResponse.from_profile(profile)
     @app.post("/api/auth/login", response_model=ProfileResponse)

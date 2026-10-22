@@ -1523,6 +1523,60 @@ html[data-theme-resolved="light"] .settings-dropdown-menu {
 
 .shell { position: relative; }
 
+/* Cuffia / calibrazione / In ascolto: overlay a tutto schermo dentro l’app */
+.setup-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  background: var(--shell-bg, #f5f5f7);
+  border-radius: inherit;
+  overflow: hidden;
+}
+.setup-overlay[hidden] {
+  display: none !important;
+}
+.setup-overlay-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.75rem;
+  padding-top: max(0.55rem, env(safe-area-inset-top, 0px));
+  border-bottom: 1px solid color-mix(in srgb, var(--shell-ink, #111) 12%, transparent);
+  background: color-mix(in srgb, var(--shell-card, #fff) 92%, transparent);
+}
+.setup-overlay-back {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--shell-accent, #2563eb);
+  font: inherit;
+  font-weight: 650;
+  font-size: 0.92rem;
+  padding: 0.35rem 0.2rem;
+  cursor: pointer;
+}
+.setup-overlay-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--shell-ink, #111);
+}
+.setup-overlay-frame {
+  flex: 1 1 auto;
+  width: 100%;
+  border: 0;
+  background: var(--shell-bg, #fff);
+}
+html[data-theme-resolved="dark"] .setup-overlay {
+  background: var(--shell-bg, #0b0b0d);
+}
+html[data-theme-resolved="dark"] .setup-overlay-bar {
+  background: color-mix(in srgb, var(--shell-card, #1a1a1e) 94%, transparent);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
 html[data-theme-resolved="dark"] .conn-list li,
 html[data-theme-resolved="dark"] .data-card {
   background: var(--shell-card);

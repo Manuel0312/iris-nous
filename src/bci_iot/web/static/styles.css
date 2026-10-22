@@ -6969,4 +6969,40 @@ html[data-theme-resolved="dark"] .eco-channel {
   gap: 0.5rem;
 }
 
+/* Modalità app (WebView / overlay): niente chrome del sito */
+body.is-app-embed .topbar,
+body.is-app-embed .site-footer,
+body.is-app-embed .chat-fab,
+body.is-app-embed .whats-new-btn {
+  display: none !important;
+}
+body.is-app-embed .iris-bg {
+  opacity: 0.25;
+}
+body.is-app-embed main.shell,
+body.is-app-embed main.private-shell {
+  padding-top: 0.5rem;
+  max-width: 100%;
+}
+.app-embed-bar {
+  display: none;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  padding: 0.55rem 0.85rem;
+  padding-top: max(0.55rem, env(safe-area-inset-top, 0px));
+  background: color-mix(in srgb, var(--bg, #f5f5f7) 92%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  backdrop-filter: blur(10px);
+}
+body.is-app-embed .app-embed-bar {
+  display: block;
+}
+.app-embed-back {
+  font-weight: 650;
+  font-size: 0.95rem;
+  text-decoration: none;
+  color: var(--accent, #2563eb);
+}
+
 

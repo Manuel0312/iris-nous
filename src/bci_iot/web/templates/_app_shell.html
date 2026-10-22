@@ -159,21 +159,21 @@
             <strong>{{ tx('Cuffia') }}</strong>
             <span>{{ tx('Associazione e calibrazione SÌ/NO') }}</span>
           </div>
-          <a class="chip" id="conn-cuffia-chip" href="/cuffia">{{ tx('Apri') }}</a>
+          <a class="chip" id="conn-cuffia-chip" href="/cuffia?from=native_app&embed=1" data-setup="/cuffia">{{ tx('Apri') }}</a>
         </li>
         <li>
           <div>
             <strong>{{ tx('In ascolto') }}</strong>
             <span>{{ tx('SÌ/NO su chiamate, messaggi e musica') }}</span>
           </div>
-          <a class="chip" id="conn-contesto-chip" href="/contesto">{{ tx('Apri') }}</a>
+          <a class="chip" id="conn-contesto-chip" href="/contesto?from=native_app&embed=1" data-setup="/contesto">{{ tx('Apri') }}</a>
         </li>
         <li>
           <div>
             <strong>{{ tx('Telefono') }}</strong>
             <span>{{ tx('Codice, QR e ponte chiamate') }}</span>
           </div>
-          <a class="chip" id="conn-phone-chip" href="/telefono-setup">{{ tx('Collega') }}</a>
+          <a class="chip" id="conn-phone-chip" href="/telefono-setup?from=native_app&embed=1" data-setup="/telefono-setup">{{ tx('Collega') }}</a>
         </li>
         <li>
           <div>
@@ -386,6 +386,15 @@
       {{ tx('Account') }}
     </button>
   </nav>
+
+  {# Setup cuffia/calibrazione/telefono resta DENTRO l’app (niente salto al sito) #}
+  <div class="setup-overlay" id="setup-overlay" hidden>
+    <div class="setup-overlay-bar">
+      <button type="button" class="setup-overlay-back" id="setup-overlay-close">← {{ tx('Torna') }}</button>
+      <strong class="setup-overlay-title" id="setup-overlay-title">{{ tx('Configurazione') }}</strong>
+    </div>
+    <iframe class="setup-overlay-frame" id="setup-frame" title="{{ tx('Configurazione') }}"></iframe>
+  </div>
 </div>
 
 <script type="application/json" id="shell-i18n">{
@@ -428,6 +437,11 @@
   "connLinked": {{ tx('Collegato')|tojson }},
   "connOpen": {{ tx('Apri')|tojson }},
   "connConnect": {{ tx('Collega')|tojson }},
+  "setupTitle": {{ tx('Configurazione')|tojson }},
+  "setupCuffia": {{ tx('Cuffia')|tojson }},
+  "setupContesto": {{ tx('In ascolto')|tojson }},
+  "setupPhone": {{ tx('Telefono')|tojson }},
+  "loginForSetup": {{ tx('Accedi o crea l’account per configurare la cuffia.')|tojson }},
   "shellReturn": {{ (shell_return if shell_return is defined else '/app?from=native_app')|tojson }},
   "slideTitles": [
     {{ tx('Pensi sì o no. Il resto segue.')|tojson }},

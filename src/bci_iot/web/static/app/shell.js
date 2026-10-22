@@ -157,11 +157,47 @@
     return false;
   }
 
-  function setChip(el, label, href, soft) {
+  function setupUrl(path) {
+    const u = new URL(path, window.location.origin);
+    u.searchParams.set("from", "native_app");
+    u.searchParams.set("embed", "1");
+    return u.pathname + u.search + (u.hash || "");
+  }
+
+  function openSetup(path, title) {
+    const overlay = $("#setup-overlay");
+    const frame = $("#setup-frame");
+    const titleEl = $("#setup-overlay-title");
+    if (!overlay || !frame) {
+      window.location.href = setupUrl(path);
+      return;
+    }
+    if (titleEl) titleEl.textContent = title || msg("setupTitle", "Configurazione");
+    frame.src = setupUrl(path);
+    overlay.hidden = false;
+    overlay.setAttribute("aria-hidden", "false");
+  }
+
+  function closeSetup() {
+    const overlay = $("#setup-overlay");
+    const frame = $("#setup-frame");
+    if (overlay) {
+      overlay.hidden = true;
+      overlay.setAttribute("aria-hidden", "true");
+    }
+    if (frame) frame.src = "about:blank";
+    refreshConnections();
+    if (typeof refreshAccount === "function") refreshAccount();
+  }
+
+  function setChip(el, label, path, soft) {
     if (!el) return;
     el.textContent = label;
     el.classList.toggle("soft", Boolean(soft));
-    if (href && "href" in el) el.setAttribute("href", href);
+    if (path && el.tagName === "A") {
+      el.setAttribute("href", setupUrl(path));
+      el.setAttribute("data-setup", path);
+    }
   }
 
   async function refreshConnections() {
@@ -192,6 +228,39 @@
       paired
     );
     nativeBridge("ensureCallBridge", { username: data.username || "" });
+  }
+
+  function bindSetupOverlay() {
+    $("#setup-overlay-close")?.addEventListener("click", () => closeSetup());
+    window.addEventListener("message", (ev) => {
+      const data = ev && ev.data;
+      if (!data || typeof data !== "object") return;
+      if (data.type === "iris-shell-close") closeSetup();
+    });
+
+    const titles = {
+      "/cuffia": () => msg("setupCuffia", "Cuffia"),
+      "/contesto": () => msg("setupContesto", "In ascolto"),
+      "/telefono-setup": () => msg("setupPhone", "Telefono"),
+    };
+
+    function onSetupChip(e) {
+      const a = e.target.closest("a[data-setup]");
+      if (!a || !a.closest("#screen-links")) return;
+      e.preventDefault();
+      if (!profile) {
+        show("account");
+        setHint($("#auth-hint"), msg("loginForSetup", "Accedi o crea l’account per configurare la cuffia."), "ok");
+        return;
+      }
+      const path = a.getAttribute("data-setup") || "/cuffia";
+      const titleFn = titles[path.split("?")[0]] || (() => msg("setupTitle", "Configurazione"));
+      openSetup(path, titleFn());
+    }
+
+    $("#conn-cuffia-chip")?.addEventListener("click", onSetupChip);
+    $("#conn-contesto-chip")?.addEventListener("click", onSetupChip);
+    $("#conn-phone-chip")?.addEventListener("click", onSetupChip);
   }
 
   function renderSlide(i, animate) {
@@ -896,7 +965,11 @@
 
     $("#conn-perms-btn")?.addEventListener("click", () => {
       if (!nativeBridge("openPermissions")) {
-        window.location.href = "/telefono-setup";
+        if (!profile) {
+          show("account");
+          return;
+        }
+        openSetup("/telefono-setup", msg("setupPhone", "Telefono"));
       }
     });
 
@@ -1044,6 +1117,7 @@
     bindPhonePicker();
     bindPasswordToggles();
     bindAuth();
+    bindSetupOverlay();
     nativeBridge("ensureCallBridge", {});
     setTimeout(() => show("iris"), 400);
 

@@ -32,7 +32,7 @@
         {% if agent and agent.ready_for_impulses %}hidden{% endif %}>
         {{ t('Indossa cuffia virtuale') }}
       </button>
-      <a class="btn ghost" href="/cuffia">{{ t('La tua cuffia') }}</a>
+      <a class="btn ghost" href="/cuffia{% if app_embed|default(false) %}?from=native_app&embed=1{% endif %}">{{ t('La tua cuffia') }}</a>
     </div>
   </div>
 
@@ -105,10 +105,14 @@
   </div>
 
   <nav class="hub-shortcuts" aria-label="{{ t('Altre aree') }}">
-    <a href="/cuffia">{{ t('Cuffia') }}</a>
-    <a href="/telefono-setup">{{ t('Telefono') }}</a>
+    <a href="/cuffia{% if app_embed|default(false) %}?from=native_app&embed=1{% endif %}">{{ t('Cuffia') }}</a>
+    <a href="/telefono-setup{% if app_embed|default(false) %}?from=native_app&embed=1{% endif %}">{{ t('Telefono') }}</a>
+    {% if app_embed|default(false) %}
+    <a href="{{ shell_return|default('/app?from=native_app') }}" data-shell-back>{{ t('Torna all’app') }}</a>
+    {% else %}
     <a href="/dashboard">{{ t('Ecosistema') }}</a>
     <a href="/demo">{{ t('Demo') }}</a>
+    {% endif %}
   </nav>
 </section>
 

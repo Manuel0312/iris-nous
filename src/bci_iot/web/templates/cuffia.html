@@ -34,8 +34,12 @@
       <p class="form-hint muted">{{ t('«Indossa cuffia virtuale» accende, mette in testa e conferma il contatto in un colpo solo — come avere la cuffia fisica per la demo.') }}</p>
     </div>
     <div class="private-actions cuffia-done-actions">
-      <a class="btn primary" href="/contesto">{{ t('In ascolto') }}</a>
+      <a class="btn primary" href="/contesto{% if app_embed|default(false) %}?from=native_app&embed=1{% endif %}">{{ t('In ascolto') }}</a>
+      {% if app_embed|default(false) %}
+      <a class="btn" href="{{ shell_return|default('/app?from=native_app') }}" data-shell-back>{{ t('Torna all’app') }}</a>
+      {% else %}
       <a class="btn" href="/dashboard">{{ t('Ecosistema') }}</a>
+      {% endif %}
       <button class="btn ghost" type="button" id="cuffia-reset-btn">{{ t('Ripristina') }}</button>
     </div>
     <p class="form-hint">{{ t('Ripristina cancella calibrazione e configurazione: solo se vuoi rifarle da zero.') }}</p>

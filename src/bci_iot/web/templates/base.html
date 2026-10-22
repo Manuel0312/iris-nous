@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;600;700&family=Noto+Sans+SC:wght@400;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/styles.css?v=irisPages93" />
+  <link rel="stylesheet" href="/static/styles.css?v=irisPages94" />
   <script>
     (function () {
       function scheme() {
@@ -37,8 +37,24 @@
     })();
   </script>
 </head>
-<body class="{% block body_class %}{% endblock %}">
+<body class="{% block body_class %}{% endblock %}{% if app_embed|default(false) %} is-app-embed{% endif %}">
   <canvas class="iris-bg" id="iris-bg" aria-hidden="true"></canvas>
+  {% if app_embed|default(false) %}
+  <div class="app-embed-bar" role="navigation">
+    <a class="app-embed-back" id="app-embed-back" href="{{ shell_return|default('/app?from=native_app') }}">← {{ t('Torna all’app') if t is defined else 'Torna all’app' }}</a>
+  </div>
+  <script>
+  (function () {
+    if (window.parent === window) return;
+    document.addEventListener("click", function (e) {
+      var a = e.target.closest("#app-embed-back, a[data-shell-back]");
+      if (!a) return;
+      e.preventDefault();
+      try { window.parent.postMessage({ type: "iris-shell-close" }, "*"); } catch (_) {}
+    });
+  })();
+  </script>
+  {% endif %}
   <header class="topbar">
     <div class="topbar-left">
       <a class="unito-home" href="/" title="{{ t('Home') if t is defined else 'Home' }}" aria-label="{{ t('Home') if t is defined else 'Home' }}">

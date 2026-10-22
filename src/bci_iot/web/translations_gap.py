@@ -1,6 +1,52 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.4.94 in-app cuffia ---
+    "App: cuffia e calibrazione senza uscire dall’app": {
+        "en": "App: headset and calibration without leaving the app",
+        "fr": "App : casque et calibration sans quitter l’app",
+        "de": "App: Headset und Kalibrierung ohne die App zu verlassen",
+        "pt": "App: headset e calibracao sem sair da app",
+        "zh": "应用：无需离开应用即可完成耳机与校准",
+        "ja": "アプリ：アプリを離れずにヘッドセットと校正",
+        "es": "App: casco y calibracion sin salir de la app",
+    },
+    "Da Connessioni si finiva sul sito, e chi creava l’account solo dal telefono non aveva lo stesso percorso cuffia del PC.": {
+        "en": "Connections sent you to the website, and phone-only signups lacked the same headset path as on PC.",
+        "fr": "Connexions renvoyait au site, et les comptes crees au telephone n’avaient pas le meme parcours casque que sur PC.",
+        "de": "Verbindungen landete auf der Website, und rein telefonische Konten hatten keinen Headset-Pfad wie am PC.",
+        "pt": "Ligacoes mandava para o site, e contas so no telemovel nao tinham o mesmo percurso de headset do PC.",
+        "zh": "从「连接」会跳到网站，仅用手机注册的用户没有与电脑相同的耳机流程。",
+        "ja": "接続からサイトへ飛ばされ、スマホだけで作ったアカウントはPCと同じヘッドセット導線がなかった。",
+        "es": "Conexiones te mandaba al sitio, y quien creo la cuenta solo en el telefono no tenia el mismo recorrido de casco que en PC.",
+    },
+    "Ora indosso, calibrazione SÌ/NO e In ascolto restano dentro l’app (stesso account e dati del cloud); l’admin vede anche gli account creati da telefono.": {
+        "en": "Wear, YES/NO calibration and Listening stay in the app (same cloud account and data); admin also sees phone-created accounts.",
+        "fr": "Porter, calibration OUI/NON et Ecoute restent dans l’app (meme compte cloud) ; l’admin voit aussi les comptes crees au telephone.",
+        "de": "Aufsetzen, JA/NEIN-Kalibrierung und Zuhoeren bleiben in der App (gleiches Cloud-Konto); Admin sieht auch telefonisch erstellte Konten.",
+        "pt": "Colocar, calibracao SIM/NAO e Em escuta ficam na app (mesma conta cloud); o admin ve tambem contas criadas no telemovel.",
+        "zh": "佩戴、是/否校准与聆听留在应用内（同一云账户与数据）；管理员也能看到手机创建的账户。",
+        "ja": "装着・YES/NO校正・聴取はアプリ内のまま（同じクラウド口座）。管理画面はスマホ作成アカウントも見える。",
+        "es": "Poner casco, calibracion SI/NO y Escucha quedan en la app (misma cuenta cloud); el admin tambien ve cuentas creadas en el telefono.",
+    },
+    "Torna all’app": {
+        "en": "Back to the app",
+        "fr": "Retour a l’app",
+        "de": "Zurueck zur App",
+        "pt": "Voltar a app",
+        "zh": "返回应用",
+        "ja": "アプリに戻る",
+        "es": "Volver a la app",
+    },
+    "Accedi o crea l’account per configurare la cuffia.": {
+        "en": "Sign in or create an account to set up the headset.",
+        "fr": "Connecte-toi ou cree un compte pour configurer le casque.",
+        "de": "Melde dich an oder erstelle ein Konto, um das Headset einzurichten.",
+        "pt": "Entra ou cria uma conta para configurar o headset.",
+        "zh": "登录或创建账户以配置耳机。",
+        "ja": "ヘッドセット設定にはログインまたはアカウント作成が必要です。",
+        "es": "Inicia sesion o crea una cuenta para configurar el casco.",
+    },
     # --- v0.4.93 phone app UX ---
     "App telefono: swipe fluido, Account e setup completo": {
         "en": "Phone app: smooth swipe, Account and full setup",
