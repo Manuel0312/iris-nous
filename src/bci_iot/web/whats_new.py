@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.5.11",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "App: Chatta con noi e chat in Account",
+                "Dall’app non c’era Chatta con noi né lo storico chat; lo swipe sulle foto Iris mostrava bande ai lati.",
+                "In Account (da loggati): Chatta con noi e Le tue chat restano nell’app senza aprire il sito; swipe foto senza bande laterali.",
+            ),
+        ),
+    },
+    {
         "version": "0.5.10",
         "intro": WHATS_NEW_INTRO,
         "entries": (

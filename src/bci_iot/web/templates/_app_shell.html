@@ -325,9 +325,16 @@
             </div>
           </div>
           <div class="account-actions">
+            <button type="button" class="btn primary wide" id="btn-chatta-open">{{ tx('Chatta con noi') }}</button>
             <button type="button" class="btn soft wide" id="btn-edit-profile">{{ tx('Modifica') }}</button>
             <a class="btn ghost wide" href="/cambia-password">{{ tx('Cambia password') }}</a>
             <button type="button" class="btn ghost wide" id="btn-logout" data-logout>{{ tx('Esci') }}</button>
+          </div>
+          <div class="account-chats glass-card" id="account-chats" hidden>
+            <h3 class="account-chats-title">{{ tx('Le tue chat') }}</h3>
+            <p class="form-hint account-chats-hint">{{ tx('Aperte e chiuse: tocca per leggere nell’app.') }}</p>
+            <ul class="account-chat-list" id="account-chat-list"></ul>
+            <p class="muted account-chats-empty" id="account-chats-empty" hidden>{{ tx('Nessuna chat ancora. Scrivi al team con Chatta con noi.') }}</p>
           </div>
         </div>
 
@@ -393,6 +400,40 @@
           <p id="profile-hint" class="hint" hidden></p>
           <button type="button" class="btn ghost wide" data-logout>{{ tx('Esci') }}</button>
         </div>
+      </div>
+    </div>
+  </section>
+
+  {# Chatta con noi — in-app (stesso sistema del sito, senza redirect) #}
+  <section class="screen" id="screen-chatta" data-screen="chatta">
+    <div class="panel fit cuffia-shell chatta-shell">
+      <button type="button" class="cuffia-back" id="chatta-back">← {{ tx('Torna') }}</button>
+      <p class="eyebrow">{{ tx('Chatta con noi') }}</p>
+      <p class="chat-disclaimer chat-disclaimer-full chat-disclaimer-top" id="chatta-disclaimer">{{ tx('I messaggi di questa chat possono essere tradotti automaticamente. Iris Nous non garantisce l’accuratezza della traduzione e declina ogni responsabilità per fraintendimenti, errori o omissioni derivanti dalla traduzione automatica. In caso di dubbio fai riferimento al testo originale.') }}</p>
+
+      <div id="chatta-compose" class="chatta-pane">
+        <h2>{{ tx('Scrivi al team') }}</h2>
+        <p class="copy cuffia-copy">{{ tx('Spiegaci il problema.') }}</p>
+        <label class="field">{{ tx('Messaggio') }}
+          <textarea id="chatta-compose-body" rows="4" maxlength="8000" required minlength="2" placeholder="{{ tx('Scrivi cosa non funziona…') }}"></textarea>
+        </label>
+        <button type="button" class="btn primary" id="chatta-compose-send">{{ tx('Invia') }}</button>
+        <p id="chatta-compose-hint" class="hint" hidden></p>
+      </div>
+
+      <div id="chatta-live" class="chatta-pane" hidden>
+        <h2 id="chatta-live-title">{{ tx('Chatta con noi') }}</h2>
+        <p class="muted" id="chatta-live-status"></p>
+        <ol class="chat-log chatta-log" id="chatta-log"></ol>
+        <p class="muted chat-wait-line" id="chatta-wait" hidden>{{ tx('Abbiamo ricevuto il messaggio. Ti risponderemo il prima possibile.') }}</p>
+        <p class="chat-closed-banner" id="chatta-closed" hidden>{{ tx('Conversazione terminata') }}</p>
+        <div class="chatta-composer" id="chatta-composer">
+          <textarea id="chatta-bar-input" rows="1" maxlength="8000" placeholder="{{ tx('Messaggio') }}"></textarea>
+          <button type="button" class="btn primary" id="chatta-bar-send">{{ tx('Invia') }}</button>
+        </div>
+        <button type="button" class="btn ghost" id="chatta-end" hidden>{{ tx('Termina conversazione') }}</button>
+        <button type="button" class="btn primary" id="chatta-new" hidden>{{ tx('Nuova chat') }}</button>
+        <p id="chatta-live-hint" class="hint" hidden></p>
       </div>
     </div>
   </section>

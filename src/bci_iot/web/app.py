@@ -275,6 +275,16 @@ class ContextDecideRequest(BaseModel):
     answer: str = Field(min_length=1, max_length=32)
 
 
+class SupportSendRequest(BaseModel):
+    body: str = Field(min_length=2, max_length=8000)
+    thread_id: int | None = None
+    ui_lang: str = ""
+
+
+class SupportCloseRequest(BaseModel):
+    thread_id: int
+
+
 class CompanionPairRequest(BaseModel):
     """Pair the companion: PIN (+ optional username/password if no session)."""
 
@@ -2455,6 +2465,173 @@ def create_app(
             request.session["support_chat_sticky"] = True
         _flash(request, "Messaggio inviato. Ti rispondiamo qui e, se serve, via email.", kind="ok")
         return _continue(request, next_url="/chatta", message="Messaggio inviato...")
+
+    def _support_thread_payload(access: AccessDatabase, thread: dict) -> dict:
+        return {
+            "id": int(thread["id"]),
+            "subject": str(thread.get("subject") or "Chatta con noi"),
+            "status": str(thread.get("status") or ""),
+            "updated_at": str(thread.get("updated_at") or ""),
+            "closed_at": str(thread.get("closed_at") or ""),
+            "open": access.is_support_thread_open(thread),
+            "access_code": str(thread.get("access_code") or ""),
+            "user_lang": str(thread.get("user_lang") or "it"),
+        }
+
+    @app.get("/api/support/threads")
+    def api_support_threads(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> dict:
+        """JSON: chat dell’utente loggato (shell app)."""
+
+        username = _require_username(request)
+        profile = profiles.get(username)
+        if profile is None:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        if profile.is_admin:
+            raise HTTPException(status_code=403, detail="Usa Notifiche admin")
+        threads = access.list_user_support_threads(
+            username=profile.username, email=profile.email or ""
+        )
+        open_id = None
+        open_t = access.get_open_support_thread(
+            username=profile.username, email=profile.email or ""
+        )
+        if open_t:
+            open_id = int(open_t["id"])
+        return {
+            "status": "ok",
+            "open_thread_id": open_id,
+            "threads": [_support_thread_payload(access, t) for t in threads],
+        }
+
+    @app.get("/api/support/threads/{thread_id}")
+    def api_support_thread(
+        request: Request,
+        thread_id: int,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> dict:
+        username = _require_username(request)
+        profile = profiles.get(username)
+        if profile is None:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        thread = access.get_support_thread(thread_id)
+        if thread is None or not access.user_owns_support_thread(
+            thread, username=profile.username, email=profile.email or ""
+        ):
+            raise HTTPException(status_code=404, detail="Chat non trovata")
+        access.mark_user_support_read(thread_id)
+        raw = access.list_support_messages(thread_id)
+        messages = present_support_messages(
+            raw,
+            viewer_is_admin=False,
+            viewer_lang=get_request_language(request),
+            fallback_user_lang=str(thread.get("user_lang") or get_request_language(request)),
+        )
+        _persist_fresh_chat_translations(access, messages)
+        clean = []
+        for m in messages:
+            clean.append(
+                {
+                    "id": int(m.get("id") or 0),
+                    "sender": str(m.get("sender") or ""),
+                    "body": str(m.get("display_body") or m.get("body") or ""),
+                    "original_body": str(m.get("original_body") or m.get("body") or ""),
+                    "show_original": bool(m.get("show_original")),
+                    "auto_translated": bool(m.get("auto_translated") or m.get("show_original")),
+                    "created_at": str(m.get("created_at") or ""),
+                }
+            )
+        return {
+            "status": "ok",
+            "thread": _support_thread_payload(access, thread),
+            "messages": clean,
+            "waiting": bool(clean)
+            and access.is_support_thread_open(thread)
+            and clean[-1]["sender"] != "admin",
+        }
+
+    @app.post("/api/support/send")
+    def api_support_send(
+        request: Request,
+        payload: SupportSendRequest,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> dict:
+        username = _require_username(request)
+        profile = profiles.get(username)
+        if profile is None:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        if profile.is_admin:
+            raise HTTPException(status_code=403, detail="Usa Notifiche admin")
+        text = (payload.body or "").strip()
+        if len(text) < 2:
+            raise HTTPException(status_code=400, detail="Messaggio troppo corto")
+        if payload.thread_id:
+            thread = access.get_support_thread(int(payload.thread_id))
+            if thread is None or not access.user_owns_support_thread(
+                thread, username=profile.username, email=profile.email or ""
+            ):
+                raise HTTPException(status_code=404, detail="Chat non trovata")
+            if not access.is_support_thread_open(thread):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Conversazione chiusa. Aprine una nuova.",
+                )
+        user_lang = (payload.ui_lang or "").strip().lower()[:2] or get_request_language(request)
+        lang_src = detect_message_language(text, hint=user_lang)
+        body_translated = ""
+        lang_dst = ""
+        if lang_src != "it":
+            preview = translate_text(text, source=lang_src, target="it")
+            if preview and preview != text:
+                body_translated = preview
+                lang_dst = "it"
+        guest_name = f"{profile.first_name} {profile.last_name}".strip() or profile.username
+        thread_id = access.add_user_support_message(
+            username=profile.username,
+            guest_name=guest_name,
+            guest_email=profile.email or "",
+            guest_phone=profile.phone_e164 or profile.phone_label or "",
+            channel="chat",
+            subject="Chatta con noi",
+            body=text,
+            user_lang=user_lang,
+            body_translated=body_translated,
+            lang_src=lang_src,
+            lang_dst=lang_dst,
+        )
+        thread = access.get_support_thread(thread_id)
+        return {
+            "status": "ok",
+            "thread": _support_thread_payload(access, thread or {"id": thread_id}),
+            "message": "Messaggio inviato.",
+        }
+
+    @app.post("/api/support/close")
+    def api_support_close(
+        request: Request,
+        payload: SupportCloseRequest,
+        profiles: ProfileStore = Depends(_store),
+        access: AccessDatabase = Depends(_access),
+    ) -> dict:
+        username = _require_username(request)
+        profile = profiles.get(username)
+        if profile is None:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        thread = access.get_support_thread(int(payload.thread_id))
+        if thread is None or not access.user_owns_support_thread(
+            thread, username=profile.username, email=profile.email or ""
+        ):
+            raise HTTPException(status_code=404, detail="Chat non trovata")
+        closed = access.close_support_thread(int(payload.thread_id))
+        return {
+            "status": "ok",
+            "thread": _support_thread_payload(access, closed or thread),
+        }
 
     def _render_ecosistema(
         request: Request,

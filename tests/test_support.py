@@ -498,3 +498,58 @@ def test_chat_live_has_whatsapp_dock(tmp_path: Path) -> None:
     )
     assert ".chat-live-wrap > .chat-composer-dock" in css
     assert "order: 2" in css.split(".chat-live-wrap > .chat-composer-dock", 1)[1][:120]
+
+
+def test_api_support_threads_send_close_for_app(tmp_path: Path) -> None:
+    """JSON API usata dalla shell app (Chatta in Account)."""
+    app = create_app(data_dir=tmp_path, session_secret="support-api")
+    client = TestClient(app)
+    client.post(
+        "/api/auth/register",
+        json={
+            "username": "mario",
+            "email": "mario@gmail.com",
+            "password": "Segreta123",
+        },
+    )
+    store = client.app.state.store
+    profile = store.get("mario")
+    assert profile is not None
+    profile.email_verified = True
+    profile.first_name = "Mario"
+    profile.last_name = "Rossi"
+    profile.gender = "male"
+    store.save(profile)
+    client.post("/api/auth/login", json={"username": "mario", "password": "Segreta123"})
+
+    empty = client.get("/api/support/threads")
+    assert empty.status_code == 200
+    assert empty.json()["threads"] == []
+    assert empty.json()["open_thread_id"] is None
+
+    sent = client.post(
+        "/api/support/send",
+        json={"body": "Ciao, la cuffia non si collega dall'app.", "ui_lang": "it"},
+    )
+    assert sent.status_code == 200
+    tid = sent.json()["thread"]["id"]
+    assert sent.json()["thread"]["open"] is True
+
+    listed = client.get("/api/support/threads")
+    assert listed.status_code == 200
+    assert listed.json()["open_thread_id"] == tid
+    assert len(listed.json()["threads"]) == 1
+
+    detail = client.get(f"/api/support/threads/{tid}")
+    assert detail.status_code == 200
+    assert detail.json()["waiting"] is True
+    assert len(detail.json()["messages"]) == 1
+    assert "cuffia" in detail.json()["messages"][0]["body"].lower()
+
+    closed = client.post("/api/support/close", json={"thread_id": tid})
+    assert closed.status_code == 200
+    assert closed.json()["thread"]["open"] is False
+
+    after = client.get("/api/support/threads")
+    assert after.json()["open_thread_id"] is None
+    assert after.json()["threads"][0]["closed_at"]

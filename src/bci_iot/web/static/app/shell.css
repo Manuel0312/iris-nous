@@ -484,9 +484,12 @@ html[data-theme-resolved="light"] .btn.ghost {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  background: #0b0b0d;
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
+  /* Evita bande laterali durante lo swipe (clip stretto sul viewport foto) */
+  isolation: isolate;
 }
 
 .iris-photo {
@@ -495,8 +498,8 @@ html[data-theme-resolved="light"] .btn.ghost {
   overflow: hidden;
   background: #0b0b0d;
   touch-action: pan-y;
-  will-change: transform;
-  transition: transform 0.12s ease-out;
+  /* Non spostare il contenitore: solo l’immagine, con scale più ampia */
+  transform: none !important;
 }
 
 .iris-photo img {
@@ -505,8 +508,12 @@ html[data-theme-resolved="light"] .btn.ghost {
   object-fit: cover;
   object-position: center center;
   display: block;
-  transform: scale(1.02);
+  /* Bleed: con swipe non si vedono i bordi vuoti */
+  transform: scale(1.14);
+  transform-origin: center center;
+  will-change: transform;
   transition: none;
+  backface-visibility: hidden;
 }
 
 .iris-photo img.is-swap {
@@ -514,8 +521,8 @@ html[data-theme-resolved="light"] .btn.ghost {
 }
 
 @keyframes photoIn {
-  from { opacity: 0.55; transform: scale(1.04); }
-  to { opacity: 1; transform: scale(1.02); }
+  from { opacity: 0.55; transform: scale(1.16); }
+  to { opacity: 1; transform: scale(1.14); }
 }
 
 .explain-card.is-swap {
@@ -742,7 +749,8 @@ html[data-theme-resolved="light"] .btn.ghost {
 #account-guest,
 #account-confirm,
 #account-user[data-mode="view"] {
-  overflow: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Solo modifica profilo può scorrere (form lungo) */
@@ -757,6 +765,148 @@ html[data-theme-resolved="light"] .btn.ghost {
 .account-actions {
   display: grid;
   gap: 0.35rem;
+}
+
+.account-chats {
+  margin-top: 0.55rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 14px;
+  max-height: 7.5rem;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.account-chats[hidden] { display: none !important; }
+
+.account-chats-title {
+  margin: 0 0 0.2rem;
+  font-size: 0.92rem;
+}
+
+.account-chats-hint {
+  margin: 0 0 0.45rem;
+  font-size: 0.72rem;
+}
+
+.account-chat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.account-chat-list li button {
+  width: 100%;
+  appearance: none;
+  border: 1px solid var(--glass-edge);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--shell-ink);
+  text-align: left;
+  padding: 0.5rem 0.65rem;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.account-chat-list li button strong {
+  display: block;
+  font-size: 0.84rem;
+}
+
+.account-chat-list li button span {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--shell-muted);
+  margin-top: 0.1rem;
+}
+
+.account-chats-empty {
+  margin: 0.25rem 0 0;
+  font-size: 0.78rem;
+}
+
+.chatta-shell {
+  gap: 0.55rem;
+}
+
+.chatta-pane textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 14px;
+  border: 1px solid var(--glass-edge);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--shell-ink);
+  font: inherit;
+  font-size: 16px;
+  padding: 0.7rem 0.85rem;
+  resize: vertical;
+  min-height: 5.5rem;
+}
+
+.chatta-log {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem 0.15rem;
+  display: grid;
+  gap: 0.55rem;
+  max-height: min(42vh, 22rem);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chatta-log .chat-bubble {
+  border-radius: 16px;
+  padding: 0.65rem 0.8rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--glass-edge);
+}
+
+.chatta-log .chat-mine {
+  background: color-mix(in srgb, var(--shell-accent) 22%, transparent);
+}
+
+.chatta-log .chat-who {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+.chatta-log .chat-translated-badge {
+  display: inline-block;
+  margin: 0.2rem 0;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.chatta-log time {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.7rem;
+  opacity: 0.65;
+}
+
+.chatta-composer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.45rem;
+  align-items: end;
+  margin-top: 0.35rem;
+}
+
+.chatta-composer textarea {
+  min-height: 2.6rem;
+  max-height: 6rem;
+  resize: none;
+}
+
+.chatta-shell .chat-disclaimer-top {
+  font-size: 0.72rem;
+  margin-bottom: 0.35rem;
 }
 
 #account-confirm .btn.ghost {

@@ -232,10 +232,14 @@
     contesto: true,
     permessi: true,
     musica: true,
+    chatta: true,
   };
 
+  let chattaThreadId = null;
+  let chattaPoll = null;
+
   function show(name) {
-    if (needsEmailGate(profile) && name !== "account") {
+    if (needsEmailGate(profile) && name !== "account" && name !== "chatta") {
       showEmailGate(profile);
       return;
     }
@@ -244,14 +248,21 @@
     $$(".screen").forEach((el) => el.classList.toggle("on", el.dataset.screen === name));
     $$(".shell-tabs .tab").forEach((el) => {
       const go = el.getAttribute("data-go");
-      el.classList.toggle("on", go === name || (NATIVE_CONN[name] && go === "links"));
+      el.classList.toggle(
+        "on",
+        go === name || (NATIVE_CONN[name] && go === "links" && name !== "chatta") || (name === "chatta" && go === "account")
+      );
     });
     if (name === "iris") startCarousel();
     else stopCarousel();
+    if (name !== "chatta") stopChattaPoll();
     if (name === "account") refreshAccount();
     if (name === "links") refreshConnections();
     if (name === "cuffia") refreshCuffia();
     if (name === "contesto") refreshContesto();
+    if (name === "chatta") {
+      /* opened via openChatta / openChattaThread */
+    }
     if (name === "musica") {
       api("/api/me").then(({ res, data }) => {
         if (res.ok) fillProfile(data);
@@ -970,6 +981,7 @@
       btn.setAttribute("aria-current", n === i ? "true" : "false");
     });
     if (photo) photo.style.transform = "";
+    img.style.transform = "scale(1.14)";
 
     const kickAnim = () => {
       if (token !== slideToken || !animate) return;
@@ -1059,6 +1071,7 @@
   function bindIrisSwipe() {
     const stage = $(".iris-stage");
     const photo = $("#iris-photo");
+    const img = $("#iris-photo-img");
     if (!stage) return;
     let startX = 0;
     let startY = 0;
@@ -1066,6 +1079,7 @@
 
     const clearDrag = () => {
       if (photo) photo.style.transform = "";
+      if (img) img.style.transform = "scale(1.14)";
     };
 
     const onStart = (x, y) => {
@@ -1074,11 +1088,13 @@
       tracking = true;
     };
     const onMove = (x, y) => {
-      if (!tracking || !photo) return;
+      if (!tracking || !img) return;
       const dx = x - startX;
       const dy = y - startY;
       if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(dy)) return;
-      photo.style.transform = `translate3d(${Math.round(dx * 0.28)}px,0,0)`;
+      // Solo l’immagine (scale alto): niente bande laterali sul contenitore.
+      const capped = Math.max(-48, Math.min(48, Math.round(dx * 0.18)));
+      img.style.transform = `translate3d(${capped}px,0,0) scale(1.14)`;
     };
     const onEnd = (x, y) => {
       if (!tracking) return;
@@ -1561,6 +1577,240 @@
     return { res, data };
   }
 
+  function stopChattaPoll() {
+    if (chattaPoll) {
+      clearInterval(chattaPoll);
+      chattaPoll = null;
+    }
+  }
+
+  function startChattaPoll() {
+    stopChattaPoll();
+    chattaPoll = setInterval(() => {
+      if (chattaThreadId) void loadChattaThread(chattaThreadId, { silent: true });
+    }, 5000);
+  }
+
+  function statusLabel(t) {
+    if (t.closed_at) return msg("chatClosed", "Chiusa");
+    if (t.status === "replied") return msg("chatOpenReplied", "Aperta · risposta del team");
+    if (t.status === "viewed") return msg("chatOpenViewed", "Aperta · in lettura");
+    return msg("chatOpenWait", "Aperta · in attesa");
+  }
+
+  async function refreshAccountChats() {
+    const box = $("#account-chats");
+    const list = $("#account-chat-list");
+    const empty = $("#account-chats-empty");
+    if (!box || !list) return;
+    if (!profile || needsEmailGate(profile)) {
+      box.hidden = true;
+      return;
+    }
+    box.hidden = false;
+    const { res, data } = await api("/api/support/threads");
+    if (!res.ok) {
+      list.innerHTML = "";
+      if (empty) empty.hidden = false;
+      return;
+    }
+    const threads = data.threads || [];
+    list.innerHTML = "";
+    if (!threads.length) {
+      if (empty) empty.hidden = false;
+      return;
+    }
+    if (empty) empty.hidden = true;
+    threads.slice(0, 8).forEach((t) => {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.innerHTML = "<strong></strong><span></span>";
+      btn.querySelector("strong").textContent = t.subject || msg("chattaTitle", "Chatta con noi");
+      btn.querySelector("span").textContent = statusLabel(t);
+      btn.addEventListener("click", () => openChattaThread(t.id));
+      li.appendChild(btn);
+      list.appendChild(li);
+    });
+  }
+
+  function showChattaPane(which) {
+    const compose = $("#chatta-compose");
+    const live = $("#chatta-live");
+    if (compose) compose.hidden = which !== "compose";
+    if (live) live.hidden = which !== "live";
+  }
+
+  function renderChattaMessages(messages) {
+    const log = $("#chatta-log");
+    if (!log) return;
+    log.innerHTML = "";
+    (messages || []).forEach((m) => {
+      const li = document.createElement("li");
+      const mine = m.sender !== "admin";
+      li.className = "chat-bubble " + (mine ? "chat-mine chat-user" : "chat-theirs chat-team");
+      const who = document.createElement("span");
+      who.className = "chat-who";
+      who.textContent = mine ? msg("you", "Tu") : msg("teamIris", "Team Iris Nous");
+      li.appendChild(who);
+      if (m.auto_translated || m.show_original) {
+        const badge = document.createElement("span");
+        badge.className = "chat-translated-badge";
+        badge.textContent = msg("autoTranslated", "Tradotto automaticamente");
+        li.appendChild(badge);
+      }
+      const p = document.createElement("p");
+      p.textContent = m.body || "";
+      li.appendChild(p);
+      if (m.show_original && m.original_body) {
+        const det = document.createElement("details");
+        det.className = "chat-original";
+        const sum = document.createElement("summary");
+        sum.textContent = msg("originalText", "Testo originale");
+        const op = document.createElement("p");
+        op.textContent = m.original_body;
+        det.appendChild(sum);
+        det.appendChild(op);
+        li.appendChild(det);
+      }
+      if (m.created_at) {
+        const time = document.createElement("time");
+        time.textContent = String(m.created_at).replace("T", " ").slice(0, 16);
+        li.appendChild(time);
+      }
+      log.appendChild(li);
+    });
+    log.scrollTop = log.scrollHeight;
+  }
+
+  async function loadChattaThread(threadId, { silent } = {}) {
+    const { res, data } = await api("/api/support/threads/" + encodeURIComponent(threadId));
+    if (!res.ok) {
+      if (!silent) {
+        setHint($("#chatta-live-hint"), (data && data.detail) || msg("chatLoadFail", "Chat non disponibile."), "err");
+      }
+      return false;
+    }
+    chattaThreadId = Number(data.thread && data.thread.id) || threadId;
+    showChattaPane("live");
+    const title = $("#chatta-live-title");
+    if (title) title.textContent = (data.thread && data.thread.subject) || msg("chattaTitle", "Chatta con noi");
+    const st = $("#chatta-live-status");
+    if (st) st.textContent = statusLabel(data.thread || {});
+    renderChattaMessages(data.messages || []);
+    const open = Boolean(data.thread && data.thread.open);
+    const wait = $("#chatta-wait");
+    const closed = $("#chatta-closed");
+    const composer = $("#chatta-composer");
+    const endBtn = $("#chatta-end");
+    const newBtn = $("#chatta-new");
+    if (wait) wait.hidden = !(open && data.waiting);
+    if (closed) closed.hidden = open;
+    if (composer) composer.hidden = !open;
+    if (endBtn) endBtn.hidden = !open;
+    if (newBtn) newBtn.hidden = open;
+    if (open) startChattaPoll();
+    else stopChattaPoll();
+    return true;
+  }
+
+  async function openChatta() {
+    if (!profile || needsEmailGate(profile)) {
+      show("account");
+      setHint($("#auth-hint"), msg("loginForChat", "Accedi per scrivere al team."), "ok");
+      return;
+    }
+    show("chatta");
+    setHint($("#chatta-compose-hint"));
+    setHint($("#chatta-live-hint"));
+    const { res, data } = await api("/api/support/threads");
+    if (res.ok && data.open_thread_id) {
+      await loadChattaThread(data.open_thread_id);
+      return;
+    }
+    chattaThreadId = null;
+    stopChattaPoll();
+    showChattaPane("compose");
+    const body = $("#chatta-compose-body");
+    if (body) body.value = "";
+  }
+
+  async function openChattaThread(threadId) {
+    if (!profile || needsEmailGate(profile)) {
+      show("account");
+      return;
+    }
+    show("chatta");
+    await loadChattaThread(threadId);
+  }
+
+  async function sendChattaMessage(text, fromCompose) {
+    const body = String(text || "").trim();
+    if (body.length < 2) return;
+    const hint = fromCompose ? $("#chatta-compose-hint") : $("#chatta-live-hint");
+    setHint(hint, msg("sending", "Invio…"));
+    const payload = {
+      body,
+      ui_lang: document.documentElement.lang || "it",
+    };
+    if (chattaThreadId) payload.thread_id = chattaThreadId;
+    const { res, data } = await api("/api/support/send", { method: "POST", body: payload });
+    if (!res.ok) {
+      setHint(hint, (data && data.detail) || msg("sendFail", "Invio non riuscito."), "err");
+      return;
+    }
+    setHint(hint);
+    const tid = data.thread && data.thread.id;
+    if (tid) await loadChattaThread(tid);
+    void refreshAccountChats();
+  }
+
+  function bindChatta() {
+    $("#btn-chatta-open")?.addEventListener("click", () => openChatta());
+    $("#chatta-back")?.addEventListener("click", () => {
+      stopChattaPoll();
+      show("account");
+      void refreshAccountChats();
+    });
+    $("#chatta-compose-send")?.addEventListener("click", () => {
+      sendChattaMessage($("#chatta-compose-body")?.value || "", true);
+    });
+    $("#chatta-bar-send")?.addEventListener("click", async () => {
+      const input = $("#chatta-bar-input");
+      await sendChattaMessage(input?.value || "", false);
+      if (input) input.value = "";
+    });
+    $("#chatta-bar-input")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        $("#chatta-bar-send")?.click();
+      }
+    });
+    $("#chatta-end")?.addEventListener("click", async () => {
+      if (!chattaThreadId) return;
+      if (!window.confirm(msg("chatEndConfirm", "Terminare questa conversazione? Potrai aprirne una nuova dopo."))) {
+        return;
+      }
+      const { res, data } = await api("/api/support/close", {
+        method: "POST",
+        body: { thread_id: chattaThreadId },
+      });
+      if (!res.ok) {
+        setHint($("#chatta-live-hint"), (data && data.detail) || msg("chatEndFail", "Chiusura non riuscita."), "err");
+        return;
+      }
+      await loadChattaThread(chattaThreadId);
+      void refreshAccountChats();
+    });
+    $("#chatta-new")?.addEventListener("click", () => {
+      chattaThreadId = null;
+      stopChattaPoll();
+      showChattaPane("compose");
+      const body = $("#chatta-compose-body");
+      if (body) body.value = "";
+    });
+  }
+
   async function refreshAccount() {
     showAccountState("account-loading");
     setHint($("#auth-hint"));
@@ -1571,6 +1821,8 @@
       profile = null;
       clearEmailGate();
       showAccountState("account-guest");
+      const box = $("#account-chats");
+      if (box) box.hidden = true;
       return;
     }
     if (!res.ok) {
@@ -1582,10 +1834,13 @@
     fillProfile(data);
     if (needsEmailGate(data)) {
       showEmailGate(data);
+      const box = $("#account-chats");
+      if (box) box.hidden = true;
       return;
     }
     clearEmailGate();
     showAccountState("account-user");
+    void refreshAccountChats();
   }
 
   function bindPasswordToggles() {
@@ -1883,6 +2138,7 @@
     bindSetupOverlay();
     bindCuffia();
     bindConnScreens();
+    bindChatta();
     nativeBridge("ensureCallBridge", {});
     const bootScreen = new URLSearchParams(location.search).get("screen") || "";
     setTimeout(async () => {
@@ -1904,8 +2160,13 @@
         contesto: true,
         permessi: true,
         musica: true,
+        chatta: true,
       };
-      if (bootScreen && allowed[bootScreen]) show(bootScreen);
+      if (bootScreen === "chatta") {
+        show("account");
+        if (res.ok && !needsEmailGate(data)) openChatta();
+        else show("account");
+      } else if (bootScreen && allowed[bootScreen]) show(bootScreen);
       else show("iris");
     }, 400);
 

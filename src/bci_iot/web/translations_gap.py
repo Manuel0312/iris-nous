@@ -1,6 +1,70 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.5.11 app chatta + swipe bands ---
+    "App: Chatta con noi e chat in Account": {
+        "en": "App: Chat with us and chats in Account",
+        "fr": "App : Discutez avec nous et chats dans Compte",
+        "de": "App: Chatten Sie mit uns und Chats in Konto",
+        "pt": "App: Fale connosco e chats em Conta",
+        "zh": "应用：账户内“与我们聊天”和历史会话",
+        "ja": "アプリ：アカウントにチャットと履歴",
+        "es": "App: Chatea con nosotros y chats en Cuenta",
+    },
+    "Dall’app non c’era Chatta con noi né lo storico chat; lo swipe sulle foto Iris mostrava bande ai lati.": {
+        "en": "The app had no Chat with us or chat history; swiping Iris photos showed side bands.",
+        "fr": "L’app n’avait ni Discutez avec nous ni historique ; le swipe des photos Iris montrait des bandes.",
+        "de": "In der App fehlten Chat und Verlauf; Iris-Foto-Swipe zeigte Seitenstreifen.",
+        "pt": "Na app nao havia Fale connosco nem historico; o swipe nas fotos Iris mostrava faixas laterais.",
+        "zh": "应用内没有“与我们聊天”和历史；滑动 Iris 照片两侧出现色带。",
+        "ja": "アプリにチャット/履歴がなく、Iris写真スワイプで横帯が出た。",
+        "es": "En la app no habia Chatea ni historial; el swipe de fotos Iris mostraba bandas laterales.",
+    },
+    "In Account (da loggati): Chatta con noi e Le tue chat restano nell’app senza aprire il sito; swipe foto senza bande laterali.": {
+        "en": "In Account (when signed in): Chat with us and Your chats stay in the app without opening the site; photo swipe without side bands.",
+        "fr": "Dans Compte (connecte) : Discutez avec nous et Vos chats restent dans l’app ; swipe photo sans bandes.",
+        "de": "In Konto (eingeloggt): Chat und Deine Chats bleiben in der App; Foto-Swipe ohne Seitenstreifen.",
+        "pt": "Em Conta (com login): Fale connosco e As tuas chats ficam na app; swipe sem faixas laterais.",
+        "zh": "已登录账户内：与我们聊天和你的会话留在应用内；滑动照片无侧带。",
+        "ja": "ログイン後のアカウント：チャットと履歴はアプリ内。写真スワイプの横帯なし。",
+        "es": "En Cuenta (con sesion): Chatea y Tus chats quedan en la app; swipe sin bandas laterales.",
+    },
+    "Le tue chat": {
+        "en": "Your chats",
+        "fr": "Vos chats",
+        "de": "Deine Chats",
+        "pt": "As tuas chats",
+        "zh": "你的会话",
+        "ja": "あなたのチャット",
+        "es": "Tus chats",
+    },
+    "Aperte e chiuse: tocca per leggere nell’app.": {
+        "en": "Open and closed: tap to read in the app.",
+        "fr": "Ouvertes et fermees : touchez pour lire dans l’app.",
+        "de": "Offen und geschlossen: tippen zum Lesen in der App.",
+        "pt": "Abertas e fechadas: toca para ler na app.",
+        "zh": "进行中与已结束：点按在应用内阅读。",
+        "ja": "開閉どちらも：タップでアプリ内表示。",
+        "es": "Abiertas y cerradas: toca para leer en la app.",
+    },
+    "Nessuna chat ancora. Scrivi al team con Chatta con noi.": {
+        "en": "No chats yet. Write to the team with Chat with us.",
+        "fr": "Pas encore de chat. Ecrivez a l’equipe via Discutez avec nous.",
+        "de": "Noch keine Chats. Schreib dem Team ueber Chatten Sie mit uns.",
+        "pt": "Ainda sem chats. Escreve a equipa com Fale connosco.",
+        "zh": "暂无会话。用“与我们聊天”写信给团队。",
+        "ja": "まだチャットなし。「チャット」からチームへ。",
+        "es": "Aun no hay chats. Escribe al equipo con Chatea con nosotros.",
+    },
+    "Scrivi al team": {
+        "en": "Write to the team",
+        "fr": "Ecrire a l’equipe",
+        "de": "Dem Team schreiben",
+        "pt": "Escrever a equipa",
+        "zh": "写信给团队",
+        "ja": "チームに書く",
+        "es": "Escribir al equipo",
+    },
     # --- v0.5.10 chat auto-translate restore ---
     "Chatta con noi: traduzione automatica di nuovo chiara": {
         "en": "Chat with us: automatic translation clear again",
