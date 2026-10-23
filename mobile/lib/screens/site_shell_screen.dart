@@ -73,8 +73,23 @@ class _SiteShellScreenState extends State<SiteShellScreen> {
           onPageStarted: (_) {
             if (mounted) setState(() => _loading = true);
           },
-          onPageFinished: (_) {
+          onPageFinished: (_) async {
             if (mounted) setState(() => _loading = false);
+            try {
+              await _controller.runJavaScript('''
+                (function(){
+                  var s=document.getElementById('iris-no-tap-hl');
+                  if(!s){
+                    s=document.createElement('style');
+                    s.id='iris-no-tap-hl';
+                    s.textContent='*{ -webkit-tap-highlight-color:transparent!important; tap-highlight-color:transparent!important;} button,a,.btn,.chip,.tab{-webkit-tap-highlight-color:transparent!important;outline:none;}';
+                    document.head.appendChild(s);
+                  }
+                  document.documentElement.style.webkitTapHighlightColor='transparent';
+                  document.body && (document.body.style.webkitTapHighlightColor='transparent');
+                })();
+              ''');
+            } catch (_) {}
             _armBridgeIfPaired();
           },
         ),

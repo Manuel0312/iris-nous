@@ -409,21 +409,21 @@
 
       <div class="cuffia-pane on" id="cuffia-pane-1" data-pane="1">
         <h2>{{ tx('Associazione') }}</h2>
-        <p class="copy cuffia-copy">{{ tx('Simulazione: accendi, cerca in Bluetooth, associa Iris, poi indossa. Con la cuffia vera sarà lo stesso flusso.') }}</p>
-        <p class="cuffia-status" id="cs-label">{{ tx('Spenta') }}</p>
-        <ul class="cuffia-meta" id="cs-meta">
+        <p class="copy cuffia-copy" id="cs-flow-hint">{{ tx('Passo 1 di 3: accendi la cuffia.') }}</p>
+        <p class="cuffia-status glass-chip" id="cs-label">{{ tx('Spenta') }}</p>
+        <ul class="cuffia-meta glass-panel" id="cs-meta">
           <li><span>{{ tx('Alimentazione') }}</span><strong id="cs-power">off</strong></li>
           <li><span>{{ tx('Bluetooth') }}</span><strong id="cs-bt">{{ tx('non associata') }}</strong></li>
-          <li><span>{{ tx('In testa') }}</span><strong id="cs-wear">{{ tx('no') }}</strong></li>
+          <li><span>{{ tx('In testa') }}</span><strong id="cs-wear-val">{{ tx('no') }}</strong></li>
           <li><span>{{ tx('Contatto') }}</span><strong id="cs-contact">—</strong></li>
         </ul>
-        <div class="cuffia-yn">
-          <button type="button" class="btn primary" id="cs-power-on">{{ tx('Accendi') }}</button>
-          <button type="button" class="btn" id="cs-scan">{{ tx('Cerca Bluetooth') }}</button>
+        <div class="cuffia-flow-actions" id="cs-flow-actions">
+          <button type="button" class="btn primary glass-btn" id="cs-power-on">{{ tx('1 · Accendi') }}</button>
+          <button type="button" class="btn primary glass-btn" id="cs-scan" hidden>{{ tx('2 · Cerca Bluetooth') }}</button>
+          <ul class="bt-scan-list glass-panel" id="cs-scan-list" hidden></ul>
+          <button type="button" class="btn primary glass-btn" id="cs-wear-btn" hidden>{{ tx('3 · Indossa e verifica') }}</button>
+          <button type="button" class="btn primary glass-btn" id="cs-to-calib" hidden>{{ tx('Vai alla calibrazione') }}</button>
         </div>
-        <ul class="bt-scan-list" id="cs-scan-list" hidden></ul>
-        <button type="button" class="btn primary" id="cs-wear" disabled>{{ tx('Indossa e verifica contatto') }}</button>
-        <button type="button" class="btn primary" id="cs-to-calib" disabled>{{ tx('Vai alla calibrazione') }}</button>
       </div>
 
       <div class="cuffia-pane" id="cuffia-pane-2" data-pane="2" hidden>
@@ -602,6 +602,11 @@
   "cuffiaErr": {{ tx('Operazione non riuscita.')|tojson }},
   "cuffiaPowerOk": {{ tx('Cuffia accesa (simulata). Cerca in Bluetooth.')|tojson }},
   "cuffiaWorn": {{ tx('Cuffia in testa.')|tojson }},
+  "cuffiaStep1": {{ tx('Passo 1 di 3: accendi la cuffia.')|tojson }},
+  "cuffiaStep2": {{ tx('Passo 2 di 3: cerca in Bluetooth e associa Iris Nous.')|tojson }},
+  "cuffiaStep2b": {{ tx('Passo 2: tocca Associa su Iris Nous.')|tojson }},
+  "cuffiaStep3": {{ tx('Passo 3 di 3: indossa e verifica il contatto.')|tojson }},
+  "cuffiaStepOk": {{ tx('Cuffia pronta: vai alla calibrazione.')|tojson }},
   "btPaired": {{ tx('associata')|tojson }},
   "btUnpaired": {{ tx('non associata')|tojson }},
   "btAssociate": {{ tx('Associa')|tojson }},
