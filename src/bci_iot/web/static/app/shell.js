@@ -1518,8 +1518,6 @@
       }
       fillProfile(data, { mode: "view", justSaved: true });
       setHint($("#profile-hint"));
-      const summary = $("#account-summary");
-      if (summary) summary.scrollIntoView({ behavior: "smooth", block: "start" });
     });
 
     $("#btn-edit-profile")?.addEventListener("click", () => {
@@ -1537,12 +1535,13 @@
       setHint($("#profile-hint"));
     });
 
-    $("#btn-logout")?.addEventListener("click", async () => {
+    const doLogout = async () => {
       await api("/api/auth/logout", { method: "POST" });
       profile = null;
       showAccountState("account-guest");
       setHint($("#auth-hint"), msg("loggedOut", "Sei uscito."), "ok");
-    });
+    };
+    $$("[data-logout]").forEach((btn) => btn.addEventListener("click", doLogout));
 
     $("#profile-avatar-btn")?.addEventListener("click", () => {
       $("#photo-input")?.click();

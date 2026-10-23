@@ -204,7 +204,7 @@
   </section>
 
   <section class="screen" id="screen-account" data-screen="account">
-    <div class="panel account-scroll">
+    <div class="panel fit account-fit">
       <p class="eyebrow">{{ tx('Account') }}</p>
 
       <div id="account-loading" class="account-state">
@@ -213,7 +213,7 @@
 
       <div id="account-guest" class="account-state" hidden>
         <h2>{{ tx('Accedi o iscriviti') }}</h2>
-        <p class="copy why-copy">{{ tx('Serve un account per tenere foto, nome e collegamenti sul sito e sull’app. Stesso profilo ovunque: lo cambi da una parte, lo ritrovi dall’altra.') }}</p>
+        <p class="copy why-copy account-lede">{{ tx('Stesso profilo su sito e app.') }}</p>
         <div class="auth-toggle" role="tablist">
           <button type="button" class="auth-tab on" data-auth="login">{{ tx('Accedi') }}</button>
           <button type="button" class="auth-tab" data-auth="register">{{ tx('Iscriviti') }}</button>
@@ -262,10 +262,10 @@
       {# Blocco in-app: niente redirect al sito per il codice email #}
       <div id="account-confirm" class="account-state" hidden>
         <h2>{{ tx('Conferma la tua email') }}</h2>
-        <p class="copy" id="confirm-email-lede">
-          {{ tx('Ti abbiamo mandato una email da Iris Nous. Apri la posta (anche Spam), copia il codice di 6 caratteri e inseriscilo qui.') }}
+        <p class="copy account-lede" id="confirm-email-lede">
+          {{ tx('Inserisci il codice di 6 caratteri dalla email Iris Nous.') }}
         </p>
-        <p class="copy"><strong id="confirm-email-masked"></strong></p>
+        <p class="copy account-lede"><strong id="confirm-email-masked"></strong></p>
         <p class="flash ok" id="confirm-dev-otp" hidden></p>
         <form id="form-confirm-email" class="auth-form data-card glass-card" autocomplete="on">
           <label class="field">{{ tx('Codice ricevuto via email') }}
@@ -295,7 +295,7 @@
           <button type="button" class="profile-avatar-btn" id="profile-avatar-btn" aria-label="{{ tx('Cambia foto') }}">
             <img id="profile-photo" class="avatar" alt="" hidden />
             <span id="profile-photo-fallback" class="avatar avatar-fallback" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M20 21a8 8 0 0 0-16 0"/>
                 <circle cx="12" cy="8" r="4"/>
               </svg>
@@ -324,8 +324,11 @@
               <strong id="summary-gender">—</strong>
             </div>
           </div>
-          <button type="button" class="btn soft wide" id="btn-edit-profile">{{ tx('Modifica') }}</button>
-          <a class="btn ghost wide" href="/cambia-password">{{ tx('Cambia password') }}</a>
+          <div class="account-actions">
+            <button type="button" class="btn soft wide" id="btn-edit-profile">{{ tx('Modifica') }}</button>
+            <a class="btn ghost wide" href="/cambia-password">{{ tx('Cambia password') }}</a>
+            <button type="button" class="btn ghost wide" id="btn-logout" data-logout>{{ tx('Esci') }}</button>
+          </div>
         </div>
 
         <div id="account-edit" class="account-pane" hidden>
@@ -388,9 +391,8 @@
             <button type="button" class="btn ghost" id="btn-cancel-edit">{{ tx('Annulla') }}</button>
           </form>
           <p id="profile-hint" class="hint" hidden></p>
+          <button type="button" class="btn ghost wide" data-logout>{{ tx('Esci') }}</button>
         </div>
-
-        <button type="button" class="btn ghost" id="btn-logout">{{ tx('Esci') }}</button>
       </div>
     </div>
   </section>

@@ -1,6 +1,52 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.5.3 account no-scroll ---
+    "App: Account senza scorrere": {
+        "en": "App: Account without scrolling",
+        "fr": "App : Compte sans defilement",
+        "de": "App: Konto ohne Scrollen",
+        "pt": "App: Conta sem scroll",
+        "zh": "应用：账户页无需滚动",
+        "ja": "アプリ：アカウントをスクロールなしで",
+        "es": "App: Cuenta sin desplazar",
+    },
+    "In Account foto, dati e tasti chiedevano di scorrere per vedere tutto.": {
+        "en": "In Account, photo, details and buttons needed scrolling to see everything.",
+        "fr": "Dans Compte, photo, donnees et boutons demandaient de faire defiler.",
+        "de": "Im Konto brauchte man Scrollen, um Foto, Daten und Tasten zu sehen.",
+        "pt": "Em Conta, foto, dados e botoes pediam scroll para ver tudo.",
+        "zh": "账户页的照片、资料和按钮需要滚动才能看全。",
+        "ja": "アカウントでは写真・データ・ボタンを見るのにスクロールが必要だった。",
+        "es": "En Cuenta, foto, datos y botones pedian desplazar para verlo todo.",
+    },
+    "Ora profilo, accesso e conferma email stanno in una sola schermata; solo «Modifica» può scorrere il form.": {
+        "en": "Profile, sign-in and email confirm now fit one screen; only Edit may scroll the form.",
+        "fr": "Profil, connexion et confirmation email tiennent sur un ecran ; seul Modifier peut defiler.",
+        "de": "Profil, Anmeldung und E-Mail-Bestaetigung passen auf einen Screen; nur Bearbeiten scrollt.",
+        "pt": "Perfil, acesso e confirmacao de email cabem num ecran; so Editar pode fazer scroll.",
+        "zh": "资料、登录与邮箱确认现一屏可见；仅「修改」可滚动表单。",
+        "ja": "プロフィール・ログイン・メール確認は1画面。スクロールは「編集」のフォームのみ。",
+        "es": "Perfil, acceso y confirmacion de email caben en una pantalla; solo Editar puede desplazar.",
+    },
+    "Stesso profilo su sito e app.": {
+        "en": "Same profile on site and app.",
+        "fr": "Meme profil sur le site et l’app.",
+        "de": "Gleicher Profil auf Website und App.",
+        "pt": "Mesmo perfil no site e na app.",
+        "zh": "网站与应用共用同一资料。",
+        "ja": "サイトとアプリで同じプロフィール。",
+        "es": "El mismo perfil en web y app.",
+    },
+    "Inserisci il codice di 6 caratteri dalla email Iris Nous.": {
+        "en": "Enter the 6-character code from the Iris Nous email.",
+        "fr": "Saisis le code a 6 caracteres de l’email Iris Nous.",
+        "de": "Gib den 6-Zeichen-Code aus der Iris-Nous-E-Mail ein.",
+        "pt": "Introduz o codigo de 6 caracteres do email Iris Nous.",
+        "zh": "输入 Iris Nous 邮件中的 6 位验证码。",
+        "ja": "Iris Nousメールの6文字コードを入力。",
+        "es": "Introduce el codigo de 6 caracteres del email de Iris Nous.",
+    },
     # --- v0.5.2 contrast / readability ---
     "App: testi leggibili su ogni tema e foto": {
         "en": "App: readable text on every theme and photo",

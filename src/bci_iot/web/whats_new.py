@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.5.3",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "App: Account senza scorrere",
+                "In Account foto, dati e tasti chiedevano di scorrere per vedere tutto.",
+                "Ora profilo, accesso e conferma email stanno in una sola schermata; solo «Modifica» può scorrere il form.",
+            ),
+        ),
+    },
+    {
         "version": "0.5.2",
         "intro": WHATS_NEW_INTRO,
         "entries": (
