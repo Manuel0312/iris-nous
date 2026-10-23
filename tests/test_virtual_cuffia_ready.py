@@ -35,6 +35,48 @@ def _register(client: TestClient, store, name: str = "virt_u") -> None:
     )
 
 
+def test_power_off_clears_bt_session_not_calibration(tmp_path: Path) -> None:
+    """Cuffia spenta → non «già associata»; modelli SÌ/NO restano."""
+
+    app = create_app(data_dir=tmp_path, session_secret="virt-power-off")
+    client = TestClient(app)
+    store = app.state.store
+    _register(client, store, "pwr_u")
+    store.ensure_headset_pairing("pwr_u")
+    store.mark_calibration_complete("pwr_u")
+
+    on = client.post("/api/headset/power", json={"on": True})
+    assert on.status_code == 200
+    scan = client.get("/api/headset/scan")
+    assert scan.status_code == 200
+    iris = next(d for d in scan.json()["devices"] if d.get("kind") == "iris")
+    pair = client.post(
+        "/api/headset/pair",
+        json={"device_id": iris["id"], "device_name": iris.get("name") or "Iris"},
+    )
+    assert pair.status_code == 200
+    assert pair.json().get("headset_bt_paired") is True
+    assert store.is_headset_bt_paired(store.get("pwr_u")) is True
+
+    off = client.post("/api/headset/power", json={"on": False})
+    assert off.status_code == 200
+    body = off.json()
+    assert body["agent"]["power"] == "off"
+    assert body.get("headset_bt_paired") is False
+    assert store.is_headset_bt_paired(store.get("pwr_u")) is False
+    assert store.get("pwr_u").calibration_complete is True
+
+    me = client.get("/api/me")
+    assert me.status_code == 200
+    assert me.json()["headset_bt_paired"] is False
+    assert me.json()["calibration_complete"] is True
+
+    agent = client.get("/api/headset/agent")
+    assert agent.status_code == 200
+    assert agent.json()["headset_bt_paired"] is False
+    assert agent.json()["agent"]["power"] == "off"
+
+
 def test_virtual_ready_one_tap(tmp_path: Path) -> None:
     app = create_app(data_dir=tmp_path, session_secret="virt-ready")
     client = TestClient(app)

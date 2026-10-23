@@ -1018,9 +1018,10 @@ class ProfileStore:
         return profile
 
     def is_headset_bt_paired(self, profile: UserProfile) -> bool:
-        """True after explicit Bluetooth-style associate (or legacy calibration)."""
-        if bool(getattr(profile, "calibration_complete", False)):
-            return True
+        """True only after explicit Bluetooth-style associate while the headset is in session.
+
+        Calibration templates can persist without implying the cuffia is on / linked now.
+        """
         return bool((profile.usage_stats or {}).get("headset_bt_paired"))
 
     def mark_headset_bt_paired(self, username: str, *, device_id: str) -> UserProfile:
@@ -1033,6 +1034,20 @@ class ProfileStore:
         stats["headset_bt_paired"] = True
         stats["headset_bt_paired_at"] = _utc_now()
         stats["headset_bt_device_id"] = clean
+        profile.usage_stats = stats
+        self.save(profile)
+        return profile
+
+    def clear_headset_bt_session(self, username: str) -> UserProfile:
+        """Drop live Bluetooth link (power off). Keeps calibration / account."""
+
+        profile = self.get(username)
+        if profile is None:
+            raise KeyError(f"unknown user: {username}")
+        stats = dict(profile.usage_stats or {})
+        stats.pop("headset_bt_paired", None)
+        stats.pop("headset_bt_paired_at", None)
+        # Keep headset_bt_device_id as last known device for scan preference.
         profile.usage_stats = stats
         self.save(profile)
         return profile

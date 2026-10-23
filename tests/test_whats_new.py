@@ -32,6 +32,7 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
         or "Hub «La tua cuffia»" in page.text
         or "Privacy e chiarezza demo" in page.text
     )
+    assert "Cuffia: se è spenta non è «già associata»" in page.text
     assert "App: niente crash su Connessioni, login che resta" in page.text
     assert "App: SÌ risponde la chiamata, tasti più distanti" in page.text
     assert "App: vetro liquido e cuffia a passi chiari" in page.text

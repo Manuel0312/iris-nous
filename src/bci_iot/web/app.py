@@ -145,7 +145,8 @@ class ProfileResponse(BaseModel):
 
         photo = str(profile.photo_filename or "").strip()
         stats = profile.usage_stats or {}
-        bt_paired = bool(stats.get("headset_bt_paired")) or bool(profile.calibration_complete)
+        # Solo sessione BT viva: calibrazione completata ≠ cuffia accesa/associata ora.
+        bt_paired = bool(stats.get("headset_bt_paired"))
         return cls(
             user_id=profile.user_id,
             username=profile.username,
@@ -2922,8 +2923,12 @@ def create_app(
             data_root=profiles.data_root,
         )
         status = agent.status()
+        # Spenta → sessione BT chiusa (non «già associata» all’apertura app).
+        if (status.get("power") or "off") == "off" and profiles.is_headset_bt_paired(profile):
+            profiles.clear_headset_bt_session(username)
+            profile = profiles.get(username) or profile
         # Migrate old one-tap virtual-ready sessions into explicit BT-paired flag.
-        if status.get("ready_for_impulses") and not profiles.is_headset_bt_paired(profile):
+        elif status.get("ready_for_impulses") and not profiles.is_headset_bt_paired(profile):
             profiles.mark_headset_bt_paired(username, device_id=profile.headset_id)
             profile = profiles.get(username) or profile
         return {
@@ -2951,10 +2956,23 @@ def create_app(
             data_root=profiles.data_root,
         )
         try:
-            status = agent.power_on() if body.on else agent.power_off()
+            if body.on:
+                status = agent.power_on()
+                paired = profiles.is_headset_bt_paired(profile)
+            else:
+                # Spenta → niente associazione «già fatta»: va riaccesa e riassociata.
+                status = agent.power_off()
+                profiles.clear_headset_bt_session(username)
+                paired = False
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        return {"status": "ok", "agent": status}
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Profile not found") from exc
+        return {
+            "status": "ok",
+            "agent": status,
+            "headset_bt_paired": paired,
+        }
 
     @app.post("/api/headset/wear")
     def api_headset_wear(

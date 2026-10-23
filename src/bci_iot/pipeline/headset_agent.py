@@ -554,7 +554,9 @@ class SimulatedHeadsetAgent:
     def power_off(self) -> dict[str, Any]:
 
         self.memory.power = "off"
-
+        self.memory.wear = "off_head"
+        self.memory.contact_ok = False
+        self.memory.contact_channels = []
         self.memory.phase = "powered_off"
 
         self.save()

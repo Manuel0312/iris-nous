@@ -524,10 +524,6 @@
       showEmailGate(me.data);
       return;
     }
-    if (me.data.calibration_complete) {
-      showCuffiaPane("done");
-      return;
-    }
     const { res, data } = await api("/api/headset/agent");
     if (res.ok && data && data.agent) {
       applyCuffiaAgent(data.agent, {
@@ -535,7 +531,12 @@
           typeof data.headset_bt_paired === "boolean" ? data.headset_bt_paired : cuffiaBtPaired,
       });
     } else applyCuffiaAgent(null);
-    showCuffiaPane(cuffiaAgent && cuffiaAgent.ready_for_impulses ? "2" : "1");
+    const ready = Boolean(cuffiaAgent && cuffiaAgent.ready_for_impulses);
+    const calib = Boolean(me.data.calibration_complete);
+    // Calibrazione salvata ≠ sessione attiva: se spenta/non associata riparti da Associazione.
+    if (ready && calib) showCuffiaPane("done");
+    else if (ready && !calib) showCuffiaPane("2");
+    else showCuffiaPane("1");
   }
 
   function bindCuffia() {
@@ -564,7 +565,10 @@
         setCuffiaHint((data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
         return;
       }
-      applyCuffiaAgent(data.agent);
+      applyCuffiaAgent(data.agent, {
+        headset_bt_paired:
+          typeof data.headset_bt_paired === "boolean" ? data.headset_bt_paired : false,
+      });
       setCuffiaHint(msg("cuffiaPowerOk", "Cuffia accesa (simulata). Cerca in Bluetooth."), "ok");
     });
 
@@ -588,8 +592,15 @@
         return;
       }
       applyCuffiaAgent(data.agent, { headset_bt_paired: true });
+      const ready = Boolean(data.agent && data.agent.ready_for_impulses);
+      const calib = Boolean(profile && profile.calibration_complete);
+      if (ready && calib) {
+        setCuffiaHint(msg("cuffiaReadyAgain", "Cuffia pronta (modelli SÌ/NO già salvati)."), "ok");
+        showCuffiaPane("done");
+        return;
+      }
       setCuffiaHint(
-        data.agent && data.agent.ready_for_impulses
+        ready
           ? msg("cuffiaReady", "Cuffia pronta per la calibrazione.")
           : msg("cuffiaWorn", "Cuffia in testa."),
         "ok"
@@ -655,10 +666,24 @@
     fillProfile(data);
     await ensureThisDevicePaired();
     const calib = Boolean(data.calibration_complete);
-    const bt = Boolean(data.headset_bt_paired);
-    if (calib) setChip(cuffia, msg("connReady", "Pronta"), "/cuffia", true);
-    else if (bt) setChip(cuffia, msg("connCalibrate", "Da calibrare"), "/cuffia", false);
-    else setChip(cuffia, msg("connPair", "Da associare"), "/cuffia", false);
+    let powered = false;
+    let ready = false;
+    let bt = Boolean(data.headset_bt_paired);
+    const ag = await api("/api/headset/agent");
+    if (ag.res.ok && ag.data) {
+      if (typeof ag.data.headset_bt_paired === "boolean") bt = ag.data.headset_bt_paired;
+      const agent = ag.data.agent;
+      if (agent) {
+        powered = (agent.power || "off") === "on";
+        ready = Boolean(agent.ready_for_impulses);
+      }
+    }
+    // Cuffia spenta → non «già associata / pronta»: va riaccesa e riassociata.
+    if (ready && calib) setChip(cuffia, msg("connReady", "Pronta"), "/cuffia", true);
+    else if (!powered) setChip(cuffia, msg("connPower", "Da accendere"), "/cuffia", false);
+    else if (!bt) setChip(cuffia, msg("connPair", "Da associare"), "/cuffia", false);
+    else if (!calib) setChip(cuffia, msg("connCalibrate", "Da calibrare"), "/cuffia", false);
+    else setChip(cuffia, msg("connWear", "Da indossare"), "/cuffia", false);
     setChip(contesto, msg("connOpen", "Apri"), "/contesto", calib);
     setChip(
       music,
@@ -666,8 +691,6 @@
       "/musica",
       Boolean(data.spotify_linked)
     );
-    // Soft: il bridge nativo si arma al login/pair, non a ogni tap su Connessioni
-    // (su Samsung ripartire il servizio chiamate crashava l’app).
   }
 
   function appReturnPath(screen) {

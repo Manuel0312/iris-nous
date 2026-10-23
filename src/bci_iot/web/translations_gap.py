@@ -1,6 +1,61 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.5.9 cuffia session vs calibration ---
+    "Cuffia: se è spenta non è «già associata»": {
+        "en": "Headset: if off it is not «already paired»",
+        "fr": "Casque : eteint, pas « deja associe »",
+        "de": "Headset: aus = nicht «bereits verbunden»",
+        "pt": "Cuffia: se desligada nao esta «ja associada»",
+        "zh": "头戴：关机时不算“已关联”",
+        "ja": "ヘッドセット：電源オフは「既にペア済み」ではない",
+        "es": "Casco: si esta apagado no esta «ya asociado»",
+    },
+    "Riapriendo l’app la cuffia risultava già associata/pronta anche spenta, saltando Accendi e Bluetooth.": {
+        "en": "Reopening the app showed the headset already paired/ready even when off, skipping Power and Bluetooth.",
+        "fr": "En rouvrant l’app le casque paraissait deja associe/pret meme eteint, sans Allumer ni Bluetooth.",
+        "de": "Beim erneuten Oeffnen wirkte das Headset bereits verbunden/bereit trotz Aus, ohne Ein/BT.",
+        "pt": "Ao reabrir a app a cuffia parecia ja associada/pronta mesmo desligada, saltando Ligar e Bluetooth.",
+        "zh": "重开应用时头戴即使关机也显示已关联/就绪，跳过开机与蓝牙。",
+        "ja": "再起動後、電源オフでも既にペア/準備完了と表示され、電源・BTを飛ばしていた。",
+        "es": "Al reabrir la app el casco ya aparecia asociado/listo aunque apagado, saltando Encender y Bluetooth.",
+    },
+    "Ora: spenta = Da accendere; va Accendi → Associa → Indossa. I modelli SÌ/NO (impulsi) restano salvati; i tasti sono solo il modo di inviarli in demo.": {
+        "en": "Now: off = Power on; flow is Power → Pair → Wear. YES/NO models (impulses) stay saved; buttons only send them in the demo.",
+        "fr": "Maintenant : eteint = A allumer ; Allumer → Associer → Porter. Modeles OUI/NON (impulsions) conserves ; boutons = envoi demo.",
+        "de": "Jetzt: aus = Einschalten; Ein → Koppeln → Aufsetzen. JA/NEIN-Modelle bleiben; Tasten nur Demo-Impuls.",
+        "pt": "Agora: desligada = Ligar; Ligar → Associar → Colocar. Modelos SIM/NAO (impulsos) guardados; botoes so enviam na demo.",
+        "zh": "现在：关机=待开机；开机→关联→佩戴。是/否模型（冲动）保留；按钮仅演示发送。",
+        "ja": "オフ＝電源オンから。電源→ペア→装着。はい/いいえモデルは保持。ボタンはデモ送信のみ。",
+        "es": "Ahora: apagado = Encender; Encender → Asociar → Poner. Modelos SI/NO (impulsos) guardados; botones solo los envian en demo.",
+    },
+    "Da accendere": {
+        "en": "Power on",
+        "fr": "A allumer",
+        "de": "Einschalten",
+        "pt": "Ligar",
+        "zh": "待开机",
+        "ja": "電源を入れる",
+        "es": "Encender",
+    },
+    "Da indossare": {
+        "en": "Put on",
+        "fr": "A porter",
+        "de": "Aufsetzen",
+        "pt": "Colocar",
+        "zh": "待佩戴",
+        "ja": "装着する",
+        "es": "Poner",
+    },
+    "Cuffia pronta (modelli SÌ/NO già salvati).": {
+        "en": "Headset ready (YES/NO models already saved).",
+        "fr": "Casque pret (modeles OUI/NON deja enregistres).",
+        "de": "Headset bereit (JA/NEIN-Modelle bereits gespeichert).",
+        "pt": "Cuffia pronta (modelos SIM/NAO ja guardados).",
+        "zh": "头戴就绪（是/否模型已保存）。",
+        "ja": "ヘッドセット準備完了（はい/いいえモデル保存済み）。",
+        "es": "Casco listo (modelos SI/NO ya guardados).",
+    },
     # --- v0.5.8 crash Connessioni + session restore ---
     "App: niente crash su Connessioni, login che resta": {
         "en": "App: no crash on Connections, login that sticks",
