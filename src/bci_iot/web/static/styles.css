@@ -1126,7 +1126,6 @@ img.unito-logo {
     min-height: 200px;
     transform: none !important;
   }
-  body.page-contact-mail .shell,
   body.page-chat .shell {
     width: min(42rem, calc(100% - 1.1rem));
     padding-top: calc(4.2rem + var(--safe-top));
@@ -5464,8 +5463,7 @@ html[data-theme-resolved="light"] .chat-bubble.chat-admin time {
   color: var(--ink);
 }
 
-body.page-chat .shell,
-body.page-contact-mail .shell {
+body.page-chat .shell {
   width: min(420px, calc(100% - 1.25rem));
   padding-bottom: calc(1.5rem + var(--safe-bottom));
 }

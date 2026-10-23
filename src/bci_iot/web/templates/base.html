@@ -13,8 +13,11 @@
   <link rel="apple-touch-icon" href="/static/icon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;600;700&family=Noto+Sans+SC:wght@400;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/styles.css?v=irisCss511" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  {% if (lang|default('it')) in ('zh', 'ja') %}
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&family=Noto+Sans+SC:wght@400;600;700&display=swap" rel="stylesheet" />
+  {% endif %}
+  <link rel="stylesheet" href="/static/styles.css?v=irisCss512" />
   <script>
     (function () {
       function scheme() {
@@ -500,6 +503,16 @@
       }
     })();
   </script>
-  <script src="/static/bg3d.js?v=irisBg3d10" defer></script>
+  <script>
+    (function () {
+      try {
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      } catch (e) {}
+      var s = document.createElement("script");
+      s.src = "/static/bg3d.js?v=irisBg3d11";
+      s.defer = true;
+      document.body.appendChild(s);
+    })();
+  </script>
 </body>
 </html>

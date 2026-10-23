@@ -40,11 +40,20 @@
   let accountMode = "view";
 
   function preloadIrisPhotos() {
-    PHOTO_SRC.forEach((p) => {
-      const im = new Image();
-      im.decoding = "async";
-      im.src = p.src;
-    });
+    // Solo la prima subito; le altre quando servono (meno peso all’apertura app).
+    const first = PHOTO_SRC[0];
+    if (!first) return;
+    const im = new Image();
+    im.decoding = "async";
+    im.src = first.src;
+  }
+
+  function preloadIrisPhotoAt(i) {
+    const p = PHOTO_SRC[i];
+    if (!p) return;
+    const im = new Image();
+    im.decoding = "async";
+    im.src = p.src;
   }
 
   function genderLabel(code) {
@@ -1016,6 +1025,8 @@
   function go(i, animate = true) {
     index = (i + PHOTOS.length) % PHOTOS.length;
     renderSlide(index, animate);
+    preloadIrisPhotoAt(index);
+    preloadIrisPhotoAt((index + 1) % PHOTOS.length);
   }
 
   function next() {
