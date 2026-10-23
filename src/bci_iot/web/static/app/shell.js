@@ -693,6 +693,13 @@
     set("#cx-flag-call", yn(active.call));
     set("#cx-flag-msg", yn(active.message));
     set("#cx-flag-music", yn(active.music));
+    const world = data.world || {};
+    if (world.message_preview && active.message) {
+      set(
+        "#cx-detail",
+        msg("cxPreview", "Anteprima:") + " «" + world.message_preview + "»"
+      );
+    }
     const ready = Boolean(data.headset && data.headset.ready_for_impulses);
     const si = $("#cx-si");
     const no = $("#cx-no-btn");
@@ -754,7 +761,15 @@
       else setHint($("#cx-hint"), (data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
     });
     $("#cx-sim-msg")?.addEventListener("click", async () => {
-      const { res, data } = await api("/api/context/event", { method: "POST", body: { event: "message" } });
+      const { res, data } = await api("/api/context/event", {
+        method: "POST",
+        body: {
+          event: "message",
+          sender: "Marco",
+          app: "WhatsApp",
+          preview: "Ciao, ci vediamo più tardi?",
+        },
+      });
       if (res.ok) applyContesto(data);
       else setHint($("#cx-hint"), (data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
     });

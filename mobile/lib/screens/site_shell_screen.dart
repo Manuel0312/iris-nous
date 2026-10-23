@@ -9,6 +9,7 @@ import '../services/auth_store.dart';
 import '../services/call_control.dart';
 import '../services/call_observer.dart';
 import '../services/iris_api.dart';
+import '../services/notification_observer.dart';
 import '../services/whatsapp_open.dart';
 import 'permissions_screen.dart';
 
@@ -38,12 +39,18 @@ class _SiteShellScreenState extends State<SiteShellScreen> {
     onIncomingRing: (caller) => _ensureCallKit(caller),
     onCallIdle: () => _clearCallKitIfRinging(),
   );
+  late final NotificationObserverService _notifs = NotificationObserverService(
+    _api,
+    onMessage: _onIncomingMessageNotif,
+  );
   final CallControlService _callControl = CallControlService();
   Timer? _beat;
   bool _loading = true;
   bool _bridgeArmed = false;
   bool _callKitPresented = false;
   bool _callKitAnswered = false;
+  String _lastMsgPreview = '';
+  String _lastMsgSender = '';
 
   @override
   void initState() {
@@ -121,12 +128,24 @@ class _SiteShellScreenState extends State<SiteShellScreen> {
     );
   }
 
+  Future<void> _onIncomingMessageNotif(Map<String, dynamic> payload) async {
+    _lastMsgSender = (payload['sender'] ?? '').toString();
+    _lastMsgPreview = (payload['preview'] ?? '').toString();
+    if (!mounted) return;
+    final who = _lastMsgSender.isEmpty ? 'Messaggio' : _lastMsgSender;
+    final body = _lastMsgPreview.isEmpty ? 'Nuova notifica verso Iris.' : _lastMsgPreview;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$who: $body')),
+    );
+  }
+
   Future<void> _armBridgeIfPaired({bool force = false}) async {
     if (_bridgeArmed && !force) return;
     final paired = await widget.store.isPaired();
     if (!paired) return;
     _bridgeArmed = true;
     _calls.start();
+    unawaited(_notifs.start());
     _armHeartbeat();
     unawaited(_refreshBridge());
   }
@@ -166,6 +185,7 @@ class _SiteShellScreenState extends State<SiteShellScreen> {
         _bridgeArmed = false;
         _beat?.cancel();
         _calls.stop();
+        _notifs.stop();
       }
     } catch (_) {}
   }
@@ -198,6 +218,21 @@ class _SiteShellScreenState extends State<SiteShellScreen> {
       if (id.isEmpty || action.isEmpty) continue;
       if (action == 'open_whatsapp' || action == 'open_url') {
         final url = item['url']?.toString() ?? 'whatsapp://';
+        if (_lastMsgPreview.isNotEmpty && mounted) {
+          await showDialog<void>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: Text(_lastMsgSender.isEmpty ? 'Messaggio' : _lastMsgSender),
+              content: Text(_lastMsgPreview),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
         await openWhatsApp(url: url);
         ids.add(id);
         continue;
@@ -225,6 +260,7 @@ class _SiteShellScreenState extends State<SiteShellScreen> {
   void dispose() {
     _beat?.cancel();
     _calls.stop();
+    _notifs.stop();
     super.dispose();
   }
 

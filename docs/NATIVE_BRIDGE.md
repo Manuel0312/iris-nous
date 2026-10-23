@@ -18,9 +18,9 @@ File: `mobile/lib/screens/site_shell_screen.dart`, plugin Kotlin/Swift in `mobil
 |----------|-------------|---------|
 | Rilevare squillo | Sì (permesso telefono) | Parziale / CallKit present |
 | Rispondi / riaggancia cellulare | Limite OS (non sempre) | CallKit se presentato da Iris |
-| Notifiche / messaggi | Listener notifiche se permesso | Limiti iOS più stretti |
+| Notifiche / messaggi | **NotificationListener** (anteprima WhatsApp/Telegram/SMS) + SÌ mostra testo | Limiti iOS: non si legge il contenuto |
 | Spotify next | Sì se OAuth collegato | Sì se OAuth collegato |
-| Funziona app chiusa | Servizio / heartbeat (migliorabile) | Background ristretto |
+| Funziona app chiusa | Foreground service chiamate + listener notifiche (con accesso attivo) | Background ristretto |
 
 Idea PDF (HFP/HID): utile **dopo** i permessi app, come livello extra che fa sembrare Iris una cuffia hands-free. Non sostituisce OpenBCI né il server Iris.
 

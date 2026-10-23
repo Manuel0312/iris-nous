@@ -120,6 +120,7 @@ class ContextWorld:
     unread_message: bool = False
     message_from: str = ""
     message_app: str = ""
+    message_preview: str = ""
     music_playing: bool = False
     track_hint: str = ""
 
@@ -186,16 +187,21 @@ class ContextRouter:
         *,
         sender: str = "Marco",
         app: str = "WhatsApp",
+        preview: str = "",
     ) -> dict[str, Any]:
         previous = self.active_focus()
         self.world.unread_message = True
         self.world.message_from = (sender or "Marco").strip() or "Marco"
         self.world.message_app = (app or "WhatsApp").strip() or "WhatsApp"
+        clean_preview = " ".join((preview or "").strip().split())
+        self.world.message_preview = clean_preview[:500]
         self._open_gate_if_interrupt(previous)
         msg = (
             f"Arriva un messaggio da {self.world.message_from} "
             f"({self.world.message_app})."
         )
+        if self.world.message_preview:
+            msg = f"{msg} Anteprima: «{self.world.message_preview}»."
         if self.gate and not self.gate.acked:
             msg = f"{msg} Conferma prima di aprire (SÌ = ok, decido qui)."
         return self.status(message=msg)
@@ -231,6 +237,7 @@ class ContextRouter:
         self.world.unread_message = bool(data.get("unread_message"))
         self.world.message_from = str(data.get("message_from") or "")
         self.world.message_app = str(data.get("message_app") or "")
+        self.world.message_preview = str(data.get("message_preview") or "")[:500]
         self.world.music_playing = bool(data.get("music_playing"))
         self.world.track_hint = str(data.get("track_hint") or "")
 
@@ -272,10 +279,13 @@ class ContextRouter:
             who = w.message_from or "nuovo messaggio"
             app = w.message_app or "Messaggi"
             title = f"Messaggio da {who} ({app})"
+            detail = "Apri o ignora; poi si passa a ciò che resta (musica, ecc.)."
+            if w.message_preview:
+                detail = f"Anteprima: «{w.message_preview}». SÌ = vedi/apri · NO = ignora."
             return FocusSnapshot(
                 kind=kind,
                 title=title,
-                detail="Apri o ignora; poi si passa a ciò che resta (musica, ecc.).",
+                detail=detail,
                 prompt=f"{title} — pensa SÌ o NO",
                 yes_label="Apri",
                 no_label="Ignora",
@@ -423,15 +433,20 @@ class ContextRouter:
         if action == "open_message":
             who = w.message_from or "messaggio"
             app = w.message_app or "Messaggi"
+            preview = (w.message_preview or "").strip()
             w.unread_message = False
             w.message_from = ""
             w.message_app = ""
+            w.message_preview = ""
+            if preview:
+                return f"Messaggio da {who}: «{preview}». Apro {app}."
             return f"Apro {app} (da {who}). Canale messaggio chiuso."
         if action == "dismiss_message":
             who = w.message_from or "messaggio"
             w.unread_message = False
             w.message_from = ""
             w.message_app = ""
+            w.message_preview = ""
             return f"Messaggio di {who} ignorato. Canale messaggio chiuso."
         if action == "next_track":
             return "Decisione: prossima canzone (musica resta attiva)."
@@ -462,6 +477,7 @@ class ContextRouter:
                 "unread_message": self.world.unread_message,
                 "message_from": self.world.message_from,
                 "message_app": self.world.message_app,
+                "message_preview": self.world.message_preview,
                 "music_playing": self.world.music_playing,
                 "track_hint": self.world.track_hint,
             },

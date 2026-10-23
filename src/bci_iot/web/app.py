@@ -238,6 +238,7 @@ class ContextEventRequest(BaseModel):
     sender: str = Field(default="Marco", max_length=64)
     app: str = Field(default="WhatsApp", max_length=64)
     track: str = Field(default="", max_length=128)
+    preview: str = Field(default="", max_length=500)
 
 
 class ContextDecideRequest(BaseModel):
@@ -259,6 +260,10 @@ class CompanionEventRequest(BaseModel):
     event: str = Field(min_length=1, max_length=32)
     caller: str = Field(default="", max_length=64)
     track: str = Field(default="", max_length=128)
+    sender: str = Field(default="", max_length=64)
+    app: str = Field(default="WhatsApp", max_length=64)
+    preview: str = Field(default="", max_length=500)
+    body: str = Field(default="", max_length=500)
 
 
 class CompanionDecideRequest(BaseModel):
@@ -3922,6 +3927,8 @@ def create_app(
                 "caller_name": world.caller_name or "",
                 "unread_message": bool(world.unread_message),
                 "message_from": world.message_from or "",
+                "message_app": world.message_app or "",
+                "message_preview": world.message_preview or "",
                 "music_playing": bool(world.music_playing),
                 "track_hint": world.track_hint or "",
                 "focus": focus,
@@ -3932,10 +3939,11 @@ def create_app(
                 "callkit_answer_reject_ios": True,
                 "iris_yes_no_actions": True,
                 "sms_read": False,
+                "notification_preview_android": True,
                 "note": (
                     "SÌ/NO: su Android risponde/rifiuta la linea cellulare (TelecomManager). "
                     "Su iPhone Iris presenta una chiamata CallKit (schermata nativa): "
-                    "SÌ/NO rispondono a quella. La linea GSM del gestore resta fuori controllo Apple."
+                    "SÌ/NO rispondono a quella. Anteprima messaggi: solo Android con Accesso alle notifiche."
                 ),
             },
         }
@@ -4067,8 +4075,14 @@ def create_app(
             return payload
 
         if ev in {"message_incoming", "message", "sms_incoming", "notification_message"}:
-            sender = caller if caller != "sconosciuto" else "Marco"
-            payload = router.simulate_message(sender=sender)
+            sender = (body.sender or "").strip() or (
+                caller if caller != "sconosciuto" else "Marco"
+            )
+            preview = (body.preview or body.body or "").strip()
+            app_name = (body.app or "WhatsApp").strip() or "WhatsApp"
+            payload = router.simulate_message(
+                sender=sender, app=app_name, preview=preview
+            )
             _persist_context_router(profiles, profile.username, router)
             event = _push_phone_bridge_event(
                 profile.username,
@@ -4425,6 +4439,7 @@ def create_app(
         focus_before = router.active_focus()
         # Side-effects (close call/msg) happen inside decide — capture labels first.
         snap = router.focus_snapshot()
+        preview_before = str(router.world.message_preview or "").strip()
         try:
             base = router.decide(answer, impulse_kind=impulse_kind, via=via)
         except ValueError as exc:
@@ -4452,7 +4467,7 @@ def create_app(
                     "os_answer_call" if action == "answer_call" else "os_reject_call",
                 )
             elif action == "open_message":
-                # Real open: bring WhatsApp to foreground (no message reading).
+                # Apri WhatsApp; anteprima dalla NotificationListener se presente.
                 os_cmd = _enqueue_companion_os_call(
                     username,
                     "open_whatsapp",
@@ -4465,9 +4480,9 @@ def create_app(
                 "event": event,
                 "os_command": os_cmd,
                 "open_url": (os_cmd or {}).get("url") or "",
+                "message_preview": preview_before if action == "open_message" else "",
                 "note": (
-                    "Decisione inviata all’app: apre WhatsApp sul telefono "
-                    "(senza leggere il contenuto del messaggio)."
+                    "Decisione inviata all’app: mostra l’anteprima (se disponibile) e apre WhatsApp."
                     if action == "open_message" and os_cmd
                     else (
                         "Decisione inviata all’app: Android → linea cellulare; "
@@ -4641,7 +4656,9 @@ def create_app(
             )
             payload["phone_event"] = event
         elif ev in {"message", "msg"}:
-            payload = router.simulate_message(sender=body.sender, app=body.app)
+            payload = router.simulate_message(
+                sender=body.sender, app=body.app, preview=body.preview
+            )
             who = router.world.message_from or body.sender or "nuovo messaggio"
             app_name = router.world.message_app or body.app or "Messaggi"
             event = _push_phone_bridge_event(

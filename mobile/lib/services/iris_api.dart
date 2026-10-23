@@ -99,6 +99,9 @@ class IrisApi {
     String event, {
     String caller = '',
     String track = '',
+    String sender = '',
+    String preview = '',
+    String app = 'WhatsApp',
   }) async {
     final res = await _client.post(
       await _uri(IrisConfig.eventPath),
@@ -107,6 +110,10 @@ class IrisApi {
         'event': event,
         'caller': caller,
         'track': track,
+        'sender': sender.isEmpty ? caller : sender,
+        'preview': preview,
+        'body': preview,
+        'app': app,
       }),
     );
     final body = _decode(res);

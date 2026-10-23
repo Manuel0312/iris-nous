@@ -67,12 +67,21 @@ class PermissionsService {
         note: 'Su iPhone rispondere al gestore resta a te.',
       ),
       const IrisPermissionItem(
+        id: 'notification_access',
+        title: 'Messaggi (anteprima)',
+        why:
+            'Su Android Iris legge solo l’anteprima della notifica (WhatsApp/Telegram/SMS), poi col SÌ te la mostra e apre l’app.',
+        permission: null,
+        androidOnly: true,
+        note: 'Apre le impostazioni di sistema «Accesso alle notifiche». Su iPhone non è possibile.',
+      ),
+      const IrisPermissionItem(
         id: 'sms',
-        title: 'Messaggi',
-        why: 'Presto Iris potrà avvisarti anche qui.',
+        title: 'SMS grezzi',
+        why: 'Non usati: preferiamo le notifiche (più sicuro e basta WhatsApp).',
         permission: null,
         planned: true,
-        note: 'Non ancora attivo.',
+        note: 'Non richiesto in questa versione.',
       ),
     ];
 

@@ -8,6 +8,7 @@ import '../services/auth_store.dart';
 import '../services/call_control.dart';
 import '../services/call_observer.dart';
 import '../services/iris_api.dart';
+import '../services/notification_observer.dart';
 import '../services/whatsapp_open.dart';
 import '../theme/iris_theme.dart';
 import 'permissions_screen.dart';
@@ -28,6 +29,18 @@ class _HomeScreenState extends State<HomeScreen> {
     _api,
     onIncomingRing: (caller) => _ensureCallKit(caller),
     onCallIdle: () => _clearCallKitIfRinging(),
+  );
+  late final NotificationObserverService _notifs = NotificationObserverService(
+    _api,
+    onMessage: (p) async {
+      if (!mounted) return;
+      final who = (p['sender'] ?? 'Messaggio').toString();
+      final preview = (p['preview'] ?? '').toString();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(preview.isEmpty ? who : '$who: $preview')),
+      );
+      await _refresh();
+    },
   );
   final CallControlService _callControl = CallControlService();
   Timer? _beat;
@@ -51,6 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) setState(() {});
     };
     _calls.start();
+    unawaited(_notifs.start());
   }
 
   Future<void> _ensureCallKit(String caller) async {
@@ -89,6 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _beat?.cancel();
     _calls.stop();
+    _notifs.stop();
     super.dispose();
   }
 
@@ -242,6 +257,22 @@ class _HomeScreenState extends State<HomeScreen> {
         final cmd = (exec['os_command'] as Map).cast<String, dynamic>();
         final action = cmd['action']?.toString() ?? '';
         if (action == 'open_whatsapp' || action == 'open_url') {
+          final preview = exec['message_preview']?.toString() ?? '';
+          if (preview.isNotEmpty && mounted) {
+            await showDialog<void>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Messaggio'),
+                content: Text(preview),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+            );
+          }
           final url = cmd['url']?.toString() ??
               exec['open_url']?.toString() ??
               'whatsapp://';
@@ -309,13 +340,19 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _demoMessage() async {
     setState(() => _busy = true);
     try {
-      await _api.sendEvent('message_incoming', caller: 'Marco');
+      await _api.sendEvent(
+        'message_incoming',
+        caller: 'Marco',
+        sender: 'Marco',
+        preview: 'Ciao, ci vediamo più tardi?',
+        app: 'WhatsApp',
+      );
       await _refresh();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Messaggio pronto. Tocca SÌ per aprire WhatsApp.',
+            'Messaggio pronto (con anteprima). Tocca SÌ per leggerlo e aprire WhatsApp.',
           ),
         ),
       );

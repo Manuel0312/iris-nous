@@ -1,7 +1,12 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../services/auth_store.dart';
+import '../services/iris_api.dart';
+import '../services/notification_observer.dart';
 import '../services/permissions_service.dart';
 
 class PermissionsScreen extends StatefulWidget {
@@ -16,6 +21,9 @@ class PermissionsScreen extends StatefulWidget {
 class _PermissionsScreenState extends State<PermissionsScreen> {
   final _svc = PermissionsService();
   final Map<String, PermissionStatus> _statuses = {};
+  late final NotificationObserverService _notif =
+      NotificationObserverService(IrisApi(widget.store));
+  bool _notifEnabled = false;
 
   @override
   void initState() {
@@ -29,6 +37,9 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
         _statuses[item.id] = await _svc.statusOf(item);
       }
     }
+    if (!kIsWeb && Platform.isAndroid) {
+      _notifEnabled = await _notif.refreshEnabled();
+    }
     if (mounted) setState(() {});
   }
 
@@ -36,6 +47,22 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
     if (item.planned) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Questo permesso non è richiesto in questa versione.')),
+      );
+      return;
+    }
+    if (item.id == 'notification_access') {
+      await _notif.openSettings();
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      await _reload();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _notifEnabled
+                ? 'Accesso alle notifiche attivo.'
+                : 'Attiva Iris Nous nell’elenco «Accesso alle notifiche», poi torna qui.',
+          ),
+        ),
       );
       return;
     }
@@ -67,11 +94,16 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
           const SizedBox(height: 16),
           ...items.map((item) {
             final st = _statuses[item.id];
-            final label = item.planned
-                ? 'Non in questa versione'
-                : (item.permission == null
-                    ? 'Informativo'
-                    : _svc.labelFor(st ?? PermissionStatus.denied));
+            String label;
+            if (item.planned) {
+              label = 'Non in questa versione';
+            } else if (item.id == 'notification_access') {
+              label = _notifEnabled ? 'Attivo' : 'Da attivare';
+            } else if (item.permission == null) {
+              label = 'Informativo';
+            } else {
+              label = _svc.labelFor(st ?? PermissionStatus.denied);
+            }
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
               child: Padding(
@@ -107,7 +139,11 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                         ),
                         FilledButton.tonal(
                           onPressed: item.planned ? null : () => _request(item),
-                          child: Text(item.planned ? 'Più avanti' : 'Richiedi'),
+                          child: Text(
+                            item.planned
+                                ? 'Più avanti'
+                                : (item.id == 'notification_access' ? 'Apri impostazioni' : 'Richiedi'),
+                          ),
                         ),
                       ],
                     ),

@@ -36,6 +36,7 @@ APK canonico: `IrisNous-apk/IrisNous.apk`
 | Heartbeat / stato | Sì |
 | Rilevamento chiamata (`TelephonyCallback`) | Sì (con permesso) |
 | Prossima canzone Spotify | Sì (se collegato sul sito) |
-| Rispondi/rifiuta cellulare OS | No (limite onesto) |
+| Anteprima messaggi (WhatsApp…) | Sì con «Accesso alle notifiche»; SÌ mostra testo e apre l’app |
+| Rispondi/rifiuta cellulare OS | Parziale (Telecom / limiti OEM) |
 
 iPhone: stesso codice; installazione stabile richiede Apple Developer (vedi `APPLE_DEVELOPER.md`). Intanto su iPhone usa `/app`.

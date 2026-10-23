@@ -1,6 +1,43 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.5.5 Android notification preview ---
+    "App Android: anteprima messaggi col SÌ": {
+        "en": "Android app: message preview with YES",
+        "fr": "App Android : apercu message avec OUI",
+        "de": "Android-App: Nachrichten-Vorschau mit JA",
+        "pt": "App Android: previa da mensagem com SIM",
+        "zh": "安卓应用：用「是」查看消息预览",
+        "ja": "Androidアプリ：はい でメッセージプレビュー",
+        "es": "App Android: vista previa del mensaje con SI",
+    },
+    "I messaggi restavano solo simulati; col SÌ si apriva WhatsApp senza vedere il testo.": {
+        "en": "Messages stayed simulated only; YES opened WhatsApp without showing the text.",
+        "fr": "Les messages restaient seulement simules ; OUI ouvrait WhatsApp sans montrer le texte.",
+        "de": "Nachrichten blieben nur simuliert; JA oeffnete WhatsApp ohne Text.",
+        "pt": "As mensagens ficavam so simuladas; SIM abria o WhatsApp sem mostrar o texto.",
+        "zh": "消息仍只是模拟；「是」会打开 WhatsApp 但不显示正文。",
+        "ja": "メッセージは模擬のみ。はい でWhatsAppが開くが本文は見えなかった。",
+        "es": "Los mensajes solo se simulaban; SI abria WhatsApp sin mostrar el texto.",
+    },
+    "Su Android, con «Accesso alle notifiche», Iris riceve l’anteprima WhatsApp/Telegram/SMS: col SÌ la mostra e apre l’app; il servizio resta in ascolto in background.": {
+        "en": "On Android, with Notification access, Iris gets WhatsApp/Telegram/SMS previews: YES shows them and opens the app; listening stays in the background.",
+        "fr": "Sur Android, avec Acces aux notifications, Iris recoit les apercus WhatsApp/Telegram/SMS : OUI les montre et ouvre l’app ; l’ecoute reste en arriere-plan.",
+        "de": "Unter Android mit Benachrichtigungszugriff holt Iris WhatsApp/Telegram/SMS-Vorschauen: JA zeigt sie und oeffnet die App; Lauschen bleibt im Hintergrund.",
+        "pt": "No Android, com Acesso as notificacoes, a Iris recebe previas WhatsApp/Telegram/SMS: SIM mostra e abre a app; continua a ouvir em segundo plano.",
+        "zh": "在安卓开启「通知使用权」后，Iris 可收到 WhatsApp/Telegram/短信预览：「是」会显示并打开应用；后台保持监听。",
+        "ja": "Androidで通知アクセスを許可するとIrisがWhatsApp/Telegram/SMSのプレビューを受け、「はい」で表示してアプリを開く。バックグラウンドでも待機。",
+        "es": "En Android, con Acceso a notificaciones, Iris recibe vistas previas de WhatsApp/Telegram/SMS: SI las muestra y abre la app; sigue escuchando en segundo plano.",
+    },
+    "Anteprima:": {
+        "en": "Preview:",
+        "fr": "Apercu :",
+        "de": "Vorschau:",
+        "pt": "Previa:",
+        "zh": "预览：",
+        "ja": "プレビュー：",
+        "es": "Vista previa:",
+    },
     # --- v0.5.4 simulated BT + Spotify return ---
     "App: cuffia simulata come Bluetooth reale": {
         "en": "App: simulated headset like real Bluetooth",

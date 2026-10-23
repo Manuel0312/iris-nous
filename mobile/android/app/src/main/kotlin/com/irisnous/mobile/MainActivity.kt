@@ -8,5 +8,6 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         flutterEngine.plugins.add(CallObserverPlugin())
         flutterEngine.plugins.add(CallControlPlugin())
+        flutterEngine.plugins.add(NotificationObserverPlugin())
     }
 }
