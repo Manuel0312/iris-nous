@@ -54,6 +54,37 @@ def test_factory_brainflow_synthetic() -> None:
 
 
 @pytest.mark.skipif(not brainflow_available(), reason="brainflow not installed")
+def test_factory_brainflow_cyton_falls_back_without_port() -> None:
+    """Senza COM port la factory non deve rompersi: SyntheticBoard."""
+    from bci_iot.acquisition.brainflow_source import BrainFlowSyntheticSource
+
+    source = create_eeg_source(
+        AcquisitionSettings(source="brainflow_cyton", n_channels=4, window_seconds=0.5),
+        max_windows=1,
+    )
+    assert isinstance(source, BrainFlowSyntheticSource)
+    with source:
+        windows = list(source.iter_windows())
+    assert len(windows) == 1
+
+
+def test_capture_one_openbci_fallback() -> None:
+    from bci_iot.acquisition.brainflow_openbci import capture_one_openbci_window
+    from bci_iot.acquisition.brainflow_source import brainflow_available as bf_ok
+
+    if not bf_ok():
+        pytest.skip("brainflow not installed")
+    window, path = capture_one_openbci_window(
+        board="synthetic",
+        window_seconds=0.4,
+        n_channels=4,
+        fallback_synthetic=True,
+    )
+    assert window.data.shape[0] == 4
+    assert path.startswith("brainflow_")
+
+
+@pytest.mark.skipif(not brainflow_available(), reason="brainflow not installed")
 def test_pipeline_end_to_end_brainflow_synthetic(tmp_path) -> None:
     """Same API path a real BrainFlow board would use: stream → features → intent → action."""
     from bci_iot.config import AppConfig, AcquisitionSettings, IntegrationsSettings, MLSettings

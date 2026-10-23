@@ -3,6 +3,12 @@
 # acquisition.source:
 #   - synthetic              → NumPy simulator (sempre disponibile)
 #   - brainflow_synthetic    → BrainFlow SyntheticBoard (pip install -e ".[acquisition]")
+#   - brainflow_cyton        → OpenBCI Cyton (BCI_IOT_BRAINFLOW_SERIAL_PORT=COMx);
+#                              senza dongle → fallback SyntheticBoard
+#
+# Hardware (opzionale):
+#   BCI_IOT_BRAINFLOW_BOARD=cyton
+#   BCI_IOT_BRAINFLOW_SERIAL_PORT=COM3
 
 acquisition:
   source: synthetic

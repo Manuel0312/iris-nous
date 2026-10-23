@@ -42,6 +42,16 @@ import numpy as np
 
 from bci_iot.accounts.names import safe_username
 
+from bci_iot.acquisition.brainflow_openbci import (
+
+    capture_one_openbci_window,
+
+    openbci_env_board,
+
+    openbci_serial_port,
+
+)
+
 from bci_iot.acquisition.brainflow_source import (
 
     brainflow_available,
@@ -520,6 +530,13 @@ class SimulatedHeadsetAgent:
 
             self.memory.signal_path = "physionet_corpus"
 
+        elif brainflow_available() and (
+            openbci_env_board() in {"cyton", "openbci", "ganglion"}
+            or bool(openbci_serial_port())
+        ):
+
+            self.memory.signal_path = "brainflow_openbci"
+
         elif brainflow_available():
 
             self.memory.signal_path = "brainflow_synthetic"
@@ -914,17 +931,30 @@ class SimulatedHeadsetAgent:
 
             return blended, "physionet_corpus"
 
-        # 2) BrainFlow synthetic stream + prior tint (same API as hardware).
+        # 2) BrainFlow: prefer OpenBCI Cyton when configured, else SyntheticBoard.
 
         if prefer_brainflow and brainflow_available():
 
             try:
 
-                live = capture_one_brainflow_window(
-
-                    window_seconds=1.0, n_channels=self.n_channels
-
-                )
+                live = None
+                source_tag = "brainflow_synthetic"
+                want_hw = openbci_env_board() in {
+                    "cyton",
+                    "openbci",
+                    "ganglion",
+                } or bool(openbci_serial_port())
+                if want_hw:
+                    live, source_tag = capture_one_openbci_window(
+                        window_seconds=1.0,
+                        n_channels=self.n_channels,
+                        fallback_synthetic=True,
+                    )
+                else:
+                    live = capture_one_brainflow_window(
+                        window_seconds=1.0, n_channels=self.n_channels
+                    )
+                    source_tag = "brainflow_synthetic"
 
                 if kind in COMMAND_PRIORS:
 
@@ -956,9 +986,14 @@ class SimulatedHeadsetAgent:
 
                     )
 
-                    return window, "brainflow_impulse"
+                    tag = (
+                        "brainflow_impulse"
+                        if source_tag.startswith("brainflow_synthetic")
+                        else "brainflow_openbci"
+                    )
+                    return window, tag
 
-                return live, "brainflow_synthetic"
+                return live, source_tag
 
             except Exception:
 

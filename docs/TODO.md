@@ -18,7 +18,12 @@
 - [ ] (Opzionale) foto prodotto reali
 - [ ] Dominio www + scrittura tesi
 
-## In pausa
-- [ ] Bridge telefono background + Alexa / HA
+## Hardware / lab (guida unificata)
+- [x] Fase B codice: BrainFlow Cyton + fallback (`brainflow_openbci`, factory, agent)
+- [x] Script lab SÌ/NO: `scripts/lab_collect_yes_no.py`
+- [x] Fase C documentata: `docs/NATIVE_BRIDGE.md` (gap OS onesti)
+- [x] Backup datato: Desktop `BACKUP Iris.bat` → `Desktop\Iris-backup\backup-YYYY-MM-DD_HH-mm-ss\`
+- [ ] Board fisica Cyton + porta COM + sessione lab reale
+- [ ] Bridge telefono background + Alexa / HA (oltre permessi già in app)
 - [ ] MoABB reale
-- [ ] Hardware cuffia
+- [ ] Stampa scocca A1 mini (`docs/HARDWARE_CUFFIA.md`)

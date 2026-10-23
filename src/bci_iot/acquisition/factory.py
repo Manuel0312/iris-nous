@@ -19,6 +19,8 @@ def create_eeg_source(
     Supported values:
     - ``synthetic``: lightweight NumPy simulator (always available)
     - ``brainflow_synthetic``: BrainFlow SyntheticBoard (requires ``brainflow``)
+    - ``brainflow_cyton`` / ``brainflow_openbci``: OpenBCI Cyton (env serial port);
+      falls back to SyntheticBoard if the board is missing
     """
 
     name = settings.source.strip().lower()
@@ -43,7 +45,40 @@ def create_eeg_source(
             max_windows=max_windows,
         )
 
+    if name in {"brainflow_cyton", "brainflow_openbci", "cyton", "openbci"}:
+        if not brainflow_available():
+            raise ImportError(
+                "acquisition.source=brainflow_cyton requires brainflow. "
+                'Install with: pip install -e ".[acquisition]"'
+            )
+        from bci_iot.acquisition.brainflow_openbci import (
+            BrainFlowOpenBciSource,
+            openbci_mac_address,
+            openbci_serial_port,
+        )
+
+        # Senza porta/MAC non apriamo Cyton: SyntheticBoard (stessa API).
+        if not openbci_serial_port() and not openbci_mac_address():
+            return BrainFlowSyntheticSource(
+                window_seconds=settings.window_seconds,
+                n_channels=settings.n_channels,
+                max_windows=max_windows,
+            )
+        try:
+            return BrainFlowOpenBciSource(
+                board="cyton",
+                window_seconds=settings.window_seconds,
+                n_channels=settings.n_channels,
+                max_windows=max_windows,
+            )
+        except Exception:
+            return BrainFlowSyntheticSource(
+                window_seconds=settings.window_seconds,
+                n_channels=settings.n_channels,
+                max_windows=max_windows,
+            )
+
     raise ValueError(
         f"Unknown acquisition.source={settings.source!r}. "
-        "Use 'synthetic' or 'brainflow_synthetic'."
+        "Use 'synthetic', 'brainflow_synthetic', or 'brainflow_cyton'."
     )
