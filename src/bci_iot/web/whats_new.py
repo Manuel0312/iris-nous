@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.5.8",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "App: niente crash su Connessioni, login che resta",
+                "Aprendo Connessioni l’app ripartiva il servizio chiamate e su Samsung crashava (dialog cache); al riavvio sembravi sloggato.",
+                "Connessioni non riavvia più i servizi; i permessi si chiedono solo da Permessi; all’avvio il token ripristina la sessione e resti collegato.",
+            ),
+        ),
+    },
+    {
         "version": "0.5.7",
         "intro": WHATS_NEW_INTRO,
         "entries": (

@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.5.8 crash Connessioni + session restore ---
+    "App: niente crash su Connessioni, login che resta": {
+        "en": "App: no crash on Connections, login that sticks",
+        "fr": "App : plus de crash sur Connexions, login qui reste",
+        "de": "App: kein Absturz bei Verbindungen, Login bleibt",
+        "pt": "App: sem crash em Ligacoes, login que fica",
+        "zh": "应用：连接页不再崩溃，登录保持",
+        "ja": "アプリ：接続で落ちない、ログイン維持",
+        "es": "App: sin crash en Conexiones, login que permanece",
+    },
+    "Aprendo Connessioni l’app ripartiva il servizio chiamate e su Samsung crashava (dialog cache); al riavvio sembravi sloggato.": {
+        "en": "Opening Connections restarted the call service and crashed on Samsung (cache dialog); after restart you looked logged out.",
+        "fr": "Ouvrir Connexions relancait le service appels et plantait sur Samsung (dialog cache) ; au redemarrage tu paraissais deconnecte.",
+        "de": "Verbindungen startete den Anrufdienst neu und stuerzte auf Samsung ab (Cache-Dialog); nach Neustart wirkte ausgeloggt.",
+        "pt": "Abrir Ligacoes reiniciava o servico de chamadas e crashava no Samsung (dialog cache); ao reabrir parecias desligado.",
+        "zh": "打开“连接”会重启通话服务并在三星上崩溃（清缓存提示）；重启后像已退出。",
+        "ja": "接続を開くと通話サービス再起動でSamsungが落ち（キャッシュ確認）、再起動後ログアウトに見える。",
+        "es": "Abrir Conexiones reiniciaba el servicio de llamadas y fallaba en Samsung (dialog cache); al reiniciar parecias cerrado.",
+    },
+    "Connessioni non riavvia più i servizi; i permessi si chiedono solo da Permessi; all’avvio il token ripristina la sessione e resti collegato.": {
+        "en": "Connections no longer restarts services; permissions are asked only in Permissions; on launch the token restores the session so you stay signed in.",
+        "fr": "Connexions ne relance plus les services ; les permissions seulement dans Permissions ; au demarrage le jeton restaure la session.",
+        "de": "Verbindungen startet Dienste nicht neu; Rechte nur unter Berechtigungen; Start stellt Session per Token wieder her.",
+        "pt": "Ligacoes ja nao reinicia servicos; permissoes so em Permissoes; no arranque o token restaura a sessao.",
+        "zh": "连接页不再重启服务；权限只在“权限”页请求；启动时用令牌恢复会话并保持登录。",
+        "ja": "接続はサービス再起動なし。権限は権限画面のみ。起動時トークンでセッション復元しログイン維持。",
+        "es": "Conexiones ya no reinicia servicios; permisos solo en Permisos; al iniciar el token restaura la sesion.",
+    },
     # --- v0.5.7 call answer + button spacing ---
     "App: SÌ risponde la chiamata, tasti più distanti": {
         "en": "App: YES answers the call, buttons more spaced",

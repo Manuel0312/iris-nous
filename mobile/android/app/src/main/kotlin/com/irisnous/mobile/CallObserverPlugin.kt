@@ -96,10 +96,12 @@ class CallObserverPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         }
         listening = true
         // Keep process alive in background so rings still reach Flutter → Iris.
+        // Mai far propagare un crash del FGS alla UI (Connessioni → buttati fuori).
         appContext?.let { ctx ->
             try {
                 IrisCallWatchService.start(ctx)
             } catch (_: Exception) {
+                // Listener Telephony resta attivo anche senza FGS.
             }
         }
         // Stato iniziale non sempre notificato: emetti idle.

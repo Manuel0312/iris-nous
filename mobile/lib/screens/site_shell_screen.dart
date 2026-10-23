@@ -49,6 +49,7 @@ class _SiteShellScreenState extends State<SiteShellScreen> {
   bool _bridgeArmed = false;
   bool _callKitPresented = false;
   bool _callKitAnswered = false;
+  bool _bootstrapped = false;
   String _lastMsgPreview = '';
   String _lastMsgSender = '';
 
@@ -90,23 +91,38 @@ class _SiteShellScreenState extends State<SiteShellScreen> {
                 })();
               ''');
             } catch (_) {}
-            _armBridgeIfPaired();
+            // Arm solo se già paired: niente request permessi / FGS agresivo.
+            unawaited(_armBridgeIfPaired());
           },
         ),
       );
-    _load(widget.initialPath);
+    unawaited(_bootLoad());
+  }
+
+  /// Se c’è un device_token salvato, ripristina la sessione web prima di /app
+  /// (dopo crash/cache Samsung altrimenti sembra un logout).
+  Future<void> _bootLoad() async {
+    if (_bootstrapped) {
+      await _load(widget.initialPath);
+      return;
+    }
+    _bootstrapped = true;
+    final token = await widget.store.deviceToken();
+    if (token != null && token.isNotEmpty) {
+      final q = Uri.encodeQueryComponent(token);
+      await _load('/app/native-bootstrap?device_token=$q');
+      return;
+    }
+    await _load(widget.initialPath);
   }
 
   Future<void> _load(String path) async {
     final base = await widget.store.baseUrl();
     final clean = path.startsWith('/') ? path : '/$path';
     final parsed = Uri.parse('$base$clean');
-    final uri = parsed.replace(
-      queryParameters: {
-        ...parsed.queryParameters,
-        'from': 'native_app',
-      },
-    );
+    final qp = Map<String, String>.from(parsed.queryParameters);
+    qp.putIfAbsent('from', () => 'native_app');
+    final uri = parsed.replace(queryParameters: qp);
     await _controller.loadRequest(uri);
   }
 
@@ -122,7 +138,8 @@ class _SiteShellScreenState extends State<SiteShellScreen> {
     if (action == 'openPermissions') {
       _openPermissions();
     } else if (action == 'ensureCallBridge') {
-      _armBridgeIfPaired(force: true);
+      // Soft arm: non riparte FGS se già attivo.
+      unawaited(_armBridgeIfPaired(force: false));
     } else if (action == 'flushPhoneCommands') {
       unawaited(_refreshBridge());
     } else if (action == 'runOsCommand') {
@@ -132,8 +149,7 @@ class _SiteShellScreenState extends State<SiteShellScreen> {
       final username = (body['username'] ?? '').toString();
       if (token.isNotEmpty) {
         widget.store.savePairing(token: token, username: username).then((_) {
-          _armBridgeIfPaired(force: true);
-          unawaited(_refreshBridge());
+          unawaited(_armBridgeIfPaired(force: false));
         });
       }
     }
@@ -203,6 +219,8 @@ class _SiteShellScreenState extends State<SiteShellScreen> {
         builder: (_) => PermissionsScreen(store: widget.store),
       ),
     );
+    // Dopo Permessi: riparti listener solo se i permessi ci sono (request lì).
+    unawaited(_armBridgeIfPaired(force: true, requestPermissions: true));
   }
 
   Future<void> _onIncomingMessageNotif(Map<String, dynamic> payload) async {
@@ -216,13 +234,24 @@ class _SiteShellScreenState extends State<SiteShellScreen> {
     );
   }
 
-  Future<void> _armBridgeIfPaired({bool force = false}) async {
-    if (_bridgeArmed && !force) return;
+  Future<void> _armBridgeIfPaired({
+    bool force = false,
+    bool requestPermissions = false,
+  }) async {
     final paired = await widget.store.isPaired();
     if (!paired) return;
+    if (_bridgeArmed && !force) {
+      // Solo heartbeat più frequente se serve, niente restart servizi.
+      if (_beat == null) _armHeartbeat();
+      return;
+    }
     _bridgeArmed = true;
-    _calls.start();
-    unawaited(_notifs.start());
+    try {
+      await _calls.start(requestPermissions: requestPermissions);
+    } catch (_) {}
+    try {
+      unawaited(_notifs.start());
+    } catch (_) {}
     _armHeartbeat();
     unawaited(_refreshBridge());
   }
@@ -257,12 +286,14 @@ class _SiteShellScreenState extends State<SiteShellScreen> {
             (ctxMap?['music_playing'] == true),
       );
     } on IrisApiException catch (e) {
+      // 401/403: NON cancellare il token né forzare logout web.
+      // Un heartbeat fallito non deve buttare fuori dall’account.
       if (e.statusCode == 401 || e.statusCode == 403) {
-        await widget.store.clear();
-        _bridgeArmed = false;
         _beat?.cancel();
-        _calls.stop();
-        _notifs.stop();
+        _beat = Timer(const Duration(seconds: 30), () {
+          _armHeartbeat();
+          unawaited(_refreshBridge());
+        });
       }
     } catch (_) {}
   }

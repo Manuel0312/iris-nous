@@ -3467,6 +3467,30 @@ def create_app(
             "shell_return": shell_return,
         }
 
+    @app.get("/app/native-bootstrap")
+    def app_native_bootstrap(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> RedirectResponse:
+        """Ripristina la sessione web dal device_token (dopo crash / cache Samsung).
+
+        L’APK apre questo URL all’avvio se ha un token salvato, poi redirige a /app.
+        """
+
+        raw = str(request.query_params.get("device_token") or "").strip()
+        screen = str(request.query_params.get("screen") or "").strip()
+        dest = "/app?from=native_app"
+        if screen:
+            dest = f"/app?from=native_app&screen={screen}"
+        if len(raw) >= 16:
+            profile = profiles.find_by_companion_token(raw)
+            if profile is not None:
+                ban = profiles.ban_status(profile.username)
+                if not ban.get("active"):
+                    request.session["username"] = profile.username
+                    profiles.touch_phone(profile.username)
+        return RedirectResponse(dest, status_code=303)
+
     @app.get("/app", response_class=HTMLResponse)
     def companion_app_page(request: Request) -> HTMLResponse:
         """Shell fullscreen solo per l’app nativa (WebView).
@@ -5183,7 +5207,8 @@ def create_app(
         session_cookie="bci_iot_session",
         same_site="lax",
         https_only=https_only,
-        max_age=60 * 60 * 24 * 14,
+        # 90 giorni: l’app telefono deve restare loggata anche dopo riavvii / crash.
+        max_age=60 * 60 * 24 * 90,
         path="/",
     )
     return app

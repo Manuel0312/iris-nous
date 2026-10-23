@@ -240,3 +240,23 @@ def test_pair_this_device_returns_token_for_native_shell(tmp_path: Path) -> None
     again = second.json()
     assert again.get("already") is True
     assert again.get("device_token") == token
+
+
+def test_native_bootstrap_restores_session_from_device_token(tmp_path: Path) -> None:
+    app = create_app(data_dir=tmp_path, session_secret="native-boot")
+    client = TestClient(app)
+    _register(client)
+    pair = client.post("/api/telefono/pair-this-device")
+    token = pair.json()["device_token"]
+
+    # Simulate crash: new client without session cookie, only device token.
+    fresh = TestClient(app)
+    boot = fresh.get(
+        f"/app/native-bootstrap?device_token={token}",
+        follow_redirects=False,
+    )
+    assert boot.status_code in {302, 303}
+    assert "/app" in boot.headers.get("location", "")
+    me = fresh.get("/api/me")
+    assert me.status_code == 200
+    assert me.json().get("username") == "maria"

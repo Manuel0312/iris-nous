@@ -23,15 +23,26 @@ class IrisCallWatchService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         ensureChannel()
         val notification = buildNotification()
-        if (Build.VERSION.SDK_INT >= 34) {
-            startForeground(
-                NOTIF_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            startForeground(NOTIF_ID, notification)
+        try {
+            if (Build.VERSION.SDK_INT >= 34) {
+                startForeground(
+                    NOTIF_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                startForeground(NOTIF_ID, notification)
+            }
+        } catch (e: Exception) {
+            // OEM / policy: non far crashare l’app se il FGS specialUse è bloccato.
+            try {
+                @Suppress("DEPRECATION")
+                startForeground(NOTIF_ID, notification)
+            } catch (_: Exception) {
+                stopSelf()
+                return START_NOT_STICKY
+            }
         }
         return START_STICKY
     }

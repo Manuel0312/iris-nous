@@ -37,27 +37,36 @@ class CallObserverService {
     return 'telefono';
   }
 
-  Future<void> start() async {
+  Future<void> start({bool requestPermissions = false}) async {
     if (!supported) return;
+    // Già in ascolto: non stop/start (su Samsung riparte il FGS e può crashare).
+    if (_running && listening) {
+      onChanged?.call();
+      return;
+    }
     await stop();
     _running = true;
     lastError = null;
     _channel.setMethodCallHandler(_onNative);
 
     if (Platform.isAndroid) {
-      final status = await Permission.phone.request();
+      // Non chiedere permessi qui: un dialog su Connessioni ricrea l’Activity e
+      // sembra un «logout» / crash. I permessi si chiedono solo da Permessi.
+      var status = await Permission.phone.status;
+      if (requestPermissions && !(status.isGranted || status.isLimited)) {
+        status = await Permission.phone.request();
+      }
       permitted = status.isGranted || status.isLimited;
       if (!permitted) {
         listening = false;
-        lastError = 'Permesso stato telefono mancante';
+        lastError = 'Permesso stato telefono mancante (apri Permessi)';
         onChanged?.call();
         return;
       }
-      // Android 13+: notifica sticky del servizio foreground (ponte chiamate).
-      final notif = await Permission.notification.request();
+      final notif = await Permission.notification.status;
       if (!(notif.isGranted || notif.isLimited)) {
         lastError =
-            'Notifiche negate: il rilevamento in background può interrompersi. Attivale in Permessi.';
+            'Notifiche off: rilevamento in background limitato. Attivale in Permessi.';
       }
     }
 
@@ -76,6 +85,10 @@ class CallObserverService {
       _running = false;
       listening = false;
       lastError = e.message ?? 'Errore plugin chiamate';
+    } catch (e) {
+      _running = false;
+      listening = false;
+      lastError = 'Avvio chiamate fallito: $e';
     }
     onChanged?.call();
   }

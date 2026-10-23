@@ -666,7 +666,8 @@
       "/musica",
       Boolean(data.spotify_linked)
     );
-    nativeBridge("ensureCallBridge", { username: data.username || "" });
+    // Soft: il bridge nativo si arma al login/pair, non a ogni tap su Connessioni
+    // (su Samsung ripartire il servizio chiamate crashava l’app).
   }
 
   function appReturnPath(screen) {
