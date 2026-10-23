@@ -51,6 +51,8 @@ src/bci_iot/web/static/flags/
 .tools/
 APRI_SPOTIFY.html
 METTI_CHIAVI_RENDER.html
+_tmp_*/
+sideloadlydaemon.log
 
 # Notebooks checkpoints
 .ipynb_checkpoints/

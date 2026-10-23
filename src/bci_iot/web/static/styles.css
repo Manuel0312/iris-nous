@@ -2451,10 +2451,6 @@ html[data-theme-resolved="dark"] .calib-card .btn.ghost {
   margin: 0.75rem auto 0;
 }
 
-.page-calibrazione .shell.private-shell {
-  max-width: 48rem;
-}
-
 @media (max-width: 640px) {
   .calib-card {
     padding: 1.1rem 1rem 1.2rem;
