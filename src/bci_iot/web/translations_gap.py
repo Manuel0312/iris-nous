@@ -1,6 +1,43 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.5.10 chat auto-translate restore ---
+    "Chatta con noi: traduzione automatica di nuovo chiara": {
+        "en": "Chat with us: automatic translation clear again",
+        "fr": "Discutez avec nous : traduction auto de nouveau claire",
+        "de": "Chatten Sie mit uns: Auto-Uebersetzung wieder klar",
+        "pt": "Fale connosco: traducao automatica de novo clara",
+        "zh": "与我们聊天：自动翻译再次清晰",
+        "ja": "チャット：自動翻訳が再び明確に",
+        "es": "Chatea con nosotros: traduccion automatica otra vez clara",
+    },
+    "La traduzione admin↔utente a volte non si vedeva (motori bloccati in cloud) e sembrava sparita.": {
+        "en": "Admin↔user translation sometimes did not show (cloud engines blocked) and seemed gone.",
+        "fr": "La traduction admin↔utilisateur ne s’affichait parfois pas (moteurs cloud bloques) et semblait disparue.",
+        "de": "Admin↔Nutzer-Uebersetzung fehlte manchmal (Cloud-Engines blockiert) und wirkte weg.",
+        "pt": "A traducao admin↔utilizador as vezes nao aparecia (motores cloud bloqueados) e parecia ter sumido.",
+        "zh": "管理员↔用户翻译有时不显示（云端引擎被拦）像是消失了。",
+        "ja": "管理↔ユーザー翻訳が雲側ブロックで出ず、消えたように見えた。",
+        "es": "La traduccion admin↔usuario a veces no se veia (motores cloud bloqueados) y parecia desaparecida.",
+    },
+    "Ripristinata e rinforzata: badge «Tradotto automaticamente», disclaimer in evidenza, più motori di traduzione e salvataggio della traduzione per la volta dopo.": {
+        "en": "Restored and strengthened: «Automatically translated» badge, visible disclaimer, more translation engines, and saving the translation for next time.",
+        "fr": "Retablie et renforcee : badge « Traduit automatiquement », avertissement visible, plus de moteurs, sauvegarde pour la prochaine fois.",
+        "de": "Wiederhergestellt und gestaerkt: Badge «Automatisch uebersetzt», sichtbarer Hinweis, mehr Engines, Speichern fuers naechste Mal.",
+        "pt": "Restaurada e reforcada: distintivo «Traduzido automaticamente», aviso visivel, mais motores e gravacao para a proxima vez.",
+        "zh": "已恢复并加强：显示“自动翻译”标记、醒目声明、更多翻译引擎，并保存翻译供下次使用。",
+        "ja": "復元・強化：自動翻訳バッジ、目立つ注意書き、翻訳エンジン追加、次回用に保存。",
+        "es": "Restaurada y reforzada: insignia «Traducido automaticamente», aviso visible, mas motores y guardado para la proxima vez.",
+    },
+    "Tradotto automaticamente": {
+        "en": "Automatically translated",
+        "fr": "Traduit automatiquement",
+        "de": "Automatisch uebersetzt",
+        "pt": "Traduzido automaticamente",
+        "zh": "自动翻译",
+        "ja": "自動翻訳",
+        "es": "Traducido automaticamente",
+    },
     # --- v0.5.9 cuffia session vs calibration ---
     "Cuffia: se è spenta non è «già associata»": {
         "en": "Headset: if off it is not «already paired»",

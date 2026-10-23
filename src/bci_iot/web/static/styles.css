@@ -4763,6 +4763,20 @@ html[data-theme-resolved="light"] .chat-bubble.chat-admin time {
 .chat-bubble p { margin: 0.35rem 0; white-space: pre-wrap; color: inherit; }
 .chat-bubble time { font-size: 0.78rem; color: inherit; opacity: 0.75; }
 
+.chat-translated-badge {
+  display: inline-block;
+  margin: 0.15rem 0 0.25rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, #00b7ff 18%, transparent);
+  color: inherit;
+  opacity: 0.9;
+}
+
 .chat-original {
   margin-top: 0.45rem;
   padding-top: 0.45rem;
@@ -4780,6 +4794,10 @@ html[data-theme-resolved="light"] .chat-bubble.chat-admin time {
   font-size: 0.82rem;
   line-height: 1.45;
   color: var(--muted);
+}
+
+.chat-disclaimer-top {
+  margin: 0 auto 1rem;
 }
 
 .chat-disclaimer-full {

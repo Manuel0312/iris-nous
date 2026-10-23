@@ -57,6 +57,35 @@ from bci_iot.accounts.chat_translate import (
     resolve_support_recipient_lang,
     translate_text,
 )
+
+
+def _persist_fresh_chat_translations(
+    access: AccessDatabase,
+    messages: list[dict],
+) -> None:
+    """Save newly computed auto-translations so next open is instant."""
+
+    for m in messages:
+        persist = str(m.pop("_persist_translation", "") or "").strip()
+        if not persist:
+            m.pop("_persist_lang_dst", None)
+            m.pop("_persist_lang_src", None)
+            continue
+        mid = int(m.get("id") or 0)
+        if mid <= 0:
+            m.pop("_persist_lang_dst", None)
+            m.pop("_persist_lang_src", None)
+            continue
+        try:
+            access.update_support_message_translation(
+                mid,
+                body_translated=persist,
+                lang_src=str(m.pop("_persist_lang_src", "") or ""),
+                lang_dst=str(m.pop("_persist_lang_dst", "") or ""),
+            )
+        except Exception:  # noqa: BLE001
+            m.pop("_persist_lang_dst", None)
+            m.pop("_persist_lang_src", None)
 from bci_iot.web.whats_new import whats_new_payload
 from bci_iot.web.flags import ensure_flag_svgs, render_flag_svg
 from bci_iot.web.i18n import (
@@ -1848,6 +1877,7 @@ def create_app(
             viewer_lang=get_request_language(request),
             fallback_user_lang=str(thread.get("user_lang") or "it"),
         )
+        _persist_fresh_chat_translations(access, messages)
         user_profile = profiles.get(str(thread.get("username") or ""))
         presence_online = bool(user_profile.is_online) if user_profile else None
         return TEMPLATES.TemplateResponse(
@@ -2134,6 +2164,7 @@ def create_app(
             viewer_lang=get_request_language(request),
             fallback_user_lang=str((thread or {}).get("user_lang") or get_request_language(request)),
         )
+        _persist_fresh_chat_translations(access, messages)
         waiting = bool(messages) and chat_open and str(messages[-1].get("sender") or "") != "admin"
         show_code = False
         access_code = ""

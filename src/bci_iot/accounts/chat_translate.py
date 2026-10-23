@@ -173,10 +173,13 @@ def translate_text(text: str, *, source: str, target: str) -> str:
         src = guessed
     snippet = body[:450]
     engines = (
+        lambda: _google_gtx(snippet, src, dst),
         lambda: _google_clients5(snippet, src, dst),
         lambda: _mymemory(snippet, src, dst),
         lambda: _mymemory(snippet, "Autodetect", dst),
+        lambda: _google_gtx(snippet, "auto", dst),
         lambda: _google_clients5(snippet, "auto", dst),
+        lambda: _lingva(snippet, src, dst),
         lambda: _libretranslate(snippet, src, dst),
         lambda: _libretranslate(snippet, "auto", dst),
     )
@@ -241,6 +244,66 @@ def _mymemory(snippet: str, src: str, dst: str) -> str:
     except Exception as exc:  # noqa: BLE001
         log.warning("chat translate MyMemory failed (%s→%s): %s", src, dst, exc)
         return ""
+
+
+def _google_gtx(snippet: str, src: str, dst: str) -> str:
+    """Public gtx endpoint — often works on cloud hosts when clients5 is blocked."""
+
+    sl = "auto" if src.lower() in {"auto", "autodetect", ""} else src
+    url = (
+        "https://translate.googleapis.com/translate_a/single"
+        f"?client=gtx&sl={quote(sl)}&tl={quote(dst)}&dt=t&q={quote(snippet)}"
+    )
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            resp = client.get(
+                url,
+                headers={
+                    "User-Agent": (
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/124.0.0.0 Safari/537.36"
+                    ),
+                    "Accept": "*/*",
+                },
+            )
+            if resp.status_code >= 400:
+                return ""
+            data = resp.json()
+        if isinstance(data, list) and data and isinstance(data[0], list):
+            parts = [
+                chunk[0]
+                for chunk in data[0]
+                if isinstance(chunk, list) and chunk and isinstance(chunk[0], str)
+            ]
+            translated = "".join(parts).strip()
+            if translated and translated.lower() != snippet.lower():
+                return translated
+    except Exception as exc:  # noqa: BLE001
+        log.warning("chat translate Google gtx failed (%s→%s): %s", src, dst, exc)
+    return ""
+
+
+def _lingva(snippet: str, src: str, dst: str) -> str:
+    sl = "auto" if src.lower() in {"auto", "autodetect", ""} else src
+    hosts = (
+        "https://lingva.ml",
+        "https://lingva.pusrr.workers.dev",
+    )
+    path = f"/api/v1/{quote(sl)}/{quote(dst)}/{quote(snippet)}"
+    for host in hosts:
+        try:
+            with httpx.Client(timeout=10.0, follow_redirects=True) as client:
+                resp = client.get(host + path, headers={"Accept": "application/json"})
+                if resp.status_code >= 400:
+                    continue
+                data = resp.json()
+            translated = str(data.get("translation") or "").strip()
+            if translated and translated.lower() != snippet.lower():
+                return translated
+        except Exception as exc:  # noqa: BLE001
+            log.warning("chat translate Lingva failed (%s): %s", host, exc)
+    return ""
 
 
 def _google_clients5(snippet: str, src: str, dst: str) -> str:
@@ -355,18 +418,27 @@ def present_support_messages(
             m["display_body"] = body
             m["show_original"] = False
             m["original_body"] = body
+            m["auto_translated"] = False
             out.append(m)
             continue
 
         if stored and lang_dst == lang and stored != body:
             display = stored
+            freshly_translated = False
         else:
             display = translate_text(body, source=lang_src, target=lang)
             if display == body and lang_src != lang:
                 display = translate_text(body, source="auto", target=lang)
+            freshly_translated = bool(display and display != body)
         m["display_body"] = display or body
         m["show_original"] = bool(display and display != body)
         m["original_body"] = body
+        m["auto_translated"] = bool(m["show_original"])
+        # Hint for persistence: store for next load / email.
+        if freshly_translated:
+            m["_persist_translation"] = display
+            m["_persist_lang_dst"] = lang
+            m["_persist_lang_src"] = lang_src
         out.append(m)
     return out
 

@@ -120,6 +120,9 @@
           {% set mine = m.sender == 'admin' %}
           <li class="chat-bubble {% if mine %}chat-mine chat-team{% else %}chat-theirs chat-user{% endif %} chat-{{ m.sender }}">
             <span class="chat-who">{{ t('Admin') if m.sender == 'admin' else t('Utente') }}</span>
+            {% if m.auto_translated or m.show_original %}
+            <span class="chat-translated-badge">{{ t('Tradotto automaticamente') }}</span>
+            {% endif %}
             <p>{{ m.display_body or m.body }}</p>
             {% if m.show_original %}
             <details class="chat-original"><summary>{{ t('Testo originale') }}</summary><p>{{ m.original_body or m.body }}</p></details>

@@ -1016,6 +1016,37 @@ class AccessDatabase:
             ).fetchall()
         return [dict(row) for row in rows]
 
+    def update_support_message_translation(
+        self,
+        message_id: int,
+        *,
+        body_translated: str,
+        lang_src: str = "",
+        lang_dst: str = "",
+    ) -> None:
+        """Persist an on-the-fly auto-translation for faster next loads."""
+
+        mid = int(message_id)
+        if mid <= 0:
+            return
+        translated = (body_translated or "").strip()[:SUPPORT_BODY_MAX]
+        if not translated:
+            return
+        src = (lang_src or "").strip().lower()[:8]
+        dst = (lang_dst or "").strip().lower()[:8]
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE support_messages
+                SET body_translated = ?,
+                    lang_src = CASE WHEN ? != '' THEN ? ELSE lang_src END,
+                    lang_dst = CASE WHEN ? != '' THEN ? ELSE lang_dst END
+                WHERE id = ?
+                """,
+                (translated, src, src, dst, dst, mid),
+            )
+            conn.commit()
+
     def _latest_open_thread(
         self, conn: sqlite3.Connection, *, username: str, email: str
     ) -> sqlite3.Row | None:
