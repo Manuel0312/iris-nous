@@ -409,14 +409,20 @@
 
       <div class="cuffia-pane on" id="cuffia-pane-1" data-pane="1">
         <h2>{{ tx('Associazione') }}</h2>
-        <p class="copy cuffia-copy">{{ tx('Un tap indossa la cuffia virtuale (accende, in testa, contatto).') }}</p>
+        <p class="copy cuffia-copy">{{ tx('Simulazione: accendi, cerca in Bluetooth, associa Iris, poi indossa. Con la cuffia vera sarà lo stesso flusso.') }}</p>
         <p class="cuffia-status" id="cs-label">{{ tx('Spenta') }}</p>
         <ul class="cuffia-meta" id="cs-meta">
           <li><span>{{ tx('Alimentazione') }}</span><strong id="cs-power">off</strong></li>
+          <li><span>{{ tx('Bluetooth') }}</span><strong id="cs-bt">{{ tx('non associata') }}</strong></li>
           <li><span>{{ tx('In testa') }}</span><strong id="cs-wear">{{ tx('no') }}</strong></li>
           <li><span>{{ tx('Contatto') }}</span><strong id="cs-contact">—</strong></li>
         </ul>
-        <button type="button" class="btn primary" id="cs-virtual">{{ tx('Indossa cuffia virtuale') }}</button>
+        <div class="cuffia-yn">
+          <button type="button" class="btn primary" id="cs-power-on">{{ tx('Accendi') }}</button>
+          <button type="button" class="btn" id="cs-scan">{{ tx('Cerca Bluetooth') }}</button>
+        </div>
+        <ul class="bt-scan-list" id="cs-scan-list" hidden></ul>
+        <button type="button" class="btn primary" id="cs-wear" disabled>{{ tx('Indossa e verifica contatto') }}</button>
         <button type="button" class="btn primary" id="cs-to-calib" disabled>{{ tx('Vai alla calibrazione') }}</button>
       </div>
 
@@ -437,8 +443,10 @@
 
       <div class="cuffia-pane" id="cuffia-pane-done" data-pane="done" hidden>
         <h2>{{ tx('Cuffia pronta.') }}</h2>
-        <p class="copy cuffia-copy">{{ tx('Puoi usare In ascolto per SÌ/NO su chiamate e musica.') }}</p>
-        <button type="button" class="btn primary" id="cs-open-contesto">{{ tx('In ascolto') }}</button>
+        <p class="copy cuffia-copy">{{ tx('Ora: permessi chiamate/messaggi, poi Spotify. Con APK/IPA Iris resta attiva anche a app chiusa.') }}</p>
+        <button type="button" class="btn primary" id="cs-open-permessi">{{ tx('Permessi') }}</button>
+        <button type="button" class="btn primary" id="cs-open-musica">{{ tx('Spotify') }}</button>
+        <button type="button" class="btn ghost" id="cs-open-contesto">{{ tx('In ascolto') }}</button>
         <button type="button" class="btn ghost" id="cs-done-links">{{ tx('Torna a Connessioni') }}</button>
       </div>
 
@@ -476,14 +484,15 @@
       <button type="button" class="cuffia-back" data-back-links>← {{ tx('Torna') }}</button>
       <p class="eyebrow">{{ tx('Permessi') }}</p>
       <h2>{{ tx('Chiamate e notifiche') }}</h2>
-      <p class="copy cuffia-copy">{{ tx('Questa app è già il tuo telefono Iris: servono solo i permessi di sistema per chiamate e notifiche.') }}</p>
+      <p class="copy cuffia-copy">{{ tx('Dopo la calibrazione: autorizza chiamate, messaggi e (su Android) batteria. Su iPhone/Android i limiti di sistema restano: l’APK/IPA prova a ottenere i permessi necessari.') }}</p>
       <ul class="cuffia-meta">
         <li><span>{{ tx('Dispositivo') }}</span><strong id="pm-device">{{ tx('Questa app') }}</strong></li>
-        <li><span>{{ tx('Chiamate') }}</span><strong>{{ tx('Permesso sistema') }}</strong></li>
-        <li><span>{{ tx('Notifiche') }}</span><strong>{{ tx('Consigliato') }}</strong></li>
+        <li><span>{{ tx('Chiamate') }}</span><strong>{{ tx('Rispondi / chiudi') }}</strong></li>
+        <li><span>{{ tx('Messaggi') }}</span><strong>{{ tx('Lettura notifiche') }}</strong></li>
         <li><span>{{ tx('Batteria') }}</span><strong>{{ tx('Non ottimizzare') }}</strong></li>
       </ul>
       <button type="button" class="btn primary" id="pm-open">{{ tx('Apri permessi') }}</button>
+      <button type="button" class="btn ghost" id="pm-to-musica">{{ tx('Poi Spotify') }}</button>
       <p id="pm-hint" class="hint" hidden></p>
     </div>
   </section>
@@ -495,7 +504,7 @@
       <h2>{{ tx('Spotify') }}</h2>
       <p class="copy cuffia-copy" id="mu-status">{{ tx('Collega Spotify Premium per cambiare brano col pensiero.') }}</p>
       <p class="cuffia-status" id="mu-name" hidden></p>
-      <a class="btn primary" id="mu-spotify" href="/auth/spotify/start">{{ tx('Collega Spotify') }}</a>
+      <a class="btn primary" id="mu-spotify" href="/auth/spotify/start?from=native_app">{{ tx('Collega Spotify') }}</a>
       <button type="button" class="btn primary" id="mu-next" hidden>{{ tx('Prossima canzone') }}</button>
       <button type="button" class="btn ghost" id="mu-to-listen">{{ tx('In ascolto') }}</button>
       <p id="mu-hint" class="hint" hidden></p>
@@ -564,6 +573,7 @@
   "connReady": {{ tx('Pronta')|tojson }},
   "connCalibrate": {{ tx('Da calibrare')|tojson }},
   "connSetup": {{ tx('Da configurare')|tojson }},
+  "connPair": {{ tx('Da associare')|tojson }},
   "connLinked": {{ tx('Collegato')|tojson }},
   "connOpen": {{ tx('Apri')|tojson }},
   "connConnect": {{ tx('Collega')|tojson }},
@@ -585,15 +595,24 @@
   "cuffiaOff": {{ tx('Spenta')|tojson }},
   "cuffiaReady": {{ tx('Cuffia pronta per la calibrazione.')|tojson }},
   "cuffiaVirtualOk": {{ tx('Cuffia virtuale in testa.')|tojson }},
-  "cuffiaNeedReady": {{ tx('Prima indossa la cuffia virtuale.')|tojson }},
+  "cuffiaNeedReady": {{ tx('Prima associa e indossa la cuffia.')|tojson }},
   "cuffiaNeedSiNo": {{ tx('Serve almeno un SÌ e un NO.')|tojson }},
   "cuffiaImpulseOk": {{ tx('Impulso salvato.')|tojson }},
   "cuffiaDone": {{ tx('Configurazione completata.')|tojson }},
   "cuffiaErr": {{ tx('Operazione non riuscita.')|tojson }},
+  "cuffiaPowerOk": {{ tx('Cuffia accesa (simulata). Cerca in Bluetooth.')|tojson }},
+  "cuffiaWorn": {{ tx('Cuffia in testa.')|tojson }},
+  "btPaired": {{ tx('associata')|tojson }},
+  "btUnpaired": {{ tx('non associata')|tojson }},
+  "btAssociate": {{ tx('Associa')|tojson }},
+  "btSkip": {{ tx('No')|tojson }},
+  "btPairOk": {{ tx('Cuffia associata.')|tojson }},
+  "btScanOk": {{ tx('Dispositivi trovati (simulazione).')|tojson }},
   "yesShort": {{ tx('sì')|tojson }},
   "noShort": {{ tx('no')|tojson }},
   "contactOk": {{ tx('ok')|tojson }},
   "contactWait": {{ tx('da verificare')|tojson }},
+  "muServerOff": {{ tx('Spotify non è configurato su questo server (mancano le chiavi OAuth).')|tojson }},
   "cxGate": {{ tx('Nuovo contesto: SÌ per decidere, NO per ignorare.')|tojson }},
   "cxDetail": {{ tx('Simula un evento, poi pensa SÌ o NO.')|tojson }},
   "cxGateYes": {{ tx('Ok, decido')|tojson }},

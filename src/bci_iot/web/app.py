@@ -131,15 +131,21 @@ class ProfileResponse(BaseModel):
     anagrafica_complete: bool = False
     calibration_complete: bool = False
     phone_paired: bool = False
+    headset_bt_paired: bool = False
     spotify_linked: bool = False
     spotify_display_name: str = ""
+    spotify_ready: bool = False
     pairing_code: str = ""
     # Solo localhost/preview quando la mail non parte (mai su Render produzione)
     dev_otp_code: str = ""
 
     @classmethod
     def from_profile(cls, profile: UserProfile, *, dev_otp_code: str = "") -> ProfileResponse:
+        from bci_iot.integrations.spotify_oauth import spotify_configured
+
         photo = str(profile.photo_filename or "").strip()
+        stats = profile.usage_stats or {}
+        bt_paired = bool(stats.get("headset_bt_paired")) or bool(profile.calibration_complete)
         return cls(
             user_id=profile.user_id,
             username=profile.username,
@@ -162,8 +168,10 @@ class ProfileResponse(BaseModel):
             anagrafica_complete=bool(profile.anagrafica_complete),
             calibration_complete=bool(profile.calibration_complete),
             phone_paired=bool(getattr(profile, "phone_paired", False)),
+            headset_bt_paired=bt_paired,
             spotify_linked=bool(getattr(profile, "spotify_linked", False)),
             spotify_display_name=str(getattr(profile, "spotify_display_name", "") or ""),
+            spotify_ready=bool(spotify_configured()),
             pairing_code=str(getattr(profile, "pairing_code", "") or ""),
             dev_otp_code=str(dev_otp_code or ""),
         )
@@ -208,6 +216,11 @@ class HeadsetPowerRequest(BaseModel):
 
 class HeadsetWearRequest(BaseModel):
     on_head: bool = True
+
+
+class HeadsetPairRequest(BaseModel):
+    device_id: str = Field(min_length=1, max_length=128)
+    device_name: str = Field(default="", max_length=128)
 
 
 class HeadsetImpulseRequest(BaseModel):
@@ -2903,7 +2916,16 @@ def create_app(
             headset_id=profile.headset_id,
             data_root=profiles.data_root,
         )
-        return {"status": "ok", "agent": agent.status()}
+        status = agent.status()
+        # Migrate old one-tap virtual-ready sessions into explicit BT-paired flag.
+        if status.get("ready_for_impulses") and not profiles.is_headset_bt_paired(profile):
+            profiles.mark_headset_bt_paired(username, device_id=profile.headset_id)
+            profile = profiles.get(username) or profile
+        return {
+            "status": "ok",
+            "agent": status,
+            "headset_bt_paired": profiles.is_headset_bt_paired(profile),
+        }
 
     @app.post("/api/headset/power")
     def api_headset_power(
@@ -2941,6 +2963,11 @@ def create_app(
         from bci_iot.pipeline.headset_agent import get_headset_agent
 
         profile = profiles.ensure_headset_pairing(username)
+        if body.on_head and not profiles.is_headset_bt_paired(profile):
+            raise HTTPException(
+                status_code=400,
+                detail="Prima associa la cuffia via Bluetooth (simulato) all’account.",
+            )
         agent = get_headset_agent(
             username=username,
             headset_id=profile.headset_id,
@@ -2988,6 +3015,8 @@ def create_app(
 
         profile = profiles.ensure_headset_pairing(username)
         profiles.set_headset_mode(username, "simulated")
+        if not profiles.is_headset_bt_paired(profile):
+            profiles.mark_headset_bt_paired(username, device_id=profile.headset_id)
         agent = get_headset_agent(
             username=username,
             headset_id=profile.headset_id,
@@ -2997,7 +3026,95 @@ def create_app(
             status = agent.ensure_virtual_ready()
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        return {"status": "ok", "agent": status}
+        return {"status": "ok", "agent": status, "headset_bt_paired": True}
+
+    @app.get("/api/headset/scan")
+    def api_headset_scan(
+        request: Request,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        """Simulated Bluetooth scan: Iris + decoy nearby devices."""
+
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        profile = profiles.get(username)
+        if profile is None:
+            raise HTTPException(status_code=401, detail="Login required")
+        iris_id = (profile.headset_id or "").strip() or f"IRIS-{profile.user_id[:8].upper()}"
+        devices = [
+            {
+                "id": iris_id,
+                "name": "Iris Nous",
+                "rssi": -47,
+                "kind": "iris",
+                "transport": "bluetooth",
+            },
+            {
+                "id": "AA:11:22:33:44:55",
+                "name": "AirPods Pro",
+                "rssi": -61,
+                "kind": "other",
+                "transport": "bluetooth",
+            },
+            {
+                "id": "BB:66:77:88:99:00",
+                "name": "Galaxy Buds",
+                "rssi": -73,
+                "kind": "other",
+                "transport": "bluetooth",
+            },
+        ]
+        return {
+            "status": "ok",
+            "simulated": True,
+            "message": "Scansione Bluetooth simulata (nessuna cuffia fisica collegata).",
+            "devices": devices,
+            "headset_bt_paired": profiles.is_headset_bt_paired(profile),
+            "paired_id": profile.headset_id if profiles.is_headset_bt_paired(profile) else "",
+        }
+
+    @app.post("/api/headset/pair")
+    def api_headset_pair(
+        request: Request,
+        body: HeadsetPairRequest,
+        profiles: ProfileStore = Depends(_store),
+    ) -> dict:
+        """Associate a scanned (simulated) Iris headset to this account."""
+
+        username = _session_username(request)
+        if not username:
+            raise HTTPException(status_code=401, detail="Login required")
+        from bci_iot.pipeline.headset_agent import get_headset_agent
+
+        name = (body.device_name or "").strip().lower()
+        kind_ok = "iris" in name or body.device_id.upper().startswith("IRIS") or body.device_id.startswith(
+            "cuffia-"
+        )
+        if not kind_ok:
+            raise HTTPException(
+                status_code=400,
+                detail="Seleziona la cuffia Iris Nous (non cuffie audio generiche).",
+            )
+        try:
+            profile = profiles.mark_headset_bt_paired(username, device_id=body.device_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        profiles.set_headset_mode(username, "simulated")
+        agent = get_headset_agent(
+            username=username,
+            headset_id=profile.headset_id,
+            data_root=profiles.data_root,
+        )
+        # Keep power state; pairing alone does not wear the headset.
+        status = agent.status()
+        return {
+            "status": "ok",
+            "agent": status,
+            "headset_id": profile.headset_id,
+            "headset_bt_paired": True,
+            "message": "Cuffia associata all’account (simulazione Bluetooth).",
+        }
 
     @app.post("/api/headset/impulse")
     async def api_headset_impulse(
@@ -4107,6 +4224,26 @@ def create_app(
             _persist_context_router(profiles, profile.username, router)
         return {**music, "via": "companion_app"}
 
+    def _spotify_return_path(request: Request, *, fallback: str = "/telefono-setup?stage=2") -> str:
+        """Safe in-app return after OAuth (only /app paths)."""
+        raw = str(request.session.pop("spotify_oauth_return", None) or "").strip()
+        if not raw:
+            q = str(request.query_params.get("return") or "").strip()
+            raw = q
+        if raw.startswith("/app") and "://" not in raw and "\n" not in raw:
+            return raw[:240]
+        return fallback
+
+    def _remember_spotify_return(request: Request) -> str:
+        raw = str(request.query_params.get("return") or "").strip()
+        from_native = str(request.query_params.get("from") or "").strip() == "native_app"
+        if not raw and from_native:
+            raw = "/app?from=native_app&screen=musica"
+        if raw.startswith("/app") and "://" not in raw and "\n" not in raw:
+            request.session["spotify_oauth_return"] = raw[:240]
+            return raw[:240]
+        return "/telefono-setup?stage=2"
+
     @app.get("/auth/spotify/start")
     def spotify_start(
         request: Request,
@@ -4122,9 +4259,10 @@ def create_app(
         loaded = _require_profile(request, profiles)
         if isinstance(loaded, RedirectResponse):
             return loaded
+        ret = _remember_spotify_return(request)
         if not spotify_configured():
             _flash(request, "Spotify non configurato sul server.", kind="error")
-            return RedirectResponse("/telefono-setup?stage=2", status_code=303)
+            return RedirectResponse(ret if ret.startswith("/app") else "/telefono-setup?stage=2", status_code=303)
         state = new_oauth_state()
         request.session["spotify_oauth_state"] = state
         redir = redirect_uri(_public_base_url(request))
@@ -4148,13 +4286,14 @@ def create_app(
         loaded = _require_profile(request, profiles)
         if isinstance(loaded, RedirectResponse):
             return loaded
+        ret = _spotify_return_path(request)
         if error:
             _flash(request, f"Spotify ha rifiutato: {error}", kind="error")
-            return RedirectResponse("/telefono-setup?stage=2", status_code=303)
+            return RedirectResponse(ret, status_code=303)
         expected = request.session.pop("spotify_oauth_state", None)
         if not code or not state or state != expected:
             _flash(request, "Sessione Spotify non valida. Riprova.", kind="error")
-            return RedirectResponse("/telefono-setup?stage=2", status_code=303)
+            return RedirectResponse(ret, status_code=303)
         redir = redirect_uri(_public_base_url(request))
         try:
             tokens = exchange_code(code, redirect=redir)
@@ -4172,9 +4311,9 @@ def create_app(
             )
         except Exception as exc:  # noqa: BLE001
             _flash(request, f"Collegamento Spotify fallito: {exc}", kind="error")
-            return RedirectResponse("/telefono-setup?stage=2", status_code=303)
-        _flash(request, "Spotify collegato. Apri Spotify sul telefono e prova il test.", kind="ok")
-        return RedirectResponse("/telefono-setup?stage=2", status_code=303)
+            return RedirectResponse(ret, status_code=303)
+        _flash(request, "Spotify collegato.", kind="ok")
+        return RedirectResponse(ret, status_code=303)
 
     @app.post("/auth/spotify/disconnect")
     def spotify_disconnect(
@@ -4186,7 +4325,8 @@ def create_app(
             return loaded
         profiles.clear_spotify(loaded.username)
         _flash(request, "Spotify scollegato.", kind="ok")
-        return RedirectResponse("/telefono-setup?stage=2", status_code=303)
+        ret = _remember_spotify_return(request)
+        return RedirectResponse(ret if ret.startswith("/app") else "/telefono-setup?stage=2", status_code=303)
 
     @app.post("/api/music/next")
     async def api_music_next(

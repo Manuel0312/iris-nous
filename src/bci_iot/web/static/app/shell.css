@@ -1727,6 +1727,46 @@ html[data-theme-resolved="light"] .settings-dropdown-menu {
   gap: 0.5rem;
 }
 .cuffia-yn .btn { width: 100%; }
+
+.bt-scan-list {
+  list-style: none;
+  margin: 0.15rem 0 0.35rem;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+  max-height: 7.5rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.bt-scan-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 12px;
+  background: var(--shell-card);
+}
+.bt-scan-list strong {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--shell-ink);
+}
+.bt-scan-list span {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--shell-muted);
+  word-break: break-all;
+}
+.cuffia-shell .cuffia-copy {
+  margin-bottom: 0.45rem;
+  font-size: 0.82rem;
+}
+.cuffia-shell .cuffia-meta li {
+  padding: 0.28rem 0;
+  font-size: 0.82rem;
+}
+
 body.cuffia-open .shell-tabs [data-go="iris"] {
   opacity: 0.45;
 }

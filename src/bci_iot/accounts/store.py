@@ -1017,6 +1017,26 @@ class ProfileStore:
         self.save(profile)
         return profile
 
+    def is_headset_bt_paired(self, profile: UserProfile) -> bool:
+        """True after explicit Bluetooth-style associate (or legacy calibration)."""
+        if bool(getattr(profile, "calibration_complete", False)):
+            return True
+        return bool((profile.usage_stats or {}).get("headset_bt_paired"))
+
+    def mark_headset_bt_paired(self, username: str, *, device_id: str) -> UserProfile:
+        """Bind a discovered (simulated) headset ID to the account."""
+        clean = (device_id or "").strip()[:128]
+        if not clean:
+            raise ValueError("ID cuffia mancante.")
+        profile = self.ensure_headset_pairing(username, headset_id=clean)
+        stats = dict(profile.usage_stats or {})
+        stats["headset_bt_paired"] = True
+        stats["headset_bt_paired_at"] = _utc_now()
+        stats["headset_bt_device_id"] = clean
+        profile.usage_stats = stats
+        self.save(profile)
+        return profile
+
     def confirm_phone_pairing(
         self,
         username: str,

@@ -252,7 +252,12 @@
     if (name === "links") refreshConnections();
     if (name === "cuffia") refreshCuffia();
     if (name === "contesto") refreshContesto();
-    if (name === "musica") refreshMusica();
+    if (name === "musica") {
+      api("/api/me").then(({ res, data }) => {
+        if (res.ok) fillProfile(data);
+        refreshMusica();
+      });
+    }
     if (name === "permessi") {
       setHint($("#pm-hint"));
       const dev = $("#pm-device");
@@ -329,6 +334,7 @@
   let cuffiaSi = 0;
   let cuffiaNo = 0;
   let cuffiaAgent = null;
+  let cuffiaBtPaired = false;
 
   function setCuffiaHint(text, kind) {
     setHint($("#cuffia-hint"), text, kind);
@@ -345,8 +351,14 @@
     });
   }
 
-  function applyCuffiaAgent(a) {
+  function applyCuffiaAgent(a, extras) {
     cuffiaAgent = a || null;
+    if (extras && typeof extras.headset_bt_paired === "boolean") {
+      cuffiaBtPaired = extras.headset_bt_paired;
+      if (profile) profile.headset_bt_paired = extras.headset_bt_paired;
+    } else if (profile && typeof profile.headset_bt_paired === "boolean") {
+      cuffiaBtPaired = Boolean(profile.headset_bt_paired);
+    }
     if (!a) return;
     const label = $("#cs-label");
     if (label) label.textContent = a.label || a.detail || msg("cuffiaOff", "Spenta");
@@ -355,6 +367,12 @@
       if (el) el.textContent = v;
     };
     set("#cs-power", a.power || "off");
+    set(
+      "#cs-bt",
+      cuffiaBtPaired
+        ? msg("btPaired", "associata") + (a.headset_id ? " · " + a.headset_id : "")
+        : msg("btUnpaired", "non associata")
+    );
     set("#cs-wear", a.wear === "on_head" ? msg("yesShort", "sì") : msg("noShort", "no"));
     set(
       "#cs-contact",
@@ -362,7 +380,10 @@
         ? msg("contactOk", "ok") + (a.contact_mean != null ? " · " + Math.round(a.contact_mean * 100) + "%" : "")
         : msg("contactWait", "da verificare")
     );
+    const powered = (a.power || "off") === "on";
     const ready = Boolean(a.ready_for_impulses);
+    const wearBtn = $("#cs-wear");
+    if (wearBtn) wearBtn.disabled = !(powered && cuffiaBtPaired);
     const toCal = $("#cs-to-calib");
     if (toCal) toCal.disabled = !ready;
     ["#cs-si-btn", "#cs-no-btn"].forEach((sel) => {
@@ -384,6 +405,46 @@
     }
   }
 
+  function renderScanList(devices) {
+    const list = $("#cs-scan-list");
+    if (!list) return;
+    list.innerHTML = "";
+    if (!devices || !devices.length) {
+      list.hidden = true;
+      return;
+    }
+    list.hidden = false;
+    devices.forEach((d) => {
+      const li = document.createElement("li");
+      const isIris = d.kind === "iris";
+      li.innerHTML =
+        "<div><strong></strong><span></span></div><button type=\"button\" class=\"chip\"></button>";
+      li.querySelector("strong").textContent = d.name || d.id;
+      li.querySelector("span").textContent =
+        (d.id || "") + (d.rssi != null ? " · " + d.rssi + " dBm" : "");
+      const btn = li.querySelector("button");
+      btn.textContent = isIris ? msg("btAssociate", "Associa") : msg("btSkip", "No");
+      btn.disabled = !isIris;
+      if (isIris) {
+        btn.addEventListener("click", async () => {
+          setCuffiaHint();
+          const { res, data } = await api("/api/headset/pair", {
+            method: "POST",
+            body: { device_id: d.id, device_name: d.name || "" },
+          });
+          if (!res.ok) {
+            setCuffiaHint((data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
+            return;
+          }
+          applyCuffiaAgent(data.agent, { headset_bt_paired: true });
+          setCuffiaHint(data.message || msg("btPairOk", "Cuffia associata."), "ok");
+          list.hidden = true;
+        });
+      }
+      list.appendChild(li);
+    });
+  }
+
   async function refreshCuffia() {
     setCuffiaHint();
     const me = await api("/api/me");
@@ -392,6 +453,7 @@
       return;
     }
     fillProfile(me.data);
+    cuffiaBtPaired = Boolean(me.data.headset_bt_paired);
     if (needsEmailGate(me.data)) {
       showEmailGate(me.data);
       return;
@@ -401,8 +463,12 @@
       return;
     }
     const { res, data } = await api("/api/headset/agent");
-    if (res.ok && data && data.agent) applyCuffiaAgent(data.agent);
-    else applyCuffiaAgent(null);
+    if (res.ok && data && data.agent) {
+      applyCuffiaAgent(data.agent, {
+        headset_bt_paired:
+          typeof data.headset_bt_paired === "boolean" ? data.headset_bt_paired : cuffiaBtPaired,
+      });
+    } else applyCuffiaAgent(null);
     showCuffiaPane(cuffiaAgent && cuffiaAgent.ready_for_impulses ? "2" : "1");
   }
 
@@ -410,11 +476,13 @@
     $("#cuffia-back")?.addEventListener("click", () => show("links"));
     $("#cs-done-links")?.addEventListener("click", () => show("links"));
     $("#cs-open-contesto")?.addEventListener("click", () => show("contesto"));
+    $("#cs-open-permessi")?.addEventListener("click", () => show("permessi"));
+    $("#cs-open-musica")?.addEventListener("click", () => show("musica"));
     $$(".cuffia-step").forEach((btn) => {
       btn.addEventListener("click", () => {
         const step = btn.getAttribute("data-cuffia-step");
         if (step === "2" && !(cuffiaAgent && cuffiaAgent.ready_for_impulses)) {
-          setCuffiaHint(msg("cuffiaNeedReady", "Prima indossa la cuffia virtuale."), "err");
+          setCuffiaHint(msg("cuffiaNeedReady", "Prima associa e indossa la cuffia."), "err");
           showCuffiaPane("1");
           return;
         }
@@ -423,18 +491,41 @@
     });
     $("#cs-to-calib")?.addEventListener("click", () => showCuffiaPane("2"));
 
-    $("#cs-virtual")?.addEventListener("click", async () => {
+    $("#cs-power-on")?.addEventListener("click", async () => {
       setCuffiaHint();
-      const { res, data } = await api("/api/headset/virtual-ready", { method: "POST", body: {} });
+      const { res, data } = await api("/api/headset/power", { method: "POST", body: { on: true } });
       if (!res.ok) {
         setCuffiaHint((data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
         return;
       }
       applyCuffiaAgent(data.agent);
+      setCuffiaHint(msg("cuffiaPowerOk", "Cuffia accesa (simulata). Cerca in Bluetooth."), "ok");
+    });
+
+    $("#cs-scan")?.addEventListener("click", async () => {
+      setCuffiaHint();
+      const { res, data } = await api("/api/headset/scan");
+      if (!res.ok) {
+        setCuffiaHint((data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
+        return;
+      }
+      if (typeof data.headset_bt_paired === "boolean") cuffiaBtPaired = data.headset_bt_paired;
+      renderScanList(data.devices || []);
+      setCuffiaHint(data.message || msg("btScanOk", "Dispositivi trovati (simulazione)."), "ok");
+    });
+
+    $("#cs-wear")?.addEventListener("click", async () => {
+      setCuffiaHint();
+      const { res, data } = await api("/api/headset/wear", { method: "POST", body: { on_head: true } });
+      if (!res.ok) {
+        setCuffiaHint((data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
+        return;
+      }
+      applyCuffiaAgent(data.agent, { headset_bt_paired: true });
       setCuffiaHint(
         data.agent && data.agent.ready_for_impulses
-          ? msg("cuffiaVirtualOk", "Cuffia virtuale in testa.")
-          : msg("cuffiaReady", "Cuffia pronta per la calibrazione."),
+          ? msg("cuffiaReady", "Cuffia pronta per la calibrazione.")
+          : msg("cuffiaWorn", "Cuffia in testa."),
         "ok"
       );
     });
@@ -471,7 +562,10 @@
         setCuffiaHint((data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
         return;
       }
-      if (profile) profile.calibration_complete = true;
+      if (profile) {
+        profile.calibration_complete = true;
+        profile.headset_bt_paired = true;
+      }
       setCuffiaHint(msg("cuffiaDone", "Configurazione completata."), "ok");
       showCuffiaPane("done");
       refreshConnections();
@@ -482,23 +576,40 @@
     const guestHint = $("#conn-guest-hint");
     const cuffia = $("#conn-cuffia-chip");
     const contesto = $("#conn-contesto-chip");
+    const music = $("#conn-music-chip");
     const { res, data } = await api("/api/me");
     const logged = res.ok && data;
     if (guestHint) guestHint.hidden = Boolean(logged);
     if (!logged) {
       setChip(cuffia, msg("connSetup", "Da configurare"), "/cuffia", false);
       setChip(contesto, msg("connOpen", "Apri"), "/contesto", false);
+      setChip(music, msg("connOpen", "Apri"), "/musica", false);
       return;
     }
     fillProfile(data);
     await ensureThisDevicePaired();
     const calib = Boolean(data.calibration_complete);
-    const linked = Boolean(data.headset_id);
+    const bt = Boolean(data.headset_bt_paired);
     if (calib) setChip(cuffia, msg("connReady", "Pronta"), "/cuffia", true);
-    else if (linked) setChip(cuffia, msg("connCalibrate", "Da calibrare"), "/cuffia", false);
-    else setChip(cuffia, msg("connSetup", "Da configurare"), "/cuffia", false);
+    else if (bt) setChip(cuffia, msg("connCalibrate", "Da calibrare"), "/cuffia", false);
+    else setChip(cuffia, msg("connPair", "Da associare"), "/cuffia", false);
     setChip(contesto, msg("connOpen", "Apri"), "/contesto", calib);
+    setChip(
+      music,
+      data.spotify_linked ? msg("connLinked", "Collegato") : msg("connConnect", "Collega"),
+      "/musica",
+      Boolean(data.spotify_linked)
+    );
     nativeBridge("ensureCallBridge", { username: data.username || "" });
+  }
+
+  function appReturnPath(screen) {
+    const preview = location.pathname.indexOf("/app/preview") === 0;
+    const base = preview ? "/app/preview" : "/app";
+    const u = new URL(base, location.origin);
+    u.searchParams.set("from", "native_app");
+    if (screen) u.searchParams.set("screen", screen);
+    return u.pathname + u.search;
   }
 
   function bindSetupOverlay() {
@@ -603,22 +714,31 @@
   function refreshMusica() {
     setHint($("#mu-hint"));
     const linked = Boolean(profile && profile.spotify_linked);
+    const ready = Boolean(profile && profile.spotify_ready);
     const status = $("#mu-status");
     const name = $("#mu-name");
     const linkBtn = $("#mu-spotify");
     const nextBtn = $("#mu-next");
     if (status) {
-      status.textContent = linked
-        ? msg("muLinked", "Spotify collegato. Puoi passare al brano successivo.")
-        : msg("muNeed", "Collega Spotify Premium per cambiare brano col pensiero.");
+      if (linked) {
+        status.textContent = msg("muLinked", "Spotify collegato. Puoi passare al brano successivo.");
+      } else if (!ready) {
+        status.textContent = msg(
+          "muServerOff",
+          "Spotify non è configurato su questo server (mancano le chiavi OAuth)."
+        );
+      } else {
+        status.textContent = msg("muNeed", "Collega Spotify Premium per cambiare brano col pensiero.");
+      }
     }
     if (name) {
       name.hidden = !(linked && profile.spotify_display_name);
       name.textContent = profile && profile.spotify_display_name ? profile.spotify_display_name : "";
     }
     if (linkBtn) {
-      linkBtn.hidden = linked;
-      linkBtn.setAttribute("href", "/auth/spotify/start");
+      linkBtn.hidden = linked || !ready;
+      const ret = encodeURIComponent(appReturnPath("musica"));
+      linkBtn.setAttribute("href", "/auth/spotify/start?from=native_app&return=" + ret);
     }
     if (nextBtn) nextBtn.hidden = !linked;
   }
@@ -659,6 +779,7 @@
         );
       }
     });
+    $("#pm-to-musica")?.addEventListener("click", () => show("musica"));
 
     $("#mu-next")?.addEventListener("click", async () => {
       setHint($("#mu-hint"));
@@ -1596,6 +1717,7 @@
     bindCuffia();
     bindConnScreens();
     nativeBridge("ensureCallBridge", {});
+    const bootScreen = new URLSearchParams(location.search).get("screen") || "";
     setTimeout(async () => {
       const { res, data } = await api("/api/me");
       if (res.ok && needsEmailGate(data)) {
@@ -1607,7 +1729,17 @@
         fillProfile(data);
         await ensureThisDevicePaired();
       }
-      show("iris");
+      const allowed = {
+        links: true,
+        iris: true,
+        account: true,
+        cuffia: true,
+        contesto: true,
+        permessi: true,
+        musica: true,
+      };
+      if (bootScreen && allowed[bootScreen]) show(bootScreen);
+      else show("iris");
     }, 400);
 
     $$(".shell-tabs [data-go]").forEach((btn) => {
