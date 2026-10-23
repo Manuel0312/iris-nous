@@ -123,14 +123,76 @@ class _SiteShellScreenState extends State<SiteShellScreen> {
       _openPermissions();
     } else if (action == 'ensureCallBridge') {
       _armBridgeIfPaired(force: true);
+    } else if (action == 'flushPhoneCommands') {
+      unawaited(_refreshBridge());
+    } else if (action == 'runOsCommand') {
+      unawaited(_runOsFromWeb(body));
     } else if (action == 'savePairing') {
       final token = (body['token'] ?? '').toString();
       final username = (body['username'] ?? '').toString();
       if (token.isNotEmpty) {
         widget.store.savePairing(token: token, username: username).then((_) {
           _armBridgeIfPaired(force: true);
+          unawaited(_refreshBridge());
         });
       }
+    }
+  }
+
+  Future<void> _runOsFromWeb(Map<String, dynamic> body) async {
+    final osAction = (body['osAction'] ?? body['command'] ?? '').toString();
+    if (osAction.isEmpty) {
+      await _refreshBridge();
+      return;
+    }
+    if (osAction == 'open_whatsapp' || osAction == 'open_url') {
+      final preview = (body['messagePreview'] ?? '').toString();
+      if (preview.isNotEmpty && mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(_lastMsgSender.isEmpty ? 'Messaggio' : _lastMsgSender),
+            content: Text(preview),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+      final url = (body['url'] ?? 'whatsapp://').toString();
+      await openWhatsApp(url: url);
+      final id = (body['id'] ?? '').toString();
+      if (id.isNotEmpty) {
+        try {
+          await _api.ackCommands([id]);
+        } catch (_) {}
+      }
+      return;
+    }
+    final result = await _callControl.runAction(osAction);
+    final id = (body['id'] ?? '').toString();
+    if (id.isNotEmpty) {
+      try {
+        await _api.ackCommands([id]);
+      } catch (_) {}
+    }
+    final ok = result['ok'] == true;
+    if (ok && osAction.contains('answer')) {
+      _callKitAnswered = true;
+      _callKitPresented = true;
+    }
+    if (ok && osAction.contains('reject')) {
+      _callKitAnswered = false;
+      _callKitPresented = false;
+    }
+    if (!ok && mounted) {
+      final reason = (result['reason'] ?? 'blocco sistema').toString();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Chiamata non eseguita: $reason')),
+      );
     }
   }
 

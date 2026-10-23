@@ -444,10 +444,12 @@
       <div class="cuffia-pane" id="cuffia-pane-done" data-pane="done" hidden>
         <h2>{{ tx('Cuffia pronta.') }}</h2>
         <p class="copy cuffia-copy">{{ tx('Ora: permessi chiamate/messaggi, poi Spotify. Con APK/IPA Iris resta attiva anche a app chiusa.') }}</p>
-        <button type="button" class="btn primary" id="cs-open-permessi">{{ tx('Permessi') }}</button>
-        <button type="button" class="btn primary" id="cs-open-musica">{{ tx('Spotify') }}</button>
-        <button type="button" class="btn ghost" id="cs-open-contesto">{{ tx('In ascolto') }}</button>
-        <button type="button" class="btn ghost" id="cs-done-links">{{ tx('Torna a Connessioni') }}</button>
+        <div class="cuffia-done-actions">
+          <button type="button" class="btn primary glass-btn" id="cs-open-permessi">{{ tx('Permessi') }}</button>
+          <button type="button" class="btn primary glass-btn" id="cs-open-musica">{{ tx('Spotify') }}</button>
+          <button type="button" class="btn ghost glass-btn" id="cs-open-contesto">{{ tx('In ascolto') }}</button>
+          <button type="button" class="btn ghost glass-btn" id="cs-done-links">{{ tx('Torna a Connessioni') }}</button>
+        </div>
       </div>
 
       <p id="cuffia-hint" class="hint" hidden></p>
@@ -468,12 +470,12 @@
         <li><span>{{ tx('Musica') }}</span><strong id="cx-flag-music">{{ tx('No') }}</strong></li>
       </ul>
       <div class="cuffia-yn cx-sim">
-        <button type="button" class="btn" id="cx-sim-call">{{ tx('Chiamata') }}</button>
-        <button type="button" class="btn" id="cx-sim-msg">{{ tx('Messaggio') }}</button>
+        <button type="button" class="btn glass-btn" id="cx-sim-call">{{ tx('Chiamata') }}</button>
+        <button type="button" class="btn glass-btn" id="cx-sim-msg">{{ tx('Messaggio') }}</button>
       </div>
-      <div class="cuffia-yn">
-        <button type="button" class="btn primary" id="cx-si" disabled>{{ tx('Pensa SÌ') }}</button>
-        <button type="button" class="btn" id="cx-no-btn" disabled>{{ tx('Pensa NO') }}</button>
+      <div class="cuffia-yn cx-decide">
+        <button type="button" class="btn glass-btn" id="cx-si" disabled>{{ tx('Pensa SÌ') }}</button>
+        <button type="button" class="btn glass-btn" id="cx-no-btn" disabled>{{ tx('Pensa NO') }}</button>
       </div>
       <p id="cx-hint" class="hint" hidden></p>
     </div>

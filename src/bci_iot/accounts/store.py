@@ -1106,6 +1106,14 @@ class ProfileStore:
             return False
         return bool((profile.usage_stats or {}).get("companion_device_token"))
 
+    def get_companion_token(self, username: str) -> str:
+        """Return the current companion device token (empty if none)."""
+
+        profile = self.get(username)
+        if profile is None:
+            return ""
+        return str((profile.usage_stats or {}).get("companion_device_token") or "").strip()
+
     def issue_companion_token(self, username: str) -> tuple[UserProfile, str]:
         """Mint a long-lived device token for the Iris Nous companion (app / PWA)."""
 

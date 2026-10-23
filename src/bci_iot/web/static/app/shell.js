@@ -266,16 +266,39 @@
   }
 
   async function ensureThisDevicePaired() {
-    // Nell’app il telefono È già Iris: collega in silenzio, senza schermata «Collega telefono»
-    if (!profile || needsEmailGate(profile) || profile.phone_paired) return true;
+    // Nell’app il telefono È già Iris: collega in silenzio e passa il token nativo
+    // (senza token Flutter non può rispondere/rifiutare le chiamate OS).
+    if (!profile || needsEmailGate(profile)) return false;
     const { res, data } = await api("/api/telefono/pair-this-device", { method: "POST", body: {} });
     if (!res.ok) return false;
     if (profile) {
       profile.phone_paired = true;
       if (data && data.device_label) profile.phone_label = data.device_label;
     }
-    nativeBridge("ensureCallBridge", { username: (profile && profile.username) || "" });
+    const token = data && data.device_token ? String(data.device_token) : "";
+    const user = (data && data.username) || (profile && profile.username) || "";
+    if (token) {
+      nativeBridge("savePairing", { token, username: user });
+    }
+    nativeBridge("ensureCallBridge", { username: user });
     return true;
+  }
+
+  function handoffOsCommand(execution) {
+    const exec = execution || {};
+    const cmd = exec.os_command || {};
+    const action = String(cmd.action || "");
+    if (action) {
+      nativeBridge("runOsCommand", {
+        osAction: action,
+        id: cmd.id || "",
+        url: cmd.url || exec.open_url || "",
+        messagePreview: exec.message_preview || "",
+      });
+      return true;
+    }
+    nativeBridge("flushPhoneCommands", {});
+    return false;
   }
 
   function nativeBridge(action, payload) {
@@ -743,11 +766,28 @@
         msg("cxPreview", "Anteprima:") + " «" + world.message_preview + "»"
       );
     }
-    const ready = Boolean(data.headset && data.headset.ready_for_impulses);
+    let ready = true;
+    if (data.headset && typeof data.headset.ready_for_impulses === "boolean") {
+      ready = Boolean(data.headset.ready_for_impulses);
+    } else if (data.agent && typeof data.agent.ready_for_impulses === "boolean") {
+      ready = Boolean(data.agent.ready_for_impulses);
+    }
     const si = $("#cx-si");
     const no = $("#cx-no-btn");
-    if (si) si.disabled = !ready;
-    if (no) no.disabled = !ready;
+    if (si) {
+      si.disabled = !ready;
+      si.classList.remove("is-busy", "is-armed");
+      try {
+        si.blur();
+      } catch (_) {}
+    }
+    if (no) {
+      no.disabled = !ready;
+      no.classList.remove("is-busy", "is-armed");
+      try {
+        no.blur();
+      } catch (_) {}
+    }
     if (data.message) setHint($("#cx-hint"), data.message, "ok");
   }
 
@@ -817,13 +857,51 @@
       else setHint($("#cx-hint"), (data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
     });
     async function cxDecide(answer) {
-      setHint($("#cx-hint"));
-      const { res, data } = await api("/api/context/decide", { method: "POST", body: { answer } });
-      if (!res.ok) {
-        setHint($("#cx-hint"), (data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
-        return;
+      const si = $("#cx-si");
+      const no = $("#cx-no-btn");
+      if (si && si.dataset.busy === "1") return;
+      if (si) {
+        si.dataset.busy = "1";
+        si.classList.add("is-busy");
+        if (answer === "SI") si.classList.add("is-armed");
       }
-      applyContesto(data);
+      if (no) {
+        no.dataset.busy = "1";
+        no.classList.add("is-busy");
+        if (answer === "NO") no.classList.add("is-armed");
+      }
+      setHint($("#cx-hint"));
+      try {
+        const { res, data } = await api("/api/context/decide", { method: "POST", body: { answer } });
+        if (!res.ok) {
+          setHint($("#cx-hint"), (data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
+          return;
+        }
+        handoffOsCommand(data && data.execution);
+        applyContesto(data);
+        const exec = (data && data.execution) || {};
+        const note =
+          (exec.note && String(exec.note)) ||
+          (data && data.message) ||
+          (data && data.feedback) ||
+          "";
+        if (note) setHint($("#cx-hint"), note, "ok");
+      } finally {
+        if (si) {
+          si.dataset.busy = "";
+          si.classList.remove("is-busy", "is-armed");
+          try {
+            si.blur();
+          } catch (_) {}
+        }
+        if (no) {
+          no.dataset.busy = "";
+          no.classList.remove("is-busy", "is-armed");
+          try {
+            no.blur();
+          } catch (_) {}
+        }
+      }
     }
     $("#cx-si")?.addEventListener("click", () => cxDecide("SI"));
     $("#cx-no-btn")?.addEventListener("click", () => cxDecide("NO"));
@@ -1562,25 +1640,32 @@
     $("#form-login")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const fd = new FormData(e.target);
+      const submit = e.target.querySelector('button[type="submit"]');
+      if (submit) submit.disabled = true;
       setHint($("#auth-hint"), msg("accessInProgress", "Accesso in corso…"));
-      const { res, data } = await api("/api/auth/login", {
-        method: "POST",
-        body: {
-          username: String(fd.get("username") || "").trim(),
-          password: String(fd.get("password") || ""),
-        },
-      });
-      if (!res.ok) {
-        setHint($("#auth-hint"), (data && data.detail) || msg("invalidCredentials", "Credenziali non valide."), "err");
-        return;
-      }
-      fillProfile(data);
-      // Account già verificato → profilo; altrimenti (raro) blocco codice in-app
-      if (needsEmailGate(data)) showEmailGate(data);
-      else {
-        clearEmailGate();
-        showAccountState("account-user");
-        ensureThisDevicePaired();
+      try {
+        const { res, data } = await api("/api/auth/login", {
+          method: "POST",
+          body: {
+            username: String(fd.get("username") || "").trim(),
+            password: String(fd.get("password") || ""),
+          },
+        });
+        if (!res.ok) {
+          setHint($("#auth-hint"), (data && data.detail) || msg("invalidCredentials", "Credenziali non valide."), "err");
+          return;
+        }
+        fillProfile(data);
+        setHint($("#auth-hint"));
+        // Account già verificato → profilo subito; pairing nativo in background
+        if (needsEmailGate(data)) showEmailGate(data);
+        else {
+          clearEmailGate();
+          showAccountState("account-user");
+          void ensureThisDevicePaired();
+        }
+      } finally {
+        if (submit) submit.disabled = false;
       }
     });
 

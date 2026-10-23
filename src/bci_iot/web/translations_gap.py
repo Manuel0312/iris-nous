@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.5.7 call answer + button spacing ---
+    "App: SÌ risponde la chiamata, tasti più distanti": {
+        "en": "App: YES answers the call, buttons more spaced",
+        "fr": "App : OUI repond a l’appel, boutons plus espaces",
+        "de": "App: JA nimmt an, Tasten mit mehr Abstand",
+        "pt": "App: SIM atende a chamada, botoes mais afastados",
+        "zh": "应用：点“是”可接听，按钮间距加大",
+        "ja": "アプリ：はいが通話応答、ボタン間隔を拡大",
+        "es": "App: SI responde la llamada, botones mas separados",
+    },
+    "Premendo SÌ su una chiamata l’app riconosceva il pensiero ma non rispondeva al telefono; il tasto restava «premuto» e i bottoni erano troppo vicini.": {
+        "en": "Pressing YES on a call recognized the thought but did not answer the phone; the button stayed pressed and controls were too close.",
+        "fr": "OUI sur un appel reconnaissait la pensee sans repondre; le bouton restait enfonce et trop serres.",
+        "de": "JA bei Anruf erkannte den Gedanken, nahm aber nicht ab; Taste blieb gedruckt, zu eng.",
+        "pt": "SIM numa chamada reconhecia o pensamento mas nao atendia; botao ficava premido e demasiado juntos.",
+        "zh": "来电点“是”能识别想法但不接听；按钮卡住且过密。",
+        "ja": "着信ではいを押すと認識されるが応答せず、ボタンが押したまま・間隔が狭い。",
+        "es": "SI en una llamada reconocia el pensamiento pero no contestaba; el boton quedaba pulsado y muy juntos.",
+    },
+    "Ora il token dispositivo arriva all’app e il SÌ/NO attiva subito risposta/rifiuto OS; i tasti non restano bloccati e hanno più spazio; login più snello.": {
+        "en": "The device token now reaches the app so YES/NO triggers OS answer/reject immediately; buttons no longer stick and have more space; leaner login.",
+        "fr": "Le jeton appareil arrive dans l’app : OUI/NON declenche reponse/refus OS tout de suite ; boutons sans blocage, plus d’espace ; login plus leger.",
+        "de": "Geraete-Token erreicht die App: JA/NEIN loest sofort OS Annehmen/Ablehnen aus; Tasten kleben nicht, mehr Abstand; schlankerer Login.",
+        "pt": "O token do dispositivo chega a app: SIM/NAO ativa atender/recusar OS de imediato; botoes sem bloqueio e com espaco; login mais leve.",
+        "zh": "设备令牌已传到应用，“是/否”立即系统接听/拒接；按钮不再卡住且更疏；登录更轻。",
+        "ja": "デバイストークンがアプリに届き、はい/いいえがすぐOS応答/拒否。ボタン固着なし・余白増・ログイン軽量化。",
+        "es": "El token del dispositivo llega a la app: SI/NO activa respuesta/rechazo OS al instante; botones sin bloqueo y con espacio; login mas ligero.",
+    },
     # --- v0.5.6 liquid glass + cuffia flow ---
     "App: vetro liquido e cuffia a passi chiari": {
         "en": "App: liquid glass and clear headset steps",

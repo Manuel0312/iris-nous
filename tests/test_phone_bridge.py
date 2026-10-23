@@ -215,3 +215,28 @@ def test_public_dict_hides_spotify_tokens(tmp_path: Path) -> None:
     assert "spotify_access_token" not in pub
     assert "spotify_refresh_token" not in pub
     assert pub["spotify_linked"] is True
+
+
+def test_pair_this_device_returns_token_for_native_shell(tmp_path: Path) -> None:
+    """WebView shell needs device_token to drain OS answer/reject after SÌ/NO."""
+
+    app = create_app(data_dir=tmp_path, session_secret="pair-json-token")
+    client = TestClient(app)
+    _register(client)
+
+    first = client.post(
+        "/api/telefono/pair-this-device",
+        headers={"User-Agent": "Mozilla/5.0 (Linux; Android 14) IrisNous"},
+    )
+    assert first.status_code == 200
+    body = first.json()
+    assert body.get("phone_paired") is True
+    token = body.get("device_token") or ""
+    assert len(token) >= 16
+    assert body.get("username") == "maria"
+
+    second = client.post("/api/telefono/pair-this-device")
+    assert second.status_code == 200
+    again = second.json()
+    assert again.get("already") is True
+    assert again.get("device_token") == token

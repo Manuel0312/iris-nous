@@ -3326,21 +3326,31 @@ def create_app(
         request: Request,
         profiles: ProfileStore = Depends(_store),
     ) -> dict:
-        """One-tap pair from the phone app shell (JSON, no site redirect)."""
+        """One-tap pair from the phone app shell (JSON, no site redirect).
+
+        Always returns ``device_token`` so the native WebView can persist it and
+        drain OS answer/reject commands (SÌ/NO → TelecomManager / CallKit).
+        """
 
         username = _require_username(request)
         profile = profiles.ensure_headset_pairing(username)
         ua = request.headers.get("user-agent", "")
         label = _device_label_from_ua(ua)
-        if profile.phone_paired and profiles.companion_linked(profile.username):
+        if profiles.companion_linked(profile.username):
+            token = profiles.get_companion_token(profile.username)
+            if not profile.phone_paired:
+                profile.phone_paired = True
+                profiles.save(profile)
             return {
                 "status": "ok",
                 "already": True,
                 "phone_paired": True,
                 "device_label": profile.phone_label or label,
+                "device_token": token,
+                "username": profile.username,
             }
         try:
-            profile, _token = profiles.bind_phone_device(
+            profile, token = profiles.bind_phone_device(
                 profile.username, profile.pairing_code, device_label=label
             )
         except ValueError as exc:
@@ -3350,6 +3360,8 @@ def create_app(
             "already": False,
             "phone_paired": True,
             "device_label": profile.phone_label or label,
+            "device_token": token,
+            "username": profile.username,
         }
 
     @app.post("/api/telefono/unpair")
@@ -4760,6 +4772,17 @@ def create_app(
         routed["used_templates_count"] = impulse_payload.get("used_templates_count")
         if impulse_payload.get("message"):
             routed["message"] = impulse_payload["message"]
+        agent_st = impulse_payload.get("status") or agent.status()
+        routed["headset"] = {
+            "ready_for_impulses": bool(agent_st.get("ready_for_impulses")),
+            "label": agent_st.get("label"),
+            "detail": agent_st.get("detail"),
+            "power": agent_st.get("power"),
+            "wear": agent_st.get("wear"),
+            "contact_ok": bool(agent_st.get("contact_ok")),
+            "calibration_complete": bool(agent_st.get("calibration_complete")),
+        }
+        routed["agent"] = agent_st
         return {"status": "ok", **routed}
 
     @app.post("/dashboard")
