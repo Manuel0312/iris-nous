@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.5.12",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "App: Crea account con password valida",
+                "In iscrizione nell’app la password rispettava i requisiti ma il tasto Crea account restava spento.",
+                "Validazione immediata in locale: con 8 caratteri, maiuscola e numero vedi «livello medio» e puoi creare l’account.",
+            ),
+        ),
+    },
+    {
         "version": "0.5.11",
         "intro": WHATS_NEW_INTRO,
         "entries": (

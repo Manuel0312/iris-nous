@@ -49,25 +49,38 @@
   const list = document.getElementById("reg-reqs");
   const submit = document.getElementById("reg-submit");
   if (!input || !meter || !list) return;
-  async function check() {
-    const res = await fetch("/api/password-strength?password=" + encodeURIComponent(input.value));
-    const data = await res.json();
-    meter.dataset.level = data.level;
-    meter.textContent = data.message;
-    list.innerHTML = "";
-    (data.requirements || []).forEach((r) => {
-      const li = document.createElement("li");
-      li.textContent = r.label;
-      if (r.optional) li.classList.add("is-optional");
-      if (r.ok) li.classList.add("is-ok");
-      list.appendChild(li);
-    });
-    const ok = (data.requirements || [])
-      .filter((r) => !r.optional)
-      .every((r) => r.ok);
-    if (submit) submit.disabled = !ok;
+  let seq = 0;
+  function localOk(pwd) {
+    return pwd.length >= 8 && /[A-Z]/.test(pwd) && /[0-9]/.test(pwd);
   }
-  input.addEventListener("input", check);
+  async function check() {
+    const pwd = input.value || "";
+    // Abilita subito in locale (evita race sulle risposte API mentre digiti).
+    if (submit) submit.disabled = !localOk(pwd);
+    const token = ++seq;
+    try {
+      const res = await fetch("/api/password-strength?password=" + encodeURIComponent(pwd));
+      if (token !== seq) return;
+      const data = await res.json();
+      if (token !== seq) return;
+      meter.dataset.level = data.level;
+      meter.textContent = data.message;
+      list.innerHTML = "";
+      (data.requirements || []).forEach((r) => {
+        const li = document.createElement("li");
+        li.textContent = r.label;
+        if (r.optional) li.classList.add("is-optional");
+        if (r.ok) li.classList.add("is-ok");
+        list.appendChild(li);
+      });
+      if (submit) submit.disabled = !Boolean(data.ok);
+    } catch (_) {
+      /* keep localOk */
+    }
+  }
+  ["input", "change", "keyup", "blur", "paste"].forEach((evt) => {
+    input.addEventListener(evt, check);
+  });
   check();
 })();
 </script>

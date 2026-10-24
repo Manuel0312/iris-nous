@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.5.12 register password button ---
+    "App: Crea account con password valida": {
+        "en": "App: Create account with a valid password",
+        "fr": "App : Creer un compte avec un mot de passe valide",
+        "de": "App: Konto mit gueltigem Passwort erstellen",
+        "pt": "App: Criar conta com palavra-passe valida",
+        "zh": "应用：可用有效密码创建账户",
+        "ja": "アプリ：有効なパスワードでアカウント作成",
+        "es": "App: Crear cuenta con contrasena valida",
+    },
+    "In iscrizione nell’app la password rispettava i requisiti ma il tasto Crea account restava spento.": {
+        "en": "During in-app signup the password met the rules but Create account stayed disabled.",
+        "fr": "A l’inscription dans l’app le mot de passe etait valide mais Creer un compte restait desactive.",
+        "de": "Bei der App-Registrierung erfuellte das Passwort die Regeln, aber Konto erstellen blieb aus.",
+        "pt": "No registo na app a palavra-passe cumpria as regras mas Criar conta ficava desativado.",
+        "zh": "应用内注册时密码已符合要求，但“创建账户”仍无法点击。",
+        "ja": "アプリ登録で条件を満たしても「アカウント作成」が押せなかった。",
+        "es": "En el registro en la app la contrasena cumplia las reglas pero Crear cuenta seguia apagado.",
+    },
+    "Validazione immediata in locale: con 8 caratteri, maiuscola e numero vedi «livello medio» e puoi creare l’account.": {
+        "en": "Instant local check: with 8 characters, an uppercase letter and a number you see medium level and can create the account.",
+        "fr": "Controle local immediat : avec 8 caracteres, une majuscule et un chiffre vous voyez le niveau moyen et pouvez creer le compte.",
+        "de": "Sofortige lokale Pruefung: mit 8 Zeichen, Grossbuchstabe und Zahl siehst du mittlere Stufe und kannst das Konto anlegen.",
+        "pt": "Validacao local imediata: com 8 caracteres, maiuscula e numero ves nivel medio e podes criar a conta.",
+        "zh": "本地即时校验：满 8 位、含大写和数字即显示中等强度并可创建账户。",
+        "ja": "端末側ですぐ判定：8文字・大文字・数字で「中」になり作成できる。",
+        "es": "Validacion local al instante: con 8 caracteres, mayuscula y numero ves nivel medio y puedes crear la cuenta.",
+    },
     # --- v0.5.11 app chatta + swipe bands ---
     "App: Chatta con noi e chat in Account": {
         "en": "App: Chat with us and chats in Account",

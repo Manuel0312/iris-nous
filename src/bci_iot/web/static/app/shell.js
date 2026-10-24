@@ -1882,34 +1882,116 @@
     });
   }
 
-  function initPasswordStrength() {
-    const input = $("#shell-register-password");
+  function localPasswordCheck(pwd) {
+    const value = String(pwd || "");
+    const requirements = [
+      { id: "len", label: msg("pwdLen", "Almeno 8 caratteri"), ok: value.length >= 8, optional: false },
+      { id: "upper", label: msg("pwdUpper", "Almeno una lettera maiuscola"), ok: /[A-Z]/.test(value), optional: false },
+      { id: "digit", label: msg("pwdDigit", "Almeno un numero"), ok: /[0-9]/.test(value), optional: false },
+      {
+        id: "lower",
+        label: msg("pwdLower", "Almeno una lettera minuscola (consigliato)"),
+        ok: /[a-z]/.test(value),
+        optional: true,
+      },
+      {
+        id: "special",
+        label: msg("pwdSpecial", "Almeno un carattere speciale (consigliato)"),
+        ok: /[^A-Za-z0-9]/.test(value),
+        optional: true,
+      },
+      {
+        id: "long",
+        label: msg("pwdLong", "Almeno 12 caratteri (consigliato)"),
+        ok: value.length >= 12,
+        optional: true,
+      },
+    ];
+    const mandatoryOk = requirements.filter((r) => !r.optional).every((r) => r.ok);
+    let level = "weak";
+    let message = msg(
+      "pwdNeedMedium",
+      "Serve almeno: 8 caratteri, una maiuscola, un numero."
+    );
+    if (!value) {
+      message = msg("pwdTooWeak", "Password non abbastanza forte");
+    } else if (!mandatoryOk) {
+      message = msg(
+        "pwdTooWeakDetail",
+        "Password non abbastanza forte: almeno 8 caratteri, una maiuscola e un numero."
+      );
+    } else if (value.length >= 12 && /[a-z]/.test(value) && /[^A-Za-z0-9]/.test(value)) {
+      level = "strong";
+      message = msg("pwdStrong", "Password forte");
+    } else {
+      level = "medium";
+      message = msg("pwdMedium", "Password di livello medio");
+    }
+    return { ok: mandatoryOk, level, message, requirements };
+  }
+
+  function renderPasswordCheck(data) {
     const meter = $("#shell-reg-strength");
     const list = $("#shell-reg-reqs");
     const submit = $("#shell-reg-submit");
-    if (!input || !meter || !list) return null;
-    async function check() {
+    if (meter) {
+      meter.dataset.level = data.level || "weak";
+      meter.textContent =
+        data.message || msg("pwdNeedMedium", "Serve almeno: 8 caratteri, una maiuscola, un numero.");
+    }
+    if (list) {
+      list.innerHTML = "";
+      (data.requirements || []).forEach((r) => {
+        const li = document.createElement("li");
+        li.textContent = r.label;
+        if (r.optional) li.classList.add("is-optional");
+        if (r.ok) li.classList.add("is-ok");
+        list.appendChild(li);
+      });
+    }
+    if (submit) submit.disabled = !Boolean(data.ok);
+  }
+
+  function initPasswordStrength() {
+    const input = $("#shell-register-password");
+    if (!input || !$("#shell-reg-strength") || !$("#shell-reg-reqs")) return null;
+    let seq = 0;
+    let timer = null;
+
+    function applyLocal() {
+      renderPasswordCheck(localPasswordCheck(input.value));
+    }
+
+    async function syncServer(token) {
       try {
         const res = await fetch("/api/password-strength?password=" + encodeURIComponent(input.value));
+        if (token !== seq) return;
+        if (!res.ok) return;
         const data = await res.json();
-        meter.dataset.level = data.level || "weak";
-        meter.textContent =
-          data.message || msg("pwdNeedMedium", "Serve almeno: 8 caratteri, una maiuscola, un numero.");
-        list.innerHTML = "";
-        (data.requirements || []).forEach((r) => {
-          const li = document.createElement("li");
-          li.textContent = r.label;
-          if (r.optional) li.classList.add("is-optional");
-          if (r.ok) li.classList.add("is-ok");
-          list.appendChild(li);
+        if (token !== seq) return;
+        renderPasswordCheck({
+          ok: Boolean(data.ok),
+          level: data.level || "weak",
+          message: data.message,
+          requirements: data.requirements || [],
         });
-        const ok = (data.requirements || []).filter((r) => !r.optional).every((r) => r.ok);
-        if (submit) submit.disabled = !ok;
       } catch (_) {
-        if (submit) submit.disabled = true;
+        /* locale già applicato: non bloccare il tasto se la rete fallisce */
       }
     }
-    input.addEventListener("input", check);
+
+    function check() {
+      applyLocal();
+      const token = ++seq;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        void syncServer(token);
+      }, 120);
+    }
+
+    ["input", "change", "keyup", "blur", "paste"].forEach((evt) => {
+      input.addEventListener(evt, check);
+    });
     check();
     return check;
   }
