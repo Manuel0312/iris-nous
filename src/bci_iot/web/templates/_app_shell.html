@@ -450,7 +450,7 @@
 
       <div class="cuffia-pane on" id="cuffia-pane-1" data-pane="1">
         <h2>{{ tx('Associazione') }}</h2>
-        <p class="copy cuffia-copy" id="cs-flow-hint">{{ tx('Passo 1 di 3: accendi la cuffia.') }}</p>
+        <p class="copy cuffia-copy" id="cs-flow-hint">{{ tx('Passo 1 di 4: accendi la cuffia.') }}</p>
         <p class="cuffia-status glass-chip" id="cs-label">{{ tx('Spenta') }}</p>
         <ul class="cuffia-meta glass-panel" id="cs-meta">
           <li><span>{{ tx('Alimentazione') }}</span><strong id="cs-power">off</strong></li>
@@ -460,10 +460,10 @@
         </ul>
         <div class="cuffia-flow-actions" id="cs-flow-actions">
           <button type="button" class="btn primary glass-btn" id="cs-power-on">{{ tx('1 · Accendi') }}</button>
-          <button type="button" class="btn primary glass-btn" id="cs-scan" hidden>{{ tx('2 · Cerca Bluetooth') }}</button>
+          <button type="button" class="btn primary glass-btn" id="cs-scan" hidden>{{ tx('2 · Associa Bluetooth') }}</button>
           <ul class="bt-scan-list glass-panel" id="cs-scan-list" hidden></ul>
           <button type="button" class="btn primary glass-btn" id="cs-wear-btn" hidden>{{ tx('3 · Indossa e verifica') }}</button>
-          <button type="button" class="btn primary glass-btn" id="cs-to-calib" hidden>{{ tx('Vai alla calibrazione') }}</button>
+          <button type="button" class="btn primary glass-btn" id="cs-to-calib" hidden>{{ tx('4 · Vai alla calibrazione SÌ/NO') }}</button>
         </div>
       </div>
 
@@ -643,19 +643,21 @@
   "cuffiaImpulseOk": {{ tx('Impulso salvato.')|tojson }},
   "cuffiaDone": {{ tx('Configurazione completata.')|tojson }},
   "cuffiaErr": {{ tx('Operazione non riuscita.')|tojson }},
-  "cuffiaPowerOk": {{ tx('Cuffia accesa (simulata). Cerca in Bluetooth.')|tojson }},
+  "cuffiaPowerOk": {{ tx('Cuffia accesa (simulata). Tocca Associa Bluetooth.')|tojson }},
   "cuffiaWorn": {{ tx('Cuffia in testa.')|tojson }},
-  "cuffiaStep1": {{ tx('Passo 1 di 3: accendi la cuffia.')|tojson }},
-  "cuffiaStep2": {{ tx('Passo 2 di 3: cerca in Bluetooth e associa Iris Nous.')|tojson }},
-  "cuffiaStep2b": {{ tx('Passo 2: tocca Associa su Iris Nous.')|tojson }},
-  "cuffiaStep3": {{ tx('Passo 3 di 3: indossa e verifica il contatto.')|tojson }},
-  "cuffiaStepOk": {{ tx('Cuffia pronta: vai alla calibrazione.')|tojson }},
+  "cuffiaStep1": {{ tx('Passo 1 di 4: accendi la cuffia.')|tojson }},
+  "cuffiaStep2": {{ tx('Passo 2 di 4: associa Iris via Bluetooth (simulato).')|tojson }},
+  "cuffiaStep2b": {{ tx('Passo 2: tocca Associa su Iris Nous (o riprova Associa Bluetooth).')|tojson }},
+  "cuffiaStep3": {{ tx('Passo 3 di 4: indossa e verifica il contatto.')|tojson }},
+  "cuffiaStepOk": {{ tx('Passo 4: calibrazione SÌ/NO.')|tojson }},
   "btPaired": {{ tx('associata')|tojson }},
   "btUnpaired": {{ tx('non associata')|tojson }},
   "btAssociate": {{ tx('Associa')|tojson }},
   "btSkip": {{ tx('No')|tojson }},
-  "btPairOk": {{ tx('Cuffia associata.')|tojson }},
+  "btPairOk": {{ tx('Cuffia associata. Ora indossa.')|tojson }},
   "btScanOk": {{ tx('Dispositivi trovati (simulazione).')|tojson }},
+  "btScanning": {{ tx('Ricerca Bluetooth…')|tojson }},
+  "btScanPick": {{ tx('Tocca Associa su Iris Nous nella lista.')|tojson }},
   "yesShort": {{ tx('sì')|tojson }},
   "noShort": {{ tx('no')|tojson }},
   "contactOk": {{ tx('ok')|tojson }},

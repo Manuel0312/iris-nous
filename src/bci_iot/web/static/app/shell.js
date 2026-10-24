@@ -422,10 +422,10 @@
       if (!powered) hint.textContent = msg("cuffiaStep1", "Passo 1 di 3: accendi la cuffia.");
       else if (!cuffiaBtPaired)
         hint.textContent = scanning
-          ? msg("cuffiaStep2b", "Passo 2: tocca Associa su Iris Nous.")
-          : msg("cuffiaStep2", "Passo 2 di 3: cerca in Bluetooth e associa Iris Nous.");
-      else if (!ready) hint.textContent = msg("cuffiaStep3", "Passo 3 di 3: indossa e verifica il contatto.");
-      else hint.textContent = msg("cuffiaStepOk", "Cuffia pronta: vai alla calibrazione.");
+          ? msg("cuffiaStep2b", "Passo 2: tocca Associa su Iris Nous (o riprova Associa Bluetooth).")
+          : msg("cuffiaStep2", "Passo 2 di 4: associa Iris via Bluetooth (simulato).");
+      else if (!ready) hint.textContent = msg("cuffiaStep3", "Passo 3 di 4: indossa e verifica il contatto.");
+      else hint.textContent = msg("cuffiaStepOk", "Passo 4: calibrazione SÌ/NO.");
     }
   }
 
@@ -508,27 +508,34 @@
       btn.type = "button";
       btn.textContent = isIris ? msg("btAssociate", "Associa") : msg("btSkip", "No");
       btn.disabled = !isIris;
-      if (isIris) btn.classList.add("soft");
       if (isIris) {
-        btn.addEventListener("click", async () => {
-          setCuffiaHint();
-          const { res, data } = await api("/api/headset/pair", {
-            method: "POST",
-            body: { device_id: d.id, device_name: d.name || "" },
-          });
-          if (!res.ok) {
-            setCuffiaHint((data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
-            return;
-          }
-          applyCuffiaAgent(data.agent, { headset_bt_paired: true });
-          setCuffiaHint(data.message || msg("btPairOk", "Cuffia associata."), "ok");
-          list.hidden = true;
-          updateCuffiaFlowUi(data.agent || cuffiaAgent);
-        });
+        btn.className = "btn primary glass-btn bt-pair-btn";
+        btn.addEventListener("click", () => void pairIrisDevice(d));
+      } else {
+        btn.classList.add("chip", "soft");
       }
       list.appendChild(li);
     });
     updateCuffiaFlowUi(cuffiaAgent);
+  }
+
+  async function pairIrisDevice(d) {
+    if (!d || !d.id) return false;
+    setCuffiaHint();
+    const { res, data } = await api("/api/headset/pair", {
+      method: "POST",
+      body: { device_id: d.id, device_name: d.name || "" },
+    });
+    if (!res.ok) {
+      setCuffiaHint((data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
+      return false;
+    }
+    applyCuffiaAgent(data.agent, { headset_bt_paired: true });
+    const list = $("#cs-scan-list");
+    if (list) list.hidden = true;
+    updateCuffiaFlowUi(data.agent || cuffiaAgent);
+    setCuffiaHint(data.message || msg("btPairOk", "Cuffia associata. Ora indossa."), "ok");
+    return true;
   }
 
   async function refreshCuffia() {
@@ -589,42 +596,69 @@
         headset_bt_paired:
           typeof data.headset_bt_paired === "boolean" ? data.headset_bt_paired : false,
       });
-      setCuffiaHint(msg("cuffiaPowerOk", "Cuffia accesa (simulata). Cerca in Bluetooth."), "ok");
+      setCuffiaHint(msg("cuffiaPowerOk", "Cuffia accesa (simulata). Tocca Associa Bluetooth."), "ok");
     });
 
     $("#cs-scan")?.addEventListener("click", async () => {
-      setCuffiaHint();
-      const { res, data } = await api("/api/headset/scan");
-      if (!res.ok) {
-        setCuffiaHint((data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
-        return;
+      setCuffiaHint(msg("btScanning", "Ricerca Bluetooth…"));
+      const scanBtn = $("#cs-scan");
+      if (scanBtn) scanBtn.disabled = true;
+      try {
+        const { res, data } = await api("/api/headset/scan");
+        if (!res.ok) {
+          setCuffiaHint((data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
+          return;
+        }
+        if (typeof data.headset_bt_paired === "boolean") cuffiaBtPaired = data.headset_bt_paired;
+        const devices = data.devices || [];
+        renderScanList(devices);
+        // Simulazione: un tap associa subito Iris (niente blocco sulla lista).
+        const iris = devices.find((d) => d.kind === "iris") || devices.find((d) => /iris/i.test(String(d.name || "")));
+        if (iris && !cuffiaBtPaired) {
+          const ok = await pairIrisDevice(iris);
+          if (ok) return;
+        }
+        if (cuffiaBtPaired) {
+          updateCuffiaFlowUi(cuffiaAgent);
+          setCuffiaHint(msg("btPairOk", "Cuffia associata. Ora indossa."), "ok");
+          return;
+        }
+        setCuffiaHint(
+          msg("btScanPick", "Tocca Associa su Iris Nous nella lista."),
+          "ok"
+        );
+      } finally {
+        if (scanBtn) scanBtn.disabled = false;
       }
-      if (typeof data.headset_bt_paired === "boolean") cuffiaBtPaired = data.headset_bt_paired;
-      renderScanList(data.devices || []);
-      setCuffiaHint(data.message || msg("btScanOk", "Dispositivi trovati (simulazione)."), "ok");
     });
 
     $("#cs-wear-btn")?.addEventListener("click", async () => {
       setCuffiaHint();
-      const { res, data } = await api("/api/headset/wear", { method: "POST", body: { on_head: true } });
-      if (!res.ok) {
-        setCuffiaHint((data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
-        return;
+      const wearBtn = $("#cs-wear-btn");
+      if (wearBtn) wearBtn.disabled = true;
+      try {
+        const { res, data } = await api("/api/headset/wear", { method: "POST", body: { on_head: true } });
+        if (!res.ok) {
+          setCuffiaHint((data && data.detail) || msg("cuffiaErr", "Operazione non riuscita."), "err");
+          return;
+        }
+        applyCuffiaAgent(data.agent, { headset_bt_paired: true });
+        const ready = Boolean(data.agent && data.agent.ready_for_impulses);
+        const calib = Boolean(profile && profile.calibration_complete);
+        if (ready && calib) {
+          setCuffiaHint(msg("cuffiaReadyAgain", "Cuffia pronta (modelli SÌ/NO già salvati)."), "ok");
+          showCuffiaPane("done");
+          return;
+        }
+        if (ready) {
+          setCuffiaHint(msg("cuffiaReady", "Cuffia pronta per la calibrazione."), "ok");
+          showCuffiaPane("2");
+          return;
+        }
+        setCuffiaHint(msg("cuffiaWorn", "Cuffia in testa."), "ok");
+      } finally {
+        updateCuffiaFlowUi(cuffiaAgent);
       }
-      applyCuffiaAgent(data.agent, { headset_bt_paired: true });
-      const ready = Boolean(data.agent && data.agent.ready_for_impulses);
-      const calib = Boolean(profile && profile.calibration_complete);
-      if (ready && calib) {
-        setCuffiaHint(msg("cuffiaReadyAgain", "Cuffia pronta (modelli SÌ/NO già salvati)."), "ok");
-        showCuffiaPane("done");
-        return;
-      }
-      setCuffiaHint(
-        ready
-          ? msg("cuffiaReady", "Cuffia pronta per la calibrazione.")
-          : msg("cuffiaWorn", "Cuffia in testa."),
-        "ok"
-      );
     });
 
     async function sendYn(kind) {
