@@ -122,7 +122,12 @@ class _SiteShellScreenState extends State<SiteShellScreen> {
     final parsed = Uri.parse('$base$clean');
     final qp = Map<String, String>.from(parsed.queryParameters);
     qp.putIfAbsent('from', () => 'native_app');
+    // Evita WebView “congelata” su shell/CSS/JS vecchi dopo un deploy Render.
+    qp['v'] = DateTime.now().millisecondsSinceEpoch.toString();
     final uri = parsed.replace(queryParameters: qp);
+    try {
+      await _controller.clearCache();
+    } catch (_) {}
     await _controller.loadRequest(uri);
   }
 
