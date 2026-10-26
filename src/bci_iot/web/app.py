@@ -3758,6 +3758,27 @@ def create_app(
 
         return TEMPLATES.TemplateResponse(request, "app_installa.html", {"request": request})
 
+    @app.get("/api/mobile/integrity")
+    def api_mobile_integrity() -> dict:
+        """SHA-256 ufficiali APK/IPA (anti-manomissione per sideload)."""
+
+        path = WEB_DIR / "static" / "mobile" / "build-manifest.json"
+        if not path.is_file():
+            return {
+                "status": "empty",
+                "official_hosts": ["iris-nous.onrender.com"],
+                "android": {"sha256": ""},
+                "ios": {"sha256": ""},
+            }
+        try:
+            import json
+
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            raise HTTPException(status_code=500, detail="Manifest non leggibile") from None
+        data["status"] = "ok"
+        return data
+
     @app.get("/app/android", response_class=HTMLResponse)
     def companion_app_android_page(request: Request) -> HTMLResponse:
         """Android: APK is the only app that detects cellular calls."""

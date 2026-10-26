@@ -6,7 +6,27 @@
   <meta name="theme-color" content="#07080c" />
   <title>Iris · Android</title>
   <link rel="icon" href="/static/app/icon-192.png" type="image/png" />
-  <link rel="stylesheet" href="/static/app/app.css?v=irisApp74" />
+  <link rel="stylesheet" href="/static/app/app.css?v=irisApp75" />
+  <style>
+    .secure-box { text-align: left; }
+    .secure-box code, .hash-line {
+      display: block;
+      word-break: break-all;
+      font-size: 0.72rem;
+      line-height: 1.35;
+      margin-top: 0.35rem;
+      padding: 0.55rem 0.65rem;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #d7ecff;
+    }
+    .verify-ok { color: #7dffa8; font-weight: 700; }
+    .verify-bad { color: #ff8f8f; font-weight: 700; }
+    .verify-wait { color: #c8d0dc; }
+    .file-pick { margin-top: 0.75rem; }
+    .file-pick input[type="file"] { width: 100%; font-size: 0.85rem; }
+  </style>
 </head>
 <body class="app-body">
   <div class="liquid-mesh" aria-hidden="true"></div>
@@ -21,10 +41,31 @@
     <div class="card">
       <p class="eyebrow">In tre passi</p>
       <ol>
-        <li>Installa <strong>IrisNous.apk</strong>.</li>
+        <li>Installa <strong>IrisNous.apk</strong> ricevuto da Iris (o da questo sito).</li>
         <li>Entra con il tuo account e il codice da <a href="/telefono-setup">Il tuo telefono</a>.</li>
         <li>Attiva i permessi e vivi Iris.</li>
       </ol>
+    </div>
+
+    <div class="card secure-box">
+      <p class="eyebrow">Sicurezza anti-manomissione</p>
+      <p class="lede" style="margin:0 0 0.65rem;text-align:left;max-width:none">
+        Fuori dal Play Store Android può avvisare: è normale per un APK di tesi.
+        Controlla che il file sia <strong>identico</strong> alla build ufficiale (SHA-256).
+        Un virus o un APK sostituito avrebbe un hash diverso.
+      </p>
+      <p><strong>Dominio ufficiale</strong>: <code style="display:inline;padding:0.15rem 0.35rem">iris-nous.onrender.com</code></p>
+      <p style="margin-top:0.65rem"><strong>SHA-256 atteso (APK)</strong></p>
+      <code id="expected-sha" class="hash-line">…</code>
+      <p class="file-pick">
+        <label for="apk-file">Verifica il file sul PC/telefono (scegli l’APK):</label>
+        <input id="apk-file" type="file" accept=".apk,application/vnd.android.package-archive" />
+      </p>
+      <p id="verify-status" class="verify-wait" style="margin-top:0.65rem">In attesa del file…</p>
+      <p style="margin-top:0.75rem;font-size:0.82rem;opacity:0.85">
+        Package: <strong>com.irisnous.mobile</strong> ·
+        <a href="/api/mobile/integrity" style="color:inherit">manifest JSON</a>
+      </p>
     </div>
 
     <a class="btn primary" href="/telefono-setup">Prendi il codice</a>
@@ -32,5 +73,49 @@
     <a class="btn ghost" href="/app/installa">Sei su iPhone?</a>
     <a class="btn ghost" href="/ecosistema">Ecosistema</a>
   </div>
+  <script>
+  (async function () {
+    const expectedEl = document.getElementById("expected-sha");
+    const statusEl = document.getElementById("verify-status");
+    const input = document.getElementById("apk-file");
+    let expected = "";
+    try {
+      const res = await fetch("/api/mobile/integrity", { cache: "no-store" });
+      const data = await res.json();
+      expected = String((data.android && data.android.sha256) || "").toLowerCase();
+      expectedEl.textContent = expected || "Hash non ancora pubblicato: dopo il prossimo deploy.";
+    } catch (e) {
+      expectedEl.textContent = "Impossibile caricare il manifesto.";
+    }
+    async function sha256Hex(file) {
+      const buf = await file.arrayBuffer();
+      const dig = await crypto.subtle.digest("SHA-256", buf);
+      return Array.from(new Uint8Array(dig)).map((b) => b.toString(16).padStart(2, "0")).join("");
+    }
+    input.addEventListener("change", async () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      statusEl.className = "verify-wait";
+      statusEl.textContent = "Calcolo SHA-256…";
+      try {
+        const got = await sha256Hex(file);
+        if (!expected) {
+          statusEl.textContent = "Calcolato: " + got + " (atteso non disponibile sul server).";
+          return;
+        }
+        if (got === expected) {
+          statusEl.className = "verify-ok";
+          statusEl.textContent = "OK: file integro, corrisponde alla build ufficiale Iris.";
+        } else {
+          statusEl.className = "verify-bad";
+          statusEl.textContent = "ATTENZIONE: hash diverso. Non installare — il file non è la build ufficiale.";
+        }
+      } catch (err) {
+        statusEl.className = "verify-bad";
+        statusEl.textContent = "Verifica non riuscita su questo browser.";
+      }
+    });
+  })();
+  </script>
 </body>
 </html>

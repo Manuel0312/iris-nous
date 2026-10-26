@@ -63,10 +63,21 @@ jobs:
           )
           ls -lh build/sideload/IrisNous-unsigned.ipa
 
+      - name: SHA-256 checksum
+        working-directory: mobile
+        run: |
+          set -euo pipefail
+          IPA="build/sideload/IrisNous-unsigned.ipa"
+          SHA=$(shasum -a 256 "$IPA" | awk '{print $1}')
+          echo "$SHA  IrisNous-unsigned.ipa" > build/sideload/IrisNous-unsigned.ipa.sha256
+          echo "IPA SHA-256: $SHA"
+
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: iris-nous-ios-ipa-unsigned
-          path: mobile/build/sideload/IrisNous-unsigned.ipa
+          path: |
+            mobile/build/sideload/IrisNous-unsigned.ipa
+            mobile/build/sideload/IrisNous-unsigned.ipa.sha256
           if-no-files-found: error
           retention-days: 14

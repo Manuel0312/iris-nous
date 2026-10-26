@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.5.14",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "APK/IPA: controllo SHA-256 anti-manomissione",
+                "Chi riceveva l’app fuori dallo store non poteva verificare se il file era stato sostituito.",
+                "Su /app/android puoi confrontare lo SHA-256 ufficiale; manifesto su /api/mobile/integrity.",
+            ),
+        ),
+    },
+    {
         "version": "0.5.13",
         "intro": WHATS_NEW_INTRO,
         "entries": (

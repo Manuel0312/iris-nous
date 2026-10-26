@@ -1,0 +1,22 @@
+{
+  "updated_at": "2026-10-26T12:58:58Z",
+  "official_hosts": [
+    "iris-nous.onrender.com"
+  ],
+  "note_it": "Confronta lo SHA-256 solo da questo sito. Un hash diverso significa che il file non e la build ufficiale Iris.",
+  "android": {
+    "filename": "IrisNous.apk",
+    "sha256": "fa53970f8a9513d00752d74dfa1a8276db2f526e0ee665908aa1013fb224d73f",
+    "size_bytes": 63454729,
+    "package_id": "com.irisnous.mobile",
+    "built_at": "2026-10-26T12:58:58Z",
+    "run_id": ""
+  },
+  "ios": {
+    "filename": "IrisNous-unsigned.ipa",
+    "sha256": "eb3d9f493d0be24c6b86ac5b9e2971e4a00b1dde76de151662646e46d9e58172",
+    "size_bytes": 14029869,
+    "built_at": "2026-10-26T12:58:58Z",
+    "run_id": ""
+  }
+}

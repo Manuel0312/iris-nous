@@ -37,9 +37,21 @@ jobs:
         working-directory: mobile
         run: flutter build apk --release
 
+      - name: SHA-256 checksum
+        working-directory: mobile
+        run: |
+          set -euo pipefail
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+          SHA=$(sha256sum "$APK" | awk '{print $1}')
+          echo "$SHA  IrisNous.apk" > build/app/outputs/flutter-apk/IrisNous.apk.sha256
+          echo "APK_SHA256=$SHA" >> "$GITHUB_ENV"
+          echo "APK SHA-256: $SHA"
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: iris-nous-android-apk
-          path: mobile/build/app/outputs/flutter-apk/app-release.apk
+          path: |
+            mobile/build/app/outputs/flutter-apk/app-release.apk
+            mobile/build/app/outputs/flutter-apk/IrisNous.apk.sha256
           if-no-files-found: error

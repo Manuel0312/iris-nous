@@ -1,6 +1,34 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.5.14 mobile integrity ---
+    "APK/IPA: controllo SHA-256 anti-manomissione": {
+        "en": "APK/IPA: SHA-256 anti-tamper check",
+        "fr": "APK/IPA : controle SHA-256 anti-alteration",
+        "de": "APK/IPA: SHA-256 Anti-Manipulation",
+        "pt": "APK/IPA: verificacao SHA-256 anti-adulteracao",
+        "zh": "APK/IPA：SHA-256 防篡改校验",
+        "ja": "APK/IPA：SHA-256改ざんチェック",
+        "es": "APK/IPA: comprobacion SHA-256 anti-manipulacion",
+    },
+    "Chi riceveva l’app fuori dallo store non poteva verificare se il file era stato sostituito.": {
+        "en": "People receiving the app outside the store could not check if the file had been replaced.",
+        "fr": "Ceux qui recevaient l’app hors store ne pouvaient pas verifier si le fichier avait ete remplace.",
+        "de": "Wer die App ausserhalb des Stores bekam, konnte nicht pruefen, ob die Datei ersetzt wurde.",
+        "pt": "Quem recebia a app fora da loja nao podia verificar se o ficheiro tinha sido substituido.",
+        "zh": "在商店外收到应用的人无法确认文件是否被替换。",
+        "ja": "ストア外で受け取った人はファイル差替えを確認できなかった。",
+        "es": "Quien recibía la app fuera de la tienda no podia verificar si el archivo habia sido sustituido.",
+    },
+    "Su /app/android puoi confrontare lo SHA-256 ufficiale; manifesto su /api/mobile/integrity.": {
+        "en": "On /app/android you can compare the official SHA-256; manifest at /api/mobile/integrity.",
+        "fr": "Sur /app/android vous comparez le SHA-256 officiel ; manifeste sur /api/mobile/integrity.",
+        "de": "Unter /app/android kannst du die offizielle SHA-256 vergleichen; Manifest unter /api/mobile/integrity.",
+        "pt": "Em /app/android podes comparar o SHA-256 oficial; manifesto em /api/mobile/integrity.",
+        "zh": "在 /app/android 可对照官方 SHA-256；清单见 /api/mobile/integrity。",
+        "ja": "/app/androidで公式SHA-256を照合。マニフェストは/api/mobile/integrity。",
+        "es": "En /app/android puedes comparar el SHA-256 oficial; manifiesto en /api/mobile/integrity.",
+    },
     # --- v0.5.13 cuffia BT → SI/NO ---
     "App: cuffia, da Bluetooth a SÌ/NO senza blocco": {
         "en": "App: headset from Bluetooth to YES/NO without getting stuck",

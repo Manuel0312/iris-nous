@@ -243,12 +243,22 @@ def test_companion_pwa_routes(tmp_path: Path) -> None:
     assert android.status_code == 200
     assert "IrisNous.apk" in android.text or "APK" in android.text
     assert "Porta Iris con te" in android.text
+    assert "SHA-256" in android.text
+    assert "/api/mobile/integrity" in android.text
+
+    integrity = client.get("/api/mobile/integrity")
+    assert integrity.status_code == 200
+    body = integrity.json()
+    assert body.get("status") in {"ok", "empty"}
+    assert "android" in body and "ios" in body
+    assert "iris-nous.onrender.com" in (body.get("official_hosts") or [])
 
     guide = client.get("/app/installa")
     assert guide.status_code == 200
     assert "Sideloadly" in guide.text or "anteprima" in guide.text.lower()
     assert "/app/preview" in guide.text
     assert "/app/apple" in guide.text
+    assert "/api/mobile/integrity" in guide.text
 
     apple = client.get("/app/apple")
     assert apple.status_code == 200

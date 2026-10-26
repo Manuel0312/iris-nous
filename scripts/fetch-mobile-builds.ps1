@@ -43,9 +43,10 @@ function Fetch-Ipa([string]$runId) {
   $tmp = Join-Path $ipaDir "_dl_tmp"
   if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
   New-Item -ItemType Directory -Force -Path $tmp | Out-Null
-  gh run download $runId --repo $Repo --name iris-nous-ios-ipa-unsigned --dir $tmp --clobber
+  gh run download $runId --repo $Repo --name iris-nous-ios-ipa-unsigned --dir $tmp
   $found = Get-ChildItem $tmp -Recurse -Filter "*.ipa" | Select-Object -First 1
   if (-not $found) { throw "IPA non trovata nell'artifact della run $runId" }
+  if (Test-Path $ipaDest) { Remove-Item $ipaDest -Force }
   Copy-Item $found.FullName $ipaDest -Force
   Ensure-Dir (Split-Path $ipaRepo)
   Copy-Item $ipaDest $ipaRepo -Force
@@ -58,9 +59,10 @@ function Fetch-Apk([string]$runId) {
   $tmp = Join-Path $apkDir "_dl_tmp"
   if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
   New-Item -ItemType Directory -Force -Path $tmp | Out-Null
-  gh run download $runId --repo $Repo --name iris-nous-android-apk --dir $tmp --clobber
+  gh run download $runId --repo $Repo --name iris-nous-android-apk --dir $tmp
   $found = Get-ChildItem $tmp -Recurse -Filter "*.apk" | Select-Object -First 1
   if (-not $found) { throw "APK non trovato nell'artifact della run $runId" }
+  if (Test-Path $apkDest) { Remove-Item $apkDest -Force }
   Copy-Item $found.FullName $apkDest -Force
   Ensure-Dir (Split-Path $apkRepo)
   Copy-Item $apkDest $apkRepo -Force
@@ -70,12 +72,29 @@ function Fetch-Apk([string]$runId) {
 
 $doIpa = -not $ApkOnly
 $doApk = -not $IpaOnly
+$apkRunUsed = ""
+$ipaRunUsed = ""
 
 if ($doIpa) {
   $id = if ($IpaRunId) { $IpaRunId } else { Latest-RunId "ios-ipa-sideload.yml" }
+  $ipaRunUsed = $id
   Fetch-Ipa $id
 }
 if ($doApk) {
   $id = if ($ApkRunId) { $ApkRunId } else { Latest-RunId "android-apk.yml" }
+  $apkRunUsed = $id
   Fetch-Apk $id
 }
+
+$py = Join-Path $root ".venv\Scripts\python.exe"
+if (-not (Test-Path $py)) { $py = "python" }
+$manifestScript = Join-Path $root "scripts\update-mobile-manifest.py"
+$manifestArgs = @($manifestScript)
+if ($doApk -and (Test-Path $apkDest)) {
+  $manifestArgs += @("--apk", $apkDest, "--apk-run", $apkRunUsed)
+}
+if ($doIpa -and (Test-Path $ipaDest)) {
+  $manifestArgs += @("--ipa", $ipaDest, "--ipa-run", $ipaRunUsed)
+}
+& $py @manifestArgs
+Write-Host "UPDATED_MANIFEST=$($root)\src\bci_iot\web\static\mobile\build-manifest.json"
