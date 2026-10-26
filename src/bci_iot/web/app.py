@@ -149,6 +149,7 @@ class ProfileResponse(BaseModel):
     last_name: str = ""
     gender: str = ""
     email: str = ""
+    recovery_email: str = ""
     phone_label: str = ""
     phone_display: str = ""
     phone_country: str = ""
@@ -187,6 +188,7 @@ class ProfileResponse(BaseModel):
             last_name=profile.last_name,
             gender=profile.gender,
             email=profile.email,
+            recovery_email=str(getattr(profile, "recovery_email", "") or ""),
             phone_label=profile.phone_label,
             phone_display=profile.phone_display,
             phone_country=str(profile.phone_country or ""),
@@ -213,6 +215,7 @@ class AnagraficaUpdateRequest(BaseModel):
     last_name: str = Field(default="", max_length=64)
     gender: str = Field(min_length=1, max_length=32)
     email: str = Field(default="", max_length=254)
+    recovery_email: str = Field(default="", max_length=254)
     phone_country: str = Field(default="", max_length=8)
     phone_national: str = Field(default="", max_length=32)
     phone_label: str = Field(default="", max_length=64)
@@ -1404,6 +1407,7 @@ def create_app(
         last_name: str = Form(""),
         gender: str = Form(...),
         email: str = Form(""),
+        recovery_email: str = Form(""),
         phone_country: str = Form(""),
         phone_national: str = Form(""),
         phone_label: str = Form(""),
@@ -1420,6 +1424,7 @@ def create_app(
                 last_name=last_name,
                 gender=gender,
                 email=email,
+                recovery_email=recovery_email,
                 phone_country=phone_country,
                 phone_national=phone_national,
                 phone_label=phone_label,
@@ -5240,6 +5245,7 @@ def create_app(
                 last_name=body.last_name,
                 gender=body.gender,
                 email=body.email,
+                recovery_email=body.recovery_email,
                 phone_country=body.phone_country,
                 phone_national=body.phone_national,
                 phone_label=body.phone_label,

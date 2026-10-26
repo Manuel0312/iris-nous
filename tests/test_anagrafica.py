@@ -72,6 +72,30 @@ def test_anagrafica_persisted_and_mirrored_to_sqlite(tmp_path: Path) -> None:
     assert row["phone_e164"] == "+393331234567"
 
 
+def test_anagrafica_locks_account_email_and_allows_recovery(tmp_path: Path) -> None:
+    store = ProfileStore(tmp_path / "profiles")
+    store.create_account("sara", "Segreta123", email="sara@gmail.com")
+    # Tentativo di cambiare email account: ignorato.
+    profile = store.update_anagrafica(
+        "sara",
+        first_name="Sara",
+        last_name="Bianchi",
+        gender="female",
+        email="altra@gmail.com",
+        recovery_email="backup@gmail.com",
+    )
+    assert profile.email == "sara@gmail.com"
+    assert profile.recovery_email == "backup@gmail.com"
+    with pytest.raises(ValueError, match="diversa"):
+        store.update_anagrafica(
+            "sara",
+            first_name="Sara",
+            last_name="Bianchi",
+            gender="female",
+            recovery_email="sara@gmail.com",
+        )
+
+
 def test_register_phone_optional_and_not_headset(tmp_path: Path) -> None:
     store = ProfileStore(tmp_path / "profiles")
     profile = store.create_account(

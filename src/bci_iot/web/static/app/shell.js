@@ -106,6 +106,11 @@
     if (nameEl) nameEl.textContent = full;
     if (userEl) userEl.textContent = data.username ? "@" + data.username : "";
     if (emailEl) emailEl.textContent = String(data.email || "").trim() || msg("notSet", "Non impostato");
+    const recovery = String(data.recovery_email || "").trim();
+    const recoveryRow = $("#summary-recovery-row");
+    const recoveryEl = $("#summary-recovery-email");
+    if (recoveryRow) recoveryRow.hidden = !recovery;
+    if (recoveryEl) recoveryEl.textContent = recovery || "—";
     if (phoneEl) phoneEl.textContent = phoneLabel(data);
     if (genderEl) genderEl.textContent = genderLabel(data.gender);
   }
@@ -1509,6 +1514,16 @@
       form.first_name.value = data.first_name || "";
       form.last_name.value = data.last_name || "";
       form.email.value = data.email || "";
+      form.email.readOnly = true;
+      const recoveryInput = $("#shell-recovery-email");
+      const recoveryWrap = $("#shell-recovery-wrap");
+      const recoveryToggle = $("#btn-recovery-email-toggle");
+      if (recoveryInput) recoveryInput.value = data.recovery_email || "";
+      if (recoveryWrap) {
+        const hasRecovery = Boolean(String(data.recovery_email || "").trim());
+        recoveryWrap.hidden = !hasRecovery;
+        if (recoveryToggle) recoveryToggle.hidden = hasRecovery;
+      }
       const gender = data.gender || "";
       $$('input[name="gender"]', form).forEach((r) => {
         r.checked = r.value === gender;
@@ -2176,7 +2191,8 @@
         body: {
           first_name: String(fd.get("first_name") || "").trim(),
           last_name: String(fd.get("last_name") || "").trim(),
-          email: String(fd.get("email") || "").trim(),
+          email: String((profile && profile.email) || fd.get("email") || "").trim(),
+          recovery_email: String(fd.get("recovery_email") || "").trim(),
           phone_country: phoneCountry,
           phone_national: phoneNational,
           gender: String(gender),
@@ -2188,6 +2204,14 @@
       }
       fillProfile(data, { mode: "view", justSaved: true });
       setHint($("#profile-hint"));
+    });
+
+    $("#btn-recovery-email-toggle")?.addEventListener("click", () => {
+      const wrap = $("#shell-recovery-wrap");
+      const toggle = $("#btn-recovery-email-toggle");
+      if (wrap) wrap.hidden = false;
+      if (toggle) toggle.hidden = true;
+      $("#shell-recovery-email")?.focus();
     });
 
     $("#btn-edit-profile")?.addEventListener("click", () => {

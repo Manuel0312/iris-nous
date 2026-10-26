@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.5.15",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Profilo: email account bloccata + recupero opzionale",
+                "In anagrafica si poteva riscrivere (o cambiare) l’email già usata in registrazione.",
+                "Ora l’email account è precompilata e non modificabile; se vuoi, aggiungi un’email di recupero diversa.",
+            ),
+        ),
+    },
+    {
         "version": "0.5.14",
         "intro": WHATS_NEW_INTRO,
         "entries": (

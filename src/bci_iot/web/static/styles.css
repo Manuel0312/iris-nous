@@ -3643,6 +3643,21 @@ html[data-theme-resolved="dark"] .password-toggle:hover {
   margin: 0 0 0.6rem;
 }
 
+.page-anagrafica input.email-locked,
+.page-anagrafica input.email-locked:focus {
+  opacity: 0.92;
+  cursor: default;
+  background: rgba(127, 127, 127, 0.12);
+}
+
+.page-anagrafica .recovery-email-block {
+  margin: 0.35rem 0 0.85rem;
+}
+
+.page-anagrafica .recovery-email-fields {
+  margin-top: 0.55rem;
+}
+
 .page-anagrafica .anag-field input,
 .page-anagrafica .anag-identity input[type="email"],
 .page-anagrafica .anag-identity input[type="text"],

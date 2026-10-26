@@ -272,6 +272,13 @@ html[data-theme-resolved="dark"] .chip.soft {
 
 .field:last-child { margin-bottom: 0; }
 
+.field input.email-locked,
+.field input.email-locked:focus {
+  opacity: 0.92;
+  cursor: default;
+  background: rgba(127, 127, 127, 0.14);
+}
+
 .field input,
 .phone-row input[type="tel"],
 .phone-cc-menu input[type="search"],

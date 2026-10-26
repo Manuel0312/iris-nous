@@ -315,6 +315,10 @@
               <span>{{ tx('Email') }}</span>
               <strong id="summary-email">—</strong>
             </div>
+            <div class="summary-row" role="listitem" id="summary-recovery-row" hidden>
+              <span>{{ tx('Email di recupero') }}</span>
+              <strong id="summary-recovery-email">—</strong>
+            </div>
             <div class="summary-row" role="listitem">
               <span>{{ tx('Telefono') }}</span>
               <strong id="summary-phone">—</strong>
@@ -347,8 +351,14 @@
             <label class="field">{{ tx('Cognome') }}
               <input name="last_name" type="text" maxlength="64" autocomplete="family-name" />
             </label>
-            <label class="field">{{ tx('Email') }}
-              <input name="email" type="email" required maxlength="254" autocomplete="email" />
+            <label class="field">{{ tx('Email account') }}
+              <input name="email" id="shell-profile-email" type="email" required maxlength="254" autocomplete="email" readonly class="email-locked" />
+            </label>
+            <p class="form-hint">{{ tx('Email dell’account (quella della registrazione): non modificabile.') }}</p>
+            <button type="button" class="btn ghost wide" id="btn-recovery-email-toggle">{{ tx('Aggiungi email di recupero') }}</button>
+            <label class="field" id="shell-recovery-wrap" hidden>{{ tx('Email di recupero') }}
+              <input name="recovery_email" id="shell-recovery-email" type="email" maxlength="254" autocomplete="email" placeholder="{{ tx('Email di recupero (facoltativa)') }}" />
+              <span class="form-hint">{{ tx('Opzionale: diversa dall’email account, utile se perdi l’accesso alla casella principale.') }}</span>
             </label>
 
             <div class="phone-block">

@@ -53,6 +53,7 @@ class UserProfile:
     last_name: str = ""
     gender: str = ""
     email: str = ""
+    recovery_email: str = ""
     phone_label: str = ""
     phone_country: str = ""
     phone_dial: str = ""
@@ -173,6 +174,7 @@ class UserProfile:
             last_name=str(data.get("last_name") or ""),
             gender=str(data.get("gender") or ""),
             email=str(data.get("email") or ""),
+            recovery_email=str(data.get("recovery_email") or ""),
             phone_label=str(data.get("phone_label") or ""),
             phone_country=str(data.get("phone_country") or ""),
             phone_dial=str(data.get("phone_dial") or ""),
@@ -355,6 +357,15 @@ class ProfileStore:
             found = self.find_by_email(raw)
             if found is not None:
                 return found
+            try:
+                needle = normalize_email(raw)
+            except ValueError:
+                needle = raw.strip().casefold()
+            for profile in self.list_profiles():
+                if profile.deleted_at:
+                    continue
+                if (profile.recovery_email or "").casefold() == needle:
+                    return profile
         digits = "".join(ch for ch in raw if ch.isdigit())
         if raw.startswith("+") or len(digits) >= 8:
             e164 = raw if raw.startswith("+") else f"+{digits}"
@@ -867,6 +878,7 @@ class ProfileStore:
         last_name: str,
         gender: str,
         email: str = "",
+        recovery_email: str = "",
         phone_country: str = "",
         phone_national: str = "",
         phone_label: str = "",
@@ -884,14 +896,42 @@ class ProfileStore:
         if phone_label_clean and phone_label_clean.replace(" ", "").replace("+", "").isdigit():
             phone_label_clean = ""
 
-        email_raw = (email or "").strip() or profile.email
-        email_norm = normalize_email(email_raw)
-        other = self.find_by_email(email_norm)
-        if other is not None and other.username.casefold() != profile.username.casefold():
-            raise ValueError(
-                "Questa email è già registrata. Usa «Password dimenticata?» "
-                "se stai recuperando un account esistente."
-            )
+        # Email account: fissata in registrazione. Non si cambia da anagrafica.
+        email_norm = (profile.email or "").strip()
+        if not email_norm:
+            # Solo account legacy senza email: un’unica impostazione consentita.
+            email_raw = (email or "").strip()
+            if not email_raw:
+                raise ValueError("Manca l’email dell’account.")
+            email_norm = normalize_email(email_raw)
+            other = self.find_by_email(email_norm)
+            if other is not None and other.username.casefold() != profile.username.casefold():
+                raise ValueError(
+                    "Questa email è già registrata. Usa «Password dimenticata?» "
+                    "se stai recuperando un account esistente."
+                )
+            profile.email = email_norm
+        else:
+            # Ignora tentativi di cambio (anche se il client manda un altro valore).
+            email_norm = normalize_email(email_norm)
+
+        recovery_raw = (recovery_email or "").strip()
+        if recovery_raw:
+            recovery_norm = normalize_email(recovery_raw)
+            if recovery_norm.casefold() == email_norm.casefold():
+                raise ValueError(
+                    "L’email di recupero deve essere diversa dall’email dell’account."
+                )
+            for other in self.list_profiles():
+                if other.deleted_at or other.username.casefold() == profile.username.casefold():
+                    continue
+                if other.email.casefold() == recovery_norm.casefold():
+                    raise ValueError("Questa email è già usata da un altro account.")
+                if (other.recovery_email or "").casefold() == recovery_norm.casefold():
+                    raise ValueError("Questa email di recupero è già usata da un altro account.")
+            profile.recovery_email = recovery_norm
+        else:
+            profile.recovery_email = ""
 
         country_iso = (phone_country or "").strip()
         national_raw = (phone_national or "").strip()
@@ -924,14 +964,10 @@ class ProfileStore:
             profile.phone_national = ""
             profile.phone_e164 = ""
 
-        if profile.email and profile.email != email_norm and profile.email_verified:
-            profile.email_verified = False
-
         gender_norm = normalize_gender(gender)
         profile.first_name = first
         profile.last_name = last
         profile.gender = gender_norm
-        profile.email = email_norm
         profile.phone_label = phone_label_clean
         profile.anagrafica_complete = True
         self.save(profile)
