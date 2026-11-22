@@ -1,6 +1,43 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.5.18 Accendi auto-pair ---
+    "Cuffia: Accendi già associa, poi Indossa": {
+        "en": "Headset: Power on already pairs, then Wear",
+        "fr": "Casque : Allumer associe deja, puis Porter",
+        "de": "Headset: Einschalten koppelt schon, dann Aufsetzen",
+        "pt": "Auscultadores: Ligar ja associa, depois Vestir",
+        "zh": "耳机：开电源即配对，然后佩戴",
+        "ja": "ヘッドセット：電源で既にペア、その後装着",
+        "es": "Diadema: Encender ya asocia, luego Ponertela",
+    },
+    "Anche dopo il deploy restavi fermo sul messaggio Bluetooth (sito e app) tra Accendi e Indossa.": {
+        "en": "Even after deploy you stayed stuck on the Bluetooth message (site and app) between Power on and Wear.",
+        "fr": "Meme apres deploy vous restiez bloque sur le message Bluetooth (site et app) entre Allumer et Porter.",
+        "de": "Auch nach dem Deploy bliebst du zwischen Einschalten und Aufsetzen bei der Bluetooth-Meldung stecken.",
+        "pt": "Mesmo apos o deploy ficavas preso na mensagem Bluetooth (site e app) entre Ligar e Vestir.",
+        "zh": "即使部署后，开电源与佩戴之间仍卡在蓝牙提示（网站与应用）。",
+        "ja": "デプロイ後も電源と装着の間でBluetoothメッセージに止まっていた（サイト/アプリ）。",
+        "es": "Aun tras el deploy te quedabas parado en el mensaje Bluetooth (sitio y app) entre Encender y Ponertela.",
+    },
+    "Ora Accendi associa subito la cuffia simulata; Indossa va avanti senza quel blocco. Controlla in Novità che sia Versione 0.5.18.": {
+        "en": "Now Power on pairs the simulated headset right away; Wear continues without that block. In What's New check it says Version 0.5.18.",
+        "fr": "Desormais Allumer associe tout de suite le casque simule ; Porter avance sans ce blocage. Dans Nouveautes verifiez Version 0.5.18.",
+        "de": "Einschalten koppelt das simulierte Headset sofort; Aufsetzen geht ohne Blockade weiter. In Neuigkeiten Version 0.5.18 pruefen.",
+        "pt": "Agora Ligar associa de imediato a simulada; Vestir avanca sem esse bloqueio. Em Novidades confere Versao 0.5.18.",
+        "zh": "开电源立即配对模拟耳机；佩戴不再卡住。在「新功能」确认版本 0.5.18。",
+        "ja": "電源で模擬ヘッドセットをすぐペア。装着はそのブロックなし。新着でバージョン0.5.18を確認。",
+        "es": "Ahora Encender asocia al momento la diadema simulada; Ponertela sigue sin ese bloqueo. En Novedades comprueba Version 0.5.18.",
+    },
+    "Cuffia accesa e associata. Tocca Indossa.": {
+        "en": "Headset on and paired. Tap Wear.",
+        "fr": "Casque allume et associe. Touchez Porter.",
+        "de": "Headset an und gekoppelt. Tippe Aufsetzen.",
+        "pt": "Auscultadores ligados e associados. Toca Vestir.",
+        "zh": "耳机已开并已配对。点按佩戴。",
+        "ja": "ヘッドセットON＆ペア済み。装着をタップ。",
+        "es": "Diadema encendida y asociada. Toca Ponertela.",
+    },
     # --- v0.5.17 cuffia web Indossa / BT ---
     "Cuffia sul sito: Indossa non si blocca più sul Bluetooth": {
         "en": "Headset on the site: Wear no longer blocks on Bluetooth",

@@ -32,6 +32,7 @@ def test_home_shows_novita_button(tmp_path: Path) -> None:
         or "Hub «La tua cuffia»" in page.text
         or "Privacy e chiarezza demo" in page.text
     )
+    assert "Cuffia: Accendi già associa, poi Indossa" in page.text
     assert "Cuffia sul sito: Indossa non si blocca più sul Bluetooth" in page.text
     assert "Chatta: traduzione admin↔utente di nuovo affidabile" in page.text
     assert "Profilo: email account bloccata + recupero opzionale" in page.text

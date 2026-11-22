@@ -3171,7 +3171,15 @@ def create_app(
         try:
             if body.on:
                 status = agent.power_on()
-                paired = profiles.is_headset_bt_paired(profile)
+                # Demo: Accendi = anche Bluetooth simulato associato (niente blocco su Indossa).
+                hid = (profile.headset_id or "").strip()
+                if not hid:
+                    profile = profiles.ensure_headset_pairing(username)
+                    hid = (profile.headset_id or "").strip()
+                if not profiles.is_headset_bt_paired(profile):
+                    profiles.mark_headset_bt_paired(username, device_id=hid)
+                    profile = profiles.get(username) or profile
+                paired = True
             else:
                 # Spenta → niente associazione «già fatta»: va riaccesa e riassociata.
                 status = agent.power_off()

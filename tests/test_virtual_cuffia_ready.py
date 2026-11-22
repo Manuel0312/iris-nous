@@ -47,6 +47,9 @@ def test_power_off_clears_bt_session_not_calibration(tmp_path: Path) -> None:
 
     on = client.post("/api/headset/power", json={"on": True})
     assert on.status_code == 200
+    assert on.json().get("headset_bt_paired") is True
+    assert store.is_headset_bt_paired(store.get("pwr_u")) is True
+    # Accendi già associa; pair esplicito resta idempotente.
     scan = client.get("/api/headset/scan")
     assert scan.status_code == 200
     iris = next(d for d in scan.json()["devices"] if d.get("kind") == "iris")
