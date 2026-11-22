@@ -54,7 +54,7 @@
       {% else %}{{ t('Calibrazione') }}{% endif %}
     </h1>
     <p class="lede">
-      {% if stage == 1 %}{{ t('Dal telefono o dal PC: accendi la cuffia simulata, indossala, controlla il contatto. Il sito deve «ricevere» i dati prima della calibrazione.') }}
+      {% if stage == 1 %}{{ t('Dal telefono o dal PC: Accendi → Associa Bluetooth (Iris) → Indossa → Controlla contatto. Poi vai alla calibrazione.') }}
       {% else %}{{ t('Guida: pensa SÌ o pensa NO. Ogni etichetta allena il sistema con finestre EEG pubbliche o sintetiche — non il tuo EEG clinico.') }}{% endif %}
     </p>
   </header>
@@ -86,10 +86,12 @@
       <div class="contact-bars" id="contact-bars" aria-hidden="true"></div>
       <div class="private-actions headset-actions">
         <button class="btn primary" type="button" id="agent-power-on">{{ t('Accendi') }}</button>
+        <button class="btn" type="button" id="agent-bt-pair">{{ t('Associa Bluetooth') }}</button>
         <button class="btn" type="button" id="agent-wear-on">{{ t('Indossa (in testa)') }}</button>
         <button class="btn" type="button" id="agent-contact-btn">{{ t('Controlla contatto') }}</button>
         <button class="btn ghost" type="button" id="agent-power-off">{{ t('Spegni') }}</button>
       </div>
+      <p class="form-hint muted" id="agent-bt-hint">{{ t('Dopo Accendi: Associa Bluetooth su Iris Nous, poi Indossa. In simulazione Indossa associa anche da sola se serve.') }}</p>
     </div>
     <form class="stack calib-form" id="headset-form">
       <label>{{ t('Modalità') }}
@@ -214,7 +216,22 @@
   }
   wire("agent-power-on", "/api/headset/power", { on: true });
   wire("agent-power-off", "/api/headset/power", { on: false });
-  wire("agent-wear-on", "/api/headset/wear", { on_head: true });
+  (function () {
+    const el = document.getElementById("agent-wear-on");
+    if (!el) return;
+    el.addEventListener("click", async function () {
+      if (err) err.hidden = true;
+      if (ok) ok.hidden = true;
+      try {
+        await postJson("/api/headset/power", { on: true });
+        const data = await postJson("/api/headset/wear", { on_head: true });
+        applyAgent(data.agent);
+        if (ok) { ok.hidden = false; ok.textContent = (data.agent && data.agent.detail) || L.pronto; }
+      } catch (ex) {
+        if (err) { err.hidden = false; err.textContent = String(ex.message || ex); }
+      }
+    });
+  })();
   wire("agent-contact-btn", "/api/headset/contact", {});
   (function () {
     const el = document.getElementById("agent-virtual-ready");
@@ -265,7 +282,21 @@
     ok: {{ t('ok')|tojson }},
     daVerificare: {{ t('da verificare')|tojson }},
     pronto: {{ t('Cuffia associata: puoi passare alla calibrazione.')|tojson }},
+    associata: {{ t('Cuffia associata all’account (simulazione Bluetooth).')|tojson }},
+    btErr: {{ t('Associazione Bluetooth non riuscita.')|tojson }},
   };
+
+  async function ensureBtPaired() {
+    const scanRes = await fetch("/api/headset/scan", { cache: "no-store" });
+    const scan = await scanRes.json();
+    if (!scanRes.ok) throw new Error(scan.detail || L.btErr);
+    const iris = (scan.devices || []).find((d) => d.kind === "iris") || (scan.devices || [])[0];
+    if (!iris) throw new Error(L.btErr);
+    return postJson("/api/headset/pair", {
+      device_id: iris.id,
+      device_name: iris.name || "Iris Nous",
+    });
+  }
 
   function renderBars(channels) {
     if (!bars) return;
@@ -336,6 +367,22 @@
       err.textContent = String(ex.message || ex);
     }
   });
+  const btPairBtn = document.getElementById("agent-bt-pair");
+  if (btPairBtn) {
+    btPairBtn.addEventListener("click", async () => {
+      err.hidden = true; ok.hidden = true;
+      try {
+        await postJson("/api/headset/power", { on: true });
+        const data = await ensureBtPaired();
+        if (data.agent) applyAgent(data.agent);
+        ok.hidden = false;
+        ok.textContent = data.message || L.associata;
+      } catch (ex) {
+        err.hidden = false;
+        err.textContent = String(ex.message || ex);
+      }
+    });
+  }
   document.getElementById("agent-power-off").addEventListener("click", async () => {
     err.hidden = true; ok.hidden = true;
     try {
@@ -349,6 +396,13 @@
   document.getElementById("agent-wear-on").addEventListener("click", async () => {
     err.hidden = true; ok.hidden = true;
     try {
+      // Accendi + associa (se serve) poi indossa — niente blocco «Prima associa…»
+      await postJson("/api/headset/power", { on: true });
+      try {
+        await ensureBtPaired();
+      } catch (_pairEx) {
+        /* wear API in simulazione auto-associa comunque */
+      }
       const data = await postJson("/api/headset/wear", { on_head: true });
       applyAgent(data.agent);
       ok.hidden = false;

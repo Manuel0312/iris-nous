@@ -1,6 +1,70 @@
 """Additional UI translations keyed by the original Italian text."""
 
 EXTRA_RAW: dict[str, dict[str, str]] = {
+    # --- v0.5.17 cuffia web Indossa / BT ---
+    "Cuffia sul sito: Indossa non si blocca più sul Bluetooth": {
+        "en": "Headset on the site: Wear no longer blocks on Bluetooth",
+        "fr": "Casque sur le site : Porter ne bloque plus sur le Bluetooth",
+        "de": "Headset auf der Website: Aufsetzen blockiert nicht mehr bei Bluetooth",
+        "pt": "Auscultadores no site: Vestir ja nao bloqueia no Bluetooth",
+        "zh": "网站耳机：佩戴不再卡在蓝牙",
+        "ja": "サイトのヘッドセット：装着がBluetoothで止まらない",
+        "es": "Diadema en el sitio: Ponertela ya no se bloquea en Bluetooth",
+    },
+    "Dopo Accendi, Indossa chiedeva di associare via Bluetooth e non andavi avanti (sul sito mancava il passo Associa).": {
+        "en": "After Power on, Wear asked to associate via Bluetooth and you could not continue (the site was missing the Associate step).",
+        "fr": "Apres Allumer, Porter demandait d’associer en Bluetooth et vous n’avanciez pas (etape Associer absente sur le site).",
+        "de": "Nach Einschalten verlangte Aufsetzen Bluetooth-Kopplung und du kamst nicht weiter (Associa fehlte auf der Website).",
+        "pt": "Depois de Ligar, Vestir pedia associar via Bluetooth e nao avancavas (faltava Associar no site).",
+        "zh": "点亮后点佩戴会要求蓝牙关联且无法继续（网站缺少关联步骤）。",
+        "ja": "電源後の装着でBluetooth連携を求められ進めなかった（サイトに連携が無かった）。",
+        "es": "Tras Encender, Ponertela pedia asociar por Bluetooth y no avanzabas (faltaba Asociar en el sitio).",
+    },
+    "Ora c’è Associa Bluetooth e, in simulazione, Indossa associa da sola se serve: Accendi → Indossa → Controlla contatto.": {
+        "en": "Now there is Associate Bluetooth and, in simulation, Wear pairs by itself if needed: Power on → Wear → Check contact.",
+        "fr": "Desormais Associer Bluetooth existe et, en simulation, Porter associe seul si besoin : Allumer → Porter → Verifier le contact.",
+        "de": "Jetzt gibt es Bluetooth koppeln und in der Simulation koppelt Aufsetzen selbst: Einschalten → Aufsetzen → Kontakt pruefen.",
+        "pt": "Agora ha Associar Bluetooth e, na simulacao, Vestir associa sozinho se preciso: Ligar → Vestir → Verificar contacto.",
+        "zh": "现有关联蓝牙；模拟模式下佩戴可自动配对：开电源 → 佩戴 → 检查接触。",
+        "ja": "Bluetooth連携があり、模擬では装着が必要なら自動ペア：電源→装着→接触確認。",
+        "es": "Ahora hay Asociar Bluetooth y, en simulacion, Ponertela asocia sola si hace falta: Encender → Ponertela → Comprobar contacto.",
+    },
+    "Dal telefono o dal PC: Accendi → Associa Bluetooth (Iris) → Indossa → Controlla contatto. Poi vai alla calibrazione.": {
+        "en": "From phone or PC: Power on → Associate Bluetooth (Iris) → Wear → Check contact. Then go to calibration.",
+        "fr": "Du telephone ou du PC : Allumer → Associer Bluetooth (Iris) → Porter → Verifier le contact. Puis calibration.",
+        "de": "Vom Telefon oder PC: Einschalten → Bluetooth koppeln (Iris) → Aufsetzen → Kontakt pruefen. Dann Kalibrierung.",
+        "pt": "Do telefone ou PC: Ligar → Associar Bluetooth (Iris) → Vestir → Verificar contacto. Depois calibracao.",
+        "zh": "手机或电脑：开电源 → 关联蓝牙（Iris）→ 佩戴 → 检查接触。然后去校准。",
+        "ja": "スマホ/PC：電源→Bluetooth連携（Iris）→装着→接触確認。その後校正へ。",
+        "es": "Desde el telefono o el PC: Encender → Asociar Bluetooth (Iris) → Ponertela → Comprobar contacto. Luego calibracion.",
+    },
+    "Dopo Accendi: Associa Bluetooth su Iris Nous, poi Indossa. In simulazione Indossa associa anche da sola se serve.": {
+        "en": "After Power on: Associate Bluetooth on Iris Nous, then Wear. In simulation Wear also pairs by itself if needed.",
+        "fr": "Apres Allumer : Associer Bluetooth sur Iris Nous, puis Porter. En simulation Porter associe aussi seul si besoin.",
+        "de": "Nach Einschalten: Bluetooth auf Iris Nous koppeln, dann Aufsetzen. In der Simulation koppelt Aufsetzen auch selbst.",
+        "pt": "Depois de Ligar: Associar Bluetooth no Iris Nous, depois Vestir. Na simulacao Vestir tambem associa sozinho se preciso.",
+        "zh": "点亮后：在 Iris Nous 关联蓝牙，再佩戴。模拟模式下佩戴也可自动配对。",
+        "ja": "電源後：Iris NousでBluetooth連携、その後装着。模擬では装着が自動ペアも可。",
+        "es": "Tras Encender: Asociar Bluetooth en Iris Nous, luego Ponertela. En simulacion Ponertela tambien asocia sola si hace falta.",
+    },
+    "Cuffia associata all’account (simulazione Bluetooth).": {
+        "en": "Headset associated to the account (Bluetooth simulation).",
+        "fr": "Casque associe au compte (simulation Bluetooth).",
+        "de": "Headset mit dem Konto verknuepft (Bluetooth-Simulation).",
+        "pt": "Auscultadores associados a conta (simulacao Bluetooth).",
+        "zh": "耳机已关联到账户（蓝牙模拟）。",
+        "ja": "ヘッドセットをアカウントに連携（Bluetooth模擬）。",
+        "es": "Diadema asociada a la cuenta (simulacion Bluetooth).",
+    },
+    "Associazione Bluetooth non riuscita.": {
+        "en": "Bluetooth association failed.",
+        "fr": "Association Bluetooth echouee.",
+        "de": "Bluetooth-Kopplung fehlgeschlagen.",
+        "pt": "Associacao Bluetooth falhou.",
+        "zh": "蓝牙关联失败。",
+        "ja": "Bluetooth連携に失敗。",
+        "es": "Asociacion Bluetooth fallida.",
+    },
     # --- v0.5.15 locked account email ---
     "Profilo: email account bloccata + recupero opzionale": {
         "en": "Profile: locked account email + optional recovery",

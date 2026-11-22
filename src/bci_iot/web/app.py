@@ -3200,10 +3200,16 @@ def create_app(
 
         profile = profiles.ensure_headset_pairing(username)
         if body.on_head and not profiles.is_headset_bt_paired(profile):
-            raise HTTPException(
-                status_code=400,
-                detail="Prima associa la cuffia via Bluetooth (simulato) all’account.",
-            )
+            # Demo: Indossa implica associazione Bluetooth simulata (evita blocco su /cuffia).
+            hid = (profile.headset_id or "").strip()
+            if not hid:
+                profile = profiles.ensure_headset_pairing(username)
+                hid = (profile.headset_id or "").strip()
+            try:
+                profiles.mark_headset_bt_paired(username, device_id=hid)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+            profile = profiles.get(username) or profile
         agent = get_headset_agent(
             username=username,
             headset_id=profile.headset_id,
@@ -3213,7 +3219,11 @@ def create_app(
             status = agent.wear(on_head=body.on_head)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        return {"status": "ok", "agent": status}
+        return {
+            "status": "ok",
+            "agent": status,
+            "headset_bt_paired": profiles.is_headset_bt_paired(profile),
+        }
 
     @app.post("/api/headset/contact")
     def api_headset_contact(

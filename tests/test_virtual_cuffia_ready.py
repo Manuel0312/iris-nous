@@ -77,6 +77,32 @@ def test_power_off_clears_bt_session_not_calibration(tmp_path: Path) -> None:
     assert agent.json()["agent"]["power"] == "off"
 
 
+def test_wear_auto_pairs_in_simulated_mode(tmp_path: Path) -> None:
+    """Sito /cuffia: Accendi → Indossa senza passo Associa non deve restare bloccato."""
+
+    app = create_app(data_dir=tmp_path, session_secret="wear-auto-pair")
+    client = TestClient(app)
+    store = app.state.store
+    _register(client, store, "wear_u")
+    store.ensure_headset_pairing("wear_u")
+    store.set_headset_mode("wear_u", "simulated")
+    assert store.is_headset_bt_paired(store.get("wear_u")) is False
+
+    power = client.post("/api/headset/power", json={"on": True})
+    assert power.status_code == 200
+
+    wear = client.post("/api/headset/wear", json={"on_head": True})
+    assert wear.status_code == 200, wear.text
+    body = wear.json()
+    assert body["agent"]["wear"] == "on_head"
+    assert body.get("headset_bt_paired") is True
+    assert store.is_headset_bt_paired(store.get("wear_u")) is True
+
+    cuffia = client.get("/cuffia?stage=1")
+    assert cuffia.status_code == 200
+    assert "Associa Bluetooth" in cuffia.text
+
+
 def test_virtual_ready_one_tap(tmp_path: Path) -> None:
     app = create_app(data_dir=tmp_path, session_secret="virt-ready")
     client = TestClient(app)

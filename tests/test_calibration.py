@@ -161,6 +161,14 @@ def test_web_calibration_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     assert "/cuffia" in intro.text
 
     assert client.post("/api/headset/power", json={"on": True}).status_code == 200
+    scan = client.get("/api/headset/scan")
+    assert scan.status_code == 200
+    iris = next(d for d in scan.json()["devices"] if d.get("kind") == "iris")
+    pair = client.post(
+        "/api/headset/pair",
+        json={"device_id": iris["id"], "device_name": iris.get("name") or "Iris Nous"},
+    )
+    assert pair.status_code == 200
     assert client.post("/api/headset/wear", json={"on_head": True}).status_code == 200
 
     for kind in ("SI", "NO", "SI"):
