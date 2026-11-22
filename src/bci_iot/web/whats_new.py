@@ -10,6 +10,17 @@ WHATS_NEW_INTRO = "Ecco le novità di questa versione."
 # Newest first. Each entry: (title, before, after) — fused into one natural paragraph in the UI.
 WHATS_NEW_HISTORY: tuple[dict[str, object], ...] = (
     {
+        "version": "0.5.16",
+        "intro": WHATS_NEW_INTRO,
+        "entries": (
+            (
+                "Chatta: traduzione admin↔utente di nuovo affidabile",
+                "Messaggi inglesi tipo «i have a problem» restavano solo in originale per l’admin italiano (detect confuso / motori cloud bloccati).",
+                "Rilevamento lingua più preciso, fallback offline per frasi comuni e di nuovo badge «Tradotto» + testo originale apribile; la risposta IT viene offerta in EN all’utente.",
+            ),
+        ),
+    },
+    {
         "version": "0.5.15",
         "intro": WHATS_NEW_INTRO,
         "entries": (

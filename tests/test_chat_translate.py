@@ -114,6 +114,54 @@ def test_hi_how_are_you_detected_english() -> None:
     assert detect_message_language("hi how are you", hint="it") == "en"
 
 
+def test_i_have_a_problem_detected_english_not_german() -> None:
+    from bci_iot.accounts.chat_translate import detect_message_language
+
+    assert detect_message_language("i have a problem", hint="it") == "en"
+
+
+def test_i_have_a_problem_translates_offline_for_italian_admin(monkeypatch) -> None:
+    """Even if every cloud engine fails, admin still sees Italian + original."""
+
+    monkeypatch.setattr(
+        "bci_iot.accounts.chat_translate._google_gtx",
+        lambda *_a, **_k: "",
+    )
+    monkeypatch.setattr(
+        "bci_iot.accounts.chat_translate._google_clients5",
+        lambda *_a, **_k: "",
+    )
+    monkeypatch.setattr(
+        "bci_iot.accounts.chat_translate._mymemory",
+        lambda *_a, **_k: "",
+    )
+    monkeypatch.setattr(
+        "bci_iot.accounts.chat_translate._lingva",
+        lambda *_a, **_k: "",
+    )
+    monkeypatch.setattr(
+        "bci_iot.accounts.chat_translate._libretranslate",
+        lambda *_a, **_k: "",
+    )
+    shown = present_support_messages(
+        [
+            {
+                "sender": "user",
+                "body": "i have a problem",
+                "body_translated": "",
+                "lang_src": "it",
+                "lang_dst": "",
+            }
+        ],
+        viewer_is_admin=True,
+        viewer_lang="it",
+        fallback_user_lang="it",
+    )
+    assert shown[0]["show_original"] is True
+    assert shown[0]["display_body"].lower() == "ho un problema"
+    assert shown[0]["original_body"] == "i have a problem"
+
+
 def test_hi_how_are_you_translates_for_italian_admin() -> None:
     shown = present_support_messages(
         [

@@ -65,7 +65,8 @@ _CLUES: dict[str, tuple[str, ...]] = {
         " nicht ",
         " und ",
         " kopfhörer",
-        " problem ",
+        " ein problem",
+        " habe ein",
         " kann ",
         " koppeln ",
         " wie geht",
@@ -81,6 +82,7 @@ _CLUES: dict[str, tuple[str, ...]] = {
         " telefono ",
         " come stai",
         " ciao ",
+        " ho un ",
     ),
     "en": (
         " the ",
@@ -102,7 +104,41 @@ _CLUES: dict[str, tuple[str, ...]] = {
         " what's",
         " thank you",
         " thanks ",
+        " i have ",
+        " have a ",
+        " a problem",
+        " problem",
+        " i need ",
+        " my ",
     ),
+}
+
+# Short phrasebook when cloud engines are blocked (Render / firewall).
+_OFFLINE_IT: dict[str, str] = {
+    "hi": "Ciao",
+    "hello": "Ciao",
+    "hey": "Ciao",
+    "thanks": "Grazie",
+    "thank you": "Grazie",
+    "i have a problem": "Ho un problema",
+    "i have a problem.": "Ho un problema.",
+    "i need help": "Ho bisogno di aiuto",
+    "help": "Aiuto",
+    "hi how are you": "Ciao, come stai",
+    "how are you": "Come stai",
+    "hi, i cannot associate the headphone": "Ciao, non riesco ad associare la cuffia",
+    "i cannot associate the headphone": "Non riesco ad associare la cuffia",
+    "please help": "Per favore aiutami",
+}
+
+_OFFLINE_EN: dict[str, str] = {
+    "ciao": "Hi",
+    "grazie": "Thanks",
+    "ho un problema": "I have a problem",
+    "ho bisogno di aiuto": "I need help",
+    "come stai": "How are you",
+    "non riesco ad associare la cuffia": "I cannot associate the headset",
+    "aiuto": "Help",
 }
 
 
@@ -124,7 +160,63 @@ def _score_language(body: str) -> dict[str, int]:
         scores["en"] = scores.get("en", 0) + 2
     if "you" in tokens and len(tokens) <= 6:
         scores["en"] = scores.get("en", 0) + 1
+    # Strong English function words beat false hits (e.g. DE clue on “problem”).
+    en_hits = tokens & {
+        "i",
+        "you",
+        "the",
+        "a",
+        "an",
+        "is",
+        "are",
+        "have",
+        "has",
+        "my",
+        "your",
+        "this",
+        "that",
+        "with",
+        "from",
+        "not",
+        "can",
+        "will",
+        "please",
+        "problem",
+        "help",
+        "need",
+        "cannot",
+        "don't",
+        "doesn't",
+    }
+    if len(en_hits) >= 2:
+        scores["en"] = scores.get("en", 0) + 3
+    if "i" in tokens and "have" in tokens:
+        scores["en"] = scores.get("en", 0) + 2
+    if "problem" in tokens and not any(
+        t in tokens for t in ("ich", "nicht", "ein", "und", "kann")
+    ):
+        scores["en"] = scores.get("en", 0) + 2
+        scores["de"] = max(0, scores.get("de", 0) - 1)
     return scores
+
+
+def _offline_translate(text: str, *, source: str, target: str) -> str:
+    key = " ".join((text or "").strip().lower().split())
+    if not key:
+        return ""
+    if target == "it":
+        hit = _OFFLINE_IT.get(key)
+        if hit:
+            return hit
+        # Soft match without punctuation
+        bare = key.strip(".,!?;:")
+        return _OFFLINE_IT.get(bare, "")
+    if target == "en" and source in {"it", "auto"}:
+        hit = _OFFLINE_EN.get(key)
+        if hit:
+            return hit
+        return _OFFLINE_EN.get(key.strip(".,!?;:"), "")
+    return ""
 
 
 def detect_message_language(text: str, *, hint: str = "") -> str:
@@ -171,6 +263,10 @@ def translate_text(text: str, *, source: str, target: str) -> str:
         if guessed == dst:
             return body
         src = guessed
+    offline = _offline_translate(body, source=src, target=dst)
+    if offline and offline.lower() != body.lower():
+        return offline
+
     snippet = body[:450]
     engines = (
         lambda: _google_gtx(snippet, src, dst),
@@ -193,6 +289,9 @@ def translate_text(text: str, *, source: str, target: str) -> str:
             if len(body) > 450:
                 return f"{translated}\n…"
             return translated
+    # Last resort: offline again after failed engines (same map).
+    if offline and offline.lower() != body.lower():
+        return offline
     return body
 
 

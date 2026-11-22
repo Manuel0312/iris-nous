@@ -330,6 +330,34 @@ EXTRA_RAW: dict[str, dict[str, str]] = {
         "ja": "チームに書く",
         "es": "Escribir al equipo",
     },
+    # --- v0.5.16 chat translate reliability ---
+    "Chatta: traduzione admin↔utente di nuovo affidabile": {
+        "en": "Chat: admin↔user translation reliable again",
+        "fr": "Discussion : traduction admin↔utilisateur de nouveau fiable",
+        "de": "Chat: Admin↔Nutzer-Übersetzung wieder zuverlässig",
+        "pt": "Chat: traducao admin↔utilizador de novo fiavel",
+        "zh": "聊天：管理员↔用户翻译再次可靠",
+        "ja": "チャット：管理者↔ユーザー翻訳が再び安定",
+        "es": "Chat: traduccion admin↔usuario otra vez fiable",
+    },
+    "Messaggi inglesi tipo «i have a problem» restavano solo in originale per l’admin italiano (detect confuso / motori cloud bloccati).": {
+        "en": "English messages like «i have a problem» stayed original-only for the Italian admin (confused detect / blocked cloud engines).",
+        "fr": "Les messages anglais du type «i have a problem» restaient en original pour l’admin italien (détection confuse / moteurs cloud bloqués).",
+        "de": "Englische Meldungen wie «i have a problem» blieben für den italienischen Admin nur im Original (fehlerhafte Erkennung / blockierte Cloud-Engines).",
+        "pt": "Mensagens em ingles como «i have a problem» ficavam so no original para o admin italiano (detecao confusa / motores cloud bloqueados).",
+        "zh": "像 «i have a problem» 这类英文消息对意大利管理员只显示原文（语言误判 / 云翻译被拦）。",
+        "ja": "「i have a problem」などの英語がイタリア語管理者に原文のまま（誤検出／クラウド翻訳遮断）。",
+        "es": "Mensajes en ingles como «i have a problem» quedaban solo en original para el admin italiano (deteccion confusa / motores cloud bloqueados).",
+    },
+    "Rilevamento lingua più preciso, fallback offline per frasi comuni e di nuovo badge «Tradotto» + testo originale apribile; la risposta IT viene offerta in EN all’utente.": {
+        "en": "More accurate language detection, offline fallback for common phrases, and again the «Translated» badge + expandable original; IT replies are offered in EN to the user.",
+        "fr": "Détection de langue plus précise, repli hors-ligne pour les phrases courantes, et à nouveau le badge «Traduit» + original dépliable ; la réponse IT est proposée en EN à l’utilisateur.",
+        "de": "Genauere Spracherkennung, Offline-Fallback für gängige Sätze und wieder Badge «Übersetzt» + Original aufklappbar; IT-Antworten werden dem Nutzer auf EN angeboten.",
+        "pt": "Deteção de idioma mais precisa, fallback offline para frases comuns e de novo o crachá «Traduzido» + original expansível; a resposta IT é oferecida em EN ao utilizador.",
+        "zh": "更准的语言检测、常用句离线回退，以及「已翻译」标记+可展开原文；管理员的意大利语回复会向用户提供英文。",
+        "ja": "言語検出を精密化し、定型句のオフライン退避と「翻訳済み」バッジ＋原文展開を復帰。ITの返信はユーザーにENで提示。",
+        "es": "Deteccion de idioma mas precisa, fallback offline para frases comunes y otra vez la insignia «Traducido» + original desplegable; la respuesta IT se ofrece en EN al usuario.",
+    },
     # --- v0.5.10 chat auto-translate restore ---
     "Chatta con noi: traduzione automatica di nuovo chiara": {
         "en": "Chat with us: automatic translation clear again",
